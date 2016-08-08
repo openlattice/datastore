@@ -1,0 +1,24 @@
+##
+# Rhizome Bootstrap Configuration
+##
+
+# Set to false to disable persistence 
+enable-persistence:  false
+session-clustering-enabled: false
+
+rethinkdb:
+    hostname: "localhost"
+    port: 28015
+    
+cassandra:
+    keyspace: "kryptnostic"
+    replication-factor: 2
+    seed-nodes:
+        - "127.0.0.1"
+
+hazelcast:
+    server: true
+    group: "local"
+    password: "trumpisboss"
+    seed-nodes: 
+        - "127.0.0.1"

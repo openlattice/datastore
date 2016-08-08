@@ -1,0 +1,23 @@
+##
+# Rhizome Bootstrap Configuration
+##
+
+# Set to false to disable persistence 
+enable-persistence:  false
+session-clustering-enabled: false
+
+graphite:
+    host          : metrics.krypt.int
+    port          : 2003
+    global-prefix : "kryptnostic-service"
+    
+rethinkdb:
+    hostname: "localhost"
+    port: 28015
+    
+hazelcast:
+	server: false
+    group: "staging"
+    password: "youshallnotpass!"
+    seed-nodes: 
+        - "127.0.0.1"

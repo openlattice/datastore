@@ -1,0 +1,64 @@
+description = "Kryptnostic Datastore"
+group = "com.kryptnostic"
+ext.projectName = "datastore"
+
+apply plugin: "application"
+apply plugin: "java"
+apply plugin: "eclipse"
+apply plugin: "idea"
+apply plugin: "jacoco"
+
+apply from: "http://api.krypt.int/gradle/kryptnostic.gradle"
+
+mainClassName = "com.kryptnostic.types.Types"
+applicationDefaultJvmArgs = ["-Xmx5G","-Xms5G","-server"]
+sourceCompatibility=JavaVersion.VERSION_1_8
+targetCompatibility=JavaVersion.VERSION_1_8
+
+run {
+  if (System.getProperty("exec.args")) {
+    args System.getProperty("exec.args").split()
+  }
+}
+ext.odata_version='4.2.0'
+dependencies {  
+    /*
+     * TESTING
+     */
+     testCompile "junit:junit:${junit_version}"
+
+    if( project.hasProperty('developmentMode') && project.developmentMode ) {
+        logger.quiet(project.name + " using project dependencies.")
+        compile project(":rhizome")
+        compile project(":kryptnostic-mapstores")
+    } else {
+        logger.quiet(project.name + " using jar dependencies.")
+        compile "com.kryptnostic:rhizome:${rhizome_version}"
+        compile "com.kryptnostic:kryptnostic-mapstores:${mapstores_version}"
+    }
+
+
+    compile "org.apache.olingo:odata-server-api:${odata_version}"
+    compile "org.apache.olingo:odata-server-core:${odata_version}"
+    compile "org.apache.olingo:odata-commons-api:${odata_version}"
+    compile "org.apache.olingo:odata-commons-core:${odata_version}"
+
+}
+
+task sourcesJar(type : Jar) {
+    classifier = 'sources'
+    from sourceSets.main.allSource
+}
+
+task javadocJar(type: Jar, dependsOn:javadoc) {
+  classifier = 'javadoc'
+  from javadoc.destinationDir
+}
+
+eclipse {
+    ext.downloadSources = true
+    ext.downloadJavadoc = true
+
+    ext.sourceCompatibility=JavaVersion.VERSION_1_8
+    ext.targetCompatibility=JavaVersion.VERSION_1_8
+}

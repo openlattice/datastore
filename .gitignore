@@ -1,0 +1,17 @@
+.classpath
+.project
+.factorypath
+.gradle/
+.settings/
+.idea/
+bin/
+build/
+artifacts/
+src/main/webapp/auth/
+vendor.js.map
+dontUseMe.map
+app.js.map
+app.css.map
+.kryptnostic/
+/generated_src/
+*.iml

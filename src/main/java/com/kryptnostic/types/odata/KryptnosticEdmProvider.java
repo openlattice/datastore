@@ -2,7 +2,6 @@ package com.kryptnostic.types.odata;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 
 import org.apache.olingo.commons.api.edm.EdmPrimitiveTypeKind;
@@ -25,8 +24,6 @@ import com.hazelcast.core.HazelcastInstance;
 import com.hazelcast.core.IMap;
 import com.kryptnostic.types.odata.Ontology.EntitySchema;
 
-import jersey.repackaged.com.google.common.collect.Maps;
-
 public class KryptnosticEdmProvider extends CsdlAbstractEdmProvider {
     private static final Logger                         logger           = LoggerFactory
             .getLogger( KryptnosticEdmProvider.class );
@@ -48,6 +45,7 @@ public class KryptnosticEdmProvider extends CsdlAbstractEdmProvider {
     // Entity Set Names
     public static final String                          ES_PRODUCTS_NAME = "Products";
 
+    
     private final IMap<String, FullQualifiedName>       entitySets;
     private final IMap<FullQualifiedName, EntitySchema> entitySchemas;
 

@@ -18,8 +18,9 @@ public class ObjectType {
         value = 1 )
     private String      type;
 
-    @ClusteringColumn
-    private String      typanme;
+    @ClusteringColumn(
+        value = 0 )
+    private String      typename;
 
     @Column(
         name = "keys" )
@@ -47,6 +48,15 @@ public class ObjectType {
         return this;
     }
 
+    public String getTypename() {
+        return typename;
+    }
+
+    public ObjectType setTypename( String typename ) {
+        this.typename = typename;
+        return this;
+    }
+
     public Set<String> getKeys() {
         return keys;
     }
@@ -56,4 +66,18 @@ public class ObjectType {
         return this;
     }
 
+    public Set<String> getAllowed() {
+        return allowed;
+    }
+
+    public ObjectType setAllowed( Set<String> allowed ) {
+        this.allowed = allowed;
+        return this;
+    }
+
+    @Override
+    public String toString() {
+        return "ObjectType [namespace=" + namespace + ", type=" + type + ", typename=" + typename + ", keys=" + keys
+                + ", allowed=" + allowed + "]";
+    }
 }

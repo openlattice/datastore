@@ -7,7 +7,9 @@ import com.datastax.driver.core.Session;
 import com.datastax.driver.mapping.Mapper;
 import com.datastax.driver.mapping.MappingManager;
 import com.datastax.driver.mapping.Result;
+import com.google.common.base.Charsets;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.hash.Hashing;
 import com.kryptnostic.types.ObjectType;
 
 public class DataModelService {
@@ -21,8 +23,10 @@ public class DataModelService {
         this.edmStore = mappingManager.createAccessor( CassandraEdmStore.class );
         Mapper<ObjectType> objectTypeMapper = mappingManager.mapper( ObjectType.class );
         objectTypeMapper.save( new ObjectType().setNamespace( "kryptnostic" )
-                .setKeys( ImmutableSet.of( "ssn", "passport" ) ).setType( "person" ) );
-        Result<ObjectType> objectTypes = edmStore.getObjectTypes( );
+                .setKeys( ImmutableSet.of( "ssn", "passport" ) ).setType( "person" )
+                .setTypename( Hashing.murmur3_128().hashString( "person", Charsets.UTF_8 ).toString() )
+                .setAllowed( ImmutableSet.of() ) );
+        Result<ObjectType> objectTypes = edmStore.getObjectTypes();
         objectTypes.forEach( objectType -> logger.error( "Object read: {}", objectType ) );
     }
 }

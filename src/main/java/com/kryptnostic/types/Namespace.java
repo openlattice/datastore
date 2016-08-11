@@ -8,6 +8,8 @@ import com.datastax.driver.mapping.MappingManager;
 import com.datastax.driver.mapping.annotations.ClusteringColumn;
 import com.datastax.driver.mapping.annotations.PartitionKey;
 import com.datastax.driver.mapping.annotations.Table;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.kryptnostic.datastore.edm.controllers.EdmApi;
 import com.kryptnostic.datastore.util.DatastoreConstants;
 
 /**
@@ -26,6 +28,7 @@ public class Namespace {
     @ClusteringColumn(value=0)
     private UUID   aclId;
 
+    @JsonProperty( EdmApi.NAMESPACE )
     public String getNamespace() {
         return namespace;
     }
@@ -35,6 +38,7 @@ public class Namespace {
         return this;
     }
 
+    @JsonProperty( EdmApi.ACL_ID )
     public UUID getAclId() {
         return aclId;
     }

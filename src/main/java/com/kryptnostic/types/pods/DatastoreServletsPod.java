@@ -16,4 +16,13 @@ public class DatastoreServletsPod {
                 1,
                 Lists.<Class<?>> newArrayList( ODataMvcPod.class ) );
     }
+
+    @Bean
+    public DispatcherServletConfiguration ontologyServlet() {
+        return new DispatcherServletConfiguration(
+                "ontology",
+                new String[] { "/ontology/*" },
+                1,
+                Lists.<Class<?>> newArrayList( EdmMvcPod.class ) );
+    }
 }

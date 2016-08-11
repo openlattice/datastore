@@ -2,6 +2,8 @@ package com.kryptnostic.types;
 
 import java.util.UUID;
 
+import org.apache.olingo.commons.api.edm.provider.CsdlSchema;
+
 import com.datastax.driver.mapping.MappingManager;
 import com.datastax.driver.mapping.annotations.ClusteringColumn;
 import com.datastax.driver.mapping.annotations.PartitionKey;
@@ -9,16 +11,19 @@ import com.datastax.driver.mapping.annotations.Table;
 import com.kryptnostic.datastore.util.DatastoreConstants;
 
 /**
- * @author Matthew Tamayo-Rios &lt;matthew@kryptnostic.com&gt; Class for use by the {@link MappingManager} to R/W
- *         namespaces from Cassandra.
+ * This class roughly corresponds to {@link CsdlSchema} and is annotated for use by the {@link MappingManager} to R/W
+ * from Cassandra.
+ * 
+ * @author Matthew Tamayo-Rios &lt;matthew@kryptnostic.com&gt;
+ * 
  */
 @Table(
     keyspace = DatastoreConstants.KEYSPACE,
     name = DatastoreConstants.NAMESPACE_TABLE )
 public class Namespace {
-    @PartitionKey
+    @PartitionKey(value=0)
     private String namespace;
-    @ClusteringColumn
+    @ClusteringColumn(value=0)
     private UUID   aclId;
 
     public String getNamespace() {

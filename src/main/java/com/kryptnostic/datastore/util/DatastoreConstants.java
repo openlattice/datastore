@@ -5,6 +5,7 @@ public final class DatastoreConstants {
 
     public static final String KEYSPACE             = "sparks";
     public static final String NAMESPACE_TABLE      = "namespaces";
+    public static final String CONTAINERS_TABLE     = "containers";
     public static final String OBJECT_TYPES_TABLE   = "object_types";
     public static final String PROPERTY_TYPES_TABLE = "property_types";
     public static final String PRIMARY_NAMESPACE    = "agora";

@@ -19,6 +19,7 @@ import com.kryptnostic.datastore.util.DatastoreConstants;
 import com.kryptnostic.datastore.util.DatastoreConstants.Queries;
 import com.kryptnostic.datastore.util.UUIDs;
 import com.kryptnostic.datastore.util.UUIDs.ACLs;
+import com.kryptnostic.types.Container;
 import com.kryptnostic.types.Namespace;
 import com.kryptnostic.types.ObjectType;
 import com.kryptnostic.types.PropertyType;
@@ -48,7 +49,6 @@ public class DataModelService implements EdmManager {
 
         upsertNamespace( new Namespace().setAclId( UUIDs.ACLs.EVERYONE_ACL )
                 .setNamespace( DatastoreConstants.PRIMARY_NAMESPACE ) );
-
         createObjectType( new ObjectType().setNamespace( "kryptnostic" )
                 .setKeys( ImmutableSet.of( "ssn", "passport" ) ).setType( "person" )
                 .setTypename( Hashing.murmur3_128().hashString( "person", Charsets.UTF_8 ).toString() )
@@ -178,5 +178,11 @@ public class DataModelService implements EdmManager {
 
     private void createPropertyTypesTableIfNotExists( Session session ) {
         session.execute( DatastoreConstants.Queries.CREATE_PROPERTY_TYPES_TABLE );
+    }
+
+    @Override
+    public void createContainer( String namespace, String container, UUID or ) {
+        // TODO Auto-generated method stub
+        
     }
 }

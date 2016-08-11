@@ -6,10 +6,11 @@ import com.datastax.driver.mapping.annotations.ClusteringColumn;
 import com.datastax.driver.mapping.annotations.Column;
 import com.datastax.driver.mapping.annotations.PartitionKey;
 import com.datastax.driver.mapping.annotations.Table;
+import com.kryptnostic.datastore.util.DatastoreConstants;
 
 @Table(
-    keyspace = "sparks",
-    name = "object_types" )
+    keyspace = DatastoreConstants.KEYSPACE,
+    name = DatastoreConstants.OBJECT_TYPES_TABLE )
 public class ObjectType {
     @PartitionKey(
         value = 0 )

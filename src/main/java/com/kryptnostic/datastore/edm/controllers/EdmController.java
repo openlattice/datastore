@@ -7,11 +7,11 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseStatus;
 
-import com.kryptnostic.types.services.DataModelService;
+import com.kryptnostic.types.services.EdmManager;
 
 @Controller
 public class EdmController {
-    private DataModelService modelService;
+    private EdmManager modelService;
 
     @RequestMapping(
         path = "/{namespace}/{container}",

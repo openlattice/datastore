@@ -1,4 +1,4 @@
-package com.kryptnostic.types.odata;
+package com.kryptnostic.datastore.odata;
 
 import java.io.InputStream;
 import java.net.URI;

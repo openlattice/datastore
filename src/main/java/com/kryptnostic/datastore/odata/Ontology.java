@@ -1,4 +1,4 @@
-package com.kryptnostic.types.odata;
+package com.kryptnostic.datastore.odata;
 
 import java.util.List;
 import java.util.Map;

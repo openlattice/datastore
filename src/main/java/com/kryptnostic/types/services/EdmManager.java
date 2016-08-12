@@ -6,8 +6,9 @@ import java.util.UUID;
 import org.apache.olingo.commons.api.edm.EdmPrimitiveTypeKind;
 
 import com.kryptnostic.types.Container;
+import com.kryptnostic.types.EntitySet;
 import com.kryptnostic.types.Namespace;
-import com.kryptnostic.types.ObjectType;
+import com.kryptnostic.types.EntityType;
 import com.kryptnostic.types.PropertyType;
 import com.kryptnostic.types.Schema;
 
@@ -40,12 +41,16 @@ public interface EdmManager {
      * @param aclId The aclId controlling access to the container.
      */
     void upsertContainer( Container container );
+    
+    boolean createEntitySet( String namespace, EntitySet entitySet );
+    
+    void upsertEntitySet( EntitySet entitySet );
 
-    boolean createObjectType( ObjectType objectType );
+    boolean createObjectType( EntityType objectType );
 
-    void upsertObjectType( ObjectType objectType );
+    void upsertObjectType( EntityType objectType );
 
-    void deleteObjectType( ObjectType objectType );
+    void deleteObjectType( EntityType objectType );
 
     boolean createPropertyType(
             String namespace,
@@ -58,8 +63,8 @@ public interface EdmManager {
 
     void deletePropertyType( PropertyType propertyType );
 
-    void addObjectTypesToContainer( String namespace, String container, Set<String> objectTypes );
+    void addEntityTypesToContainer( String namespace, String container, Set<String> objectTypes );
 
-    void removeObjectTypesFromContainer( String namespace, String container, Set<String> objectTypes );
+    void removeEntityTypesFromContainer( String namespace, String container, Set<String> objectTypes );
 
 }

@@ -17,8 +17,8 @@ import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestMapping;
 
 import com.hazelcast.core.HazelcastInstance;
-import com.kryptnostic.types.odata.KryptnosticEdmProvider;
-import com.kryptnostic.types.odata.KryptnosticEntityCollectionProcessor;
+import com.kryptnostic.datastore.odata.KryptnosticEdmProvider;
+import com.kryptnostic.datastore.odata.KryptnosticEntityCollectionProcessor;
 
 @Controller
 public class ODataController {

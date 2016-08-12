@@ -10,8 +10,8 @@ import com.kryptnostic.datastore.util.DatastoreConstants;
 
 @Table(
     keyspace = DatastoreConstants.KEYSPACE,
-    name = DatastoreConstants.OBJECT_TYPES_TABLE )
-public class ObjectType {
+    name = DatastoreConstants.ENTITY_TYPES_TABLE )
+public class EntityType {
     @PartitionKey(
         value = 0 )
     private String      namespace;
@@ -35,7 +35,7 @@ public class ObjectType {
         return namespace;
     }
 
-    public ObjectType setNamespace( String namespace ) {
+    public EntityType setNamespace( String namespace ) {
         this.namespace = namespace;
         return this;
     }
@@ -44,7 +44,7 @@ public class ObjectType {
         return type;
     }
 
-    public ObjectType setType( String type ) {
+    public EntityType setType( String type ) {
         this.type = type;
         return this;
     }
@@ -53,16 +53,16 @@ public class ObjectType {
         return typename;
     }
 
-    public ObjectType setTypename( String typename ) {
+    public EntityType setTypename( String typename ) {
         this.typename = typename;
         return this;
     }
 
-    public Set<String> getKeys() {
+    public Set<String> getKey() {
         return keys;
     }
 
-    public ObjectType setKeys( Set<String> keys ) {
+    public EntityType setKeys( Set<String> keys ) {
         this.keys = keys;
         return this;
     }
@@ -71,7 +71,7 @@ public class ObjectType {
         return allowed;
     }
 
-    public ObjectType setAllowed( Set<String> allowed ) {
+    public EntityType setAllowed( Set<String> allowed ) {
         this.allowed = allowed;
         return this;
     }

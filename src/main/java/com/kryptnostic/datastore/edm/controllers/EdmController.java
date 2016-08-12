@@ -17,7 +17,7 @@ import com.google.common.base.Optional;
 import com.kryptnostic.datastore.util.UUIDs.ACLs;
 import com.kryptnostic.types.Container;
 import com.kryptnostic.types.Namespace;
-import com.kryptnostic.types.ObjectType;
+import com.kryptnostic.types.EntityType;
 import com.kryptnostic.types.PropertyType;
 import com.kryptnostic.types.Schema;
 import com.kryptnostic.types.services.EdmManager;
@@ -88,7 +88,7 @@ public class EdmController implements EdmApi {
         method = RequestMethod.PUT )
     public void putObjectType(
             @PathVariable( "namespace" ) String namespace,
-            @RequestBody ObjectType typeInfo ) {
+            @RequestBody EntityType typeInfo ) {
         modelService.createObjectType( typeInfo );
     }
 
@@ -114,7 +114,7 @@ public class EdmController implements EdmApi {
 
     @Override
     public void addObjectTypeToContainer( String namespace, String container, @RequestBody Set<String> objectTypes ) {
-        modelService.addObjectTypesToContainer( namespace, container, objectTypes );
+        modelService.addEntityTypesToContainer( namespace, container, objectTypes );
 
     }
 
@@ -123,18 +123,18 @@ public class EdmController implements EdmApi {
             String namespace,
             String container,
             @RequestBody Set<String> objectTypes ) {
-        modelService.removeObjectTypesFromContainer( namespace, container, objectTypes );
+        modelService.removeEntityTypesFromContainer( namespace, container, objectTypes );
 
     }
 
     @Override
-    public boolean postObjectType( String namespace, ObjectType objectType ) {
+    public boolean postObjectType( String namespace, EntityType objectType ) {
         return modelService.createObjectType( objectType );
     }
 
     @Override
     public void deleteObjectType( String namespace, String objectType ) {
-        modelService.deleteObjectType( new ObjectType().setNamespace( namespace ).setType( objectType ) );
+        modelService.deleteObjectType( new EntityType().setNamespace( namespace ).setType( objectType ) );
     }
 
     @Override

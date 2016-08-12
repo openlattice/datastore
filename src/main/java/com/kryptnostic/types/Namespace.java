@@ -21,7 +21,7 @@ import com.kryptnostic.datastore.util.DatastoreConstants;
  */
 @Table(
     keyspace = DatastoreConstants.KEYSPACE,
-    name = DatastoreConstants.NAMESPACE_TABLE )
+    name = DatastoreConstants.SCHEMA_TABLE )
 public class Namespace {
     @PartitionKey(value=0)
     private String namespace;

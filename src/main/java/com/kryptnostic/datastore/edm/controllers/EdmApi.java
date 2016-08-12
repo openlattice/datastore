@@ -6,7 +6,7 @@ import java.util.UUID;
 import com.google.common.base.Optional;
 import com.kryptnostic.types.Container;
 import com.kryptnostic.types.Namespace;
-import com.kryptnostic.types.ObjectType;
+import com.kryptnostic.types.EntityType;
 import com.kryptnostic.types.PropertyType;
 import com.kryptnostic.types.Schema;
 
@@ -66,11 +66,11 @@ public interface EdmApi {
      * @param objectType Name of the container.
      * @return True if object type was created, false if container already exists.
      */
-    boolean postObjectType( String namespace, ObjectType objectType );
+    boolean postObjectType( String namespace, EntityType objectType );
 
     void putObjectType(
             String namespace,
-            ObjectType typeInfo );
+            EntityType typeInfo );
 
     void deleteObjectType(
             String namespace,

@@ -22,11 +22,7 @@ run {
 }
 ext.odata_version='4.2.0'
 dependencies {  
-    /*
-     * TESTING
-     */
-     testCompile "junit:junit:${junit_version}"
-
+    
     if( project.hasProperty('developmentMode') && project.developmentMode ) {
         logger.quiet(project.name + " using project dependencies.")
         compile project(":rhizome")
@@ -43,6 +39,16 @@ dependencies {
     compile "org.apache.olingo:odata-commons-api:${odata_version}"
     compile "org.apache.olingo:odata-commons-core:${odata_version}"
 
+
+    /*
+     * TESTING
+     */
+    testCompile "junit:junit:${junit_version}"
+    testCompile "junit:junit:${junit_version}"
+    testCompile( "org.mockito:mockito-all:${mockito_version}" ) {
+        exclude module : 'hamcrest'
+        exclude module : 'hamcrest-core'
+    }
 }
 
 task sourcesJar(type : Jar) {

@@ -50,7 +50,7 @@ public class KryptnosticEdmProvider extends CsdlAbstractEdmProvider {
     // Entity Set Names
     public static final String                          ES_PRODUCTS_NAME = "Products";
 
-    private final EdmManager                                    dms;
+    private final EdmManager                            dms;
 
     private final IMap<String, FullQualifiedName>       entitySets;
     private final IMap<FullQualifiedName, EntitySchema> entitySchemas;
@@ -99,7 +99,7 @@ public class KryptnosticEdmProvider extends CsdlAbstractEdmProvider {
                         .put( "objectId", EdmPrimitiveTypeKind.Guid )
                         .put( "version", EdmPrimitiveTypeKind.Int64 )
                         .build(),
-                ImmutableList.of( "ID" ) );
+                ImmutableList.of( "aclId" ) );
 
         entitySchemas.put( ET_PRODUCT_FQN, schema );
         entitySchemas.put( new FullQualifiedName( NAMESPACE, "metadataLevel" ), schema2 );
@@ -159,9 +159,7 @@ public class KryptnosticEdmProvider extends CsdlAbstractEdmProvider {
     }
 
     public CsdlEntitySet getEntitySet( FullQualifiedName entityContainer, String entitySetName ) {
-        EntitySet entitySet = dms.getEntitySet( entityContainer.getNamespace(),
-                entityContainer.getName(),
-                entitySetName );
+        EntitySet entitySet = dms.getEntitySet( entityContainer.getNamespace(), entitySetName );
         return Transformers.transform( entitySet );
         // if ( entityContainer.equals( CONTAINER ) ) {
         // FullQualifiedName type = entitySets.get( entitySetName );

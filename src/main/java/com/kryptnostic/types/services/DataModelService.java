@@ -117,12 +117,12 @@ public class DataModelService implements EdmManager {
      * @see com.kryptnostic.types.services.EdmManager#createObjectType(com.kryptnostic.types.ObjectType)
      */
     @Override
-    public boolean createEntityType( EntityType propertyType ) {
-        return wasLightweightTransactionApplied( edmStore.createObjectTypeIfNotExists( propertyType.getNamespace(),
-                propertyType.getType(),
-                propertyType.getTypename(),
-                propertyType.getKey(),
-                propertyType.getProperties() ) );
+    public boolean createEntityType( EntityType entityType ) {
+        return createEntityType( entityType.getNamespace(),
+                entityType.getType(),
+                entityType.getTypename(),
+                entityType.getKey(),
+                entityType.getProperties() );
     }
 
     /*
@@ -199,14 +199,14 @@ public class DataModelService implements EdmManager {
     }
 
     @Override
-    public boolean createEntitySet(
+    public boolean createEntityType(
             String namespace,
             String type,
             String typename,
             Set<String> key,
             Set<String> properties ) {
         return wasLightweightTransactionApplied(
-                edmStore.createObjectTypeIfNotExists( namespace, type, typename, key, properties ) );
+                edmStore.createEntityTypeIfNotExists( namespace, type, typename, key, properties ) );
     }
 
     @Override
@@ -239,8 +239,8 @@ public class DataModelService implements EdmManager {
         return entityTypeMapper.get( namespace, name );
     }
 
-    public EntitySet getEntitySet( String namespace, String name, String entitySetName ) {
-        return entitySetMapper.get( namespace, name, entitySetName );
+    public EntitySet getEntitySet( String namespace, String name ) {
+        return entitySetMapper.get( namespace, name );
     }
 
     @Override

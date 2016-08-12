@@ -49,7 +49,7 @@ public final class DatastoreConstants {
 
         // Lightweight transactions for object insertion.
         public static final String CREATE_SCHEMA_IF_NOT_EXISTS            = "INSERT INTO sparks." + SCHEMAS_TABLE
-                + " (namespace, aclId, name, entityTypes) VALUES (?,?,?,?) IF NOT EXISTS";
+                + " (namespace, name, aclId, entityTypes) VALUES (?,?,?,?) IF NOT EXISTS";
         public static final String CREATE_ENTITY_TYPE_IF_NOT_EXISTS       = "INSERT INTO sparks." + ENTITY_TYPES_TABLE
                 + " (namespace, type, typename, key, properties) VALUES (?,?,?,?,?) IF NOT EXISTS";
         public static final String CREATE_PROPERTY_TYPE_IF_NOT_EXISTS     = "INSERT INTO sparks." + PROPERTY_TYPES_TABLE

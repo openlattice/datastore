@@ -35,7 +35,7 @@ public interface CassandraEdmStore {
             @Param( ParamNames.ENTITY_TYPE ) String objectType );
 
     @Query( Queries.CREATE_ENTITY_TYPE_IF_NOT_EXISTS )
-    public ResultSet createObjectTypeIfNotExists(
+    public ResultSet createEntityTypeIfNotExists(
             String namespace,
             String type,
             String typename,

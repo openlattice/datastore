@@ -22,7 +22,7 @@ public interface EdmManager {
 
     Schema getSchema( String namespace, String name );
 
-    boolean createEntitySet(
+    boolean createEntityType(
             String namespace,
             String type,
             String typename,
@@ -31,7 +31,7 @@ public interface EdmManager {
 
     void upsertEntitySet( EntitySet entitySet );
 
-    EntitySet getEntitySet( String namespace, String name, String entitySetName );
+    EntitySet getEntitySet( String namespace, String name );
     
     void deleteEntitySet( EntitySet entitySet );
     

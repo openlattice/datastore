@@ -2,8 +2,6 @@ package com.kryptnostic.types.services;
 
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.ExecutionException;
-import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import org.apache.olingo.commons.api.edm.EdmPrimitiveTypeKind;
@@ -16,7 +14,7 @@ import com.datastax.driver.mapping.Mapper;
 import com.datastax.driver.mapping.MappingManager;
 import com.datastax.driver.mapping.Result;
 import com.google.common.base.Charsets;
-import com.google.common.base.Predicates;
+import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
@@ -26,6 +24,7 @@ import com.kryptnostic.datastore.util.DatastoreConstants;
 import com.kryptnostic.datastore.util.DatastoreConstants.Queries;
 import com.kryptnostic.datastore.util.UUIDs;
 import com.kryptnostic.datastore.util.UUIDs.ACLs;
+import com.kryptnostic.datastore.util.Util;
 import com.kryptnostic.types.EntitySet;
 import com.kryptnostic.types.EntityType;
 import com.kryptnostic.types.PropertyType;
@@ -45,7 +44,7 @@ public class DataModelService implements EdmManager {
     private final CassandraEdmStore      edmStore;
 
     public DataModelService( Session session ) {
-        createNamespaceTableIfNotExists( session );
+        createSchemasTableIfNotExists( session );
         createEntityTypesTableIfNotExists( session );
         createPropertyTypesTableIfNotExists( session );
         createEntitySetTableIfNotExists( session );
@@ -59,7 +58,7 @@ public class DataModelService implements EdmManager {
         this.propertyTypeMapper = mappingManager.mapper( PropertyType.class );
 
         upsertSchema( new SchemaMetadata().setAclId( UUIDs.ACLs.EVERYONE_ACL )
-                .setNamespace( DatastoreConstants.PRIMARY_NAMESPACE ) );
+                .setNamespace( DatastoreConstants.PRIMARY_NAMESPACE ).setName( DatastoreConstants.PRIMARY_NAMESPACE ) );
         createEntityType( new EntityType().setNamespace( "kryptnostic" )
                 .setKey( ImmutableSet.of( "ssn", "passport" ) ).setType( "person" )
                 .setTypename( Hashing.murmur3_128().hashString( "person", Charsets.UTF_8 ).toString() )
@@ -78,14 +77,8 @@ public class DataModelService implements EdmManager {
         // entityTypeMapper.get
         Set<EntityType> entityTypes = schemaMetadata.getEntityTypes().stream()
                 .map( type -> entityTypeMapper.getAsync( schemaMetadata.getNamespace(), type ) )
-                .map( futureEntityType -> {
-                    try {
-                        return futureEntityType.get();
-                    } catch ( InterruptedException | ExecutionException e ) {
-                        logger.error( "Failed to load entity type from schema {} in namespace {}", name, namespace );
-                        return null;
-                    }
-                } ).filter( e -> e != null ).collect( Collectors.toSet() );
+                .map( futureEntityType -> Util.getFutureSafely( futureEntityType ) ).filter( e -> e != null )
+                .collect( Collectors.toSet() );
         Set<String> propertyTypeNames = Sets.newHashSet();
 
         for ( EntityType entityType : entityTypes ) {
@@ -94,10 +87,10 @@ public class DataModelService implements EdmManager {
 
         Set<PropertyType> propertyTypes = propertyTypeNames.stream()
                 .map( type -> propertyTypeMapper.getAsync( schemaMetadata.getNamespace(), type ) )
-                .map( futurePropertType -> futurePropertyType.get() ).collect( Collectors.toSet() );
-        // return new Schema( entityTypes, propertyTypes, aclId )
-        // new Schema(
-        return null;
+                .map( futurePropertyType -> Util.getFutureSafely( futurePropertyType ) ).filter( e -> e != null )
+                .collect( Collectors.toSet() );
+
+        return new Schema( entityTypes, propertyTypes, Optional.of( schemaMetadata.getAclId() ) );
     }
 
     /*
@@ -197,12 +190,12 @@ public class DataModelService implements EdmManager {
 
     @Override
     public void addEntityTypesToSchema( String namespace, String name, Set<String> entityTypes ) {
-        edmStore.addEntityTypesToContainer( namespace, ACLs.EVERYONE_ACL, name, entityTypes );
+         edmStore.addEntityTypesToContainer( namespace, ACLs.EVERYONE_ACL, name, entityTypes );
     }
 
     @Override
     public void removeEntityTypesFromSchema( String namespace, String name, Set<String> entityTypes ) {
-        edmStore.removeEntityTypesFromContainer( namespace, ACLs.EVERYONE_ACL, name, entityTypes );
+         edmStore.removeEntityTypesFromContainer( namespace, ACLs.EVERYONE_ACL, name, entityTypes );
     }
 
     @Override
@@ -221,17 +214,17 @@ public class DataModelService implements EdmManager {
         entitySetMapper.save( entitySet );
     }
 
-    private static void createNamespaceTableIfNotExists( Session session ) {
-        session.execute( Queries.CREATE_NAMESPACE_TABLE );
+    private static void createSchemasTableIfNotExists( Session session ) {
+        session.execute( Queries.CREATE_SCHEMAS_TABLE );
     }
 
     private static void createEntitySetTableIfNotExists( Session session ) {
-        session.execute( Queries.CREATE_ENTITY_SET_TABLE );
+        session.execute( Queries.CREATE_ENTITY_SETS_TABLE );
+        session.execute( Queries.CREATE_INDEX_ON_TYPE );
     }
 
     private static void createEntityTypesTableIfNotExists( Session session ) {
         session.execute( Queries.CREATE_ENTITY_TYPES_TABLE );
-        session.execute( Queries.CREATE_INDEX_ON_TYPENAME );
     }
 
     private void createPropertyTypesTableIfNotExists( Session session ) {
@@ -248,6 +241,12 @@ public class DataModelService implements EdmManager {
 
     public EntitySet getEntitySet( String namespace, String name, String entitySetName ) {
         return entitySetMapper.get( namespace, name, entitySetName );
+    }
+
+    @Override
+    public void deleteEntitySet( EntitySet entitySet ) {
+        // TODO Auto-generated method stub
+        
     }
 
 }

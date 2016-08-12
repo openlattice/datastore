@@ -23,18 +23,18 @@ import com.kryptnostic.datastore.util.DatastoreConstants;
  */
 @Table(
     keyspace = DatastoreConstants.KEYSPACE,
-    name = DatastoreConstants.SCHEMA_TABLE )
+    name = DatastoreConstants.SCHEMAS_TABLE )
 public class SchemaMetadata {
-    @PartitionKey(
-        value = 0 )
-    private String      namespace;
-
     @PartitionKey(
         value = 0 )
     private UUID        aclId;
 
     @ClusteringColumn(
         value = 0 )
+    private String      namespace;
+
+    @ClusteringColumn(
+        value = 1 )
     private String      name;
 
     @Column(

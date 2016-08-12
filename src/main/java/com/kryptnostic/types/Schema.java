@@ -30,7 +30,7 @@ public class Schema {
     }
 
     @JsonProperty( EdmApi.OBJECT_TYPES )
-    public Set<EntityType> getObjectTypes() {
+    public Set<EntityType> getEntityTypes() {
         return objectTypes;
     }
 

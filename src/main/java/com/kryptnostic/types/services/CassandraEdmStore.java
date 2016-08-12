@@ -52,15 +52,15 @@ public interface CassandraEdmStore {
 
     @Query( Queries.CREATE_SCHEMA_IF_NOT_EXISTS )
     public ResultSet createSchemaIfNotExists( String namespace, String name, UUID aclId, Set<String> entityTypes );
-
-    @Query( Queries.ADD_ENTITY_TYPES_TO_CONTAINER )
+//
+    @Query( Queries.ADD_ENTITY_TYPES_TO_SCHEMA )
     public ResultSet addEntityTypesToContainer(
             @Param( ParamNames.NAMESPACE ) String namespace,
             @Param( ParamNames.ACL_ID) UUID aclId,
             @Param( ParamNames.NAME ) String name,
             @Param( ParamNames.ENTITY_TYPES ) Set<String> objectType );
-
-    @Query( Queries.REMOVE_ENTITY_TYPES_FROM_CONTAINER )
+//
+    @Query( Queries.REMOVE_ENTITY_TYPES_FROM_SCHEMA )
     public ResultSet removeEntityTypesFromContainer(
             @Param( ParamNames.NAMESPACE ) String namespace,
             @Param( ParamNames.ACL_ID) UUID aclId,

@@ -4,11 +4,10 @@ import java.util.Set;
 import java.util.UUID;
 
 import com.google.common.base.Optional;
-import com.kryptnostic.types.Container;
-import com.kryptnostic.types.SchemaMetadata;
 import com.kryptnostic.types.EntityType;
 import com.kryptnostic.types.PropertyType;
 import com.kryptnostic.types.Schema;
+import com.kryptnostic.types.SchemaMetadata;
 
 public interface EdmApi {
 

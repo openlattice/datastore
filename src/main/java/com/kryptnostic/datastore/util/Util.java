@@ -2,6 +2,7 @@ package com.kryptnostic.datastore.util;
 
 import java.util.List;
 import java.util.Locale;
+import java.util.concurrent.ExecutionException;
 
 import org.apache.olingo.commons.api.data.Entity;
 import org.apache.olingo.commons.api.data.EntityCollection;
@@ -17,8 +18,15 @@ import org.apache.olingo.server.api.uri.UriInfoResource;
 import org.apache.olingo.server.api.uri.UriParameter;
 import org.apache.olingo.server.api.uri.UriResource;
 import org.apache.olingo.server.api.uri.UriResourceEntitySet;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-public class Util {
+import com.google.common.util.concurrent.ListenableFuture;
+
+public final class Util {
+    private static final Logger logger = LoggerFactory.getLogger( Util.class );
+
+    private Util() {}
 
     public static EdmEntitySet getEdmEntitySet( UriInfoResource uriInfo ) throws ODataApplicationException {
 
@@ -113,5 +121,15 @@ public class Util {
         }
 
         return true;
+    }
+
+    public static <T> T getFutureSafely( ListenableFuture<T> futurePropertyType ) {
+        try {
+            return futurePropertyType.get();
+        } catch ( InterruptedException | ExecutionException e1 ) {
+            logger.error( "Failed to load {} type",
+                    futurePropertyType.getClass().getTypeParameters()[ 0 ].getTypeName() );
+            return null;
+        }
     }
 }

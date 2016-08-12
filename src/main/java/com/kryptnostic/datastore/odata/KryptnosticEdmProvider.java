@@ -2,6 +2,7 @@ package com.kryptnostic.datastore.odata;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import org.apache.olingo.commons.api.edm.EdmPrimitiveTypeKind;
 import org.apache.olingo.commons.api.edm.FullQualifiedName;
@@ -22,10 +23,11 @@ import com.hazelcast.core.HazelcastInstance;
 import com.hazelcast.core.IMap;
 import com.kryptnostic.datastore.odata.Ontology.EntitySchema;
 import com.kryptnostic.datastore.util.UUIDs.ACLs;
-import com.kryptnostic.types.Container;
 import com.kryptnostic.types.EntitySet;
 import com.kryptnostic.types.EntityType;
+import com.kryptnostic.types.SchemaMetadata;
 import com.kryptnostic.types.services.DataModelService;
+import com.kryptnostic.types.services.EdmManager;
 
 public class KryptnosticEdmProvider extends CsdlAbstractEdmProvider {
     private static final Logger                         logger           = LoggerFactory
@@ -48,12 +50,13 @@ public class KryptnosticEdmProvider extends CsdlAbstractEdmProvider {
     // Entity Set Names
     public static final String                          ES_PRODUCTS_NAME = "Products";
 
-    DataModelService                                    dms;
+    private final EdmManager                                    dms;
 
     private final IMap<String, FullQualifiedName>       entitySets;
     private final IMap<FullQualifiedName, EntitySchema> entitySchemas;
 
-    public KryptnosticEdmProvider( HazelcastInstance hazelcast ) {
+    public KryptnosticEdmProvider( HazelcastInstance hazelcast, EdmManager dms ) {
+        this.dms = dms;
         this.entitySchemas = hazelcast.getMap( "entitySchemas" );
         this.entitySets = hazelcast.getMap( "entitySets" );
 
@@ -72,11 +75,14 @@ public class KryptnosticEdmProvider extends CsdlAbstractEdmProvider {
                 .setKey( ImmutableSet.of( "aclId" ) )
                 .setProperties( ImmutableSet.of( "aclId", "type", "clock", "objectId", "version" ) )
                 .setTypename( "metadataLevel" );
-        
+
         dms.createEntityType( product );
         dms.createEntityType( metadataLevel );
 
-        dms.createSchema( NAMESPACE, "agora", ACLs.EVERYONE_ACL, ImmutableSet.of( product.getType() , metadataLevel.getType() ) );
+        dms.createSchema( NAMESPACE,
+                "agora",
+                ACLs.EVERYONE_ACL,
+                ImmutableSet.of( product.getType(), metadataLevel.getType() ) );
 
         EntitySchema schema = new EntitySchema(
                 ImmutableMap.<String, EdmPrimitiveTypeKind> builder()
@@ -189,29 +195,50 @@ public class KryptnosticEdmProvider extends CsdlAbstractEdmProvider {
     }
 
     public List<CsdlSchema> getSchemas() throws ODataException {
+        List<CsdlSchema> schemas = new ArrayList<CsdlSchema>();
+        for ( SchemaMetadata schemaMetadata : dms.getSchemaMetadata() ) {
+            CsdlSchema schema = new CsdlSchema();
+            String namespace = schemaMetadata.getNamespace();
+            schema.setNamespace( namespace );
+
+            List<CsdlEntityType> entityTypes = schemaMetadata.getEntityTypes().parallelStream()
+                    .map( type -> new FullQualifiedName( schemaMetadata.getNamespace(), type ) )
+                    .map( fqn -> {
+                        try {
+                            return getEntityType( fqn );
+                        } catch ( ODataException e ) {
+                            logger.error( "Unable to get entity type for FQN={}", fqn );
+                            return null;
+                        }
+                    } )
+                    .filter( et -> et != null )
+                    .collect( Collectors.toList() );
+            schema.setEntityTypes( entityTypes );
+            schema.setEntityContainer( getEntityContainer() );
+            schemas.add( schema );
+        }
 
         // create Schema
-        CsdlSchema schema = new CsdlSchema();
-        schema.setNamespace( NAMESPACE );
-
-        // add EntityTypes
-        List<CsdlEntityType> entityTypes = new ArrayList<CsdlEntityType>();
-        this.entitySchemas.keySet().forEach( fqn -> {
-            try {
-                entityTypes.add( getEntityType( fqn ) );
-            } catch ( ODataException e ) {
-                logger.error( "Unstructured logging sucks!" );
-            }
-        } );
-        // entityTypes.add( getEntityType( ET_PRODUCT_FQN ) );
-        schema.setEntityTypes( entityTypes );
-
-        // add EntityContainer
-        schema.setEntityContainer( getEntityContainer() );
-
+        // schema.setNamespace( NAMESPACE );
+        //
+        // // add EntityTypes
+        // List<CsdlEntityType> entityTypes = new ArrayList<CsdlEntityType>();
+        // this.entitySchemas.keySet().forEach( fqn -> {
+        // try {
+        // entityTypes.add( getEntityType( fqn ) );
+        // } catch ( ODataException e ) {
+        // logger.error( "Unstructured logging sucks!" );
+        // }
+        // } );
+        // // entityTypes.add( getEntityType( ET_PRODUCT_FQN ) );
+        // schema.setEntityTypes( entityTypes );
+        //
+        // // add EntityContainer
+        // schema.setEntityContainer( getEntityContainer() );
+        //
+        // }
         // finally
-        List<CsdlSchema> schemas = new ArrayList<CsdlSchema>();
-        schemas.add( schema );
+        // schemas.add( schema );
 
         return schemas;
     }

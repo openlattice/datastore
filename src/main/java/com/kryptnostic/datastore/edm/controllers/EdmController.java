@@ -15,11 +15,10 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 
 import com.google.common.base.Optional;
 import com.kryptnostic.datastore.util.UUIDs.ACLs;
-import com.kryptnostic.types.Container;
-import com.kryptnostic.types.SchemaMetadata;
 import com.kryptnostic.types.EntityType;
 import com.kryptnostic.types.PropertyType;
 import com.kryptnostic.types.Schema;
+import com.kryptnostic.types.SchemaMetadata;
 import com.kryptnostic.types.services.EdmManager;
 
 @Controller
@@ -53,7 +52,8 @@ public class EdmController implements EdmApi {
             @PathVariable( "namespace" ) String namespace,
             @RequestBody Optional<UUID> aclId ) {
         modelService
-                .upsertSchema( new SchemaMetadata().setNamespace( namespace ).setAclId( aclId.or( ACLs.EVERYONE_ACL ) ) );
+                .upsertSchema(
+                        new SchemaMetadata().setNamespace( namespace ).setAclId( aclId.or( ACLs.EVERYONE_ACL ) ) );
     }
 
     /*
@@ -88,7 +88,7 @@ public class EdmController implements EdmApi {
 
     @Override
     public Schema getSchema( String namespace, String name ) {
-        return modelService.getSchema( namespace );
+        return modelService.getSchema( namespace, name );
     }
 
     @Override

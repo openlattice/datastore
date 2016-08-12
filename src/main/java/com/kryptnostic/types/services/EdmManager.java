@@ -31,9 +31,15 @@ public interface EdmManager {
 
     void upsertEntitySet( EntitySet entitySet );
 
+    EntitySet getEntitySet( String namespace, String name, String entitySetName );
+    
+    void deleteEntitySet( EntitySet entitySet );
+    
     boolean createEntityType( EntityType objectType );
 
     void upsertObjectType( EntityType objectType );
+
+    EntityType getEntityType( String namespace, String name );
 
     void deleteEntityType( EntityType objectType );
 
@@ -51,7 +57,5 @@ public interface EdmManager {
     void addEntityTypesToSchema( String namespace, String name, Set<String> objectTypes );
 
     void removeEntityTypesFromSchema( String namespace, String name, Set<String> objectTypes );
-
-
 
 }

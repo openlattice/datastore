@@ -15,21 +15,20 @@ public class EntityType {
     @PartitionKey(
         value = 0 )
     private String      namespace;
-    @PartitionKey(
-        value = 1 )
-    private String      type;
-
     @ClusteringColumn(
         value = 0 )
+    private String      type;
+    @Column(
+        name = "typename" )
     private String      typename;
 
     @Column(
-        name = "keys" )
-    private Set<String> keys;
+        name = "key" )
+    private Set<String> key;
 
     @Column(
-        name = "allowed" )
-    public Set<String>  allowed;
+        name = "properties" )
+    public Set<String>  properties;
 
     public String getNamespace() {
         return namespace;
@@ -59,26 +58,26 @@ public class EntityType {
     }
 
     public Set<String> getKey() {
-        return keys;
+        return key;
     }
 
-    public EntityType setKeys( Set<String> keys ) {
-        this.keys = keys;
+    public EntityType setKey( Set<String> key ) {
+        this.key = key;
         return this;
     }
 
-    public Set<String> getAllowed() {
-        return allowed;
+    public Set<String> getProperties() {
+        return properties;
     }
 
-    public EntityType setAllowed( Set<String> allowed ) {
-        this.allowed = allowed;
+    public EntityType setProperties( Set<String> properties ) {
+        this.properties = properties;
         return this;
     }
 
     @Override
     public String toString() {
-        return "ObjectType [namespace=" + namespace + ", type=" + type + ", typename=" + typename + ", keys=" + keys
-                + ", allowed=" + allowed + "]";
+        return "ObjectType [namespace=" + namespace + ", type=" + type + ", typename=" + typename + ", key=" + key
+                + ", allowed=" + properties + "]";
     }
 }

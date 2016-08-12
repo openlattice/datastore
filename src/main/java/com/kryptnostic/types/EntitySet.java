@@ -13,9 +13,6 @@ public class EntitySet {
     @PartitionKey(
         value = 0 )
     private String namespace;
-    @PartitionKey(
-        value = 1 )
-    private String container;
     @ClusteringColumn(
         value = 0 )
     private String name;
@@ -39,15 +36,6 @@ public class EntitySet {
 
     public EntitySet setNamespace( String namespace ) {
         this.namespace = namespace;
-        return this;
-    }
-
-    public String getContainer() {
-        return container;
-    }
-
-    public EntitySet setContainer( String container ) {
-        this.container = container;
         return this;
     }
 

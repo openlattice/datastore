@@ -5,52 +5,37 @@ import java.util.UUID;
 
 import org.apache.olingo.commons.api.edm.EdmPrimitiveTypeKind;
 
-import com.kryptnostic.types.Container;
 import com.kryptnostic.types.EntitySet;
-import com.kryptnostic.types.Namespace;
 import com.kryptnostic.types.EntityType;
 import com.kryptnostic.types.PropertyType;
 import com.kryptnostic.types.Schema;
+import com.kryptnostic.types.SchemaMetadata;
 
 public interface EdmManager {
-    void createNamespace( String namespace, UUID aclId );
+    boolean createSchema( String namespace, String name, UUID aclId, Set<String> entityTypes );
 
-    void upsertNamespace( Namespace namespace );
+    void upsertSchema( SchemaMetadata namespace );
 
-    void deleteNamespace( Namespace namespaces );
+    void deleteSchema( SchemaMetadata namespaces );
 
-    Iterable<Namespace> getNamespaces();
+    Iterable<SchemaMetadata> getSchemaMetadata();
 
-    Schema getSchema( String namespace );
+    Schema getSchema( String namespace, String name );
 
-    /**
-     * Creates a container if does not exist. To upsert a container
-     * 
-     * @param namespace The namespace for the container.
-     * @param container The name of the container.
-     * @param aclId The aclId controlling access to the container.
-     * @return True if the container was created and false otherwise.
-     */
-    boolean createContainer( String namespace, Container container );
+    boolean createEntitySet(
+            String namespace,
+            String type,
+            String typename,
+            Set<String> key,
+            Set<String> properties );
 
-    /**
-     * Creates or updates a container.
-     * 
-     * @param namespace The namespace for the container.
-     * @param container The name of the container.
-     * @param aclId The aclId controlling access to the container.
-     */
-    void upsertContainer( Container container );
-    
-    boolean createEntitySet( String namespace, EntitySet entitySet );
-    
     void upsertEntitySet( EntitySet entitySet );
 
-    boolean createObjectType( EntityType objectType );
+    boolean createEntityType( EntityType objectType );
 
     void upsertObjectType( EntityType objectType );
 
-    void deleteObjectType( EntityType objectType );
+    void deleteEntityType( EntityType objectType );
 
     boolean createPropertyType(
             String namespace,
@@ -63,8 +48,10 @@ public interface EdmManager {
 
     void deletePropertyType( PropertyType propertyType );
 
-    void addEntityTypesToContainer( String namespace, String container, Set<String> objectTypes );
+    void addEntityTypesToSchema( String namespace, String name, Set<String> objectTypes );
 
-    void removeEntityTypesFromContainer( String namespace, String container, Set<String> objectTypes );
+    void removeEntityTypesFromSchema( String namespace, String name, Set<String> objectTypes );
+
+
 
 }

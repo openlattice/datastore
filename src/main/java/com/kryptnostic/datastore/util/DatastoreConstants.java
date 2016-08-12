@@ -17,8 +17,9 @@ public final class DatastoreConstants {
             public static final String ENTITY_TYPE  = "entType";
             public static final String ACL_IDS      = "aclIds";
             public static final String NAMESPACE    = "namespace";
-            public static final String CONTAINER    = "container";
+            public static final String NAME         = "name";
             public static final String ENTITY_TYPES = "entTypes";
+            public static final String ACL_ID       = "aclId";
         }
 
         // Table Creation
@@ -46,7 +47,7 @@ public final class DatastoreConstants {
                 + "."
                 + ENTITY_SETS_TABLE + " (typename)";
         // Lightweight transactions for object insertion.
-        public static final String CREATE_NAMESPACE_IF_NOT_EXISTS         = "INSERT INTO sparks." + SCHEMA_TABLE
+        public static final String CREATE_SCHEMA_IF_NOT_EXISTS            = "INSERT INTO sparks." + SCHEMA_TABLE
                 + " (namespace, aclId, container, entityTypes) VALUES (?,?,?,?) IF NOT EXISTS";
         public static final String CREATE_ENTITY_TYPE_IF_NOT_EXISTS       = "INSERT INTO sparks." + ENTITY_TYPES_TABLE
                 + " (namespace, type, typename, keys, allowed) VALUES (?,?,?,?,?) IF NOT EXISTS";
@@ -56,7 +57,8 @@ public final class DatastoreConstants {
         // Read queries for datastore.
         public static final String GET_ALL_ENTITY_TYPES_QUERY             = "select * from sparks."
                 + ENTITY_TYPES_TABLE;
-        public static final String GET_ALL_PROPERTY_TYPES_FOR_ENTITY_TYPE = "select * from sparks.property_types where namespace=:"
+        public static final String GET_ALL_PROPERTY_TYPES_FOR_ENTITY_TYPE = "select * from sparks."
+                + PROPERTY_TYPES_TABLE + " where namespace=:"
                 + ParamNames.NAMESPACE + " AND type=:"
                 + ParamNames.ENTITY_TYPE;
         public static final String GET_ALL_NAMESPACES                     = "select * from sparks.namespaces where aclId IN :"
@@ -64,10 +66,10 @@ public final class DatastoreConstants {
         public static final String ADD_ENTITY_TYPES_TO_CONTAINER          = "UPDATE sparks." + SCHEMA_TABLE
                 + " SET entityTypes = entityTypes + :"
                 + ParamNames.ENTITY_TYPES + " where namespace = :" + ParamNames.NAMESPACE + " AND container = :"
-                + ParamNames.CONTAINER;
-        public static final String REMOVE_ENTITY_TYPES_TO_CONTAINER       = "UPDATE sparks." + SCHEMA_TABLE
+                + ParamNames.NAME;
+        public static final String REMOVE_ENTITY_TYPES_FROM_CONTAINER     = "UPDATE sparks." + SCHEMA_TABLE
                 + " SET entityTypes = entityTypes - :"
                 + ParamNames.ENTITY_TYPES + " where namespace = :" + ParamNames.NAMESPACE + " AND container = :"
-                + ParamNames.CONTAINER;
+                + ParamNames.NAME;
     }
 }

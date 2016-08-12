@@ -1,11 +1,13 @@
 package com.kryptnostic.types;
 
+import java.util.Set;
 import java.util.UUID;
 
 import org.apache.olingo.commons.api.edm.provider.CsdlSchema;
 
 import com.datastax.driver.mapping.MappingManager;
 import com.datastax.driver.mapping.annotations.ClusteringColumn;
+import com.datastax.driver.mapping.annotations.Column;
 import com.datastax.driver.mapping.annotations.PartitionKey;
 import com.datastax.driver.mapping.annotations.Table;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -22,18 +24,29 @@ import com.kryptnostic.datastore.util.DatastoreConstants;
 @Table(
     keyspace = DatastoreConstants.KEYSPACE,
     name = DatastoreConstants.SCHEMA_TABLE )
-public class Namespace {
-    @PartitionKey(value=0)
-    private String namespace;
-    @ClusteringColumn(value=0)
-    private UUID   aclId;
+public class SchemaMetadata {
+    @PartitionKey(
+        value = 0 )
+    private String      namespace;
+
+    @PartitionKey(
+        value = 0 )
+    private UUID        aclId;
+
+    @ClusteringColumn(
+        value = 0 )
+    private String      name;
+
+    @Column(
+        name = "entityTypes" )
+    private Set<String> entityTypes;
 
     @JsonProperty( EdmApi.NAMESPACE )
     public String getNamespace() {
         return namespace;
     }
 
-    public Namespace setNamespace( String namespace ) {
+    public SchemaMetadata setNamespace( String namespace ) {
         this.namespace = namespace;
         return this;
     }
@@ -43,14 +56,36 @@ public class Namespace {
         return aclId;
     }
 
-    public Namespace setAclId( UUID aclId ) {
+    public SchemaMetadata setAclId( UUID aclId ) {
         this.aclId = aclId;
+        return this;
+    }
+
+    @JsonProperty( EdmApi.NAME )
+    public String getName() {
+        return name;
+    }
+
+    public SchemaMetadata setName( String name ) {
+        this.name = name;
+        return this;
+    }
+
+    public Set<String> getEntityTypes() {
+        return entityTypes;
+    }
+
+    public SchemaMetadata setEntityTypes( Set<String> entityTypes ) {
+        this.entityTypes = entityTypes;
         return this;
     }
 
     @Override
     public String toString() {
-        return "Namespace [namespace=" + namespace + ", aclId=" + aclId + "]";
+        return "SchemaMetadata [namespace=" + namespace + ", aclId=" + aclId + ", name=" + name + ", entityTypes="
+                + entityTypes + "]";
     }
+
+    // TODO: Add JsonCreator
 
 }

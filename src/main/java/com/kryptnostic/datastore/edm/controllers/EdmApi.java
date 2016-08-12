@@ -5,14 +5,14 @@ import java.util.UUID;
 
 import com.google.common.base.Optional;
 import com.kryptnostic.types.Container;
-import com.kryptnostic.types.Namespace;
+import com.kryptnostic.types.SchemaMetadata;
 import com.kryptnostic.types.EntityType;
 import com.kryptnostic.types.PropertyType;
 import com.kryptnostic.types.Schema;
 
 public interface EdmApi {
 
-    Iterable<Namespace> getSchemas();
+    Iterable<SchemaMetadata> getSchemas();
 
     /**
      * Creates a schema.
@@ -31,34 +31,17 @@ public interface EdmApi {
      * @return The schema for the namespace specified by namespace.
      */
     Schema getSchema(
-            String namespace );
-
-    /**
-     * Creates a container if it doesn't already exist.
-     * 
-     * @param namespace Namespace for the container.
-     * @param container Name of the container.
-     * @return True if container was created, false if container already exists.
-     */
-    boolean postContainer( String namespace, Container container );
-
-    /**
-     * Creates or updates a container.
-     * @param namespace Namespace for the container.
-     * @param container Name of the container.
-     */
-    void putContainer(
             String namespace,
-            Container container );
+            String name );
 
-    void addObjectTypeToContainer(
+    void addEntityTypeToSchema(
             String namespace,
-            String container,
+            String name,
             Set<String> objectTypes );
 
-    void removeObjectTypeFromContainer(
+    void removeEntityTypeFromSchema(
             String namespace,
-            String container,
+            String name,
             Set<String> objectTypes );
 
     /**
@@ -66,18 +49,19 @@ public interface EdmApi {
      * @param objectType Name of the container.
      * @return True if object type was created, false if container already exists.
      */
-    boolean postObjectType( String namespace, EntityType objectType );
+    boolean postEntityType( String namespace, EntityType objectType );
 
-    void putObjectType(
+    void putEntityType(
             String namespace,
             EntityType typeInfo );
 
-    void deleteObjectType(
+    void deleteEntityType(
             String namespace,
-            String objectType );
+            String entityType );
 
     /**
      * Creates a property type if doesn't alreadsy exist.
+     * 
      * @param namespace Namespace for the object.
      * @param propertyType Name of the property type.
      * @return True if property type was created, false if container already exists.
@@ -100,4 +84,5 @@ public interface EdmApi {
     String ACL_ID         = "aclId";
     String CONTAINER      = "container";
     String NAMESPACE      = "namespace";
+    String NAME           = "name";
 }

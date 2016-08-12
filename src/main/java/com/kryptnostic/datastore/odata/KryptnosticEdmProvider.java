@@ -57,8 +57,6 @@ public class KryptnosticEdmProvider extends CsdlAbstractEdmProvider {
         this.entitySchemas = hazelcast.getMap( "entitySchemas" );
         this.entitySets = hazelcast.getMap( "entitySets" );
 
-        dms.createNamespace( NAMESPACE, ACLs.EVERYONE_ACL );
-
         dms.createPropertyType( NAMESPACE, "ID", "ID", EdmPrimitiveTypeKind.Int32, 0 );
         dms.createPropertyType( NAMESPACE, "Name", "Name", EdmPrimitiveTypeKind.String, 0 );
         dms.createPropertyType( NAMESPACE, "Description", "Description", EdmPrimitiveTypeKind.String, 0 );
@@ -67,18 +65,18 @@ public class KryptnosticEdmProvider extends CsdlAbstractEdmProvider {
         dms.createPropertyType( NAMESPACE, "type", "type", EdmPrimitiveTypeKind.Guid, 0 );
         dms.createPropertyType( NAMESPACE, "clock", "clock", EdmPrimitiveTypeKind.Guid, 0 );
         dms.createPropertyType( NAMESPACE, "objectId", "version", EdmPrimitiveTypeKind.Int64, 0 );
+        EntityType product = new EntityType().setNamespace( NAMESPACE ).setType( ET_PRODUCT_NAME )
+                .setKey( ImmutableSet.of( "ID" ) ).setProperties( ImmutableSet.of( "ID", "Name", "Description" ) )
+                .setTypename( ET_PRODUCT_NAME );
+        EntityType metadataLevel = new EntityType().setNamespace( NAMESPACE ).setType( "metadataLevel" )
+                .setKey( ImmutableSet.of( "aclId" ) )
+                .setProperties( ImmutableSet.of( "aclId", "type", "clock", "objectId", "version" ) )
+                .setTypename( "metadataLevel" );
+        
+        dms.createEntityType( product );
+        dms.createEntityType( metadataLevel );
 
-        dms.createObjectType( new EntityType().setNamespace( NAMESPACE ).setType( ET_PRODUCT_NAME )
-                .setKeys( ImmutableSet.of( "ID" ) ).setAllowed( ImmutableSet.of( "ID", "Name", "Description" ) )
-                .setTypename( ET_PRODUCT_NAME ) );
-        dms.createObjectType( new EntityType().setNamespace( NAMESPACE ).setType( "metadataLevel" )
-                .setKeys( ImmutableSet.of( "aclId" ) )
-                .setAllowed( ImmutableSet.of( "aclId", "type", "clock", "objectId", "version" ) )
-                .setTypename( "metadataLevel" ) );
-
-        dms.createContainer( NAMESPACE,
-                new Container().setContainer( CONTAINER_NAME ).setNamespace( NAMESPACE )
-                        .setObjectTypes( ImmutableSet.<String> of( ET_PRODUCT_NAME, "metadataLevel" ) ) );
+        dms.createSchema( NAMESPACE, "agora", ACLs.EVERYONE_ACL, ImmutableSet.of( product.getType() , metadataLevel.getType() ) );
 
         EntitySchema schema = new EntitySchema(
                 ImmutableMap.<String, EdmPrimitiveTypeKind> builder()
@@ -107,7 +105,7 @@ public class KryptnosticEdmProvider extends CsdlAbstractEdmProvider {
 
     @Override
     public CsdlEntityType getEntityType( FullQualifiedName entityTypeName ) throws ODataException {
-//        EntitySchema entityTypeDefs = entitySchemas.get( entityTypeName );
+        // EntitySchema entityTypeDefs = entitySchemas.get( entityTypeName );
 
         EntityType objectType = dms.getEntityType( entityTypeName.getNamespace(), entityTypeName.getName() );
 
@@ -151,31 +149,32 @@ public class KryptnosticEdmProvider extends CsdlAbstractEdmProvider {
         // return entityTypeA;
         // }
 
-//        return null;
+        // return null;
     }
 
     public CsdlEntitySet getEntitySet( FullQualifiedName entityContainer, String entitySetName ) {
-        EntitySet entitySet = dms.getEntitySet( entityContainer.getNamespace() , entityContainer.getName() ,entitySetName);
-        return Transformers.transform( entitySet  );
-//        if ( entityContainer.equals( CONTAINER ) ) {
-//            FullQualifiedName type = entitySets.get( entitySetName );
-//            if ( type != null ) {
-//                return new CsdlEntitySet().setName( entitySetName ).setType( type );
-//            }
-//            // if ( entitySetName.equals( ES_PRODUCTS_NAME ) ) {
-//            // CsdlEntitySet entitySet = new CsdlEntitySet();
-//            // entitySet.setName( ES_PRODUCTS_NAME );
-//            // entitySet.setType( ET_PRODUCT_FQN );
-//            //
-//            // return entitySet;
-//            // }
-//        }
+        EntitySet entitySet = dms.getEntitySet( entityContainer.getNamespace(),
+                entityContainer.getName(),
+                entitySetName );
+        return Transformers.transform( entitySet );
+        // if ( entityContainer.equals( CONTAINER ) ) {
+        // FullQualifiedName type = entitySets.get( entitySetName );
+        // if ( type != null ) {
+        // return new CsdlEntitySet().setName( entitySetName ).setType( type );
+        // }
+        // // if ( entitySetName.equals( ES_PRODUCTS_NAME ) ) {
+        // // CsdlEntitySet entitySet = new CsdlEntitySet();
+        // // entitySet.setName( ES_PRODUCTS_NAME );
+        // // entitySet.setType( ET_PRODUCT_FQN );
+        // //
+        // // return entitySet;
+        // // }
+        // }
 
-//        return null;
+        // return null;
     }
 
     public CsdlEntityContainer getEntityContainer() {
-        Container container = dms.getContainer( NAMESPACE.getNamespace() );// entityContainer.getName() );
         // create EntitySets
         List<CsdlEntitySet> entitySets = new ArrayList<CsdlEntitySet>();
         this.entitySets.keySet().forEach( e -> entitySets.add( getEntitySet( CONTAINER, e ) ) );
@@ -194,7 +193,7 @@ public class KryptnosticEdmProvider extends CsdlAbstractEdmProvider {
         // create Schema
         CsdlSchema schema = new CsdlSchema();
         schema.setNamespace( NAMESPACE );
-        
+
         // add EntityTypes
         List<CsdlEntityType> entityTypes = new ArrayList<CsdlEntityType>();
         this.entitySchemas.keySet().forEach( fqn -> {
@@ -209,7 +208,7 @@ public class KryptnosticEdmProvider extends CsdlAbstractEdmProvider {
 
         // add EntityContainer
         schema.setEntityContainer( getEntityContainer() );
-        
+
         // finally
         List<CsdlSchema> schemas = new ArrayList<CsdlSchema>();
         schemas.add( schema );

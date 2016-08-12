@@ -16,7 +16,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import com.google.common.base.Optional;
 import com.kryptnostic.datastore.util.UUIDs.ACLs;
 import com.kryptnostic.types.Container;
-import com.kryptnostic.types.Namespace;
+import com.kryptnostic.types.SchemaMetadata;
 import com.kryptnostic.types.EntityType;
 import com.kryptnostic.types.PropertyType;
 import com.kryptnostic.types.Schema;
@@ -36,8 +36,8 @@ public class EdmController implements EdmApi {
     @RequestMapping(
         path = { "", "/" },
         method = RequestMethod.GET )
-    public Iterable<Namespace> getSchemas() {
-        return modelService.getNamespaces();
+    public Iterable<SchemaMetadata> getSchemas() {
+        return modelService.getSchemaMetadata();
     }
 
     /*
@@ -53,28 +53,7 @@ public class EdmController implements EdmApi {
             @PathVariable( "namespace" ) String namespace,
             @RequestBody Optional<UUID> aclId ) {
         modelService
-                .upsertNamespace( new Namespace().setNamespace( namespace ).setAclId( aclId.or( ACLs.EVERYONE_ACL ) ) );
-    }
-
-    @Override
-    public boolean postContainer( String namespace, Container container ) {
-        // TODO: Creating a container feels a little funky since we require two writes instead of
-        return modelService.createContainer( namespace, container );
-    }
-
-    /*
-     * (non-Javadoc)
-     * @see com.kryptnostic.datastore.edm.controllers.EdmAPI#createContainer(java.lang.String, java.lang.String,
-     * com.google.common.base.Optional)
-     */
-    @Override
-    @RequestMapping(
-        path = "/{namespace}/containers",
-        method = RequestMethod.PUT )
-    public void putContainer(
-            @PathVariable( "namespace" ) String namespace,
-            @RequestBody Container container ) {
-        modelService.upsertContainer( container );
+                .upsertSchema( new SchemaMetadata().setNamespace( namespace ).setAclId( aclId.or( ACLs.EVERYONE_ACL ) ) );
     }
 
     /*
@@ -86,10 +65,10 @@ public class EdmController implements EdmApi {
     @RequestMapping(
         path = "/{namespace}/types/objects",
         method = RequestMethod.PUT )
-    public void putObjectType(
+    public void putEntityType(
             @PathVariable( "namespace" ) String namespace,
             @RequestBody EntityType typeInfo ) {
-        modelService.createObjectType( typeInfo );
+        modelService.createEntityType( typeInfo );
     }
 
     /*
@@ -108,33 +87,33 @@ public class EdmController implements EdmApi {
     }
 
     @Override
-    public Schema getSchema( String namespace ) {
+    public Schema getSchema( String namespace, String name ) {
         return modelService.getSchema( namespace );
     }
 
     @Override
-    public void addObjectTypeToContainer( String namespace, String container, @RequestBody Set<String> objectTypes ) {
-        modelService.addEntityTypesToContainer( namespace, container, objectTypes );
+    public void addEntityTypeToSchema( String namespace, String container, @RequestBody Set<String> objectTypes ) {
+        modelService.addEntityTypesToSchema( namespace, container, objectTypes );
 
     }
 
     @Override
-    public void removeObjectTypeFromContainer(
+    public void removeEntityTypeFromSchema(
             String namespace,
             String container,
             @RequestBody Set<String> objectTypes ) {
-        modelService.removeEntityTypesFromContainer( namespace, container, objectTypes );
+        modelService.removeEntityTypesFromSchema( namespace, container, objectTypes );
 
     }
 
     @Override
-    public boolean postObjectType( String namespace, EntityType objectType ) {
-        return modelService.createObjectType( objectType );
+    public boolean postEntityType( String namespace, EntityType objectType ) {
+        return modelService.createEntityType( objectType );
     }
 
     @Override
-    public void deleteObjectType( String namespace, String objectType ) {
-        modelService.deleteObjectType( new EntityType().setNamespace( namespace ).setType( objectType ) );
+    public void deleteEntityType( String namespace, String objectType ) {
+        modelService.deleteEntityType( new EntityType().setNamespace( namespace ).setType( objectType ) );
     }
 
     @Override

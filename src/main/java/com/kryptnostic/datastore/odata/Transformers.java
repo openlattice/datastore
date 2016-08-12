@@ -22,7 +22,7 @@ public final class Transformers {
         entityType.setKey( objectType.getKey().stream()
                 .map( name -> new CsdlPropertyRef().setName( name ) ).collect( Collectors.toList() ) );
         entityType.setProperties(
-                objectType.getAllowed().stream()
+                objectType.getProperties().stream()
                         .map( ( prop ) -> new CsdlProperty().setName( prop )
                                 .setType( new FullQualifiedName( objectType.getNamespace(), prop ) ) )
                         .collect( Collectors.toList() ) );

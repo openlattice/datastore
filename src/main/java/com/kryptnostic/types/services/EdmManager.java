@@ -28,8 +28,9 @@ public interface EdmManager {
      * @param namespace The namespace for the container.
      * @param container The name of the container.
      * @param aclId The aclId controlling access to the container.
+     * @return True if the container was created and false otherwise.
      */
-    void createContainer( String namespace, String container );
+    boolean createContainer( String namespace, Container container );
 
     /**
      * Creates or updates a container.
@@ -40,16 +41,9 @@ public interface EdmManager {
      */
     void upsertContainer( Container container );
 
-    void createObjectType( ObjectType propertyType );
+    boolean createObjectType( ObjectType objectType );
 
-    void createObjectType(
-            String namespace,
-            String type,
-            String typename,
-            Set<String> keys,
-            Set<String> allowed );
-
-    void upsertObjectType( ObjectType propertyType );
+    void upsertObjectType( ObjectType objectType );
 
     void deleteObjectType( ObjectType objectType );
 
@@ -63,5 +57,9 @@ public interface EdmManager {
     void upsertPropertyType( PropertyType propertyType );
 
     void deletePropertyType( PropertyType propertyType );
+
+    void addObjectTypesToContainer( String namespace, String container, Set<String> objectTypes );
+
+    void removeObjectTypesFromContainer( String namespace, String container, Set<String> objectTypes );
 
 }

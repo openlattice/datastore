@@ -1,5 +1,6 @@
 package com.kryptnostic.datastore.edm.controllers;
 
+import java.util.Set;
 import java.util.UUID;
 
 import javax.inject.Inject;
@@ -51,7 +52,14 @@ public class EdmController implements EdmApi {
     public void putSchema(
             @PathVariable( "namespace" ) String namespace,
             @RequestBody Optional<UUID> aclId ) {
-        modelService.createNamespace( namespace, aclId.or( ACLs.EVERYONE_ACL ) );
+        modelService
+                .upsertNamespace( new Namespace().setNamespace( namespace ).setAclId( aclId.or( ACLs.EVERYONE_ACL ) ) );
+    }
+
+    @Override
+    public boolean postContainer( String namespace, Container container ) {
+        // TODO: Creating a container feels a little funky since we require two writes instead of
+        return modelService.createContainer( namespace, container );
     }
 
     /*
@@ -80,7 +88,6 @@ public class EdmController implements EdmApi {
         method = RequestMethod.PUT )
     public void putObjectType(
             @PathVariable( "namespace" ) String namespace,
-            @PathVariable( "objectType" ) String objectType,
             @RequestBody ObjectType typeInfo ) {
         modelService.createObjectType( typeInfo );
     }
@@ -106,44 +113,37 @@ public class EdmController implements EdmApi {
     }
 
     @Override
-    public void addObjectTypeToContainer( String namespace, String container, String objectType ) {
-        // TODO Auto-generated method stub
+    public void addObjectTypeToContainer( String namespace, String container, @RequestBody Set<String> objectTypes ) {
+        modelService.addObjectTypesToContainer( namespace, container, objectTypes );
 
     }
 
     @Override
-    public void removeObjectTypeFromContainer( String namespace, String container, String objectType ) {
-        // TODO Auto-generated method stub
+    public void removeObjectTypeFromContainer(
+            String namespace,
+            String container,
+            @RequestBody Set<String> objectTypes ) {
+        modelService.removeObjectTypesFromContainer( namespace, container, objectTypes );
 
-    }
-
-    @Override
-    public boolean postContainer( String namespace, Container container ) {
-        // TODO Auto-generated method stub
-        return false;
     }
 
     @Override
     public boolean postObjectType( String namespace, ObjectType objectType ) {
-        // TODO Auto-generated method stub
-        return false;
-    }
-
-    @Override
-    public void putObjectType( String namespace, ObjectType typeInfo ) {
-        // TODO Auto-generated method stub
-
+        return modelService.createObjectType( objectType );
     }
 
     @Override
     public void deleteObjectType( String namespace, String objectType ) {
-        // TODO Auto-generated method stub
-
+        modelService.deleteObjectType( new ObjectType().setNamespace( namespace ).setType( objectType ) );
     }
 
     @Override
     public boolean postPropertyType( String namespace, PropertyType propertyType ) {
-        modelService.createPropertyType( namespace, propertyType.getType(), propertyType.getTypename() , propertyType.getDatatype(), propertyType.getMultiplicity() );
+        modelService.createPropertyType( namespace,
+                propertyType.getType(),
+                propertyType.getTypename(),
+                propertyType.getDatatype(),
+                propertyType.getMultiplicity() );
         return false;
     }
 

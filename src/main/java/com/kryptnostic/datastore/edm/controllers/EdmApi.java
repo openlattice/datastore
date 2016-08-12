@@ -1,5 +1,6 @@
 package com.kryptnostic.datastore.edm.controllers;
 
+import java.util.Set;
 import java.util.UUID;
 
 import com.google.common.base.Optional;
@@ -53,12 +54,12 @@ public interface EdmApi {
     void addObjectTypeToContainer(
             String namespace,
             String container,
-            String objectType );
+            Set<String> objectTypes );
 
     void removeObjectTypeFromContainer(
             String namespace,
             String container,
-            String objectType );
+            Set<String> objectTypes );
 
     /**
      * @param namespace Namespace for the object.

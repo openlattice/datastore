@@ -16,21 +16,23 @@ public final class DatastoreConstants {
             public static final String ACL_IDS   = "aclIds";
         }
 
-        public static final String GET_ALL_OBJECT_TYPES_QUERY        = "select * from sparks.object_types";
-        public static final String GET_ALL_PROPERTY_TYPES_FOR_OBJECT = "select * from sparks.property_types where objectId=:"
+        public static final String GET_ALL_OBJECT_TYPES_QUERY         = "select * from sparks.object_types";
+        public static final String GET_ALL_PROPERTY_TYPES_FOR_OBJECT  = "select * from sparks.property_types where objectId=:"
                 + ParamNames.OBJECT_ID;
-        public static final String GET_ALL_NAMESPACES                = "select * from sparks.namespaces where aclId IN :"
+        public static final String GET_ALL_NAMESPACES                 = "select * from sparks.namespaces where aclId IN :"
                 + ParamNames.ACL_IDS + " ALLOW filtering";
-        public static final String CREATE_NAMESPACE_TABLE            = "CREATE TABLE IF NOT EXISTS " + KEYSPACE + "."
+        public static final String CREATE_NAMESPACE_TABLE             = "CREATE TABLE IF NOT EXISTS " + KEYSPACE + "."
                 + NAMESPACE_TABLE + " ( namespace text, aclId uuid, PRIMARY KEY ( namespace, aclid ) )";
-        public static final String CREATE_OBJECT_TYPES_TABLE         = "CREATE TABLE IF NOT EXISTS " + KEYSPACE + "."
+        public static final String CREATE_OBJECT_TYPES_TABLE          = "CREATE TABLE IF NOT EXISTS " + KEYSPACE + "."
                 + OBJECT_TYPES_TABLE
                 + " ( namespace text, type text, typename text, keys set<text>,allowed set<text>, PRIMARY KEY ( ( namespace,type), typename) )";
-        public static final String CREATE_PROPERTY_TYPES_TABLE       = "CREATE TABLE IF NOT EXISTS " + KEYSPACE + "."
+        public static final String CREATE_PROPERTY_TYPES_TABLE        = "CREATE TABLE IF NOT EXISTS " + KEYSPACE + "."
                 + PROPERTY_TYPES_TABLE
                 + " ( namespace text, type text, typename text, dataType text, multiplicity bigint, PRIMARY KEY ( ( namespace,type), typename) )";
-        public static final String PROPERTY_TABLE                    = "CREATE TABLE IF NOT EXISTS " + KEYSPACE
+        public static final String PROPERTY_TABLE                     = "CREATE TABLE IF NOT EXISTS " + KEYSPACE
                 + ".%s_properties ( objectId uuid, aclId uuid, value %s, syncIds list<uuid>, PRIMARY KEY ( ( objectId, aclId ), value ) )";
+        public static final String CREATE_PROPERTY_TYPE_IF_NOT_EXISTS = "INSERT INTO sparks.property_types (namespace, type, typename, datatype, multiplicity) VALUES (?,?,?,?,?) IF NOT EXISTS";
+        public static final String CREATE_NAMESPACE_IF_NOT_EXISTS     = "INSERT INTO sparks.namespaces (namespace, aclId ) VALUES (?,?) IF NOT EXISTS";
 
     }
 }

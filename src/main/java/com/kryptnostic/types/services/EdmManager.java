@@ -29,7 +29,7 @@ public interface EdmManager {
      * @param container The name of the container.
      * @param aclId The aclId controlling access to the container.
      */
-    void createContainer( String namespace, String container, UUID aclId );
+    void createContainer( String namespace, String container );
 
     /**
      * Creates or updates a container.
@@ -53,7 +53,7 @@ public interface EdmManager {
 
     void deleteObjectType( ObjectType objectType );
 
-    void createPropertyType(
+    boolean createPropertyType(
             String namespace,
             String type,
             String typename,

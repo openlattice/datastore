@@ -23,6 +23,7 @@ import com.kryptnostic.types.Container;
 import com.kryptnostic.types.Namespace;
 import com.kryptnostic.types.ObjectType;
 import com.kryptnostic.types.PropertyType;
+import com.kryptnostic.types.Schema;
 
 public class DataModelService implements EdmManager {
     private static final Logger        logger = LoggerFactory.getLogger( DataModelService.class );
@@ -56,7 +57,7 @@ public class DataModelService implements EdmManager {
         upsertPropertyType( new PropertyType().setNamespace( "kryptnostic" ).setType( "SSN" )
                 .setDatatype( EdmPrimitiveTypeKind.String ).setTypename( "ssn" ).setMultiplicity( 0 ) );
         Result<ObjectType> objectTypes = edmStore.getObjectTypes();
-        Iterable<Namespace> namespaces = getNamespaces( ImmutableSet.of( ACLs.EVERYONE_ACL ) );
+        Iterable<Namespace> namespaces = getNamespaces();
         namespaces.forEach( namespace -> logger.info( "Namespace loaded: {}", namespace ) );
         objectTypes.forEach( objectType -> logger.info( "Object read: {}", objectType ) );
     }
@@ -66,8 +67,9 @@ public class DataModelService implements EdmManager {
      * @see com.kryptnostic.types.services.EdmManager#getNamespaces(java.util.List)
      */
     @Override
-    public Iterable<Namespace> getNamespaces( Set<UUID> aclIds ) {
-        return edmStore.getNamespaces( aclIds );
+    public Iterable<Namespace> getNamespaces() {
+        //TODO: Actually grab ACLs based on the current user.
+        return edmStore.getNamespaces( ImmutableSet.of( ACLs.EVERYONE_ACL ) );
     }
 
     /*
@@ -131,18 +133,19 @@ public class DataModelService implements EdmManager {
     }
 
     @Override
-    public void createPropertyType(
+    public boolean createPropertyType(
             String namespace,
             String type,
             String typename,
             EdmPrimitiveTypeKind datatype,
             long multiplicity ) {
-        edmStore.createPropertyTypeIfNotExists( namespace, type, typename, datatype, multiplicity );
+        //TODO: Verify that this returning the proper value.
+        return edmStore.createPropertyTypeIfNotExists( namespace, type, typename, datatype, multiplicity ).iterator().next().getBool( 0 );
     }
 
     @Override
     public void createNamespace( String namespace, UUID aclId ) {
-        // Need to add API in edmStore
+        edmStore.createNamespaceIfNotExists( namespace, aclId );
     }
 
     @Override
@@ -181,7 +184,19 @@ public class DataModelService implements EdmManager {
     }
 
     @Override
-    public void createContainer( String namespace, String container, UUID or ) {
+    public void createContainer( String namespace, String container ) {
+        edmStore.createContainer( namespace, container )
+
+    }
+
+    @Override
+    public Schema getSchema( String namespace ) {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    @Override
+    public void upsertContainer( Container container ) {
         // TODO Auto-generated method stub
         
     }

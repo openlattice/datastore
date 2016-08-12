@@ -38,12 +38,15 @@ public interface CassandraEdmStore {
             Set<String> keys,
             Set<String> allowed) ;
 
-    @Query( "INSERT INTO sparks.property_types (namespace, type, typename, datatype, multiplicity) VALUES (?,?,?,?,?) IF NOT EXISTS" )
+    @Query( Queries.CREATE_PROPERTY_TYPE_IF_NOT_EXISTS )
     public ResultSet createPropertyTypeIfNotExists(
             String namespace,
             String type,
             String typename,
             EdmPrimitiveTypeKind datatype,
             long multiplicity );
+    
+    @Query( Queries.CREATE_NAMESPACE_IF_NOT_EXISTS )
+    public void createNamespaceIfNotExists( String namespace, UUID aclId );
 
 }

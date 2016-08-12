@@ -106,12 +106,6 @@ public class EdmController implements EdmApi {
     }
 
     @Override
-    public void deletePropertyType( String namespace, String container, String objectType, PropertyType typeInfo ) {
-        
-
-    }
-
-    @Override
     public void addObjectTypeToContainer( String namespace, String container, String objectType ) {
         // TODO Auto-generated method stub
 
@@ -127,6 +121,36 @@ public class EdmController implements EdmApi {
     public boolean postContainer( String namespace, Container container ) {
         // TODO Auto-generated method stub
         return false;
+    }
+
+    @Override
+    public boolean postObjectType( String namespace, ObjectType objectType ) {
+        // TODO Auto-generated method stub
+        return false;
+    }
+
+    @Override
+    public void putObjectType( String namespace, ObjectType typeInfo ) {
+        // TODO Auto-generated method stub
+
+    }
+
+    @Override
+    public void deleteObjectType( String namespace, String objectType ) {
+        // TODO Auto-generated method stub
+
+    }
+
+    @Override
+    public boolean postPropertyType( String namespace, PropertyType propertyType ) {
+        modelService.createPropertyType( namespace, propertyType.getType(), propertyType.getTypename() , propertyType.getDatatype(), propertyType.getMultiplicity() );
+        return false;
+    }
+
+    @Override
+    public void deletePropertyType( String namespace, String propertyType ) {
+        modelService.deletePropertyType( new PropertyType().setNamespace( namespace ).setType( propertyType ) );
+
     }
 
 }

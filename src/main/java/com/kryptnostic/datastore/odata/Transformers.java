@@ -30,10 +30,10 @@ public final class Transformers {
     }
 
     public static CsdlEntitySet transform( EntitySet entitySet ) {
-        if( entitySet == null ) {
+        if ( entitySet == null ) {
             return null;
         }
-        
+
         return new CsdlEntitySet()
                 .setType( new FullQualifiedName( entitySet.getNamespace(), entitySet.getType() ) )
                 .setName( entitySet.getName() );

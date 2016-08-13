@@ -108,7 +108,7 @@ public class DataModelService implements EdmManager {
      * @see com.kryptnostic.types.services.EdmManager#updateObjectType(com.kryptnostic.types.ObjectType)
      */
     @Override
-    public void upsertObjectType( EntityType objectType ) {
+    public void upsertEntityType( EntityType objectType ) {
         entityTypeMapper.save( objectType );
     }
 
@@ -190,12 +190,12 @@ public class DataModelService implements EdmManager {
 
     @Override
     public void addEntityTypesToSchema( String namespace, String name, Set<String> entityTypes ) {
-         edmStore.addEntityTypesToContainer( namespace, ACLs.EVERYONE_ACL, name, entityTypes );
+        edmStore.addEntityTypesToContainer( namespace, ACLs.EVERYONE_ACL, name, entityTypes );
     }
 
     @Override
     public void removeEntityTypesFromSchema( String namespace, String name, Set<String> entityTypes ) {
-         edmStore.removeEntityTypesFromContainer( namespace, ACLs.EVERYONE_ACL, name, entityTypes );
+        edmStore.removeEntityTypesFromContainer( namespace, ACLs.EVERYONE_ACL, name, entityTypes );
     }
 
     @Override
@@ -212,6 +212,21 @@ public class DataModelService implements EdmManager {
     @Override
     public void upsertEntitySet( EntitySet entitySet ) {
         entitySetMapper.save( entitySet );
+    }
+
+    @Override
+    public void deleteEntitySet( EntitySet entitySet ) {
+        entitySetMapper.delete( entitySet );
+    }
+
+    @Override
+    public boolean createEntitySet( String namespace, String name, String type ) {
+        return wasLightweightTransactionApplied( edmStore.createEntitySet( namespace, name, type ) );
+    }
+
+    @Override
+    public boolean createEntitySet( EntitySet entitySet ) {
+        return createEntitySet( entitySet.getNamespace(), entitySet.getName(), entitySet.getType() );
     }
 
     private static void createSchemasTableIfNotExists( Session session ) {
@@ -244,9 +259,8 @@ public class DataModelService implements EdmManager {
     }
 
     @Override
-    public void deleteEntitySet( EntitySet entitySet ) {
-        // TODO Auto-generated method stub
-        
+    public Iterable<EntitySet> getEntitySets() {
+        return edmStore.getEntitySet();
     }
 
 }

@@ -1,5 +1,6 @@
 package com.kryptnostic.types.services;
 
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
@@ -22,22 +23,25 @@ public interface EdmManager {
 
     Schema getSchema( String namespace, String name );
 
+    boolean createEntitySet( String namespace, String name, String type );
+    boolean createEntitySet( EntitySet entitySet );
+    
+    void upsertEntitySet( EntitySet entitySet );
+
+    EntitySet getEntitySet( String namespace, String name );
+    Iterable<EntitySet> getEntitySets();
+    
+    void deleteEntitySet( EntitySet entitySet );
+    
     boolean createEntityType(
             String namespace,
             String type,
             String typename,
             Set<String> key,
             Set<String> properties );
-
-    void upsertEntitySet( EntitySet entitySet );
-
-    EntitySet getEntitySet( String namespace, String name );
-    
-    void deleteEntitySet( EntitySet entitySet );
-    
     boolean createEntityType( EntityType objectType );
 
-    void upsertObjectType( EntityType objectType );
+    void upsertEntityType( EntityType objectType );
 
     EntityType getEntityType( String namespace, String name );
 
@@ -57,5 +61,6 @@ public interface EdmManager {
     void addEntityTypesToSchema( String namespace, String name, Set<String> objectTypes );
 
     void removeEntityTypesFromSchema( String namespace, String name, Set<String> objectTypes );
+
 
 }

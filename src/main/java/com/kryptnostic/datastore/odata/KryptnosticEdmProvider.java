@@ -16,9 +16,11 @@ import org.apache.olingo.commons.api.ex.ODataException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import com.hazelcast.core.HazelcastInstance;
 import com.hazelcast.core.IMap;
 import com.kryptnostic.datastore.odata.Ontology.EntitySchema;
@@ -26,8 +28,9 @@ import com.kryptnostic.datastore.util.UUIDs.ACLs;
 import com.kryptnostic.types.EntitySet;
 import com.kryptnostic.types.EntityType;
 import com.kryptnostic.types.SchemaMetadata;
-import com.kryptnostic.types.services.DataModelService;
 import com.kryptnostic.types.services.EdmManager;
+
+import jersey.repackaged.com.google.common.collect.Lists;
 
 public class KryptnosticEdmProvider extends CsdlAbstractEdmProvider {
     private static final Logger                         logger           = LoggerFactory
@@ -78,6 +81,7 @@ public class KryptnosticEdmProvider extends CsdlAbstractEdmProvider {
 
         dms.createEntityType( product );
         dms.createEntityType( metadataLevel );
+        dms.createEntitySet( NAMESPACE, ES_PRODUCTS_NAME, ET_PRODUCT_NAME );
 
         dms.createSchema( NAMESPACE,
                 "agora",
@@ -180,8 +184,9 @@ public class KryptnosticEdmProvider extends CsdlAbstractEdmProvider {
 
     public CsdlEntityContainer getEntityContainer() {
         // create EntitySets
-        List<CsdlEntitySet> entitySets = new ArrayList<CsdlEntitySet>();
-        this.entitySets.keySet().forEach( e -> entitySets.add( getEntitySet( CONTAINER, e ) ) );
+        List<CsdlEntitySet> entitySets = Lists.newArrayList( Iterables
+                .filter( Iterables.transform( dms.getEntitySets(), Transformers::transform ), Predicates.notNull() ) );
+        //this.entitySets.keySet().forEach( e -> entitySets.add( getEntitySet( CONTAINER, e ) ) );
         // entitySets.add( getEntitySet( CONTAINER, ES_PRODUCTS_NAME ) );
 
         // create EntityContainer

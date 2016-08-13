@@ -34,11 +34,11 @@ public final class DatastoreConstants {
         public static final String CREATE_ENTITY_TYPES_TABLE              = "CREATE TABLE IF NOT EXISTS " + KEYSPACE
                 + "."
                 + ENTITY_TYPES_TABLE
-                + " ( namespace text, type text, typename text, key set<text>, properties set<text>, PRIMARY KEY ( ( namespace, type ), typename) )";
+                + " ( namespace text, type text, typename text, key set<text>, properties set<text>, PRIMARY KEY ( namespace, type ) )";
         public static final String CREATE_PROPERTY_TYPES_TABLE            = "CREATE TABLE IF NOT EXISTS " + KEYSPACE
                 + "."
                 + PROPERTY_TYPES_TABLE
-                + " ( namespace text, type text, typename text, dataType text, multiplicity bigint, PRIMARY KEY ( ( namespace, type ), typename) )";
+                + " ( namespace text, type text, typename text, dataType text, multiplicity bigint, PRIMARY KEY ( namespace, type ) )";
         public static final String PROPERTY_TABLE                         = "CREATE TABLE IF NOT EXISTS " + KEYSPACE
                 + ".%s_properties ( objectId uuid, aclId uuid, value %s, syncIds list<uuid>, PRIMARY KEY ( ( objectId, aclId ), value ) )";
 

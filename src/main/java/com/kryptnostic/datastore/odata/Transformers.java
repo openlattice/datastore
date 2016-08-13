@@ -15,6 +15,10 @@ public final class Transformers {
     private Transformers() {}
 
     public static CsdlEntityType transform( EntityType objectType ) {
+        if( objectType == null ) {
+            return null;
+        }
+        
         CsdlEntityType entityType = new CsdlEntityType();
 
         entityType.setName( objectType.getType() );

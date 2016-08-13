@@ -1,9 +1,13 @@
 package com.kryptnostic.datastore.edm.controllers;
 
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
+import org.apache.olingo.commons.api.edm.FullQualifiedName;
+
 import com.google.common.base.Optional;
+import com.kryptnostic.types.EntitySet;
 import com.kryptnostic.types.EntityType;
 import com.kryptnostic.types.PropertyType;
 import com.kryptnostic.types.Schema;
@@ -36,19 +40,21 @@ public interface EdmApi {
     void addEntityTypeToSchema(
             String namespace,
             String name,
-            Set<String> objectTypes );
+            Set<String> entityTypes );
 
     void removeEntityTypeFromSchema(
             String namespace,
             String name,
-            Set<String> objectTypes );
+            Set<String> entityTypes );
+
+    Map<String, Map<String, Boolean>> postEntitySets( Set<EntitySet> entitySets );
 
     /**
      * @param namespace Namespace for the object.
      * @param objectType Name of the container.
      * @return True if object type was created, false if container already exists.
      */
-    boolean postEntityType( String namespace, EntityType objectType );
+    boolean postEntityType( String namespace, EntityType entityType );
 
     void putEntityType(
             String namespace,
@@ -84,4 +90,7 @@ public interface EdmApi {
     String CONTAINER      = "container";
     String NAMESPACE      = "namespace";
     String NAME           = "name";
+
+    String NAMESPACE_PATH = "/{" + NAMESPACE + " }";
+
 }

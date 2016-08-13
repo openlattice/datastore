@@ -1,5 +1,6 @@
 package com.kryptnostic.datastore.edm.controllers;
 
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
@@ -11,10 +12,13 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
 
 import com.google.common.base.Optional;
+import com.google.common.collect.Maps;
 import com.kryptnostic.datastore.util.UUIDs.ACLs;
+import com.kryptnostic.types.EntitySet;
 import com.kryptnostic.types.EntityType;
 import com.kryptnostic.types.PropertyType;
 import com.kryptnostic.types.Schema;
@@ -56,6 +60,26 @@ public class EdmController implements EdmApi {
                         new SchemaMetadata().setNamespace( namespace ).setAclId( aclId.or( ACLs.EVERYONE_ACL ) ) );
     }
 
+    @Override
+    @RequestMapping(
+        path = "/sets/entity" )
+    public @ResponseBody Map<String, Map<String, Boolean>> postEntitySets( Set<EntitySet> entitySets ) {
+        Map<String, Map<String, Boolean>> results = Maps.newHashMap();
+        Map<String, Boolean> result = Maps.newHashMap();
+
+        for ( EntitySet entitySet : entitySets ) {
+            result = results.putIfAbsent( entitySet.getNamespace(), result );
+
+            if ( result == null ) {
+                result = Maps.newHashMap();
+            }
+
+            result.put( entitySet.getName(), modelService.createEntitySet( entitySet ) );
+        }
+
+        return results;
+    }
+
     /*
      * (non-Javadoc)
      * @see com.kryptnostic.datastore.edm.controllers.EdmAPI#createObjectType(java.lang.String, java.lang.String,
@@ -63,7 +87,7 @@ public class EdmController implements EdmApi {
      */
     @Override
     @RequestMapping(
-        path = "/{namespace}/types/objects",
+        path = "/{namespace}/types/entity",
         method = RequestMethod.PUT )
     public void putEntityType(
             @PathVariable( "namespace" ) String namespace,
@@ -87,6 +111,9 @@ public class EdmController implements EdmApi {
     }
 
     @Override
+    @RequestMapping(
+        path = "/schema/{namespace}/{name}",
+        method = RequestMethod.PUT )
     public Schema getSchema( String namespace, String name ) {
         return modelService.getSchema( namespace, name );
     }
@@ -129,7 +156,6 @@ public class EdmController implements EdmApi {
     @Override
     public void deletePropertyType( String namespace, String propertyType ) {
         modelService.deletePropertyType( new PropertyType().setNamespace( namespace ).setType( propertyType ) );
-
     }
 
 }

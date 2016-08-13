@@ -7,8 +7,8 @@ import com.datastax.driver.mapping.annotations.Table;
 import com.kryptnostic.datastore.util.DatastoreConstants;
 
 @Table(
-        keyspace = DatastoreConstants.KEYSPACE,
-        name = DatastoreConstants.ENTITY_SETS_TABLE )
+    keyspace = DatastoreConstants.KEYSPACE,
+    name = DatastoreConstants.ENTITY_SETS_TABLE )
 public class EntitySet {
     @PartitionKey(
         value = 0 )
@@ -46,6 +46,44 @@ public class EntitySet {
     public EntitySet setType( String type ) {
         this.type = type;
         return this;
+    }
+
+    @Override
+    public int hashCode() {
+        final int prime = 31;
+        int result = 1;
+        result = prime * result + ( ( name == null ) ? 0 : name.hashCode() );
+        result = prime * result + ( ( namespace == null ) ? 0 : namespace.hashCode() );
+        return result;
+    }
+
+    @Override
+    public boolean equals( Object obj ) {
+        if ( this == obj ) {
+            return true;
+        }
+        if ( obj == null ) {
+            return false;
+        }
+        if ( !( obj instanceof EntitySet ) ) {
+            return false;
+        }
+        EntitySet other = (EntitySet) obj;
+        if ( name == null ) {
+            if ( other.name != null ) {
+                return false;
+            }
+        } else if ( !name.equals( other.name ) ) {
+            return false;
+        }
+        if ( namespace == null ) {
+            if ( other.namespace != null ) {
+                return false;
+            }
+        } else if ( !namespace.equals( other.namespace ) ) {
+            return false;
+        }
+        return true;
     }
 
 }

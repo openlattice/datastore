@@ -82,6 +82,7 @@ public class KryptnosticEdmProvider extends CsdlAbstractEdmProvider {
         dms.createEntityType( product );
         dms.createEntityType( metadataLevel );
         dms.createEntitySet( NAMESPACE, ES_PRODUCTS_NAME, ET_PRODUCT_NAME );
+        dms.createEntitySet( NAMESPACE, "metadataLevels", "metadataLevel" );
 
         dms.createSchema( NAMESPACE,
                 "agora",
@@ -108,7 +109,7 @@ public class KryptnosticEdmProvider extends CsdlAbstractEdmProvider {
         entitySchemas.put( ET_PRODUCT_FQN, schema );
         entitySchemas.put( new FullQualifiedName( NAMESPACE, "metadataLevel" ), schema2 );
         entitySets.put( ES_PRODUCTS_NAME, ET_PRODUCT_FQN );
-        entitySets.put( "metadataLevel", new FullQualifiedName(
+        entitySets.put( "metadataLevels", new FullQualifiedName(
                 NAMESPACE,
                 "metadataLevel" ) );
     }

@@ -5,6 +5,7 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 import org.apache.olingo.commons.api.edm.EdmPrimitiveTypeKind;
+import org.apache.olingo.commons.api.edm.FullQualifiedName;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -74,19 +75,19 @@ public class DataModelService implements EdmManager {
     @Override
     public Schema getSchema( String namespace, String name ) {
         SchemaMetadata schemaMetadata = schemaMapper.get( namespace, ACLs.EVERYONE_ACL, name );
-        // entityTypeMapper.get
+
         Set<EntityType> entityTypes = schemaMetadata.getEntityTypes().stream()
                 .map( type -> entityTypeMapper.getAsync( schemaMetadata.getNamespace(), type ) )
                 .map( futureEntityType -> Util.getFutureSafely( futureEntityType ) ).filter( e -> e != null )
                 .collect( Collectors.toSet() );
-        Set<String> propertyTypeNames = Sets.newHashSet();
+        Set<FullQualifiedName> propertyTypeNames = Sets.newHashSet();
 
         for ( EntityType entityType : entityTypes ) {
             propertyTypeNames.addAll( entityType.getProperties() );
         }
 
         Set<PropertyType> propertyTypes = propertyTypeNames.stream()
-                .map( type -> propertyTypeMapper.getAsync( schemaMetadata.getNamespace(), type ) )
+                .map( type -> propertyTypeMapper.getAsync( type.getNamespace(), type.getName() ) )
                 .map( futurePropertyType -> Util.getFutureSafely( futurePropertyType ) ).filter( e -> e != null )
                 .collect( Collectors.toSet() );
 
@@ -204,7 +205,7 @@ public class DataModelService implements EdmManager {
             String type,
             String typename,
             Set<String> key,
-            Set<String> properties ) {
+            Set<FullQualifiedName> properties ) {
         return wasLightweightTransactionApplied(
                 edmStore.createEntityTypeIfNotExists( namespace, type, typename, key, properties ) );
     }
@@ -261,6 +262,11 @@ public class DataModelService implements EdmManager {
     @Override
     public Iterable<EntitySet> getEntitySets() {
         return edmStore.getEntitySet();
+    }
+
+    @Override
+    public PropertyType getPropertyType( FullQualifiedName propertyType ) {
+        return propertyTypeMapper.get( propertyType.getNamespace(), propertyType.getName() );
     }
 
 }

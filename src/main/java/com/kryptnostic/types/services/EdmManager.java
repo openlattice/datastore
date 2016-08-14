@@ -1,10 +1,10 @@
 package com.kryptnostic.types.services;
 
-import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
 import org.apache.olingo.commons.api.edm.EdmPrimitiveTypeKind;
+import org.apache.olingo.commons.api.edm.FullQualifiedName;
 
 import com.kryptnostic.types.EntitySet;
 import com.kryptnostic.types.EntityType;
@@ -38,7 +38,7 @@ public interface EdmManager {
             String type,
             String typename,
             Set<String> key,
-            Set<String> properties );
+            Set<FullQualifiedName> properties );
     boolean createEntityType( EntityType objectType );
 
     void upsertEntityType( EntityType objectType );
@@ -46,6 +46,10 @@ public interface EdmManager {
     EntityType getEntityType( String namespace, String name );
 
     void deleteEntityType( EntityType objectType );
+
+    void addEntityTypesToSchema( String namespace, String name, Set<String> objectTypes );
+    
+    void removeEntityTypesFromSchema( String namespace, String name, Set<String> objectTypes );
 
     boolean createPropertyType(
             String namespace,
@@ -58,9 +62,6 @@ public interface EdmManager {
 
     void deletePropertyType( PropertyType propertyType );
 
-    void addEntityTypesToSchema( String namespace, String name, Set<String> objectTypes );
-
-    void removeEntityTypesFromSchema( String namespace, String name, Set<String> objectTypes );
-
+    PropertyType getPropertyType(FullQualifiedName prop);
 
 }

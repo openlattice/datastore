@@ -2,6 +2,8 @@ package com.kryptnostic.types;
 
 import java.util.Set;
 
+import org.apache.olingo.commons.api.edm.FullQualifiedName;
+
 import com.datastax.driver.mapping.annotations.ClusteringColumn;
 import com.datastax.driver.mapping.annotations.Column;
 import com.datastax.driver.mapping.annotations.PartitionKey;
@@ -28,7 +30,7 @@ public class EntityType {
 
     @Column(
         name = "properties" )
-    public Set<String>  properties;
+    public Set<FullQualifiedName>  properties;
 
     public String getNamespace() {
         return namespace;
@@ -66,11 +68,11 @@ public class EntityType {
         return this;
     }
 
-    public Set<String> getProperties() {
+    public Set<FullQualifiedName> getProperties() {
         return properties;
     }
 
-    public EntityType setProperties( Set<String> properties ) {
+    public EntityType setProperties( Set<FullQualifiedName> properties ) {
         this.properties = properties;
         return this;
     }

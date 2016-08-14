@@ -10,27 +10,37 @@ import org.apache.olingo.commons.api.edm.provider.CsdlPropertyRef;
 
 import com.kryptnostic.types.EntitySet;
 import com.kryptnostic.types.EntityType;
+import com.kryptnostic.types.services.EdmManager;
 
 public final class Transformers {
     private Transformers() {}
 
-    public static CsdlEntityType transform( EntityType objectType ) {
-        if( objectType == null ) {
-            return null;
+    public static final class EntityTypeTransformer {
+        private final EdmManager dms;
+
+        public EntityTypeTransformer( EdmManager dms ) {
+            this.dms = dms;
         }
-        
-        CsdlEntityType entityType = new CsdlEntityType();
 
-        entityType.setName( objectType.getType() );
+        public CsdlEntityType transform( EntityType objectType ) {
+            if ( objectType == null ) {
+                return null;
+            }
 
-        entityType.setKey( objectType.getKey().stream()
-                .map( name -> new CsdlPropertyRef().setName( name ) ).collect( Collectors.toList() ) );
-        entityType.setProperties(
-                objectType.getProperties().stream()
-                        .map( ( prop ) -> new CsdlProperty().setName( prop )
-                                .setType( new FullQualifiedName( objectType.getNamespace(), prop ) ) )
-                        .collect( Collectors.toList() ) );
-        return entityType;
+            CsdlEntityType entityType = new CsdlEntityType();
+
+            entityType.setName( objectType.getType() );
+
+            entityType.setKey( objectType.getKey().stream()
+                    .map( name -> new CsdlPropertyRef().setName( name ) ).collect( Collectors.toList() ) );
+            entityType.setProperties(
+                    objectType.getProperties().stream()
+                            .map( ( prop ) -> new CsdlProperty().setName( prop.getName() )
+                                    .setType( dms.getPropertyType( prop ).getDatatype().getFullQualifiedName() ) )
+                            .collect( Collectors.toList() ) );
+            return entityType;
+        }
+
     }
 
     public static CsdlEntitySet transform( EntitySet entitySet ) {

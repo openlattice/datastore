@@ -5,6 +5,7 @@ import java.util.Set;
 import java.util.UUID;
 
 import org.apache.olingo.commons.api.edm.EdmPrimitiveTypeKind;
+import org.apache.olingo.commons.api.edm.FullQualifiedName;
 
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.mapping.Result;
@@ -41,7 +42,7 @@ public interface CassandraEdmStore {
             String type,
             String typename,
             Set<String> key,
-            Set<String> properties );
+            Set<FullQualifiedName> properties );
 
     @Query( Queries.CREATE_PROPERTY_TYPE_IF_NOT_EXISTS )
     public ResultSet createPropertyTypeIfNotExists(

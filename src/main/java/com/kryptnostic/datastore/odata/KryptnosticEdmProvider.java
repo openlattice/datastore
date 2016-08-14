@@ -24,6 +24,7 @@ import com.google.common.collect.Iterables;
 import com.hazelcast.core.HazelcastInstance;
 import com.hazelcast.core.IMap;
 import com.kryptnostic.datastore.odata.Ontology.EntitySchema;
+import com.kryptnostic.datastore.odata.Transformers.EntityTypeTransformer;
 import com.kryptnostic.datastore.util.UUIDs.ACLs;
 import com.kryptnostic.types.EntitySet;
 import com.kryptnostic.types.EntityType;
@@ -54,12 +55,13 @@ public class KryptnosticEdmProvider extends CsdlAbstractEdmProvider {
     public static final String                          ES_PRODUCTS_NAME = "Products";
 
     private final EdmManager                            dms;
-
+    private final EntityTypeTransformer ett;
     private final IMap<String, FullQualifiedName>       entitySets;
     private final IMap<FullQualifiedName, EntitySchema> entitySchemas;
 
     public KryptnosticEdmProvider( HazelcastInstance hazelcast, EdmManager dms ) {
         this.dms = dms;
+        this.ett = new EntityTypeTransformer( dms );
         this.entitySchemas = hazelcast.getMap( "entitySchemas" );
         this.entitySets = hazelcast.getMap( "entitySets" );
 
@@ -72,11 +74,18 @@ public class KryptnosticEdmProvider extends CsdlAbstractEdmProvider {
         dms.createPropertyType( NAMESPACE, "clock", "clock", EdmPrimitiveTypeKind.Guid, 0 );
         dms.createPropertyType( NAMESPACE, "objectId", "version", EdmPrimitiveTypeKind.Int64, 0 );
         EntityType product = new EntityType().setNamespace( NAMESPACE ).setType( ET_PRODUCT_NAME )
-                .setKey( ImmutableSet.of( "ID" ) ).setProperties( ImmutableSet.of( "ID", "Name", "Description" ) )
+                .setKey( ImmutableSet.of( "ID" ) )
+                .setProperties( ImmutableSet.of( new FullQualifiedName( NAMESPACE, "ID" ),
+                        new FullQualifiedName( NAMESPACE, "Name" ),
+                        new FullQualifiedName( NAMESPACE, "Description" ) ) )
                 .setTypename( ET_PRODUCT_NAME );
         EntityType metadataLevel = new EntityType().setNamespace( NAMESPACE ).setType( "metadataLevel" )
                 .setKey( ImmutableSet.of( "aclId" ) )
-                .setProperties( ImmutableSet.of( "aclId", "type", "clock", "objectId", "version" ) )
+                .setProperties( ImmutableSet.of( new FullQualifiedName( NAMESPACE, "aclId" ),
+                        new FullQualifiedName( NAMESPACE, "type" ),
+                        new FullQualifiedName( NAMESPACE, "clock" ),
+                        new FullQualifiedName( NAMESPACE, "objectId" ),
+                        new FullQualifiedName( NAMESPACE, "version" ) ) )
                 .setTypename( "metadataLevel" );
 
         dms.createEntityType( product );
@@ -120,7 +129,7 @@ public class KryptnosticEdmProvider extends CsdlAbstractEdmProvider {
 
         EntityType objectType = dms.getEntityType( entityTypeName.getNamespace(), entityTypeName.getName() );
 
-        return Transformers.transform( objectType );
+        return ett.transform( objectType );
         // CsdlEntityType entityTypeA = new CsdlEntityType();
         //
         // if ( entityTypeDefs != null ) {
@@ -187,7 +196,7 @@ public class KryptnosticEdmProvider extends CsdlAbstractEdmProvider {
         // create EntitySets
         List<CsdlEntitySet> entitySets = Lists.newArrayList( Iterables
                 .filter( Iterables.transform( dms.getEntitySets(), Transformers::transform ), Predicates.notNull() ) );
-        //this.entitySets.keySet().forEach( e -> entitySets.add( getEntitySet( CONTAINER, e ) ) );
+        // this.entitySets.keySet().forEach( e -> entitySets.add( getEntitySet( CONTAINER, e ) ) );
         // entitySets.add( getEntitySet( CONTAINER, ES_PRODUCTS_NAME ) );
 
         // create EntityContainer

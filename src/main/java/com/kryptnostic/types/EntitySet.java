@@ -1,5 +1,7 @@
 package com.kryptnostic.types;
 
+import org.apache.olingo.commons.api.edm.FullQualifiedName;
+
 import com.datastax.driver.mapping.annotations.ClusteringColumn;
 import com.datastax.driver.mapping.annotations.Column;
 import com.datastax.driver.mapping.annotations.PartitionKey;
@@ -12,14 +14,15 @@ import com.kryptnostic.datastore.util.DatastoreConstants;
 public class EntitySet {
     @PartitionKey(
         value = 0 )
-    private String namespace;
+    private FullQualifiedName type;
+
     @ClusteringColumn(
         value = 0 )
-    private String name;
+    private String            name;
 
     @Column(
-        name = "type" )
-    private String type;
+        name = "title" )
+    private String            title;
 
     public String getName() {
         return name;
@@ -30,20 +33,20 @@ public class EntitySet {
         return this;
     }
 
-    public String getNamespace() {
-        return namespace;
+    public String getTitle() {
+        return title;
     }
 
-    public EntitySet setNamespace( String namespace ) {
-        this.namespace = namespace;
+    public EntitySet setTitle( String title ) {
+        this.title = title;
         return this;
     }
 
-    public String getType() {
+    public FullQualifiedName getType() {
         return type;
     }
 
-    public EntitySet setType( String type ) {
+    public EntitySet setType( FullQualifiedName type ) {
         this.type = type;
         return this;
     }
@@ -53,7 +56,8 @@ public class EntitySet {
         final int prime = 31;
         int result = 1;
         result = prime * result + ( ( name == null ) ? 0 : name.hashCode() );
-        result = prime * result + ( ( namespace == null ) ? 0 : namespace.hashCode() );
+        result = prime * result + ( ( title == null ) ? 0 : title.hashCode() );
+        result = prime * result + ( ( type == null ) ? 0 : type.hashCode() );
         return result;
     }
 
@@ -76,14 +80,26 @@ public class EntitySet {
         } else if ( !name.equals( other.name ) ) {
             return false;
         }
-        if ( namespace == null ) {
-            if ( other.namespace != null ) {
+        if ( title == null ) {
+            if ( other.title != null ) {
                 return false;
             }
-        } else if ( !namespace.equals( other.namespace ) ) {
+        } else if ( !title.equals( other.title ) ) {
+            return false;
+        }
+        if ( type == null ) {
+            if ( other.type != null ) {
+                return false;
+            }
+        } else if ( !type.equals( other.type ) ) {
             return false;
         }
         return true;
+    }
+
+    @Override
+    public String toString() {
+        return "EntitySet [type=" + type + ", name=" + name + ", title=" + title + "]";
     }
 
 }

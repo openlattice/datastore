@@ -4,6 +4,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.olingo.commons.api.edm.EdmPrimitiveTypeKind;
 import org.apache.olingo.commons.api.edm.FullQualifiedName;
 import org.slf4j.Logger;
@@ -221,13 +222,13 @@ public class DataModelService implements EdmManager {
     }
 
     @Override
-    public boolean createEntitySet( String namespace, String name, String type ) {
-        return wasLightweightTransactionApplied( edmStore.createEntitySet( namespace, name, type ) );
+    public boolean createEntitySet( FullQualifiedName type, String name, String title ) {
+        return wasLightweightTransactionApplied( edmStore.createEntitySet( type, name, title ) );
     }
 
     @Override
     public boolean createEntitySet( EntitySet entitySet ) {
-        return createEntitySet( entitySet.getNamespace(), entitySet.getName(), entitySet.getType() );
+        return createEntitySet( entitySet.getType(), entitySet.getName(), entitySet.getTitle() );
     }
 
     private static void createSchemasTableIfNotExists( Session session ) {
@@ -236,7 +237,7 @@ public class DataModelService implements EdmManager {
 
     private static void createEntitySetTableIfNotExists( Session session ) {
         session.execute( Queries.CREATE_ENTITY_SETS_TABLE );
-        session.execute( Queries.CREATE_INDEX_ON_TYPE );
+        session.execute( Queries.CREATE_INDEX_ON_NAME );
     }
 
     private static void createEntityTypesTableIfNotExists( Session session ) {
@@ -255,13 +256,17 @@ public class DataModelService implements EdmManager {
         return entityTypeMapper.get( namespace, name );
     }
 
-    public EntitySet getEntitySet( String namespace, String name ) {
-        return entitySetMapper.get( namespace, name );
+    public EntitySet getEntitySet( FullQualifiedName type, String name ) {
+        return entitySetMapper.get( type , name );
+    }
+    
+    public EntitySet getEntitySet( String name ) { 
+        return edmStore.getEntitySet(name);
     }
 
     @Override
     public Iterable<EntitySet> getEntitySets() {
-        return edmStore.getEntitySet();
+        return edmStore.getEntitySets(); 
     }
 
     @Override

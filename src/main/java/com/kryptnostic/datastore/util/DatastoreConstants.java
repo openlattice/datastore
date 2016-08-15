@@ -30,7 +30,7 @@ public final class DatastoreConstants {
         public static final String CREATE_ENTITY_SETS_TABLE               = "CREATE TABLE IF NOT EXISTS " + KEYSPACE
                 + "."
                 + ENTITY_SETS_TABLE
-                + " ( namespace text, name text, type text, PRIMARY KEY ( namespace , name ) )";
+                + " ( type text, name text, title text, PRIMARY KEY ( type, name ) )";
         public static final String CREATE_ENTITY_TYPES_TABLE              = "CREATE TABLE IF NOT EXISTS " + KEYSPACE
                 + "."
                 + ENTITY_TYPES_TABLE
@@ -43,23 +43,25 @@ public final class DatastoreConstants {
                 + ".%s_properties ( objectId uuid, aclId uuid, value %s, syncIds list<uuid>, PRIMARY KEY ( ( objectId, aclId ), value ) )";
 
         // Index creation
-        public static final String CREATE_INDEX_ON_TYPE                   = "CREATE INDEX IF NOT EXISTS ON " + KEYSPACE
+        public static final String CREATE_INDEX_ON_NAME                   = "CREATE INDEX IF NOT EXISTS ON " + KEYSPACE
                 + "."
-                + ENTITY_SETS_TABLE + " (type)";
+                + ENTITY_SETS_TABLE + " (name)";
 
         // Lightweight transactions for object insertion.
         public static final String CREATE_SCHEMA_IF_NOT_EXISTS            = "INSERT INTO sparks." + SCHEMAS_TABLE
                 + " (namespace, name, aclId, entityTypes) VALUES (?,?,?,?) IF NOT EXISTS";
         public static final String CREATE_ENTITY_SET_IF_NOT_EXISTS        = "INSERT INTO sparks." + ENTITY_SETS_TABLE
-                + " (namespace, name, type) VALUES (?,?,?) IF NOT EXISTS";
+                + " (type, name, title) VALUES (?,?,?) IF NOT EXISTS";
         public static final String CREATE_ENTITY_TYPE_IF_NOT_EXISTS       = "INSERT INTO sparks." + ENTITY_TYPES_TABLE
                 + " (namespace, type, typename, key, properties) VALUES (?,?,?,?,?) IF NOT EXISTS";
         public static final String CREATE_PROPERTY_TYPE_IF_NOT_EXISTS     = "INSERT INTO sparks." + PROPERTY_TYPES_TABLE
                 + " (namespace, type, typename, datatype, multiplicity) VALUES (?,?,?,?,?) IF NOT EXISTS";
 
         // Read queries for datastore.
-        public static final String GET_ALL_ENTITY_SETS = "select * from sparks."
+        public static final String GET_ALL_ENTITY_SETS                    = "select * from sparks."
                 + ENTITY_SETS_TABLE;
+        public static final String GET_ENTITY_SET_BY_NAME                 = "select * from sparks."
+                + ENTITY_SETS_TABLE + " where name = ?";
         public static final String GET_ALL_ENTITY_TYPES_QUERY             = "select * from sparks."
                 + ENTITY_TYPES_TABLE;
         public static final String GET_ALL_PROPERTY_TYPES_FOR_ENTITY_TYPE = "select * from sparks."

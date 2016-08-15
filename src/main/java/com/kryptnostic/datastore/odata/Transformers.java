@@ -2,7 +2,6 @@ package com.kryptnostic.datastore.odata;
 
 import java.util.stream.Collectors;
 
-import org.apache.olingo.commons.api.edm.FullQualifiedName;
 import org.apache.olingo.commons.api.edm.provider.CsdlEntitySet;
 import org.apache.olingo.commons.api.edm.provider.CsdlEntityType;
 import org.apache.olingo.commons.api.edm.provider.CsdlProperty;
@@ -49,7 +48,7 @@ public final class Transformers {
         }
 
         return new CsdlEntitySet()
-                .setType( new FullQualifiedName( entitySet.getNamespace(), entitySet.getType() ) )
+                .setType( entitySet.getType() )
                 .setName( entitySet.getName() );
     }
 }

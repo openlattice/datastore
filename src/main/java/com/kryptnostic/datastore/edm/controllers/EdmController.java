@@ -25,6 +25,8 @@ import com.kryptnostic.types.Schema;
 import com.kryptnostic.types.SchemaMetadata;
 import com.kryptnostic.types.services.EdmManager;
 
+import retrofit.client.Response;
+
 @Controller
 public class EdmController implements EdmApi {
     @Inject
@@ -52,32 +54,34 @@ public class EdmController implements EdmApi {
     @RequestMapping(
         path = "/{namespace}",
         method = RequestMethod.PUT )
-    public void putSchema(
+    @ResponseStatus( HttpStatus.OK )
+    public Response putSchema(
             @PathVariable( "namespace" ) String namespace,
             @RequestBody Optional<UUID> aclId ) {
         modelService
                 .upsertSchema(
                         new SchemaMetadata().setNamespace( namespace ).setAclId( aclId.or( ACLs.EVERYONE_ACL ) ) );
+        return null;
     }
 
     @Override
     @RequestMapping(
         path = "/sets/entity" )
-    public @ResponseBody Map<String, Map<String, Boolean>> postEntitySets( Set<EntitySet> entitySets ) {
-        Map<String, Map<String, Boolean>> results = Maps.newHashMap();
-        Map<String, Boolean> result = Maps.newHashMap();
+    public @ResponseBody Map<String, Boolean> postEntitySets( Set<EntitySet> entitySets ) {
+        Map<String, Boolean> results = Maps.newHashMapWithExpectedSize( entitySets.size() );
 
         for ( EntitySet entitySet : entitySets ) {
-            result = results.putIfAbsent( entitySet.getNamespace(), result );
-
-            if ( result == null ) {
-                result = Maps.newHashMap();
-            }
-
-            result.put( entitySet.getName(), modelService.createEntitySet( entitySet ) );
+            results.put( entitySet.getType().getFullQualifiedNameAsString(),
+                    modelService.createEntitySet( entitySet ) );
         }
 
         return results;
+    }
+
+    @Override
+    public Response putEntitySets( Set<EntitySet> entitySets ) {
+        entitySets.forEach( entitySet -> modelService.upsertEntitySet( entitySet ) );
+        return null;
     }
 
     /*
@@ -89,10 +93,11 @@ public class EdmController implements EdmApi {
     @RequestMapping(
         path = "/{namespace}/types/entity",
         method = RequestMethod.PUT )
-    public void putEntityType(
-            @PathVariable( "namespace" ) String namespace,
-            @RequestBody EntityType typeInfo ) {
-        modelService.createEntityType( typeInfo );
+    @ResponseStatus( HttpStatus.OK )
+    public Response putEntityType(
+            @RequestBody EntityType entityType ) {
+        modelService.createEntityType( entityType );
+        return null;
     }
 
     /*
@@ -119,8 +124,9 @@ public class EdmController implements EdmApi {
     }
 
     @Override
-    public void addEntityTypeToSchema( String namespace, String container, @RequestBody Set<String> objectTypes ) {
+    public Response addEntityTypeToSchema( String namespace, String container, @RequestBody Set<String> objectTypes ) {
         modelService.addEntityTypesToSchema( namespace, container, objectTypes );
+        return null;
 
     }
 
@@ -156,6 +162,12 @@ public class EdmController implements EdmApi {
     @Override
     public void deletePropertyType( String namespace, String propertyType ) {
         modelService.deletePropertyType( new PropertyType().setNamespace( namespace ).setType( propertyType ) );
+    }
+
+    @Override
+    public Iterable<Schema> getSchemasInNamespace( String namespace ) {
+        // TODO Auto-generated method stub
+        return null;
     }
 
 }

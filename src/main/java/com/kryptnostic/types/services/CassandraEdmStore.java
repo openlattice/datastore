@@ -72,9 +72,13 @@ public interface CassandraEdmStore {
             @Param( ParamNames.ENTITY_TYPES ) Set<String> objectType );
 
     @Query( Queries.CREATE_ENTITY_SET_IF_NOT_EXISTS )
-    public ResultSet createEntitySet( String namespace, String name, String type );
+    public ResultSet createEntitySet( FullQualifiedName type, String name, String title );
 
+    @Query( Queries.GET_ENTITY_SET_BY_NAME)
+    public EntitySet getEntitySet( String name );
+    
     @Query( Queries.GET_ALL_ENTITY_SETS )
-    public Result<EntitySet> getEntitySet();
+    public Result<EntitySet> getEntitySets();
+
 
 }

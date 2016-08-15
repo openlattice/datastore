@@ -55,7 +55,7 @@ public class KryptnosticEdmProvider extends CsdlAbstractEdmProvider {
     public static final String                          ES_PRODUCTS_NAME = "Products";
 
     private final EdmManager                            dms;
-    private final EntityTypeTransformer ett;
+    private final EntityTypeTransformer                 ett;
     private final IMap<String, FullQualifiedName>       entitySets;
     private final IMap<FullQualifiedName, EntitySchema> entitySchemas;
 
@@ -90,8 +90,8 @@ public class KryptnosticEdmProvider extends CsdlAbstractEdmProvider {
 
         dms.createEntityType( product );
         dms.createEntityType( metadataLevel );
-        dms.createEntitySet( NAMESPACE, ES_PRODUCTS_NAME, ET_PRODUCT_NAME );
-        dms.createEntitySet( NAMESPACE, "metadataLevels", "metadataLevel" );
+        dms.createEntitySet( ET_PRODUCT_FQN, ES_PRODUCTS_NAME, null );
+        dms.createEntitySet( new FullQualifiedName( NAMESPACE, "metadataLevel" ), "metadataLevels", null );
 
         dms.createSchema( NAMESPACE,
                 "agora",
@@ -173,7 +173,8 @@ public class KryptnosticEdmProvider extends CsdlAbstractEdmProvider {
     }
 
     public CsdlEntitySet getEntitySet( FullQualifiedName entityContainer, String entitySetName ) {
-        EntitySet entitySet = dms.getEntitySet( entityContainer.getNamespace(), entitySetName );
+        
+        EntitySet entitySet = dms.getEntitySet( entitySetName );
         return Transformers.transform( entitySet );
         // if ( entityContainer.equals( CONTAINER ) ) {
         // FullQualifiedName type = entitySets.get( entitySetName );

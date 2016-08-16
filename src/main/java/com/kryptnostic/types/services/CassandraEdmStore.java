@@ -28,7 +28,7 @@ public interface CassandraEdmStore {
             @Param( ParamNames.ACL_IDS ) List<UUID> everyoneAcl );
 
     @Query( Queries.GET_ALL_NAMESPACES )
-    public Result<Schema> getSchemaMetadata( @Param( ParamNames.ACL_IDS ) List<UUID> aclIds );
+    public Result<Schema> getSchemas( @Param( ParamNames.ACL_IDS ) List<UUID> aclIds );
 
     @Query( Queries.GET_ALL_ENTITY_TYPES_QUERY )
     public Result<EntityType> getEntityTypes();
@@ -61,7 +61,7 @@ public interface CassandraEdmStore {
             long multiplicity );
 
     @Query( Queries.CREATE_SCHEMA_IF_NOT_EXISTS )
-    public ResultSet createSchemaIfNotExists( String namespace, String name, UUID aclId, Set<String> entityTypes );
+    public ResultSet createSchemaIfNotExists( String namespace, String name, UUID aclId, Set<FullQualifiedName> entityTypes );
 
     @Query( Queries.ADD_ENTITY_TYPES_TO_SCHEMA )
     public ResultSet addEntityTypesToContainer(

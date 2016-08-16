@@ -21,6 +21,7 @@ import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Maps;
 import com.kryptnostic.datastore.util.UUIDs.ACLs;
+import com.kryptnostic.datastore.util.Util;
 import com.kryptnostic.types.EntityDataModel;
 import com.kryptnostic.types.EntitySet;
 import com.kryptnostic.types.EntityType;
@@ -48,12 +49,12 @@ public class EdmController implements EdmApi {
      * @see com.kryptnostic.datastore.edm.controllers.EdmAPI#getSchemas()
      */
     @Override
-    @ResponseStatus( HttpStatus.OK )
     @RequestMapping(
         path = SCHEMA_BASE_PATH,
         method = RequestMethod.GET )
+    @ResponseBody
     public Iterable<Schema> getSchemas() {
-        return modelService.getSchemas();
+        return Util.wrapForJackson( modelService.getSchemas() );
     }
 
     @Override

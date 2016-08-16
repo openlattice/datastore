@@ -96,7 +96,8 @@ public class KryptnosticEdmProvider extends CsdlAbstractEdmProvider {
         dms.createSchema( NAMESPACE,
                 "agora",
                 ACLs.EVERYONE_ACL,
-                ImmutableSet.of( product.getType(), metadataLevel.getType() ) );
+                ImmutableSet.of( new FullQualifiedName( NAMESPACE, product.getType() ),
+                        new FullQualifiedName( NAMESPACE, metadataLevel.getType() ) ) );
 
         EntitySchema schema = new EntitySchema(
                 ImmutableMap.<String, EdmPrimitiveTypeKind> builder()

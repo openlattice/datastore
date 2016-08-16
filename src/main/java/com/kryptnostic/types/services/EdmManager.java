@@ -12,7 +12,7 @@ import com.kryptnostic.types.PropertyType;
 import com.kryptnostic.types.Schema;
 
 public interface EdmManager {
-    boolean createSchema( String namespace, String name, UUID aclId, Set<String> entityTypes );
+    boolean createSchema( String namespace, String name, UUID aclId, Set<FullQualifiedName> entityTypes );
 
     void upsertSchema( Schema namespace );
 
@@ -73,7 +73,5 @@ public interface EdmManager {
     void deletePropertyType( PropertyType propertyType );
 
     PropertyType getPropertyType( FullQualifiedName prop );
-
-
 
 }

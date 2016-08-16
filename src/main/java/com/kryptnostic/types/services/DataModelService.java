@@ -117,7 +117,7 @@ public class DataModelService implements EdmManager {
     @Override
     public Iterable<Schema> getSchemas() {
         // TODO: Actually grab ACLs based on the current user.
-        return edmStore.getSchemaMetadata( ImmutableList.of( ACLs.EVERYONE_ACL ) );
+        return edmStore.getSchemas( ImmutableList.of( ACLs.EVERYONE_ACL ) );
     }
 
     /*
@@ -155,10 +155,10 @@ public class DataModelService implements EdmManager {
                 propertyType.getDatatype(),
                 propertyType.getMultiplicity() );
         // Create the property specific table
-        String propertTableQuery = String.format( Queries.PROPERTY_TABLE,
+        String propertyTableQuery = String.format( Queries.PROPERTY_TABLE,
                 propertyType.getTypename(),
                 CassandraEdmMapping.getCassandraTypeName( propertyType.getDatatype() ) );
-        session.execute( propertTableQuery );
+        session.execute( propertyTableQuery );
     }
 
     /*
@@ -183,11 +183,11 @@ public class DataModelService implements EdmManager {
     }
 
     @Override
-    public boolean createSchema( String namespace, String name, UUID aclId, Set<String> entityTypes ) {
+    public boolean createSchema( String namespace, String name, UUID aclId, Set<FullQualifiedName> entityTypes ) {
         return wasLightweightTransactionApplied(
                 edmStore.createSchemaIfNotExists( namespace, name, aclId, entityTypes ) );
     }
-
+    
     @Override
     public void deleteEntityType( EntityType objectType ) {
         entityTypeMapper.delete( objectType );
@@ -288,5 +288,7 @@ public class DataModelService implements EdmManager {
     public PropertyType getPropertyType( FullQualifiedName propertyType ) {
         return propertyTypeMapper.get( propertyType.getNamespace(), propertyType.getName() );
     }
+
+    
 
 }

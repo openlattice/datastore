@@ -132,4 +132,8 @@ public final class Util {
             return null;
         }
     }
+
+    public static <T> Iterable<T> wrapForJackson( Iterable<T> iterable ) {
+        return new JacksonCassandraIterableWrapper<T>( iterable );
+    }
 }

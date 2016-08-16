@@ -28,7 +28,7 @@ import com.kryptnostic.datastore.odata.Transformers.EntityTypeTransformer;
 import com.kryptnostic.datastore.util.UUIDs.ACLs;
 import com.kryptnostic.types.EntitySet;
 import com.kryptnostic.types.EntityType;
-import com.kryptnostic.types.SchemaMetadata;
+import com.kryptnostic.types.Schema;
 import com.kryptnostic.types.services.EdmManager;
 
 import jersey.repackaged.com.google.common.collect.Lists;
@@ -173,7 +173,7 @@ public class KryptnosticEdmProvider extends CsdlAbstractEdmProvider {
     }
 
     public CsdlEntitySet getEntitySet( FullQualifiedName entityContainer, String entitySetName ) {
-        
+
         EntitySet entitySet = dms.getEntitySet( entitySetName );
         return Transformers.transform( entitySet );
         // if ( entityContainer.equals( CONTAINER ) ) {
@@ -210,13 +210,11 @@ public class KryptnosticEdmProvider extends CsdlAbstractEdmProvider {
 
     public List<CsdlSchema> getSchemas() throws ODataException {
         List<CsdlSchema> schemas = new ArrayList<CsdlSchema>();
-        for ( SchemaMetadata schemaMetadata : dms.getSchemaMetadata() ) {
+        for ( Schema schemaMetadata : dms.getSchemas() ) {
             CsdlSchema schema = new CsdlSchema();
             String namespace = schemaMetadata.getNamespace();
             schema.setNamespace( namespace );
-
-            List<CsdlEntityType> entityTypes = schemaMetadata.getEntityTypes().parallelStream()
-                    .map( type -> new FullQualifiedName( schemaMetadata.getNamespace(), type ) )
+            List<CsdlEntityType> entityTypes = schemaMetadata.getEntityTypeFqns().parallelStream()
                     .map( fqn -> {
                         try {
                             return getEntityType( fqn );

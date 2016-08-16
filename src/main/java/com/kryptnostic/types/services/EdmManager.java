@@ -10,19 +10,24 @@ import com.kryptnostic.types.EntitySet;
 import com.kryptnostic.types.EntityType;
 import com.kryptnostic.types.PropertyType;
 import com.kryptnostic.types.Schema;
-import com.kryptnostic.types.SchemaMetadata;
 
 public interface EdmManager {
     boolean createSchema( String namespace, String name, UUID aclId, Set<String> entityTypes );
 
-    void upsertSchema( SchemaMetadata namespace );
+    void upsertSchema( Schema namespace );
 
-    void deleteSchema( SchemaMetadata namespaces );
+    void enrichSchemaWithEntityTypes( Schema schema );
+    
+    void enrichSchemaWithPropertyTypes( Schema schema );
 
-    Iterable<SchemaMetadata> getSchemaMetadata();
+    Iterable<Schema> getSchemas();
+
+    Iterable<Schema> getSchemasInNamespace( String namespace );
 
     Schema getSchema( String namespace, String name );
 
+    void deleteSchema( Schema namespaces );
+    
     boolean createEntitySet( FullQualifiedName type, String name, String title );
 
     boolean createEntitySet( EntitySet entitySet );
@@ -30,6 +35,7 @@ public interface EdmManager {
     void upsertEntitySet( EntitySet entitySet );
 
     EntitySet getEntitySet( FullQualifiedName entityType, String name );
+
     EntitySet getEntitySet( String name );
 
     Iterable<EntitySet> getEntitySets();
@@ -51,9 +57,9 @@ public interface EdmManager {
 
     void deleteEntityType( EntityType objectType );
 
-    void addEntityTypesToSchema( String namespace, String name, Set<String> objectTypes );
+    void addEntityTypesToSchema( String namespace, String name, Set<FullQualifiedName> entityTypes );
 
-    void removeEntityTypesFromSchema( String namespace, String name, Set<String> objectTypes );
+    void removeEntityTypesFromSchema( String namespace, String name, Set<FullQualifiedName> entityTypes );
 
     boolean createPropertyType(
             String namespace,
@@ -67,6 +73,7 @@ public interface EdmManager {
     void deletePropertyType( PropertyType propertyType );
 
     PropertyType getPropertyType( FullQualifiedName prop );
+
 
 
 }

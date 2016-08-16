@@ -4,7 +4,6 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.olingo.commons.api.edm.EdmPrimitiveTypeKind;
 import org.apache.olingo.commons.api.edm.FullQualifiedName;
 import org.slf4j.Logger;
@@ -16,7 +15,6 @@ import com.datastax.driver.mapping.Mapper;
 import com.datastax.driver.mapping.MappingManager;
 import com.datastax.driver.mapping.Result;
 import com.google.common.base.Charsets;
-import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
@@ -31,19 +29,18 @@ import com.kryptnostic.types.EntitySet;
 import com.kryptnostic.types.EntityType;
 import com.kryptnostic.types.PropertyType;
 import com.kryptnostic.types.Schema;
-import com.kryptnostic.types.SchemaMetadata;
 
 public class DataModelService implements EdmManager {
-    private static final Logger          logger = LoggerFactory.getLogger( DataModelService.class );
+    private static final Logger        logger = LoggerFactory.getLogger( DataModelService.class );
 
-    private final Session                session;
-    private final MappingManager         mappingManager;
-    private final Mapper<SchemaMetadata> schemaMapper;
-    private final Mapper<EntitySet>      entitySetMapper;
-    private final Mapper<EntityType>     entityTypeMapper;
-    private final Mapper<PropertyType>   propertyTypeMapper;
+    private final Session              session;
+    private final MappingManager       mappingManager;
+    private final Mapper<Schema>       schemaMapper;
+    private final Mapper<EntitySet>    entitySetMapper;
+    private final Mapper<EntityType>   entityTypeMapper;
+    private final Mapper<PropertyType> propertyTypeMapper;
 
-    private final CassandraEdmStore      edmStore;
+    private final CassandraEdmStore    edmStore;
 
     public DataModelService( Session session ) {
         createSchemasTableIfNotExists( session );
@@ -54,12 +51,12 @@ public class DataModelService implements EdmManager {
         this.session = session;
         this.mappingManager = new MappingManager( session );
         this.edmStore = mappingManager.createAccessor( CassandraEdmStore.class );
-        this.schemaMapper = mappingManager.mapper( SchemaMetadata.class );
+        this.schemaMapper = mappingManager.mapper( Schema.class );
         this.entitySetMapper = mappingManager.mapper( EntitySet.class );
         this.entityTypeMapper = mappingManager.mapper( EntityType.class );
         this.propertyTypeMapper = mappingManager.mapper( PropertyType.class );
 
-        upsertSchema( new SchemaMetadata().setAclId( UUIDs.ACLs.EVERYONE_ACL )
+        upsertSchema( new Schema().setAclId( UUIDs.ACLs.EVERYONE_ACL )
                 .setNamespace( DatastoreConstants.PRIMARY_NAMESPACE ).setName( DatastoreConstants.PRIMARY_NAMESPACE ) );
         createEntityType( new EntityType().setNamespace( "kryptnostic" )
                 .setKey( ImmutableSet.of( "ssn", "passport" ) ).setType( "person" )
@@ -67,23 +64,35 @@ public class DataModelService implements EdmManager {
                 .setProperties( ImmutableSet.of() ) );
         upsertPropertyType( new PropertyType().setNamespace( "kryptnostic" ).setType( "SSN" )
                 .setDatatype( EdmPrimitiveTypeKind.String ).setTypename( "ssn" ).setMultiplicity( 0 ) );
-        Result<EntityType> objectTypes = edmStore.getObjectTypes();
-        Iterable<SchemaMetadata> namespaces = getSchemaMetadata();
+        Result<EntityType> objectTypes = edmStore.getEntityTypes();
+        Iterable<Schema> namespaces = getSchemas();
         namespaces.forEach( namespace -> logger.info( "Namespace loaded: {}", namespace ) );
         objectTypes.forEach( objectType -> logger.info( "Object read: {}", objectType ) );
     }
 
     @Override
     public Schema getSchema( String namespace, String name ) {
-        SchemaMetadata schemaMetadata = schemaMapper.get( namespace, ACLs.EVERYONE_ACL, name );
+        return schemaMapper.get( namespace, ACLs.EVERYONE_ACL, name );
+    }
 
-        Set<EntityType> entityTypes = schemaMetadata.getEntityTypes().stream()
-                .map( type -> entityTypeMapper.getAsync( schemaMetadata.getNamespace(), type ) )
+    @Override
+    public void enrichSchemaWithEntityTypes( Schema schema ) {
+        Set<EntityType> entityTypes = schema.getEntityTypeFqns().stream()
+                .map( type -> entityTypeMapper.getAsync( schema.getNamespace(), type ) )
                 .map( futureEntityType -> Util.getFutureSafely( futureEntityType ) ).filter( e -> e != null )
                 .collect( Collectors.toSet() );
+        schema.addEntityTypes( entityTypes );
+    }
+
+    @Override
+    public void enrichSchemaWithPropertyTypes( Schema schema ) {
         Set<FullQualifiedName> propertyTypeNames = Sets.newHashSet();
 
-        for ( EntityType entityType : entityTypes ) {
+        if ( schema.getEntityTypes().isEmpty() && !schema.getEntityTypeFqns().isEmpty() ) {
+            enrichSchemaWithEntityTypes( schema );
+        }
+
+        for ( EntityType entityType : schema.getEntityTypes() ) {
             propertyTypeNames.addAll( entityType.getProperties() );
         }
 
@@ -92,7 +101,13 @@ public class DataModelService implements EdmManager {
                 .map( futurePropertyType -> Util.getFutureSafely( futurePropertyType ) ).filter( e -> e != null )
                 .collect( Collectors.toSet() );
 
-        return new Schema( entityTypes, propertyTypes, Optional.of( schemaMetadata.getAclId() ) );
+        schema.addPropertyTypes( propertyTypes );
+
+    }
+
+    @Override
+    public Iterable<Schema> getSchemasInNamespace( String namespace ) {
+        return edmStore.getSchemas( namespace, ImmutableList.of( ACLs.EVERYONE_ACL ) );
     }
 
     /*
@@ -100,7 +115,7 @@ public class DataModelService implements EdmManager {
      * @see com.kryptnostic.types.services.EdmManager#getNamespaces(java.util.List)
      */
     @Override
-    public Iterable<SchemaMetadata> getSchemaMetadata() {
+    public Iterable<Schema> getSchemas() {
         // TODO: Actually grab ACLs based on the current user.
         return edmStore.getSchemaMetadata( ImmutableList.of( ACLs.EVERYONE_ACL ) );
     }
@@ -151,7 +166,7 @@ public class DataModelService implements EdmManager {
      * @see com.kryptnostic.types.services.EdmManager#createNamespace(com.kryptnostic.types.Namespace)
      */
     @Override
-    public void upsertSchema( SchemaMetadata namespace ) {
+    public void upsertSchema( Schema namespace ) {
         schemaMapper.save( namespace );
     }
 
@@ -184,19 +199,19 @@ public class DataModelService implements EdmManager {
     }
 
     @Override
-    public void deleteSchema( SchemaMetadata namespaces ) {
+    public void deleteSchema( Schema namespaces ) {
         // TODO: 1. Implement AccessCheck
 
         schemaMapper.delete( namespaces );
     }
 
     @Override
-    public void addEntityTypesToSchema( String namespace, String name, Set<String> entityTypes ) {
+    public void addEntityTypesToSchema( String namespace, String name, Set<FullQualifiedName> entityTypes ) {
         edmStore.addEntityTypesToContainer( namespace, ACLs.EVERYONE_ACL, name, entityTypes );
     }
 
     @Override
-    public void removeEntityTypesFromSchema( String namespace, String name, Set<String> entityTypes ) {
+    public void removeEntityTypesFromSchema( String namespace, String name, Set<FullQualifiedName> entityTypes ) {
         edmStore.removeEntityTypesFromContainer( namespace, ACLs.EVERYONE_ACL, name, entityTypes );
     }
 
@@ -257,16 +272,16 @@ public class DataModelService implements EdmManager {
     }
 
     public EntitySet getEntitySet( FullQualifiedName type, String name ) {
-        return entitySetMapper.get( type , name );
+        return entitySetMapper.get( type, name );
     }
-    
-    public EntitySet getEntitySet( String name ) { 
-        return edmStore.getEntitySet(name);
+
+    public EntitySet getEntitySet( String name ) {
+        return edmStore.getEntitySet( name );
     }
 
     @Override
     public Iterable<EntitySet> getEntitySets() {
-        return edmStore.getEntitySets(); 
+        return edmStore.getEntitySets();
     }
 
     @Override

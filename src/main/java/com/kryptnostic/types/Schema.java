@@ -48,7 +48,7 @@ public class Schema {
     private String                  name;
 
     @Column(
-        name = "entityTypeNames" )
+        name = "entityTypeFqns" )
     private Set<FullQualifiedName>  entityTypeFqns;
 
     @Transient
@@ -65,7 +65,7 @@ public class Schema {
         this.entityTypes = Sets.newHashSet( entityTypes );
         this.propertyTypes = Sets.newHashSet( propertyTypes );
 
-        setEntityTypeNames( entityTypes.stream()
+        setEntityTypeFqns( entityTypes.stream()
                 .map( entityType -> new FullQualifiedName( entityType.getNamespace(), entityType.getType() ) )
                 .collect( Collectors.toSet() ) );
     }
@@ -104,7 +104,7 @@ public class Schema {
         return entityTypeFqns;
     }
 
-    public Schema setEntityTypeNames( Set<FullQualifiedName> entityTypeFqns ) {
+    public Schema setEntityTypeFqns( Set<FullQualifiedName> entityTypeFqns ) {
         this.entityTypeFqns = entityTypeFqns;
         return this;
     }
@@ -130,7 +130,7 @@ public class Schema {
 
     @Override
     public String toString() {
-        return "Schema [aclId=" + aclId + ", namespace=" + namespace + ", name=" + name + ", entityTypeNames="
+        return "Schema [aclId=" + aclId + ", namespace=" + namespace + ", name=" + name + ", entityFqns="
                 + entityTypeFqns + ", propertyTypes=" + propertyTypes + ", entityTypes=" + entityTypes + "]";
     }
 
@@ -151,7 +151,7 @@ public class Schema {
                 .setNamespace( namespace )
                 .setName( name );
 
-        schema.setEntityTypeNames( entityTypeNames.or( schema.getEntityTypeFqns() ) );
+        schema.setEntityTypeFqns( entityTypeNames.or( schema.getEntityTypeFqns() ) );
 
         return schema;
     }

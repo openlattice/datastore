@@ -214,7 +214,8 @@ public class EdmController implements EdmApi {
     @Override
     @RequestMapping(
         path = ENTITY_TYPE_BASE_PATH + NAMESPACE_PATH + NAME_PATH,
-        method = RequestMethod.DELETE )
+        method = RequestMethod.GET )
+    @ResponseBody
     public EntityType getEntityType( @PathVariable( NAMESPACE ) String namespace, @PathVariable( NAME ) String name ) {
         return modelService.getEntityType( namespace, name );
     }
@@ -234,6 +235,7 @@ public class EdmController implements EdmApi {
         path = PROPERTY_TYPE_BASE_PATH,
         method = RequestMethod.POST,
         consumes = MediaType.APPLICATION_JSON_VALUE )
+    @ResponseBody
     public boolean postPropertyType( PropertyType propertyType ) {
         return modelService.createPropertyType(
                 propertyType.getNamespace(),

@@ -2,7 +2,9 @@ package com.kryptnostic.types.services;
 
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.apache.olingo.commons.api.edm.EdmPrimitiveTypeKind;
 import org.apache.olingo.commons.api.edm.FullQualifiedName;
@@ -10,7 +12,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.datastax.driver.core.ResultSet;
+import com.datastax.driver.core.ResultSetFuture;
 import com.datastax.driver.core.Session;
+import com.datastax.driver.core.querybuilder.QueryBuilder;
 import com.datastax.driver.mapping.Mapper;
 import com.datastax.driver.mapping.MappingManager;
 import com.datastax.driver.mapping.Result;
@@ -19,6 +23,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import com.google.common.hash.Hashing;
+import com.google.common.util.concurrent.Futures;
 import com.kryptnostic.datastore.util.CassandraEdmMapping;
 import com.kryptnostic.datastore.util.DatastoreConstants;
 import com.kryptnostic.datastore.util.DatastoreConstants.Queries;
@@ -223,8 +228,30 @@ public class DataModelService implements EdmManager {
             String typename,
             Set<String> key,
             Set<FullQualifiedName> properties ) {
+        if ( propertiesExist( properties ) ) {
+
+        }
         return wasLightweightTransactionApplied(
                 edmStore.createEntityTypeIfNotExists( namespace, type, typename, key, properties ) );
+    }
+
+    private boolean propertiesExist( Set<FullQualifiedName> properties ) {
+        // TODO: Extract contents
+        Stream<ResultSetFuture> futures = properties.parallelStream()
+                .map( prop -> session
+                        .executeAsync(
+                                QueryBuilder.select().countAll().from( DatastoreConstants.PROPERTY_TYPES_TABLE )
+                                        .where( QueryBuilder.eq( "namespace", prop.getNamespace() ) )
+                                        .and( QueryBuilder.eq( "name", prop.getName() ) ) ) );
+        // Cause Java 8
+        try {
+            return Futures.allAsList( (Iterable<ResultSetFuture>) futures::iterator ).get().stream().map( ResultSet::one )
+                    .map( row -> row.getInt( "count" ) ).filter( count -> count == 0 ).collect( Collectors.counting() )
+                    .intValue() == 0;
+        } catch ( InterruptedException | ExecutionException e ) {
+            logger.error( "Unable to verify all properties exist." );
+            return false;
+        }
     }
 
     @Override

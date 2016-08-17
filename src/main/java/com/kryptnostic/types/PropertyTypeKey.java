@@ -2,6 +2,7 @@ package com.kryptnostic.types;
 
 import org.apache.olingo.commons.api.edm.EdmPrimitiveTypeKind;
 
+import com.datastax.driver.mapping.annotations.ClusteringColumn;
 import com.datastax.driver.mapping.annotations.Column;
 import com.datastax.driver.mapping.annotations.PartitionKey;
 
@@ -9,8 +10,8 @@ public class PropertyTypeKey {
     @PartitionKey(
         value = 0 )
     protected String             namespace;
-    @PartitionKey(
-        value = 1 )
+    @ClusteringColumn(
+        value = 0 )
     protected String             type;
 
     @Column(

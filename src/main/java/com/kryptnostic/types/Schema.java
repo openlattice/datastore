@@ -134,6 +134,76 @@ public class Schema {
                 + entityTypeFqns + ", propertyTypes=" + propertyTypes + ", entityTypes=" + entityTypes + "]";
     }
 
+    @Override
+    public int hashCode() {
+        final int prime = 31;
+        int result = 1;
+        result = prime * result + ( ( aclId == null ) ? 0 : aclId.hashCode() );
+        result = prime * result + ( ( entityTypeFqns == null ) ? 0 : entityTypeFqns.hashCode() );
+        result = prime * result + ( ( entityTypes == null ) ? 0 : entityTypes.hashCode() );
+        result = prime * result + ( ( name == null ) ? 0 : name.hashCode() );
+        result = prime * result + ( ( namespace == null ) ? 0 : namespace.hashCode() );
+        result = prime * result + ( ( propertyTypes == null ) ? 0 : propertyTypes.hashCode() );
+        return result;
+    }
+
+    @Override
+    public boolean equals( Object obj ) {
+        if ( this == obj ) {
+            return true;
+        }
+        if ( obj == null ) {
+            return false;
+        }
+        if ( !( obj instanceof Schema ) ) {
+            return false;
+        }
+        Schema other = (Schema) obj;
+        if ( aclId == null ) {
+            if ( other.aclId != null ) {
+                return false;
+            }
+        } else if ( !aclId.equals( other.aclId ) ) {
+            return false;
+        }
+        if ( entityTypeFqns == null ) {
+            if ( other.entityTypeFqns != null ) {
+                return false;
+            }
+        } else if ( !entityTypeFqns.equals( other.entityTypeFqns ) ) {
+            return false;
+        }
+        if ( entityTypes == null ) {
+            if ( other.entityTypes != null ) {
+                return false;
+            }
+        } else if ( !entityTypes.equals( other.entityTypes ) ) {
+            return false;
+        }
+        if ( name == null ) {
+            if ( other.name != null ) {
+                return false;
+            }
+        } else if ( !name.equals( other.name ) ) {
+            return false;
+        }
+        if ( namespace == null ) {
+            if ( other.namespace != null ) {
+                return false;
+            }
+        } else if ( !namespace.equals( other.namespace ) ) {
+            return false;
+        }
+        if ( propertyTypes == null ) {
+            if ( other.propertyTypes != null ) {
+                return false;
+            }
+        } else if ( !propertyTypes.equals( other.propertyTypes ) ) {
+            return false;
+        }
+        return true;
+    }
+
     @JsonCreator
     public static Schema deserializeSchema(
             Optional<UUID> aclId,

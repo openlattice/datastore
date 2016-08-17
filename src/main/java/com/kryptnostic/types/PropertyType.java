@@ -24,7 +24,7 @@ public class PropertyType extends PropertyTypeKey {
         this.namespace = namespace;
         return this;
     }
-    
+
     public String getTypename() {
         return typename;
     }
@@ -45,7 +45,7 @@ public class PropertyType extends PropertyTypeKey {
         this.datatype = datatype;
         return this;
     }
-    
+
     public long getMultiplicity() {
         return multiplicity;
     }
@@ -53,6 +53,45 @@ public class PropertyType extends PropertyTypeKey {
     public PropertyType setMultiplicity( long multiplicity ) {
         this.multiplicity = multiplicity;
         return this;
+    }
+
+    @Override
+    public String toString() {
+        return "PropertyType [typename=" + typename + ", multiplicity=" + multiplicity + "]";
+    }
+
+    @Override
+    public int hashCode() {
+        final int prime = 31;
+        int result = super.hashCode();
+        result = prime * result + (int) ( multiplicity ^ ( multiplicity >>> 32 ) );
+        result = prime * result + ( ( typename == null ) ? 0 : typename.hashCode() );
+        return result;
+    }
+
+    @Override
+    public boolean equals( Object obj ) {
+        if ( this == obj ) {
+            return true;
+        }
+        if ( !super.equals( obj ) ) {
+            return false;
+        }
+        if ( !( obj instanceof PropertyType ) ) {
+            return false;
+        }
+        PropertyType other = (PropertyType) obj;
+        if ( multiplicity != other.multiplicity ) {
+            return false;
+        }
+        if ( typename == null ) {
+            if ( other.typename != null ) {
+                return false;
+            }
+        } else if ( !typename.equals( other.typename ) ) {
+            return false;
+        }
+        return true;
     }
 
 }

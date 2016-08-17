@@ -25,6 +25,7 @@ import com.kryptnostic.datastore.util.DatastoreConstants.Queries;
 import com.kryptnostic.datastore.util.UUIDs;
 import com.kryptnostic.datastore.util.UUIDs.ACLs;
 import com.kryptnostic.datastore.util.Util;
+import com.kryptnostic.types.EntityDataModel;
 import com.kryptnostic.types.EntitySet;
 import com.kryptnostic.types.EntityType;
 import com.kryptnostic.types.PropertyType;
@@ -187,7 +188,7 @@ public class DataModelService implements EdmManager {
         return wasLightweightTransactionApplied(
                 edmStore.createSchemaIfNotExists( namespace, name, aclId, entityTypes ) );
     }
-    
+
     @Override
     public void deleteEntityType( EntityType objectType ) {
         entityTypeMapper.delete( objectType );
@@ -289,6 +290,30 @@ public class DataModelService implements EdmManager {
         return propertyTypeMapper.get( propertyType.getNamespace(), propertyType.getName() );
     }
 
-    
+    @Override
+    public EntityDataModel getEntityDataModel() {
+        Iterable<Schema> schemas = getSchemas();
+        final Set<EntityType> entityTypes = Sets.newHashSet();
+        final Set<PropertyType> propertyTypes = Sets.newHashSet();
+        final Set<EntitySet> entitySets = Sets.newHashSet();
+        final Set<String> namespaces = Sets.newHashSet();
+
+        schemas.forEach( schema -> {
+            enrichSchemaWithEntityTypes( schema );
+            enrichSchemaWithPropertyTypes( schema );
+            entityTypes.addAll( schema.getEntityTypes() );
+            propertyTypes.addAll( schema.getPropertyTypes() );
+            schema.getEntityTypes().forEach( entityType -> namespaces.add( entityType.getNamespace() ) );
+            schema.getPropertyTypes().forEach( propertyType -> namespaces.add( propertyType.getNamespace() ) );
+
+        } );
+
+        return new EntityDataModel(
+                namespaces,
+                ImmutableSet.copyOf( schemas ),
+                entityTypes,
+                propertyTypes,
+                entitySets );
+    }
 
 }

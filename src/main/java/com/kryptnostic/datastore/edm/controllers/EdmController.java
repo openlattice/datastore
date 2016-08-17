@@ -19,6 +19,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import com.kryptnostic.datastore.util.UUIDs.ACLs;
 import com.kryptnostic.datastore.util.Util;
@@ -39,9 +40,13 @@ public class EdmController implements EdmApi {
     private EdmManager modelService;
 
     @Override
+    @RequestMapping(
+        path = { "", "/" },
+        method = RequestMethod.GET,
+        produces = MediaType.APPLICATION_JSON_VALUE )
+    @ResponseBody
     public EntityDataModel getEntityDataModel() {
-        // TODO Auto-generated method stub
-        return null;
+        return modelService.getEntityDataModel();
     }
 
     /*
@@ -77,8 +82,8 @@ public class EdmController implements EdmApi {
             schemas = modelService.getSchemas();
         }
 
-        // Enrich schemas with requested details
-        schemas.forEach( schema -> {
+        // This defers enrichment until serializtion
+        return Util.wrapForJackson( Iterables.transform( schemas, schema -> {
             if ( request.getLoadDetails().contains( TypeDetails.ENTITY_TYPES ) ) {
                 modelService.enrichSchemaWithEntityTypes( schema );
             }
@@ -86,12 +91,15 @@ public class EdmController implements EdmApi {
             if ( request.getLoadDetails().contains( TypeDetails.PROPERTY_TYPES ) ) {
                 modelService.enrichSchemaWithEntityTypes( schema );
             }
-        } );
-
-        return schemas;
+            return schema;
+        } ) );
     }
 
     @Override
+    @RequestMapping(
+        path = SCHEMA_BASE_PATH + NAMESPACE_PATH + NAME_PATH,
+        method = RequestMethod.GET )
+    @ResponseBody
     public Schema getSchemaContents( String namespace, String name ) {
         return modelService.getSchema( namespace, name );
     }
@@ -101,7 +109,7 @@ public class EdmController implements EdmApi {
         path = SCHEMA_BASE_PATH + NAMESPACE_PATH )
     @ResponseBody
     public Iterable<Schema> getSchemasInNamespace( String namespace ) {
-        return modelService.getSchemasInNamespace( namespace );
+        return Util.wrapForJackson( modelService.getSchemasInNamespace( namespace ) );
     }
 
     /*
@@ -111,11 +119,12 @@ public class EdmController implements EdmApi {
      */
     @Override
     @RequestMapping(
-        path = "/namespace",
-        method = RequestMethod.PUT )
+        path = SCHEMA_BASE_PATH + NAMESPACE_PATH,
+        method = RequestMethod.PUT,
+        consumes = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
     public Response putSchema(
-            @PathVariable( "namespace" ) String namespace,
+            @PathVariable( NAMESPACE ) String namespace,
             @RequestBody Optional<UUID> aclId ) {
         modelService
                 .upsertSchema(
@@ -125,8 +134,12 @@ public class EdmController implements EdmApi {
 
     @Override
     @RequestMapping(
-        path = "/sets/entity" )
-    public @ResponseBody Map<String, Boolean> postEntitySets( Set<EntitySet> entitySets ) {
+        path = ENTITY_SETS_BASE_PATH,
+        method = RequestMethod.POST,
+        consumes = MediaType.APPLICATION_JSON_VALUE,
+        produces = MediaType.APPLICATION_JSON_VALUE )
+    @ResponseBody
+    public Map<String, Boolean> postEntitySets( @RequestBody Set<EntitySet> entitySets ) {
         Map<String, Boolean> results = Maps.newHashMapWithExpectedSize( entitySets.size() );
 
         for ( EntitySet entitySet : entitySets ) {
@@ -138,7 +151,13 @@ public class EdmController implements EdmApi {
     }
 
     @Override
-    public Response putEntitySets( Set<EntitySet> entitySets ) {
+    @RequestMapping(
+        path = ENTITY_SETS_BASE_PATH,
+        method = RequestMethod.PUT,
+        consumes = MediaType.APPLICATION_JSON_VALUE,
+        produces = MediaType.APPLICATION_JSON_VALUE )
+    @ResponseStatus( HttpStatus.OK )
+    public Response putEntitySets( @RequestBody Set<EntitySet> entitySets ) {
         entitySets.forEach( entitySet -> modelService.upsertEntitySet( entitySet ) );
         return null;
     }
@@ -150,11 +169,10 @@ public class EdmController implements EdmApi {
      */
     @Override
     @RequestMapping(
-        path = "/{namespace}/types/entity",
+        path = ENTITY_TYPE_BASE_PATH,
         method = RequestMethod.PUT )
     @ResponseStatus( HttpStatus.OK )
-    public Response putEntityType(
-            @RequestBody EntityType entityType ) {
+    public Response putEntityType( @RequestBody EntityType entityType ) {
         modelService.createEntityType( entityType );
         return null;
     }
@@ -166,8 +184,9 @@ public class EdmController implements EdmApi {
      */
     @Override
     @RequestMapping(
-        path = "/{namespace}/types/properties",
+        path = PROPERTY_TYPE_BASE_PATH,
         method = RequestMethod.PUT )
+    @ResponseStatus( HttpStatus.OK )
     public Response putPropertyType( @RequestBody PropertyType propertyType ) {
         modelService.upsertPropertyType( propertyType );
         return null;
@@ -237,7 +256,7 @@ public class EdmController implements EdmApi {
         method = RequestMethod.POST,
         consumes = MediaType.APPLICATION_JSON_VALUE )
     @ResponseBody
-    public boolean postPropertyType( PropertyType propertyType ) {
+    public boolean postPropertyType( @RequestBody PropertyType propertyType ) {
         return modelService.createPropertyType(
                 propertyType.getNamespace(),
                 propertyType.getType(),
@@ -248,7 +267,8 @@ public class EdmController implements EdmApi {
 
     @Override
     @RequestMapping(
-        path = PROPERTY_TYPE_BASE_PATH + NAMESPACE_PATH + NAME_PATH )
+        path = PROPERTY_TYPE_BASE_PATH + NAMESPACE_PATH + NAME_PATH,
+        method = RequestMethod.DELETE )
     public Response deletePropertyType(
             @PathVariable( NAMESPACE ) String namespace,
             @PathVariable( NAME ) String propertyType ) {

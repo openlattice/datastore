@@ -6,6 +6,7 @@ import java.util.UUID;
 import org.apache.olingo.commons.api.edm.EdmPrimitiveTypeKind;
 import org.apache.olingo.commons.api.edm.FullQualifiedName;
 
+import com.kryptnostic.types.EntityDataModel;
 import com.kryptnostic.types.EntitySet;
 import com.kryptnostic.types.EntityType;
 import com.kryptnostic.types.PropertyType;
@@ -73,5 +74,7 @@ public interface EdmManager {
     void deletePropertyType( PropertyType propertyType );
 
     PropertyType getPropertyType( FullQualifiedName prop );
+
+    EntityDataModel getEntityDataModel();
 
 }

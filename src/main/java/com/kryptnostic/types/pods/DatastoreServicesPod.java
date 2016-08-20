@@ -10,6 +10,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.hazelcast.core.HazelcastInstance;
 import com.kryptnostic.rhizome.registries.ObjectMapperRegistry;
 import com.kryptnostic.types.services.DataModelService;
+import com.kryptnostic.types.services.DataStorageService;
 import com.kryptnostic.types.services.EdmManager;
 
 @Configuration
@@ -29,6 +30,11 @@ public class DatastoreServicesPod {
     @Bean
     public EdmManager dataModelService() {
         return new DataModelService( session );
+    }
+
+    @Bean
+    public DataStorageService dataStorageService() {
+        return new DataStorageService( hazelcastInstance );
     }
 
 }

@@ -10,7 +10,7 @@ apply plugin: "jacoco"
 
 apply from: "http://api.krypt.int/gradle/kryptnostic.gradle"
 
-mainClassName = "com.kryptnostic.types.Types"
+mainClassName = "com.kryptnostic.types.Datastore"
 applicationDefaultJvmArgs = ["-Xmx5G","-Xms5G","-server"]
 sourceCompatibility=JavaVersion.VERSION_1_8
 targetCompatibility=JavaVersion.VERSION_1_8
@@ -27,9 +27,11 @@ dependencies {
         logger.quiet(project.name + " using project dependencies.")
         compile project(":rhizome")
         compile project(":kryptnostic-mapstores")
+        compile project(":kryptnostic-conductor-client")
     } else {
         logger.quiet(project.name + " using jar dependencies.")
         compile "com.kryptnostic:rhizome:${rhizome_version}"
+        compile "com.kryptnostic:kryptnostic-conductor-client:${conductor_client_version}"
         compile "com.kryptnostic:kryptnostic-mapstores:${mapstores_version}"
     }
 

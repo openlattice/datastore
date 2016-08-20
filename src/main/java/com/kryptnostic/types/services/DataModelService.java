@@ -229,10 +229,17 @@ public class DataModelService implements EdmManager {
             Set<String> key,
             Set<FullQualifiedName> properties ) {
         if ( propertiesExist( properties ) ) {
-
-        }
+            createTableForEntityType( namespace, type );
+        
         return wasLightweightTransactionApplied(
                 edmStore.createEntityTypeIfNotExists( namespace, type, typename, key, properties ) );
+        }
+        return false;
+    }
+
+    private void createTableForEntityType( String namespace, String type ) {
+        
+        
     }
 
     private boolean propertiesExist( Set<FullQualifiedName> properties ) {

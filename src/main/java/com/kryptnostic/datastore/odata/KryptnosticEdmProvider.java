@@ -75,13 +75,13 @@ public class KryptnosticEdmProvider extends CsdlAbstractEdmProvider {
         dms.createPropertyType( NAMESPACE, "objectId", "objectId", EdmPrimitiveTypeKind.Int64, 0 );
         dms.createPropertyType( NAMESPACE, "version", "version", EdmPrimitiveTypeKind.Int64, 0 );
         EntityType product = new EntityType().setNamespace( NAMESPACE ).setType( ET_PRODUCT_NAME )
-                .setKey( ImmutableSet.of( "ID" ) )
+                .setKey( ImmutableSet.of( new FullQualifiedName( NAMESPACE, "ID" ) ) )
                 .setProperties( ImmutableSet.of( new FullQualifiedName( NAMESPACE, "ID" ),
                         new FullQualifiedName( NAMESPACE, "Name" ),
                         new FullQualifiedName( NAMESPACE, "Description" ) ) )
                 .setTypename( ET_PRODUCT_NAME );
         EntityType metadataLevel = new EntityType().setNamespace( NAMESPACE ).setType( "metadataLevel" )
-                .setKey( ImmutableSet.of( "aclId" ) )
+                .setKey( ImmutableSet.of( new FullQualifiedName( NAMESPACE, "aclId" ) ) )
                 .setProperties( ImmutableSet.of( new FullQualifiedName( NAMESPACE, "aclId" ),
                         new FullQualifiedName( NAMESPACE, "type" ),
                         new FullQualifiedName( NAMESPACE, "clock" ),
@@ -127,72 +127,14 @@ public class KryptnosticEdmProvider extends CsdlAbstractEdmProvider {
 
     @Override
     public CsdlEntityType getEntityType( FullQualifiedName entityTypeName ) throws ODataException {
-        // EntitySchema entityTypeDefs = entitySchemas.get( entityTypeName );
-
         EntityType objectType = dms.getEntityType( entityTypeName.getNamespace(), entityTypeName.getName() );
 
         return ett.transform( objectType );
-        // CsdlEntityType entityTypeA = new CsdlEntityType();
-        //
-        // if ( entityTypeDefs != null ) {
-        // entityTypeA.setName( entityTypeName.getName() );
-        // entityTypeA.setKey( entityTypeDefs.getKeyProperties().stream()
-        // .map( name -> new CsdlPropertyRef().setName( name ) ).collect( Collectors.toList() ) );
-        // entityTypeA.setProperties(
-        // entityTypeDefs.getProperties().entrySet().stream()
-        // .map( ( prop ) -> new CsdlProperty().setName( prop.getKey() )
-        // .setType( prop.getValue().getFullQualifiedName() ) )
-        // .collect( Collectors.toList() ) );
-        // return entityTypeA;
-        // }
-
-        // return null;
-        // this method is called for one of the EntityTypes that are configured in the Schema
-        // if ( entityTypeName.equals( ET_PRODUCT_FQN ) ) {
-        //
-        // // create EntityType properties
-        // CsdlProperty id = new CsdlProperty().setName( "ID" )
-        // .setType( EdmPrimitiveTypeKind.Int32.getFullQualifiedName() );
-        // CsdlProperty name = new CsdlProperty().setName( "Name" )
-        // .setType( EdmPrimitiveTypeKind.String.getFullQualifiedName() );
-        // CsdlProperty description = new CsdlProperty().setName( "Description" )
-        // .setType( EdmPrimitiveTypeKind.String.getFullQualifiedName() );
-        //
-        // // create CsdlPropertyRef for Key element
-        // CsdlPropertyRef propertyRef = new CsdlPropertyRef();
-        // propertyRef.setName( "ID" );
-        //
-        // // configure EntityType
-        // CsdlEntityType entityType = new CsdlEntityType();
-        // entityType.setName( ET_PRODUCT_NAME );
-        // entityType.setProperties( Arrays.asList( id, name, description ) );
-        // entityType.setKey( Collections.singletonList( propertyRef ) );
-        //
-        // return entityTypeA;
-        // }
-
-        // return null;
     }
 
     public CsdlEntitySet getEntitySet( FullQualifiedName entityContainer, String entitySetName ) {
-
         EntitySet entitySet = dms.getEntitySet( entitySetName );
         return Transformers.transform( entitySet );
-        // if ( entityContainer.equals( CONTAINER ) ) {
-        // FullQualifiedName type = entitySets.get( entitySetName );
-        // if ( type != null ) {
-        // return new CsdlEntitySet().setName( entitySetName ).setType( type );
-        // }
-        // // if ( entitySetName.equals( ES_PRODUCTS_NAME ) ) {
-        // // CsdlEntitySet entitySet = new CsdlEntitySet();
-        // // entitySet.setName( ES_PRODUCTS_NAME );
-        // // entitySet.setType( ET_PRODUCT_FQN );
-        // //
-        // // return entitySet;
-        // // }
-        // }
-
-        // return null;
     }
 
     public CsdlEntityContainer getEntityContainer() {

@@ -83,8 +83,6 @@ public class KryptnosticEntityCollectionProcessor implements EntityCollectionPro
     }
 
     private EntityCollection getData( EdmEntitySet edmEntitySet ) {
-
-        
         EntityCollection productsCollection = new EntityCollection();
         
         // check for which EdmEntitySet the data is requested

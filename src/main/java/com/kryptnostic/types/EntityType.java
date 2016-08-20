@@ -8,6 +8,10 @@ import com.datastax.driver.mapping.annotations.ClusteringColumn;
 import com.datastax.driver.mapping.annotations.Column;
 import com.datastax.driver.mapping.annotations.PartitionKey;
 import com.datastax.driver.mapping.annotations.Table;
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.kryptnostic.datastore.edm.controllers.SerializationConstants;
 import com.kryptnostic.datastore.util.DatastoreConstants;
 
 @Table(
@@ -16,17 +20,17 @@ import com.kryptnostic.datastore.util.DatastoreConstants;
 public class EntityType {
     @PartitionKey(
         value = 0 )
-    private String      namespace;
+    private String                 namespace;
     @ClusteringColumn(
         value = 0 )
-    private String      type;
+    private String                 type;
     @Column(
         name = "typename" )
-    private String      typename;
+    private String                 typename;
 
     @Column(
         name = "key" )
-    private Set<String> key;
+    private Set<FullQualifiedName> key;
 
     @Column(
         name = "properties" )
@@ -50,6 +54,7 @@ public class EntityType {
         return this;
     }
 
+    @JsonIgnore
     public String getTypename() {
         return typename;
     }
@@ -59,11 +64,12 @@ public class EntityType {
         return this;
     }
 
-    public Set<String> getKey() {
+    // TODO: It seems the objects do not allow property types from the different schemas.
+    public Set<FullQualifiedName> getKey() {
         return key;
     }
 
-    public EntityType setKey( Set<String> key ) {
+    public EntityType setKey( Set<FullQualifiedName> key ) {
         this.key = key;
         return this;
     }
@@ -144,5 +150,18 @@ public class EntityType {
         }
         return true;
     }
-    
+
+    @JsonCreator
+    public static EntityType newEntityType(
+            @JsonProperty( SerializationConstants.NAMESPACE_FIELD ) String namespace,
+            @JsonProperty( SerializationConstants.TYPE_FIELD ) String type,
+            @JsonProperty( SerializationConstants.KEY_FIELD ) Set<FullQualifiedName> key,
+            @JsonProperty( SerializationConstants.PROPERTIES_FIELD ) Set<FullQualifiedName> properties ) {
+        return new EntityType()
+                .setNamespace( namespace )
+                .setType( type )
+                .setTypename( null )
+                .setProperties( properties )
+                .setKey( key );
+    }
 }

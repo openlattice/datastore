@@ -11,6 +11,7 @@ public final class DatastoreConstants {
     public static final String PROPERTY_TYPES_TABLE = "property_types";
     public static final String PRIMARY_NAMESPACE    = "agora";
     public static final String APPLIED_FIELD        = "[applied]";
+    private static final String ENTITY_TABLE = null;
 
     public static final class Queries {
         public static final class ParamNames {
@@ -41,6 +42,9 @@ public final class DatastoreConstants {
                 + " ( namespace text, type text, typename text, dataType text, multiplicity bigint, PRIMARY KEY ( namespace, type ) )";
         public static final String PROPERTY_TABLE                         = "CREATE TABLE IF NOT EXISTS " + KEYSPACE
                 + ".%s_properties ( objectId uuid, aclId uuid, value %s, syncIds list<uuid>, PRIMARY KEY ( ( objectId, aclId ), value ) )";
+
+        public static final String ENTITY_TABLE                         = "CREATE TABLE IF NOT EXISTS " + KEYSPACE
+                + ".%s_entities ( objectId uuid, aclId uuid, timestamp %s, syncIds list<uuid>, PRIMARY KEY ( ( objectId, aclId ), value ) )";
 
         // Index creation
         public static final String CREATE_INDEX_ON_NAME                   = "CREATE INDEX IF NOT EXISTS ON " + KEYSPACE

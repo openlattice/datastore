@@ -2,12 +2,10 @@ package com.kryptnostic.datastore.odata;
 
 import java.util.stream.Collectors;
 
-import org.apache.olingo.commons.api.edm.FullQualifiedName;
 import org.apache.olingo.commons.api.edm.provider.CsdlEntitySet;
 import org.apache.olingo.commons.api.edm.provider.CsdlEntityType;
 import org.apache.olingo.commons.api.edm.provider.CsdlProperty;
 import org.apache.olingo.commons.api.edm.provider.CsdlPropertyRef;
-import org.slf4j.LoggerFactory;
 
 import com.kryptnostic.types.EntitySet;
 import com.kryptnostic.types.EntityType;
@@ -33,7 +31,7 @@ public final class Transformers {
             entityType.setName( objectType.getType() );
 
             entityType.setKey( objectType.getKey().stream()
-                    .map( name -> new CsdlPropertyRef().setName( name ) ).collect( Collectors.toList() ) );
+                    .map( name -> new CsdlPropertyRef().setName( name.getName() ) ).collect( Collectors.toList() ) );
             entityType.setProperties(
                     objectType.getProperties().stream()
                             .map( ( prop ) -> new CsdlProperty().setName( prop.getName() )

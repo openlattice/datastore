@@ -4,6 +4,10 @@ import org.apache.olingo.commons.api.edm.EdmPrimitiveTypeKind;
 
 import com.datastax.driver.mapping.annotations.Column;
 import com.datastax.driver.mapping.annotations.Table;
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.kryptnostic.datastore.edm.controllers.SerializationConstants;
 import com.kryptnostic.datastore.util.DatastoreConstants;
 
 @Table(
@@ -25,6 +29,7 @@ public class PropertyType extends PropertyTypeKey {
         return this;
     }
 
+    @JsonIgnore
     public String getTypename() {
         return typename;
     }
@@ -35,6 +40,7 @@ public class PropertyType extends PropertyTypeKey {
         return this;
     }
 
+    @JsonIgnore
     public PropertyType setTypename( String typename ) {
         this.typename = typename;
         return this;
@@ -94,4 +100,14 @@ public class PropertyType extends PropertyTypeKey {
         return true;
     }
 
+    @JsonCreator
+    public static PropertyType createPropertyType(
+            @JsonProperty( SerializationConstants.NAMESPACE_FIELD ) String namespace,
+            @JsonProperty( SerializationConstants.NAME_FIELD ) String name,
+            @JsonProperty( SerializationConstants.DATATYPE_FIELD ) EdmPrimitiveTypeKind datatype,
+            @JsonProperty( SerializationConstants.PROPERTIES_FIELD ) int multiplicity ) {
+
+        return new PropertyType().setNamespace( namespace ).setType( name ).setDatatype( datatype )
+                .setMultiplicity( multiplicity );
+    }
 }

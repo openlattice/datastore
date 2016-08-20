@@ -21,6 +21,7 @@ import org.apache.olingo.server.api.uri.UriResourceEntitySet;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.datastax.driver.core.ResultSet;
 import com.google.common.util.concurrent.ListenableFuture;
 
 public final class Util {
@@ -135,5 +136,9 @@ public final class Util {
 
     public static <T> Iterable<T> wrapForJackson( Iterable<T> iterable ) {
         return new JacksonCassandraIterableWrapper<T>( iterable );
+    }
+
+    public static boolean wasLightweightTransactionApplied( ResultSet rs ) {
+        return rs.one().getBool( DatastoreConstants.APPLIED_FIELD );
     }
 }

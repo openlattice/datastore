@@ -35,7 +35,7 @@ public class EntityTypeSerializerTest extends BaseJacksonSerializationTest<Entit
         EntityType data = getSampleData();
         SerializationResult result = serialize( data.setTypename( "blah" ) );
         EntityType deserializedData = deserializeJsonBytes( result );
-        Assert.assertNotNull( data );
+        Assert.assertNotNull( data.getTypename() );
         Assert.assertNull( deserializedData.getTypename() );
     }
 }

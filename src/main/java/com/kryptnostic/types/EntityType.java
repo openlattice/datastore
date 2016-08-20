@@ -45,6 +45,7 @@ public class EntityType {
         return this;
     }
 
+    //TODO: Changes this to just name. Type => FQN
     public String getType() {
         return type;
     }

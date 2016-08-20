@@ -28,6 +28,7 @@ import com.kryptnostic.datastore.odata.Transformers.EntityTypeTransformer;
 import com.kryptnostic.datastore.util.UUIDs.ACLs;
 import com.kryptnostic.types.EntitySet;
 import com.kryptnostic.types.EntityType;
+import com.kryptnostic.types.PropertyType;
 import com.kryptnostic.types.Schema;
 import com.kryptnostic.types.services.EdmManager;
 
@@ -65,15 +66,22 @@ public class KryptnosticEdmProvider extends CsdlAbstractEdmProvider {
         this.entitySchemas = hazelcast.getMap( "entitySchemas" );
         this.entitySets = hazelcast.getMap( "entitySets" );
 
-        dms.createPropertyType( NAMESPACE, "ID", "ID", EdmPrimitiveTypeKind.Int32, 0 );
-        dms.createPropertyType( NAMESPACE, "Name", "Name", EdmPrimitiveTypeKind.String, 0 );
-        dms.createPropertyType( NAMESPACE, "Description", "Description", EdmPrimitiveTypeKind.String, 0 );
-
-        dms.createPropertyType( NAMESPACE, "aclId", "aclId", EdmPrimitiveTypeKind.Guid, 0 );
-        dms.createPropertyType( NAMESPACE, "type", "type", EdmPrimitiveTypeKind.Guid, 0 );
-        dms.createPropertyType( NAMESPACE, "clock", "clock", EdmPrimitiveTypeKind.Guid, 0 );
-        dms.createPropertyType( NAMESPACE, "objectId", "objectId", EdmPrimitiveTypeKind.Int64, 0 );
-        dms.createPropertyType( NAMESPACE, "version", "version", EdmPrimitiveTypeKind.Int64, 0 );
+        dms.createPropertyType( new PropertyType().setNamespace( NAMESPACE ).setType( "ID" )
+                .setDatatype( EdmPrimitiveTypeKind.Int32 ).setMultiplicity( 0 ) );
+        dms.createPropertyType( new PropertyType().setNamespace( NAMESPACE ).setType( "Name" )
+                .setDatatype( EdmPrimitiveTypeKind.String ).setMultiplicity( 0 ) );
+        dms.createPropertyType( new PropertyType().setNamespace( NAMESPACE ).setType( "Description" )
+                .setDatatype( EdmPrimitiveTypeKind.String ).setMultiplicity( 0 ) );
+        dms.createPropertyType( new PropertyType().setNamespace( NAMESPACE ).setType( "aclId" )
+                .setDatatype( EdmPrimitiveTypeKind.Guid ).setMultiplicity( 0 ) );
+        dms.createPropertyType( new PropertyType().setNamespace( NAMESPACE ).setType( "type" )
+                .setDatatype( EdmPrimitiveTypeKind.Guid ).setMultiplicity( 0 ) );
+        dms.createPropertyType( new PropertyType().setNamespace( NAMESPACE ).setType( "clock" )
+                .setDatatype( EdmPrimitiveTypeKind.Guid ).setMultiplicity( 0 ) );
+        dms.createPropertyType( new PropertyType().setNamespace( NAMESPACE ).setType( "objectId" )
+                .setDatatype( EdmPrimitiveTypeKind.Int64 ).setMultiplicity( 0 ) );
+        dms.createPropertyType( new PropertyType().setNamespace( NAMESPACE ).setType( "version" )
+                .setDatatype( EdmPrimitiveTypeKind.Int64 ).setMultiplicity( 0 ) );
         EntityType product = new EntityType().setNamespace( NAMESPACE ).setType( ET_PRODUCT_NAME )
                 .setKey( ImmutableSet.of( new FullQualifiedName( NAMESPACE, "ID" ) ) )
                 .setProperties( ImmutableSet.of( new FullQualifiedName( NAMESPACE, "ID" ),

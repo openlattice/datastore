@@ -257,12 +257,7 @@ public class EdmController implements EdmApi {
         consumes = MediaType.APPLICATION_JSON_VALUE )
     @ResponseBody
     public boolean postPropertyType( @RequestBody PropertyType propertyType ) {
-        return modelService.createPropertyType(
-                propertyType.getNamespace(),
-                propertyType.getType(),
-                propertyType.getTypename(),
-                propertyType.getDatatype(),
-                propertyType.getMultiplicity() );
+        return modelService.createPropertyType( propertyType );
     }
 
     @Override

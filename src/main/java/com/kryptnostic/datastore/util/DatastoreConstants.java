@@ -3,15 +3,14 @@ package com.kryptnostic.datastore.util;
 public final class DatastoreConstants {
     private DatastoreConstants() {}
 
-    public static final String KEYSPACE             = "sparks";
-    public static final String SCHEMAS_TABLE        = "schemas";
-    public static final String CONTAINERS_TABLE     = "containers";
-    public static final String ENTITY_SETS_TABLE    = "entity_sets";
-    public static final String ENTITY_TYPES_TABLE   = "entity_types";
-    public static final String PROPERTY_TYPES_TABLE = "property_types";
-    public static final String PRIMARY_NAMESPACE    = "agora";
-    public static final String APPLIED_FIELD        = "[applied]";
-    private static final String ENTITY_TABLE = null;
+    public static final String  KEYSPACE             = "sparks";
+    public static final String  SCHEMAS_TABLE        = "schemas";
+    public static final String  CONTAINERS_TABLE     = "containers";
+    public static final String  ENTITY_SETS_TABLE    = "entity_sets";
+    public static final String  ENTITY_TYPES_TABLE   = "entity_types";
+    public static final String  PROPERTY_TYPES_TABLE = "property_types";
+    public static final String  PRIMARY_NAMESPACE    = "agora";
+    public static final String  APPLIED_FIELD        = "[applied]";
 
     public static final class Queries {
         public static final class ParamNames {
@@ -40,11 +39,9 @@ public final class DatastoreConstants {
                 + "."
                 + PROPERTY_TYPES_TABLE
                 + " ( namespace text, type text, typename text, dataType text, multiplicity bigint, PRIMARY KEY ( namespace, type ) )";
-        public static final String PROPERTY_TABLE                         = "CREATE TABLE IF NOT EXISTS " + KEYSPACE
-                + ".%s_properties ( objectId uuid, aclId uuid, value %s, syncIds list<uuid>, PRIMARY KEY ( ( objectId, aclId ), value ) )";
+        public static final String CREATE_PROPERTY_TABLE                  = "CREATE TABLE IF NOT EXISTS %s.%s_properties ( objectId uuid, aclId uuid, value %s, syncIds list<uuid>, PRIMARY KEY ( ( objectId, aclId ), value ) )";
 
-        public static final String ENTITY_TABLE                         = "CREATE TABLE IF NOT EXISTS " + KEYSPACE
-                + ".%s_entities ( objectId uuid, aclId uuid, timestamp %s, syncIds list<uuid>, PRIMARY KEY ( ( objectId, aclId ), value ) )";
+        public static final String CREATE_ENTITY_TABLE                    = "CREATE TABLE IF NOT EXISTS %s.%s_entities ( objectId uuid, aclId uuid, timestamp clock, syncIds list<uuid>, PRIMARY KEY ( ( objectId, aclId ), clock ) )";
 
         // Index creation
         public static final String CREATE_INDEX_ON_NAME                   = "CREATE INDEX IF NOT EXISTS ON " + KEYSPACE

@@ -8,4 +8,5 @@ public final class SerializationConstants {
     public static final String KEY_FIELD        = "key";
     public static final String PROPERTIES_FIELD = "properties";
     public static final String NAME_FIELD       = "name";
+    public static final String DATATYPE_FIELD   = "datatype";
 }

@@ -49,7 +49,7 @@ public interface CassandraEdmStore {
             String namespace,
             String type,
             String typename,
-            Set<String> key,
+            Set<FullQualifiedName> key,
             Set<FullQualifiedName> properties );
 
     @Query( Queries.CREATE_PROPERTY_TYPE_IF_NOT_EXISTS )

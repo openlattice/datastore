@@ -3,7 +3,6 @@ package com.kryptnostic.types.services;
 import java.util.Set;
 import java.util.UUID;
 
-import org.apache.olingo.commons.api.edm.EdmPrimitiveTypeKind;
 import org.apache.olingo.commons.api.edm.FullQualifiedName;
 
 import com.kryptnostic.types.EntityDataModel;
@@ -18,7 +17,7 @@ public interface EdmManager {
     void upsertSchema( Schema namespace );
 
     void enrichSchemaWithEntityTypes( Schema schema );
-    
+
     void enrichSchemaWithPropertyTypes( Schema schema );
 
     Iterable<Schema> getSchemas();
@@ -28,7 +27,7 @@ public interface EdmManager {
     Schema getSchema( String namespace, String name );
 
     void deleteSchema( Schema namespaces );
-    
+
     boolean createEntitySet( FullQualifiedName type, String name, String title );
 
     boolean createEntitySet( EntitySet entitySet );
@@ -43,13 +42,6 @@ public interface EdmManager {
 
     void deleteEntitySet( EntitySet entitySet );
 
-    boolean createEntityType(
-            String namespace,
-            String type,
-            String typename,
-            Set<String> key,
-            Set<FullQualifiedName> properties );
-
     boolean createEntityType( EntityType objectType );
 
     void upsertEntityType( EntityType objectType );
@@ -62,12 +54,7 @@ public interface EdmManager {
 
     void removeEntityTypesFromSchema( String namespace, String name, Set<FullQualifiedName> entityTypes );
 
-    boolean createPropertyType(
-            String namespace,
-            String type,
-            String typename,
-            EdmPrimitiveTypeKind datatype,
-            long multiplicity );
+    boolean createPropertyType( PropertyType propertyType );
 
     void upsertPropertyType( PropertyType propertyType );
 

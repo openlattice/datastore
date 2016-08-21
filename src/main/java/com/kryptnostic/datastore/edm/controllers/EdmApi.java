@@ -146,8 +146,9 @@ public interface EdmApi {
     Response putEntitySets( @Body Set<EntitySet> entitySets );
 
     /**
-     * @param namespace Namespace for the object.
-     * @param objectType Name of the container.
+     * Creates an entity type if it doesn't already exist.
+     * 
+     * @param entityType the entity to create.
      * @return True if object type was created, false if container already exists.
      */
     @POST( ENTITY_TYPE_BASE_PATH )
@@ -165,8 +166,7 @@ public interface EdmApi {
     /**
      * Creates a property type if doesn't alreadsy exist.
      * 
-     * @param namespace Namespace for the object.
-     * @param propertyType Name of the property type.
+     * @param propertyType The property to create.
      * @return True if property type was created, false if container already exists.
      */
     @POST( PROPERTY_TYPE_BASE_PATH )

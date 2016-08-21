@@ -24,7 +24,7 @@ public class HazelcastTestHarness {
 	public static final void initHazelcast() {
 		if (hazelcast == null) {
 			Config config = new Config("test");
-			config.setGroupConfig(new GroupConfig("test", "osterone"));
+			config.setGroupConfig(new GroupConfig("test", "rogue"));
 			config.setNetworkConfig(new NetworkConfig().setPort(5801).setPortAutoIncrement(true)
 					.setJoin(new JoinConfig().setMulticastConfig(new MulticastConfig().setEnabled(false))));
 

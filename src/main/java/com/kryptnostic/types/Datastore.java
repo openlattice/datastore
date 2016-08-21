@@ -8,6 +8,7 @@ import com.kryptnostic.types.pods.DataStoreSecurityPod;
 import com.kryptnostic.types.pods.DatastoreServicesPod;
 import com.kryptnostic.types.pods.DatastoreServletsPod;
 import com.kryptnostic.types.pods.DatastoreStreamSerializersPod;
+import com.kryptnostic.types.pods.DatastoreTypeCodecsPod;
 
 public class Datastore extends BaseRhizomeServer {
     public Datastore( Class<?>... defaultPods ) {
@@ -18,6 +19,7 @@ public class Datastore extends BaseRhizomeServer {
                 DatastoreServletsPod.class,
                 DatastoreServicesPod.class,
                 DataStoreSecurityPod.class,
+                DatastoreTypeCodecsPod.class,
                 DatastoreStreamSerializersPod.class );
     }
 

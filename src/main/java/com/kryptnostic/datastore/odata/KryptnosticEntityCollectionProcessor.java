@@ -1,4 +1,4 @@
-package com.kryptnostic.types.odata;
+package com.kryptnostic.datastore.odata;
 
 import java.io.InputStream;
 import java.net.URI;
@@ -83,8 +83,6 @@ public class KryptnosticEntityCollectionProcessor implements EntityCollectionPro
     }
 
     private EntityCollection getData( EdmEntitySet edmEntitySet ) {
-
-        
         EntityCollection productsCollection = new EntityCollection();
         
         // check for which EdmEntitySet the data is requested

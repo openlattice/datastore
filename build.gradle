@@ -10,7 +10,7 @@ apply plugin: "jacoco"
 
 apply from: "http://api.krypt.int/gradle/kryptnostic.gradle"
 
-mainClassName = "com.kryptnostic.types.Types"
+mainClassName = "com.kryptnostic.types.Datastore"
 applicationDefaultJvmArgs = ["-Xmx5G","-Xms5G","-server"]
 sourceCompatibility=JavaVersion.VERSION_1_8
 targetCompatibility=JavaVersion.VERSION_1_8
@@ -22,19 +22,19 @@ run {
 }
 ext.odata_version='4.2.0'
 dependencies {  
-    /*
-     * TESTING
-     */
-     testCompile "junit:junit:${junit_version}"
-
+    
     if( project.hasProperty('developmentMode') && project.developmentMode ) {
         logger.quiet(project.name + " using project dependencies.")
         compile project(":rhizome")
         compile project(":kryptnostic-mapstores")
+        compile project(":kryptnostic-conductor-client")
+        testCompile project(path: ":rhizome", configuration: "tests")
     } else {
         logger.quiet(project.name + " using jar dependencies.")
         compile "com.kryptnostic:rhizome:${rhizome_version}"
+        compile "com.kryptnostic:kryptnostic-conductor-client:${conductor_client_version}"
         compile "com.kryptnostic:kryptnostic-mapstores:${mapstores_version}"
+        testCompile "com.kryptnostic:rhizome:${rhizome_version}:tests"
     }
 
 
@@ -43,6 +43,16 @@ dependencies {
     compile "org.apache.olingo:odata-commons-api:${odata_version}"
     compile "org.apache.olingo:odata-commons-core:${odata_version}"
 
+
+    /*
+     * TESTING
+     */
+    testCompile "junit:junit:${junit_version}"
+    testCompile "junit:junit:${junit_version}"
+    testCompile( "org.mockito:mockito-all:${mockito_version}" ) {
+        exclude module : 'hamcrest'
+        exclude module : 'hamcrest-core'
+    }
 }
 
 task sourcesJar(type : Jar) {

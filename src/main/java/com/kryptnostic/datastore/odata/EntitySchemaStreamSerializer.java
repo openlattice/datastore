@@ -1,4 +1,4 @@
-package com.kryptnostic.types.odata;
+package com.kryptnostic.datastore.odata;
 
 import java.io.IOException;
 import java.util.List;
@@ -10,10 +10,10 @@ import org.apache.olingo.commons.api.edm.EdmPrimitiveTypeKind;
 import com.google.common.collect.Maps;
 import com.hazelcast.nio.ObjectDataInput;
 import com.hazelcast.nio.ObjectDataOutput;
+import com.kryptnostic.datastore.odata.Ontology.EntitySchema;
 import com.kryptnostic.mapstores.v1.constants.HazelcastSerializerTypeIds;
 import com.kryptnostic.rhizome.hazelcast.serializers.StreamSerializerUtils;
 import com.kryptnostic.rhizome.pods.hazelcast.SelfRegisteringStreamSerializer;
-import com.kryptnostic.types.odata.Ontology.EntitySchema;
 
 /**
  *  

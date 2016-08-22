@@ -23,6 +23,7 @@ import org.slf4j.LoggerFactory;
 
 import com.datastax.driver.core.ResultSet;
 import com.google.common.util.concurrent.ListenableFuture;
+import com.kryptnostic.conductor.rpc.odata.DatastoreConstants;
 
 public final class Util {
     private static final Logger logger = LoggerFactory.getLogger( Util.class );
@@ -140,5 +141,13 @@ public final class Util {
 
     public static boolean wasLightweightTransactionApplied( ResultSet rs ) {
         return rs.one().getBool( DatastoreConstants.APPLIED_FIELD );
+    }
+
+    public static int getCount( ResultSet rs ) {
+        return rs.one().getInt( DatastoreConstants.COUNT_FIELD );
+    }
+
+    public static boolean isCountNonZero( ResultSet rs ) {
+        return getCount( rs ) > 0;
     }
 }

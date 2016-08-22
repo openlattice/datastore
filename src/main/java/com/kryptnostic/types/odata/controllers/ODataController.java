@@ -28,14 +28,14 @@ public class ODataController {
     private HazelcastInstance   hazelcast;
 
     @Inject
-    private EdmManager            dms;
+    private EdmManager          dms;
 
     @RequestMapping( { "", "/*" } )
     public void handleOData( HttpServletRequest req, HttpServletResponse resp ) throws ServletException {
         try {
             // create odata handler and configure it with CsdlEdmProvider and Processor
             OData odata = OData.newInstance();
-            ServiceMetadata edm = odata.createServiceMetadata( new KryptnosticEdmProvider( hazelcast, dms ),
+            ServiceMetadata edm = odata.createServiceMetadata( new KryptnosticEdmProvider( dms ),
                     new ArrayList<EdmxReference>() );
             ODataHttpHandler handler = odata.createHandler( edm );
             handler.register( new KryptnosticEntityCollectionProcessor() );

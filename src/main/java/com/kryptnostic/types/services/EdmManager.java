@@ -5,11 +5,11 @@ import java.util.UUID;
 
 import org.apache.olingo.commons.api.edm.FullQualifiedName;
 
-import com.kryptnostic.types.EntityDataModel;
-import com.kryptnostic.types.EntitySet;
-import com.kryptnostic.types.EntityType;
-import com.kryptnostic.types.PropertyType;
-import com.kryptnostic.types.Schema;
+import com.kryptnostic.conductor.rpc.odata.EntitySet;
+import com.kryptnostic.conductor.rpc.odata.EntityType;
+import com.kryptnostic.conductor.rpc.odata.PropertyType;
+import com.kryptnostic.conductor.rpc.odata.Schema;
+import com.kryptnostic.datastore.odata.EntityDataModel;
 
 public interface EdmManager {
     boolean createSchema( String namespace, String name, UUID aclId, Set<FullQualifiedName> entityTypes );
@@ -63,5 +63,7 @@ public interface EdmManager {
     PropertyType getPropertyType( FullQualifiedName prop );
 
     EntityDataModel getEntityDataModel();
+
+    boolean isExistingEntitySet( FullQualifiedName type, String name );
 
 }

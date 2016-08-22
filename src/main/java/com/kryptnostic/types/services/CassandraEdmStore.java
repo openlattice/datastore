@@ -13,12 +13,12 @@ import com.datastax.driver.mapping.annotations.Accessor;
 import com.datastax.driver.mapping.annotations.Param;
 import com.datastax.driver.mapping.annotations.Query;
 import com.google.common.util.concurrent.ListenableFuture;
-import com.kryptnostic.datastore.util.DatastoreConstants.Queries;
-import com.kryptnostic.datastore.util.DatastoreConstants.Queries.ParamNames;
-import com.kryptnostic.types.EntitySet;
-import com.kryptnostic.types.EntityType;
-import com.kryptnostic.types.PropertyType;
-import com.kryptnostic.types.Schema;
+import com.kryptnostic.conductor.rpc.odata.EntitySet;
+import com.kryptnostic.conductor.rpc.odata.EntityType;
+import com.kryptnostic.conductor.rpc.odata.PropertyType;
+import com.kryptnostic.conductor.rpc.odata.Schema;
+import com.kryptnostic.datastore.edm.Queries;
+import com.kryptnostic.datastore.edm.Queries.ParamNames;
 
 @Accessor
 public interface CassandraEdmStore {
@@ -38,7 +38,7 @@ public interface CassandraEdmStore {
 
     @Query( Queries.GET_ALL_PROPERTY_TYPES_IN_NAMESPACE )
     public Result<PropertyType> getPropertyTypesInNamespace( String namespace );
-    
+
     @Query( Queries.GET_ALL_PROPERTY_TYPES_FOR_ENTITY_TYPE )
     public Result<PropertyType> getPropertyTypesForEntityType(
             @Param( ParamNames.NAMESPACE ) String namespace,
@@ -61,7 +61,11 @@ public interface CassandraEdmStore {
             long multiplicity );
 
     @Query( Queries.CREATE_SCHEMA_IF_NOT_EXISTS )
-    public ResultSet createSchemaIfNotExists( String namespace, String name, UUID aclId, Set<FullQualifiedName> entityTypes );
+    public ResultSet createSchemaIfNotExists(
+            String namespace,
+            String name,
+            UUID aclId,
+            Set<FullQualifiedName> entityTypes );
 
     @Query( Queries.ADD_ENTITY_TYPES_TO_SCHEMA )
     public ResultSet addEntityTypesToContainer(
@@ -85,5 +89,8 @@ public interface CassandraEdmStore {
 
     @Query( Queries.GET_ALL_ENTITY_SETS )
     public Result<EntitySet> getEntitySets();
+
+    @Query( Queries.COUNT_ENTITY_SET )
+    public ResultSet countEntitySet( FullQualifiedName type, String name );
 
 }

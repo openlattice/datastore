@@ -17,54 +17,45 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Predicates;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
-import com.hazelcast.core.HazelcastInstance;
-import com.hazelcast.core.IMap;
-import com.kryptnostic.datastore.odata.Ontology.EntitySchema;
+import com.kryptnostic.conductor.rpc.UUIDs.ACLs;
+import com.kryptnostic.conductor.rpc.odata.EntitySet;
+import com.kryptnostic.conductor.rpc.odata.EntityType;
+import com.kryptnostic.conductor.rpc.odata.PropertyType;
+import com.kryptnostic.conductor.rpc.odata.Schema;
 import com.kryptnostic.datastore.odata.Transformers.EntityTypeTransformer;
-import com.kryptnostic.datastore.util.UUIDs.ACLs;
-import com.kryptnostic.types.EntitySet;
-import com.kryptnostic.types.EntityType;
-import com.kryptnostic.types.PropertyType;
-import com.kryptnostic.types.Schema;
 import com.kryptnostic.types.services.EdmManager;
 
 import jersey.repackaged.com.google.common.collect.Lists;
 
 public class KryptnosticEdmProvider extends CsdlAbstractEdmProvider {
-    private static final Logger                         logger           = LoggerFactory
+    private static final Logger           logger           = LoggerFactory
             .getLogger( KryptnosticEdmProvider.class );
     // Service Namespace
-    public static final String                          NAMESPACE        = "OData.Demo";
+    public static final String            NAMESPACE        = "OData.Demo";
 
     // EDM Container
-    public static final String                          CONTAINER_NAME   = "Container";
-    public static final FullQualifiedName               CONTAINER        = new FullQualifiedName(
+    public static final String            CONTAINER_NAME   = "Container";
+    public static final FullQualifiedName CONTAINER        = new FullQualifiedName(
             NAMESPACE,
             CONTAINER_NAME );
 
     // Entity Types Names
-    public static final String                          ET_PRODUCT_NAME  = "Product";
-    public static final FullQualifiedName               ET_PRODUCT_FQN   = new FullQualifiedName(
+    public static final String            ET_PRODUCT_NAME  = "Product";
+    public static final FullQualifiedName ET_PRODUCT_FQN   = new FullQualifiedName(
             NAMESPACE,
             ET_PRODUCT_NAME );
 
     // Entity Set Names
-    public static final String                          ES_PRODUCTS_NAME = "Products";
+    public static final String            ES_PRODUCTS_NAME = "Products";
 
-    private final EdmManager                            dms;
-    private final EntityTypeTransformer                 ett;
-    private final IMap<String, FullQualifiedName>       entitySets;
-    private final IMap<FullQualifiedName, EntitySchema> entitySchemas;
+    private final EdmManager              dms;
+    private final EntityTypeTransformer   ett;
 
-    public KryptnosticEdmProvider( HazelcastInstance hazelcast, EdmManager dms ) {
+    public KryptnosticEdmProvider( EdmManager dms ) {
         this.dms = dms;
         this.ett = new EntityTypeTransformer( dms );
-        this.entitySchemas = hazelcast.getMap( "entitySchemas" );
-        this.entitySets = hazelcast.getMap( "entitySets" );
 
         dms.createPropertyType( new PropertyType().setNamespace( NAMESPACE ).setType( "ID" )
                 .setDatatype( EdmPrimitiveTypeKind.Int32 ).setMultiplicity( 0 ) );
@@ -72,65 +63,21 @@ public class KryptnosticEdmProvider extends CsdlAbstractEdmProvider {
                 .setDatatype( EdmPrimitiveTypeKind.String ).setMultiplicity( 0 ) );
         dms.createPropertyType( new PropertyType().setNamespace( NAMESPACE ).setType( "Description" )
                 .setDatatype( EdmPrimitiveTypeKind.String ).setMultiplicity( 0 ) );
-        dms.createPropertyType( new PropertyType().setNamespace( NAMESPACE ).setType( "aclId" )
-                .setDatatype( EdmPrimitiveTypeKind.Guid ).setMultiplicity( 0 ) );
-        dms.createPropertyType( new PropertyType().setNamespace( NAMESPACE ).setType( "type" )
-                .setDatatype( EdmPrimitiveTypeKind.Guid ).setMultiplicity( 0 ) );
-        dms.createPropertyType( new PropertyType().setNamespace( NAMESPACE ).setType( "clock" )
-                .setDatatype( EdmPrimitiveTypeKind.Guid ).setMultiplicity( 0 ) );
-        dms.createPropertyType( new PropertyType().setNamespace( NAMESPACE ).setType( "objectId" )
-                .setDatatype( EdmPrimitiveTypeKind.Int64 ).setMultiplicity( 0 ) );
-        dms.createPropertyType( new PropertyType().setNamespace( NAMESPACE ).setType( "version" )
-                .setDatatype( EdmPrimitiveTypeKind.Int64 ).setMultiplicity( 0 ) );
         EntityType product = new EntityType().setNamespace( NAMESPACE ).setType( ET_PRODUCT_NAME )
                 .setKey( ImmutableSet.of( new FullQualifiedName( NAMESPACE, "ID" ) ) )
                 .setProperties( ImmutableSet.of( new FullQualifiedName( NAMESPACE, "ID" ),
                         new FullQualifiedName( NAMESPACE, "Name" ),
                         new FullQualifiedName( NAMESPACE, "Description" ) ) )
                 .setTypename( ET_PRODUCT_NAME );
-        EntityType metadataLevel = new EntityType().setNamespace( NAMESPACE ).setType( "metadataLevel" )
-                .setKey( ImmutableSet.of( new FullQualifiedName( NAMESPACE, "aclId" ) ) )
-                .setProperties( ImmutableSet.of( new FullQualifiedName( NAMESPACE, "aclId" ),
-                        new FullQualifiedName( NAMESPACE, "type" ),
-                        new FullQualifiedName( NAMESPACE, "clock" ),
-                        new FullQualifiedName( NAMESPACE, "objectId" ),
-                        new FullQualifiedName( NAMESPACE, "version" ) ) )
-                .setTypename( "metadataLevel" );
 
         dms.createEntityType( product );
-        dms.createEntityType( metadataLevel );
         dms.createEntitySet( ET_PRODUCT_FQN, ES_PRODUCTS_NAME, null );
         dms.createEntitySet( new FullQualifiedName( NAMESPACE, "metadataLevel" ), "metadataLevels", null );
 
         dms.createSchema( NAMESPACE,
                 "agora",
                 ACLs.EVERYONE_ACL,
-                ImmutableSet.of( new FullQualifiedName( NAMESPACE, product.getType() ),
-                        new FullQualifiedName( NAMESPACE, metadataLevel.getType() ) ) );
-
-        EntitySchema schema = new EntitySchema(
-                ImmutableMap.<String, EdmPrimitiveTypeKind> builder()
-                        .put( "ID", EdmPrimitiveTypeKind.Int32 )
-                        .put( "Name", EdmPrimitiveTypeKind.String )
-                        .put( "Description", EdmPrimitiveTypeKind.String )
-                        .build(),
-                ImmutableList.of( "ID" ) );
-        EntitySchema schema2 = new EntitySchema(
-                ImmutableMap.<String, EdmPrimitiveTypeKind> builder()
-                        .put( "aclId", EdmPrimitiveTypeKind.Guid )
-                        .put( "type", EdmPrimitiveTypeKind.Guid )
-                        .put( "clock", EdmPrimitiveTypeKind.Guid )
-                        .put( "objectId", EdmPrimitiveTypeKind.Guid )
-                        .put( "version", EdmPrimitiveTypeKind.Int64 )
-                        .build(),
-                ImmutableList.of( "aclId" ) );
-
-        entitySchemas.put( ET_PRODUCT_FQN, schema );
-        entitySchemas.put( new FullQualifiedName( NAMESPACE, "metadataLevel" ), schema2 );
-        entitySets.put( ES_PRODUCTS_NAME, ET_PRODUCT_FQN );
-        entitySets.put( "metadataLevels", new FullQualifiedName(
-                NAMESPACE,
-                "metadataLevel" ) );
+                ImmutableSet.of( new FullQualifiedName( NAMESPACE, product.getType() ) ) );
     }
 
     @Override

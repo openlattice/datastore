@@ -1,0 +1,60 @@
+package com.kryptnostic.datastore.edm;
+
+import org.apache.olingo.commons.api.edm.EdmPrimitiveTypeKind;
+import org.apache.olingo.commons.api.edm.FullQualifiedName;
+import org.junit.BeforeClass;
+import org.junit.Test;
+
+import com.geekbeast.rhizome.tests.pods.CassandraTestPod;
+import com.google.common.collect.ImmutableSet;
+import com.kryptnostic.conductor.rpc.UUIDs.ACLs;
+import com.kryptnostic.conductor.rpc.odata.EntityType;
+import com.kryptnostic.conductor.rpc.odata.PropertyType;
+import com.kryptnostic.types.services.EdmManager;
+
+public class DatastoreTests {
+    private static final DatastoreServices ds        = new DatastoreServices();
+    public static final String             NAMESPACE = "tests";
+
+    @BeforeClass
+    public static void init() {
+        // This is fine since unless cassandra is specified as runtime argument production cassandra pod won't be
+        // activated.
+        ds.intercrop( CassandraTestPod.class );
+        ds.sprout( CassandraTestPod.PROFILE );
+    }
+
+    @Test
+    public void testEntityType() {
+        EdmManager dms = ds.getContext().getBean( EdmManager.class );
+
+        dms.createPropertyType( new PropertyType().setNamespace( NAMESPACE ).setType( "aclId" )
+                .setDatatype( EdmPrimitiveTypeKind.Guid ).setMultiplicity( 0 ) );
+        dms.createPropertyType( new PropertyType().setNamespace( NAMESPACE ).setType( "type" )
+                .setDatatype( EdmPrimitiveTypeKind.Guid ).setMultiplicity( 0 ) );
+        dms.createPropertyType( new PropertyType().setNamespace( NAMESPACE ).setType( "clock" )
+                .setDatatype( EdmPrimitiveTypeKind.Guid ).setMultiplicity( 0 ) );
+        dms.createPropertyType( new PropertyType().setNamespace( NAMESPACE ).setType( "objectId" )
+                .setDatatype( EdmPrimitiveTypeKind.Int64 ).setMultiplicity( 0 ) );
+        dms.createPropertyType( new PropertyType().setNamespace( NAMESPACE ).setType( "version" )
+                .setDatatype( EdmPrimitiveTypeKind.Int64 ).setMultiplicity( 0 ) );
+
+        EntityType metadataLevel = new EntityType().setNamespace( NAMESPACE ).setType( "metadataLevel" )
+                .setKey( ImmutableSet.of( new FullQualifiedName( NAMESPACE, "aclId" ) ) )
+                .setProperties( ImmutableSet.of( new FullQualifiedName( NAMESPACE, "aclId" ),
+                        new FullQualifiedName( NAMESPACE, "type" ),
+                        new FullQualifiedName( NAMESPACE, "clock" ),
+                        new FullQualifiedName( NAMESPACE, "objectId" ),
+                        new FullQualifiedName( NAMESPACE, "version" ) ) )
+                .setTypename( "metadataLevel" );
+        dms.createEntityType( metadataLevel );
+        dms.createEntitySet( new FullQualifiedName( NAMESPACE, "metadataLevel" ), "metadataLevels", null );
+
+        dms.createSchema( NAMESPACE,
+                "anubis",
+                ACLs.EVERYONE_ACL,
+                ImmutableSet.of( new FullQualifiedName( NAMESPACE, metadataLevel.getType() ) ) );
+
+    }
+
+}

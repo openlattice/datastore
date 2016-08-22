@@ -24,48 +24,42 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import com.google.common.hash.Hashing;
 import com.google.common.util.concurrent.Futures;
-import com.kryptnostic.datastore.util.DatastoreConstants;
-import com.kryptnostic.datastore.util.DatastoreConstants.Queries;
-import com.kryptnostic.datastore.util.UUIDs;
-import com.kryptnostic.datastore.util.UUIDs.ACLs;
+import com.kryptnostic.conductor.rpc.UUIDs;
+import com.kryptnostic.conductor.rpc.UUIDs.ACLs;
+import com.kryptnostic.conductor.rpc.odata.DatastoreConstants;
+import com.kryptnostic.conductor.rpc.odata.EntitySet;
+import com.kryptnostic.conductor.rpc.odata.EntityType;
+import com.kryptnostic.conductor.rpc.odata.PropertyType;
+import com.kryptnostic.conductor.rpc.odata.Schema;
+import com.kryptnostic.datastore.edm.Queries;
+import com.kryptnostic.datastore.odata.EntityDataModel;
 import com.kryptnostic.datastore.util.Util;
-import com.kryptnostic.types.EntityDataModel;
-import com.kryptnostic.types.EntitySet;
-import com.kryptnostic.types.EntityType;
-import com.kryptnostic.types.PropertyType;
-import com.kryptnostic.types.Schema;
 
 public class DataModelService implements EdmManager {
     private static final Logger         logger = LoggerFactory.getLogger( DataModelService.class );
 
     private final Session               session;
-    private final MappingManager        mappingManager;
     private final Mapper<Schema>        schemaMapper;
     private final Mapper<EntitySet>     entitySetMapper;
     private final Mapper<EntityType>    entityTypeMapper;
     private final Mapper<PropertyType>  propertyTypeMapper;
 
     private final CassandraEdmStore     edmStore;
-    private final CasasndraTableManager tableManager;
+    private final CassandraTableManager tableManager;
 
-    public DataModelService( Session session ) {
+    public DataModelService( Session session, MappingManager mappingManager, CassandraTableManager tableManager ) {
         createSchemasTableIfNotExists( session );
         createEntityTypesTableIfNotExists( session );
         createPropertyTypesTableIfNotExists( session );
         createEntitySetTableIfNotExists( session );
 
         this.session = session;
-        this.mappingManager = new MappingManager( session );
         this.edmStore = mappingManager.createAccessor( CassandraEdmStore.class );
         this.schemaMapper = mappingManager.mapper( Schema.class );
         this.entitySetMapper = mappingManager.mapper( EntitySet.class );
         this.entityTypeMapper = mappingManager.mapper( EntityType.class );
         this.propertyTypeMapper = mappingManager.mapper( PropertyType.class );
-        this.tableManager = new CasasndraTableManager(
-                DatastoreConstants.KEYSPACE,
-                session,
-                entityTypeMapper,
-                propertyTypeMapper );
+        this.tableManager = tableManager;
         upsertSchema( new Schema().setAclId( UUIDs.ACLs.EVERYONE_ACL )
                 .setNamespace( DatastoreConstants.PRIMARY_NAMESPACE ).setName( DatastoreConstants.PRIMARY_NAMESPACE ) );
         createEntityType( new EntityType().setNamespace( DatastoreConstants.PRIMARY_NAMESPACE )
@@ -282,7 +276,7 @@ public class DataModelService implements EdmManager {
     }
 
     private void createPropertyTypesTableIfNotExists( Session session ) {
-        session.execute( DatastoreConstants.Queries.CREATE_PROPERTY_TYPES_TABLE );
+        session.execute( Queries.CREATE_PROPERTY_TYPES_TABLE );
     }
 
     public EntityType getEntityType( String namespace, String name ) {
@@ -331,6 +325,11 @@ public class DataModelService implements EdmManager {
                 entityTypes,
                 propertyTypes,
                 entitySets );
+    }
+
+    @Override
+    public boolean isExistingEntitySet( FullQualifiedName type, String name ) {
+        return Util.isCountNonZero( edmStore.countEntitySet( type, name ) );
     }
 
 }

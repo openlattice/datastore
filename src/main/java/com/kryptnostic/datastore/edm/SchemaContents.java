@@ -1,4 +1,4 @@
-package com.kryptnostic.types;
+package com.kryptnostic.datastore.edm;
 
 import java.util.Set;
 import java.util.UUID;
@@ -6,8 +6,10 @@ import java.util.UUID;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.base.Optional;
+import com.kryptnostic.conductor.rpc.UUIDs.ACLs;
+import com.kryptnostic.conductor.rpc.odata.EntityType;
+import com.kryptnostic.conductor.rpc.odata.PropertyType;
 import com.kryptnostic.datastore.edm.controllers.EdmApi;
-import com.kryptnostic.datastore.util.UUIDs.ACLs;
 
 public class SchemaContents {
     private final Set<PropertyType> propertyTypes;

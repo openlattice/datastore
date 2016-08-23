@@ -57,11 +57,11 @@ public class KryptnosticEdmProvider extends CsdlAbstractEdmProvider {
         this.dms = dms;
         this.ett = new EntityTypeTransformer( dms );
 
-        dms.createPropertyType( new PropertyType().setNamespace( NAMESPACE ).setType( "ID" )
+        dms.createPropertyType( new PropertyType().setNamespace( NAMESPACE ).setName( "ID" )
                 .setDatatype( EdmPrimitiveTypeKind.Int32 ).setMultiplicity( 0 ) );
-        dms.createPropertyType( new PropertyType().setNamespace( NAMESPACE ).setType( "Name" )
+        dms.createPropertyType( new PropertyType().setNamespace( NAMESPACE ).setName( "Name" )
                 .setDatatype( EdmPrimitiveTypeKind.String ).setMultiplicity( 0 ) );
-        dms.createPropertyType( new PropertyType().setNamespace( NAMESPACE ).setType( "Description" )
+        dms.createPropertyType( new PropertyType().setNamespace( NAMESPACE ).setName( "Description" )
                 .setDatatype( EdmPrimitiveTypeKind.String ).setMultiplicity( 0 ) );
         EntityType product = new EntityType().setNamespace( NAMESPACE ).setType( ET_PRODUCT_NAME )
                 .setKey( ImmutableSet.of( new FullQualifiedName( NAMESPACE, "ID" ) ) )
@@ -77,7 +77,7 @@ public class KryptnosticEdmProvider extends CsdlAbstractEdmProvider {
         dms.createSchema( NAMESPACE,
                 "agora",
                 ACLs.EVERYONE_ACL,
-                ImmutableSet.of( new FullQualifiedName( NAMESPACE, product.getType() ) ) );
+                ImmutableSet.of( new FullQualifiedName( NAMESPACE, product.getName() ) ) );
     }
 
     @Override

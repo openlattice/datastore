@@ -31,12 +31,11 @@ import com.kryptnostic.conductor.rpc.odata.EntitySet;
 import com.kryptnostic.conductor.rpc.odata.EntityType;
 import com.kryptnostic.conductor.rpc.odata.PropertyType;
 import com.kryptnostic.conductor.rpc.odata.Schema;
-import com.kryptnostic.datastore.edm.Queries;
 import com.kryptnostic.datastore.odata.EntityDataModel;
 import com.kryptnostic.datastore.util.Util;
 
-public class DataModelService implements EdmManager {
-    private static final Logger         logger = LoggerFactory.getLogger( DataModelService.class );
+public class EdmService implements EdmManager {
+    private static final Logger         logger = LoggerFactory.getLogger( EdmService.class );
 
     private final Session               session;
     private final Mapper<Schema>        schemaMapper;
@@ -47,12 +46,7 @@ public class DataModelService implements EdmManager {
     private final CassandraEdmStore     edmStore;
     private final CassandraTableManager tableManager;
 
-    public DataModelService( Session session, MappingManager mappingManager, CassandraTableManager tableManager ) {
-        createSchemasTableIfNotExists( session );
-        createEntityTypesTableIfNotExists( session );
-        createPropertyTypesTableIfNotExists( session );
-        createEntitySetTableIfNotExists( session );
-
+    public EdmService( Session session, MappingManager mappingManager, CassandraTableManager tableManager ) {
         this.session = session;
         this.edmStore = mappingManager.createAccessor( CassandraEdmStore.class );
         this.schemaMapper = mappingManager.mapper( Schema.class );
@@ -68,7 +62,7 @@ public class DataModelService implements EdmManager {
                 .setType( "person" )
                 .setTypename( Hashing.murmur3_128().hashString( "person", Charsets.UTF_8 ).toString() )
                 .setProperties( ImmutableSet.of() ) );
-        upsertPropertyType( new PropertyType().setNamespace( "kryptnostic" ).setType( "SSN" )
+        upsertPropertyType( new PropertyType().setNamespace( "kryptnostic" ).setName( "SSN" )
                 .setDatatype( EdmPrimitiveTypeKind.String ).setTypename( "ssn" ).setMultiplicity( 0 ) );
         Result<EntityType> objectTypes = edmStore.getEntityTypes();
         Iterable<Schema> namespaces = getSchemas();
@@ -141,14 +135,10 @@ public class DataModelService implements EdmManager {
      */
     @Override
     public void upsertPropertyType( PropertyType propertyType ) {
-        // Create the property
-        edmStore.createPropertyTypeIfNotExists( propertyType.getNamespace(),
-                propertyType.getType(),
-                propertyType.getTypename(),
-                propertyType.getDatatype(),
-                propertyType.getMultiplicity() );
-        // Create the property specific table
-
+        // Create or retrieve it's typename.
+        String typename = tableManager.getTypenameForPropertyType( propertyType );
+        propertyType.setTypename( typename );
+        propertyTypeMapper.save( propertyType );
     }
 
     /*
@@ -162,10 +152,14 @@ public class DataModelService implements EdmManager {
 
     @Override
     public boolean createPropertyType( PropertyType propertyType ) {
-        String typename = tableManager.createPropertyTypeTable( propertyType );
+        /*
+         * We retrieve or create the typename for the property. If the property already exists then lightweight
+         * transaction will fail and return value will be correctly set.
+         */
+        String typename = tableManager.getTypenameForPropertyType( propertyType );
         return Util.wasLightweightTransactionApplied(
                 edmStore.createPropertyTypeIfNotExists( propertyType.getNamespace(),
-                        propertyType.getType(),
+                        propertyType.getName(),
                         typename,
                         propertyType.getDatatype(),
                         propertyType.getMultiplicity() ) );
@@ -214,7 +208,7 @@ public class DataModelService implements EdmManager {
             String typename = tableManager.createEntityTypeTable( entityType );
             entityCreated = Util.wasLightweightTransactionApplied(
                     edmStore.createEntityTypeIfNotExists( entityType.getNamespace(),
-                            entityType.getType(),
+                            entityType.getName(),
                             typename,
                             entityType.getKey(),
                             entityType.getProperties() ) );
@@ -260,23 +254,6 @@ public class DataModelService implements EdmManager {
     @Override
     public boolean createEntitySet( EntitySet entitySet ) {
         return createEntitySet( entitySet.getType(), entitySet.getName(), entitySet.getTitle() );
-    }
-
-    private static void createSchemasTableIfNotExists( Session session ) {
-        session.execute( Queries.CREATE_SCHEMAS_TABLE );
-    }
-
-    private static void createEntitySetTableIfNotExists( Session session ) {
-        session.execute( Queries.CREATE_ENTITY_SETS_TABLE );
-        session.execute( Queries.CREATE_INDEX_ON_NAME );
-    }
-
-    private static void createEntityTypesTableIfNotExists( Session session ) {
-        session.execute( Queries.CREATE_ENTITY_TYPES_TABLE );
-    }
-
-    private void createPropertyTypesTableIfNotExists( Session session ) {
-        session.execute( Queries.CREATE_PROPERTY_TYPES_TABLE );
     }
 
     public EntityType getEntityType( String namespace, String name ) {

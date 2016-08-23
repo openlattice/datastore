@@ -21,7 +21,7 @@ public class PropertyTypeSerializerTest extends BaseJacksonSerializationTest<Pro
 
     @Override
     protected PropertyType getSampleData() {
-        return new PropertyType().setNamespace( "test" ).setType( "andino" )
+        return new PropertyType().setNamespace( "test" ).setName( "andino" )
                 .setDatatype( EdmPrimitiveTypeKind.String ).setMultiplicity( 0 );
     }
 

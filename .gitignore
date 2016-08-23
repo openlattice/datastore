@@ -15,3 +15,4 @@ app.css.map
 .kryptnostic/
 /generated_src/
 *.iml
+target/

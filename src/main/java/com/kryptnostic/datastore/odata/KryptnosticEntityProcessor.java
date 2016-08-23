@@ -29,17 +29,17 @@ import org.apache.olingo.server.api.uri.UriResourceEntitySet;
 import com.kryptnostic.conductor.rpc.UUIDs.ACLs;
 import com.kryptnostic.conductor.rpc.UUIDs.Syncs;
 import com.kryptnostic.datastore.util.Util;
-import com.kryptnostic.types.services.DataStorageService;
+import com.kryptnostic.types.services.EntitiyStorageClient;
 import com.kryptnostic.types.services.DatasourceManager;
 
 public class KryptnosticEntityProcessor implements EntityProcessor {
-    private final DataStorageService storage;
+    private final EntitiyStorageClient storage;
     private final DatasourceManager  dsm;
 
     private OData                    odata;
     private ServiceMetadata          serviceMetadata;
 
-    public KryptnosticEntityProcessor( DataStorageService storage, DatasourceManager dsm ) {
+    public KryptnosticEntityProcessor( EntitiyStorageClient storage, DatasourceManager dsm ) {
         this.storage = storage;
         this.dsm = dsm;
     }
@@ -98,8 +98,9 @@ public class KryptnosticEntityProcessor implements EntityProcessor {
         Entity requestEntity = result.getEntity();
 
         // 2.2 do the creation in backend, which returns the newly created entity
-        Entity createdEntity = storage.createEntityData( Syncs.BASE.getSyncId(),
+        Entity createdEntity = storage.createEntityData( 
                 ACLs.EVERYONE_ACL,
+                Syncs.BASE.getSyncId(),
                 edmEntitySet,
                 requestEntity );
 

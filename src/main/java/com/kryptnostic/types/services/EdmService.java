@@ -55,6 +55,7 @@ public class EdmService implements EdmManager {
         List<Schema> schemas = ImmutableList.copyOf( getSchemas() );
         schemas.forEach( schema -> logger.info( "Namespace loaded: {}", schema ) );
         schemas.forEach( this::enrichSchemaWithEntityTypes );
+        schemas.forEach( this::enrichSchemaWithPropertyTypes );
         schemas.forEach( tableManager::registerSchema );
         objectTypes.forEach( objectType -> logger.info( "Object read: {}", objectType ) );
     }
@@ -67,7 +68,7 @@ public class EdmService implements EdmManager {
     @Override
     public void enrichSchemaWithEntityTypes( Schema schema ) {
         Set<EntityType> entityTypes = schema.getEntityTypeFqns().stream()
-                .map( type -> entityTypeMapper.getAsync( schema.getNamespace(), type ) )
+                .map( type -> entityTypeMapper.getAsync( type.getNamespace(), type.getName() ) )
                 .map( futureEntityType -> Util.getFutureSafely( futureEntityType ) ).filter( e -> e != null )
                 .collect( Collectors.toSet() );
         schema.addEntityTypes( entityTypes );

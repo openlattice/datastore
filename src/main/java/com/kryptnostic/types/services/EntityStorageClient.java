@@ -147,7 +147,7 @@ public class EntityStorageClient {
 
             PreparedStatement insertQuery = tableManager.getUpdatePropertyPreparedStatement( fqn );
             return session.executeAsync(
-                    insertQuery.bind( objectId, aclId, property.getValue(), ImmutableList.of( syncId ) ) );
+                    insertQuery.bind( ImmutableList.of( syncId ), objectId, aclId, property.getValue() ) );
 
         } ).map( rsf -> {
             if ( rsf == null ) {

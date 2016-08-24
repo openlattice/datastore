@@ -237,22 +237,25 @@ public class CassandraTableManager {
     private void putEntityTypeUpdateStatement( FullQualifiedName entityTypeFqn ) {
         entityTypeUpdateStatements.put( entityTypeFqn,
                 session.prepare( QueryBuilder.update( keyspace, getTypenameForEntityType( entityTypeFqn ) )
-                        .where( QueryBuilder.eq( CommonColumns.OBJECTID.toString(), QueryBuilder.bindMarker() ) )
-                        .and( QueryBuilder.eq( CommonColumns.ACLID.toString(), QueryBuilder.bindMarker() ) )
-                        .and( QueryBuilder.eq( CommonColumns.CLOCK.toString(), QueryBuilder.bindMarker() ) )
                         .with( QueryBuilder.addAll( CommonColumns.ENTITYSETS.toString(),
                                 QueryBuilder.bindMarker() ) )
-                        .and( QueryBuilder.set( CommonColumns.SYNCIDS.toString(), QueryBuilder.bindMarker() ) ) ) );
+                        .and( QueryBuilder.appendAll( CommonColumns.SYNCIDS.toString(),
+                                QueryBuilder.bindMarker() ) )
+                        .where( QueryBuilder.eq( CommonColumns.OBJECTID.toString(), QueryBuilder.bindMarker() ) )
+                        .and( QueryBuilder.eq( CommonColumns.ACLID.toString(), QueryBuilder.bindMarker() ) )
+                        .and( QueryBuilder.eq( CommonColumns.CLOCK.toString(), QueryBuilder.bindMarker() ) ) ) );
     }
 
     private void putPropertyTypeUpdateStatement( FullQualifiedName propertyTypeFqn ) {
+        // The preparation process re-orders the bind markers. Below they are set according to the order that they get
+        // mapped to
         propertyTypeUpdateStatements.put( propertyTypeFqn,
                 session.prepare( QueryBuilder.update( keyspace, getTypenameForPropertyType( propertyTypeFqn ) )
+                        .with( QueryBuilder.appendAll( CommonColumns.SYNCIDS.toString(),
+                                QueryBuilder.bindMarker() ) )
                         .where( QueryBuilder.eq( CommonColumns.OBJECTID.toString(), QueryBuilder.bindMarker() ) )
                         .and( QueryBuilder.eq( CommonColumns.ACLID.toString(), QueryBuilder.bindMarker() ) )
-                        .and( QueryBuilder.eq( CommonColumns.VALUE.toString(), QueryBuilder.bindMarker() ) )
-                        .with( QueryBuilder.appendAll( CommonColumns.SYNCIDS.toString(),
-                                QueryBuilder.bindMarker() ) ) ) );
+                        .and( QueryBuilder.eq( CommonColumns.VALUE.toString(), QueryBuilder.bindMarker() ) ) ) );
 
     }
 

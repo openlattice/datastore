@@ -1,7 +1,6 @@
 package com.kryptnostic.types.services;
 
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
@@ -18,21 +17,20 @@ import org.apache.olingo.server.api.uri.UriParameter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.datastax.driver.core.BoundStatement;
 import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.Session;
-import com.datastax.driver.core.Statement;
-import com.datastax.driver.core.querybuilder.QueryBuilder;
 import com.datastax.driver.mapping.MappingManager;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultimap;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.SetMultimap;
 import com.hazelcast.core.HazelcastInstance;
 import com.kryptnostic.conductor.rpc.odata.DatastoreConstants;
 import com.kryptnostic.conductor.rpc.odata.EntityType;
-import com.kryptnostic.conductor.rpc.odata.TypePK;
 import com.kryptnostic.datastore.edm.Queries;
 import com.kryptnostic.datastore.edm.Queries.ParamNames;
 import com.kryptnostic.datastore.util.Util;
@@ -45,7 +43,8 @@ public class EntitiyStorageClient {
     private final EdmManager            dms;
     private final CassandraTableManager tableManager;
     private final Session               session;
-
+    private final String keyspace;
+    
     public EntitiyStorageClient(
             String keyspace,
             HazelcastInstance hazelcast,
@@ -57,6 +56,7 @@ public class EntitiyStorageClient {
         this.dms = dms;
         this.tableManager = tableManager;
         this.session = session;
+        this.keyspace = keyspace;
     }
 
     public EntityCollection readEntitySetData( EdmEntitySet edmEntitySet ) throws ODataApplicationException {
@@ -88,40 +88,20 @@ public class EntitiyStorageClient {
         Preconditions.checkArgument(
                 dms.isExistingEntitySet( entityFqn, edmEntitySet.getName() ),
                 "Cannot add data to non-existant entity set." );
-        UUID objectId = writeEntity( DatastoreConstants.KEYSPACE,
-                tableManager.getTypenameForEntityType( edmEntitySet.getEntityType().getFullQualifiedName() ),
-                aclId,
-                syncId,
-                ImmutableSet.of( edmEntitySet.getName() ) );
+        
+        PreparedStatement query = tableManager.getInsertEntityPreparedStatement( edmEntitySet.getEntityType().getFullQualifiedName() );
+        UUID objectId = UUID.randomUUID(); 
+        BoundStatement boundQuery = query.bind( objectId, aclId, ImmutableList.of( edmEntitySet.getName() ), ImmutableList.of(syncId) );
+        session.execute( boundQuery );
+        
         EntityType entityType = dms.getEntityType( entityFqn.getNamespace(), entityFqn.getName() );
         writeProperties( entityType,
-                DatastoreConstants.KEYSPACE,
+                keyspace,
                 objectId,
                 aclId,
                 syncId,
                 requestEntity.getProperties() );
         return requestEntity;
-    }
-
-    private UUID writeEntity( String keyspace, String typename, UUID aclId, UUID syncId, Set<String> entitySetNames ) {
-        return writeEntity( aclId, syncId, entitySetNames, "INSERT INTO " + keyspace + "." + typename );
-    }
-
-    private UUID writeEntity( UUID aclId, UUID syncId, Set<String> entitySetNames, String insertEntityQuery ) {
-        UUID objectId = UUID.randomUUID();
-        String query = insertEntityQuery + Queries.INSERT_ENTITY_CLAUSES;
-        while ( Util.wasLightweightTransactionApplied( session.execute( query,
-                ImmutableMap.of( ParamNames.OBJ_ID,
-                        objectId,
-                        ParamNames.ACL_ID,
-                        aclId,
-                        ParamNames.SYNC_IDS,
-                        ImmutableSet.of( syncId ),
-                        ParamNames.ENTITY_SETS,
-                        entitySetNames ) ) ) ) {
-            objectId = UUID.randomUUID();
-        }
-        return objectId;
     }
 
     private List<ResultSet> writeProperties(
@@ -159,15 +139,14 @@ public class EntitiyStorageClient {
                 return null;
             }
 
-            String propertyTable = tableManager.getTypenameForPropertyType( fqn );
+            PreparedStatement insertQuery = tableManager.getUpdatePropertyPreparedStatement( fqn );
+            return session.executeAsync(
+                    insertQuery.bind( objectId, aclId, property.getValue(), ImmutableList.of( syncId ) ) );
 
-            Statement insertQuery = QueryBuilder.insertInto( DatastoreConstants.KEYSPACE, propertyTable )
-                    .value( "objectId", objectId )
-                    .value( "aclId", aclId ).value( "syncIds", ImmutableSet.of( syncId ) )
-                    .value( "value", property.getValue() );
-            return session.executeAsync( insertQuery );
-
-        } ).filter( rsf -> rsf != null ).map( rsf -> {
+        } ).map( rsf -> {
+            if ( rsf == null ) {
+                return null;
+            }
             try {
                 return rsf.get();
             } catch ( InterruptedException | ExecutionException e ) {

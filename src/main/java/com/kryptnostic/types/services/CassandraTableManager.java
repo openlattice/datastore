@@ -33,9 +33,9 @@ public class CassandraTableManager {
     IMap<TypePK, PropertyType>                              propertyTypes;
     IMap<TypePK, EntityType>                                entityTypes;
 
-    private final Map<FullQualifiedName, PreparedStatement> propertyTypeInsertStatements;
+    private final Map<FullQualifiedName, PreparedStatement> propertyTypeUpdateStatements;
     private final Map<FullQualifiedName, PreparedStatement> entityTypeInsertStatements;
-
+    private final Map<FullQualifiedName, PreparedStatement> entityTypeUpdateStatements;
     private final String                                    keyspace;
 
     private final PreparedStatement                         getTypenameForEntityType;
@@ -55,8 +55,9 @@ public class CassandraTableManager {
 
         this.session = session;
         this.keyspace = keyspace;
-        this.propertyTypeInsertStatements = Maps.newConcurrentMap();
+        this.propertyTypeUpdateStatements = Maps.newConcurrentMap();
         this.entityTypeInsertStatements = Maps.newConcurrentMap();
+        this.entityTypeUpdateStatements = Maps.newConcurrentMap();
 
         this.getTypenameForEntityType = session.prepare( QueryBuilder
                 .select()
@@ -83,30 +84,50 @@ public class CassandraTableManager {
 
     }
 
-
     public void registerSchema( Schema schema ) {
         Preconditions.checkArgument( schema.getEntityTypeFqns().size() == schema.getEntityTypes().size(),
                 "Schema is out of sync." );
         schema.getEntityTypes().forEach( et -> {
+            // TODO: Solve ID generation
+            /*
+             * While unlikely it's possible to have a UUID collision when creating an object. Two possible solutions:
+             * (1) Use Hazelcast and perform a read prior to every write (2) Maintain a self-refreshing in-memory pool
+             * of available UUIDs that shifts the reads to times when cassandra is under less stress. Option (2) with a
+             * fall back to random UUID generation when pool is exhausted seems like an efficient bet.
+             */
             entityTypeInsertStatements.put( et.getFullQualifiedName(),
-                    session.prepare( QueryBuilder.insertInto( keyspace, getTypenameForEntityType( et ) )
+                    session.prepare( QueryBuilder
+                            .insertInto( keyspace, getTypenameForEntityType( et ) )
                             .value( CommonColumns.OBJECTID.toString(), QueryBuilder.bindMarker() )
                             .value( CommonColumns.ACLID.toString(), QueryBuilder.bindMarker() )
-                            .value( CommonColumns.CLOCK.toString(), QueryBuilder.bindMarker() )
+                            .value( CommonColumns.CLOCK.toString(), QueryBuilder.now() )
                             .value( CommonColumns.ENTITYSETS.toString(), QueryBuilder.bindMarker() )
                             .value( CommonColumns.SYNCIDS.toString(), QueryBuilder.bindMarker() ) ) );
+
+            entityTypeUpdateStatements.put( et.getFullQualifiedName(),
+                    session.prepare( QueryBuilder.update( keyspace, getTypenameForEntityType( et ) )
+                            .where( QueryBuilder.eq( CommonColumns.OBJECTID.toString(), QueryBuilder.bindMarker() ) )
+                            .and( QueryBuilder.eq( CommonColumns.ACLID.toString(), QueryBuilder.bindMarker() ) )
+                            .and( QueryBuilder.eq( CommonColumns.VALUE.toString(), QueryBuilder.bindMarker() ) )
+                            .with( QueryBuilder.set( CommonColumns.OBJECTID.toString(), QueryBuilder.bindMarker() ) )
+                            .and( QueryBuilder.set( CommonColumns.ACLID.toString(), QueryBuilder.bindMarker() ) )
+                            .and( QueryBuilder.set( CommonColumns.CLOCK.toString(), QueryBuilder.bindMarker() ) )
+                            .and( QueryBuilder.appendAll( CommonColumns.ENTITYSETS.toString(),
+                                    QueryBuilder.bindMarker() ) )
+                            .and( QueryBuilder.set( CommonColumns.SYNCIDS.toString(), QueryBuilder.bindMarker() ) ) ) );
 
         } );
 
         schema.getPropertyTypes().forEach( pt -> {
-            propertyTypeInsertStatements.put( pt.getFullQualifiedName(),
-                    session.prepare( QueryBuilder.insertInto( keyspace, getTypenameForPropertyType( pt ) )
-                            .value( CommonColumns.OBJECTID.toString(), QueryBuilder.bindMarker() )
-                            .value( CommonColumns.ACLID.toString(), QueryBuilder.bindMarker() )
-                            .value( CommonColumns.VALUE.toString(), QueryBuilder.bindMarker() )
-                            .value( CommonColumns.ENTITYSETS.toString(), QueryBuilder.bindMarker() )
-                            .value( CommonColumns.SYNCIDS.toString(), QueryBuilder.bindMarker() ) ) );
-
+            propertyTypeUpdateStatements.put( pt.getFullQualifiedName(),
+                    session.prepare( QueryBuilder.update( keyspace, getTypenameForPropertyType( pt ) )
+                            .where( QueryBuilder.eq( CommonColumns.OBJECTID.toString(), QueryBuilder.bindMarker() ) )
+                            .and( QueryBuilder.eq( CommonColumns.ACLID.toString(), QueryBuilder.bindMarker() ) )
+                            .and( QueryBuilder.eq( CommonColumns.VALUE.toString(), QueryBuilder.bindMarker() ) )
+                            .with( QueryBuilder.set( CommonColumns.OBJECTID.toString(), QueryBuilder.bindMarker() ) )
+                            .and( QueryBuilder.set( CommonColumns.ACLID.toString(), QueryBuilder.bindMarker() ) )
+                            .and( QueryBuilder.set( CommonColumns.VALUE.toString(), QueryBuilder.bindMarker() ) )
+                            .and( QueryBuilder.set( CommonColumns.SYNCIDS.toString(), QueryBuilder.bindMarker() ) ) ) );
         } );
     }
 
@@ -118,18 +139,26 @@ public class CassandraTableManager {
         return entityTypeInsertStatements.get( fqn );
     }
 
-    public PreparedStatement getInsertPropertyPreparedStatement( PropertyType entityType ) {
-        return getInsertEntityPreparedStatement( entityType.getFullQualifiedName() );
+    public PreparedStatement getUpdateEntityPreparedStatement( EntityType entityType ) {
+        return getUpdateEntityPreparedStatement( entityType.getFullQualifiedName() );
     }
 
-    public PreparedStatement getInsertPropertyPreparedStatement( FullQualifiedName fqn ) {
-        return entityTypeInsertStatements.get( fqn );
+    public PreparedStatement getUpdateEntityPreparedStatement( FullQualifiedName fqn ) {
+        return entityTypeUpdateStatements.get( fqn );
+    }
+
+    public PreparedStatement getUpdatePropertyPreparedStatement( PropertyType propertyType ) {
+        return getUpdatePropertyPreparedStatement( propertyType.getFullQualifiedName() );
+    }
+
+    public PreparedStatement getUpdatePropertyPreparedStatement( FullQualifiedName fqn ) {
+        return propertyTypeUpdateStatements.get( fqn );
     }
 
     public PreparedStatement getCountPropertyStatement() {
         return countProperty;
     }
-    
+
     public String createEntityTypeTable( EntityType entityType ) {
         // Ensure that type name doesn't exist
         String typename = getTypenameForEntityType( entityType.getNamespace(), entityType.getName() );

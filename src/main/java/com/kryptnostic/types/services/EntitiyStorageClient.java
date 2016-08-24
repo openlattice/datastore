@@ -38,14 +38,13 @@ import com.kryptnostic.datastore.edm.Queries.ParamNames;
 import com.kryptnostic.datastore.util.Util;
 
 public class EntitiyStorageClient {
-    private static final Logger                  logger = LoggerFactory
+    private static final Logger         logger = LoggerFactory
             .getLogger( EntitiyStorageClient.class );
     // private final IMap<String, FullQualifiedName> entitySets;
     // private final IMap<FullQualifiedName, EntitySchema> entitySchemas;
-    private final EdmManager                     dms;
-    private final CassandraTableManager          tableManager;
-    private final Session                        session;
-    
+    private final EdmManager            dms;
+    private final CassandraTableManager tableManager;
+    private final Session               session;
 
     public EntitiyStorageClient(
             String keyspace,
@@ -55,12 +54,10 @@ public class EntitiyStorageClient {
             CassandraTableManager tableManager,
             CassandraStorage storage,
             MappingManager mm ) {
-        initializePreparedStatements( dms );
         this.dms = dms;
         this.tableManager = tableManager;
         this.session = session;
     }
-
 
     public EntityCollection readEntitySetData( EdmEntitySet edmEntitySet ) throws ODataApplicationException {
         // exec.submit( new ConductorCallable )

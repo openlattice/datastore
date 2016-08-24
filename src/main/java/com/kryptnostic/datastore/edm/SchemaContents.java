@@ -11,6 +11,8 @@ import com.kryptnostic.conductor.rpc.odata.EntityType;
 import com.kryptnostic.conductor.rpc.odata.PropertyType;
 import com.kryptnostic.datastore.edm.controllers.EdmApi;
 
+//TODO: Delete this class
+@Deprecated
 public class SchemaContents {
     private final Set<PropertyType> propertyTypes;
     private final Set<EntityType>   objectTypes;

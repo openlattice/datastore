@@ -1,38 +1,34 @@
 package com.kryptnostic.types.services;
 
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import org.apache.olingo.commons.api.edm.EdmPrimitiveTypeKind;
 import org.apache.olingo.commons.api.edm.FullQualifiedName;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.ResultSetFuture;
 import com.datastax.driver.core.Session;
-import com.datastax.driver.core.querybuilder.QueryBuilder;
 import com.datastax.driver.mapping.Mapper;
 import com.datastax.driver.mapping.MappingManager;
 import com.datastax.driver.mapping.Result;
-import com.google.common.base.Charsets;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
-import com.google.common.hash.Hashing;
 import com.google.common.util.concurrent.Futures;
-import com.kryptnostic.conductor.rpc.UUIDs;
 import com.kryptnostic.conductor.rpc.UUIDs.ACLs;
-import com.kryptnostic.conductor.rpc.odata.DatastoreConstants;
 import com.kryptnostic.conductor.rpc.odata.EntitySet;
 import com.kryptnostic.conductor.rpc.odata.EntityType;
 import com.kryptnostic.conductor.rpc.odata.PropertyType;
 import com.kryptnostic.conductor.rpc.odata.Schema;
 import com.kryptnostic.datastore.odata.EntityDataModel;
 import com.kryptnostic.datastore.util.Util;
+
+import jersey.repackaged.com.google.common.base.Preconditions;
 
 public class EdmService implements EdmManager {
     private static final Logger         logger = LoggerFactory.getLogger( EdmService.class );
@@ -54,19 +50,11 @@ public class EdmService implements EdmManager {
         this.entityTypeMapper = mappingManager.mapper( EntityType.class );
         this.propertyTypeMapper = mappingManager.mapper( PropertyType.class );
         this.tableManager = tableManager;
-        upsertSchema( new Schema().setAclId( UUIDs.ACLs.EVERYONE_ACL )
-                .setNamespace( DatastoreConstants.PRIMARY_NAMESPACE ).setName( DatastoreConstants.PRIMARY_NAMESPACE ) );
-        createEntityType( new EntityType().setNamespace( DatastoreConstants.PRIMARY_NAMESPACE )
-                .setKey( ImmutableSet.of( new FullQualifiedName( DatastoreConstants.PRIMARY_NAMESPACE, "ssn" ),
-                        new FullQualifiedName( DatastoreConstants.PRIMARY_NAMESPACE, "passport" ) ) )
-                .setType( "person" )
-                .setTypename( Hashing.murmur3_128().hashString( "person", Charsets.UTF_8 ).toString() )
-                .setProperties( ImmutableSet.of() ) );
-        upsertPropertyType( new PropertyType().setNamespace( "kryptnostic" ).setName( "SSN" )
-                .setDatatype( EdmPrimitiveTypeKind.String ).setTypename( "ssn" ).setMultiplicity( 0 ) );
         Result<EntityType> objectTypes = edmStore.getEntityTypes();
-        Iterable<Schema> namespaces = getSchemas();
-        namespaces.forEach( namespace -> logger.info( "Namespace loaded: {}", namespace ) );
+        List<Schema> schemas = ImmutableList.copyOf( getSchemas() );
+        schemas.forEach( schema -> logger.info( "Namespace loaded: {}", schema ) );
+        schemas.forEach( this::enrichSchemaWithEntityTypes );
+        schemas.forEach( tableManager::registerSchema );
         objectTypes.forEach( objectType -> logger.info( "Object read: {}", objectType ) );
     }
 
@@ -125,8 +113,12 @@ public class EdmService implements EdmManager {
      * @see com.kryptnostic.types.services.EdmManager#updateObjectType(com.kryptnostic.types.ObjectType)
      */
     @Override
-    public void upsertEntityType( EntityType objectType ) {
-        entityTypeMapper.save( objectType );
+    public void upsertEntityType( EntityType entityType ) {
+        // This call will fail if the typename has already been set for the entity.
+        ensureValidEntityType( entityType );
+        String typename = tableManager.getTypenameForEntityType( entityType );
+        entityType.setTypename( typename );
+        entityTypeMapper.save( entityType );
     }
 
     /*
@@ -202,34 +194,40 @@ public class EdmService implements EdmManager {
     public boolean createEntityType(
             EntityType entityType ) {
         boolean entityCreated = false;
-        if ( propertiesExist( entityType.getProperties() )
-                && entityType.getProperties().containsAll( entityType.getKey() ) ) {
-
-            String typename = tableManager.createEntityTypeTable( entityType );
-            entityCreated = Util.wasLightweightTransactionApplied(
-                    edmStore.createEntityTypeIfNotExists( entityType.getNamespace(),
-                            entityType.getName(),
-                            typename,
-                            entityType.getKey(),
-                            entityType.getProperties() ) );
+        // Make sure entity type is valid
+        ensureValidEntityType( entityType );
+        String typename = tableManager.getTypenameForEntityType( entityType );
+        entityType.setTypename( typename );
+        entityCreated = Util.wasLightweightTransactionApplied(
+                edmStore.createEntityTypeIfNotExists( entityType.getNamespace(),
+                        entityType.getName(),
+                        typename,
+                        entityType.getKey(),
+                        entityType.getProperties() ) );
+        // Only create entity table if insert transaction succeeded.
+        if ( entityCreated ) {
+            tableManager.createEntityTypeTable( entityType );
         }
         return entityCreated;
     }
 
+    private void ensureValidEntityType( EntityType entityType ) {
+        Preconditions.checkArgument( propertiesExist( entityType.getProperties() )
+                && entityType.getProperties().containsAll( entityType.getKey() ), "Invalid entity provided" );
+    }
+
     private boolean propertiesExist( Set<FullQualifiedName> properties ) {
-        // TODO: Extract contents
         Stream<ResultSetFuture> futures = properties.parallelStream()
                 .map( prop -> session
                         .executeAsync(
-                                QueryBuilder.select().countAll().from( DatastoreConstants.PROPERTY_TYPES_TABLE )
-                                        .where( QueryBuilder.eq( "namespace", prop.getNamespace() ) )
-                                        .and( QueryBuilder.eq( "name", prop.getName() ) ) ) );
+                                tableManager.getCountPropertyStatement().bind( prop.getNamespace(),
+                                        prop.getName() ) ) );
         // Cause Java 8
         try {
+
             return Futures.allAsList( (Iterable<ResultSetFuture>) futures::iterator ).get().stream()
-                    .map( ResultSet::one )
-                    .map( row -> row.getInt( "count" ) ).filter( count -> count == 0 ).collect( Collectors.counting() )
-                    .intValue() == 0;
+                    .map( rs -> rs.one().getLong( "count" ) )
+                    .noneMatch( count -> count == 0 );
         } catch ( InterruptedException | ExecutionException e ) {
             logger.error( "Unable to verify all properties exist." );
             return false;

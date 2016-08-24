@@ -5,8 +5,6 @@ import org.apache.olingo.commons.api.edm.FullQualifiedName;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.datastax.driver.core.Session;
 import com.geekbeast.rhizome.tests.pods.CassandraTestPod;
@@ -18,7 +16,6 @@ import com.kryptnostic.types.services.EdmManager;
 
 public class DatastoreTests {
     private static final DatastoreServices ds        = new DatastoreServices();
-    private static final Logger logger = LoggerFactory.getLogger( DatastoreTests.class );
     public static final String             NAMESPACE = "tests";
 
     @BeforeClass
@@ -26,25 +23,22 @@ public class DatastoreTests {
         // This is fine since unless cassandra is specified as runtime argument production cassandra pod won't be
         // activated
         CassandraTestPod.startCassandra();
-        ds.intercrop( CassandraTestPod.class );
-        ds.sprout( CassandraTestPod.PROFILE );
-        Session session = ds.getContext().getBean( Session.class );
-        logger.info( "Paint it black ");
+        ds.sprout( CassandraTestPod.PROFILE, "cassandra" );
     }
 
     @Test
-    public void testEntityType() {
+    public void testkeeEntityType() {
         EdmManager dms = ds.getContext().getBean( EdmManager.class );
 
-        dms.createPropertyType( new PropertyType().setNamespace( NAMESPACE ).setName( "aclId" )
+        dms.createPropertyType( new PropertyType().setNamespace( NAMESPACE ).setType( "aclId" )
                 .setDatatype( EdmPrimitiveTypeKind.Guid ).setMultiplicity( 0 ) );
-        dms.createPropertyType( new PropertyType().setNamespace( NAMESPACE ).setName( "type" )
+        dms.createPropertyType( new PropertyType().setNamespace( NAMESPACE ).setType( "type" )
                 .setDatatype( EdmPrimitiveTypeKind.Guid ).setMultiplicity( 0 ) );
-        dms.createPropertyType( new PropertyType().setNamespace( NAMESPACE ).setName( "clock" )
+        dms.createPropertyType( new PropertyType().setNamespace( NAMESPACE ).setType( "clock" )
                 .setDatatype( EdmPrimitiveTypeKind.Guid ).setMultiplicity( 0 ) );
-        dms.createPropertyType( new PropertyType().setNamespace( NAMESPACE ).setName( "objectId" )
+        dms.createPropertyType( new PropertyType().setNamespace( NAMESPACE ).setType( "objectId" )
                 .setDatatype( EdmPrimitiveTypeKind.Int64 ).setMultiplicity( 0 ) );
-        dms.createPropertyType( new PropertyType().setNamespace( NAMESPACE ).setName( "version" )
+        dms.createPropertyType( new PropertyType().setNamespace( NAMESPACE ).setType( "version" )
                 .setDatatype( EdmPrimitiveTypeKind.Int64 ).setMultiplicity( 0 ) );
 
         EntityType metadataLevel = new EntityType().setNamespace( NAMESPACE ).setType( "metadataLevel" )
@@ -63,7 +57,7 @@ public class DatastoreTests {
         dms.createSchema( NAMESPACE,
                 "anubis",
                 ACLs.EVERYONE_ACL,
-                ImmutableSet.of( new FullQualifiedName( NAMESPACE, metadataLevel.getName() ) ) );
+                ImmutableSet.of( new FullQualifiedName( NAMESPACE, metadataLevel.getType() ) ) );
 
         Assert.assertTrue(
                 dms.isExistingEntitySet( new FullQualifiedName( NAMESPACE, "metadataLevel" ), "metadataLevels" ) );

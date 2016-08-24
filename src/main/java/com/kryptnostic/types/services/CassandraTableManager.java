@@ -4,15 +4,14 @@ import java.util.Map;
 
 import org.apache.commons.lang3.NotImplementedException;
 import org.apache.commons.lang3.RandomStringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.olingo.commons.api.edm.FullQualifiedName;
 
 import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.Row;
 import com.datastax.driver.core.Session;
 import com.datastax.driver.core.querybuilder.QueryBuilder;
-import com.datastax.driver.mapping.Mapper;
 import com.datastax.driver.mapping.MappingManager;
-import com.google.common.collect.ImmutableMap;
 import com.hazelcast.core.HazelcastInstance;
 import com.hazelcast.core.IMap;
 import com.kryptnostic.conductor.rpc.odata.DatastoreConstants;
@@ -21,9 +20,13 @@ import com.kryptnostic.conductor.rpc.odata.PropertyType;
 import com.kryptnostic.conductor.rpc.odata.Schema;
 import com.kryptnostic.conductor.rpc.odata.TypePK;
 import com.kryptnostic.datastore.cassandra.CassandraEdmMapping;
+import com.kryptnostic.datastore.cassandra.CassandraTableBuilder;
 import com.kryptnostic.datastore.cassandra.CommonColumns;
 import com.kryptnostic.datastore.edm.Queries;
 import com.kryptnostic.datastore.util.Util;
+
+import jersey.repackaged.com.google.common.base.Preconditions;
+import jersey.repackaged.com.google.common.collect.Maps;
 
 public class CassandraTableManager {
     private final Session                                   session;
@@ -33,9 +36,11 @@ public class CassandraTableManager {
     private final Map<FullQualifiedName, PreparedStatement> propertyTypeInsertStatements;
     private final Map<FullQualifiedName, PreparedStatement> entityTypeInsertStatements;
 
-    private final Mapper<EntityType>                        entityTypeMapper;
-    private final Mapper<PropertyType>                      propertyTypeMapper;
     private final String                                    keyspace;
+
+    private final PreparedStatement                         getTypenameForEntityType;
+    private final PreparedStatement                         getTypenameForPropertyType;
+    private final PreparedStatement                         countProperty;
 
     public CassandraTableManager(
             HazelcastInstance hazelcast,
@@ -50,11 +55,38 @@ public class CassandraTableManager {
 
         this.session = session;
         this.keyspace = keyspace;
-        this.entityTypeMapper = mm.mapper( EntityType.class );
-        this.propertyTypeMapper = mm.mapper( PropertyType.class );
+        this.propertyTypeInsertStatements = Maps.newConcurrentMap();
+        this.entityTypeInsertStatements = Maps.newConcurrentMap();
+
+        this.getTypenameForEntityType = session.prepare( QueryBuilder
+                .select()
+                .from( keyspace, DatastoreConstants.ENTITY_TYPES_TABLE )
+                .where( QueryBuilder.eq( CommonColumns.NAMESPACE.toString(),
+                        QueryBuilder.bindMarker() ) )
+                .and( QueryBuilder.eq( CommonColumns.NAME.toString(),
+                        QueryBuilder.bindMarker() ) ) );
+        this.getTypenameForPropertyType = session.prepare( QueryBuilder
+                .select()
+                .from( keyspace, DatastoreConstants.PROPERTY_TYPES_TABLE )
+                .where( QueryBuilder.eq( CommonColumns.NAMESPACE.toString(),
+                        QueryBuilder.bindMarker() ) )
+                .and( QueryBuilder.eq( CommonColumns.NAME.toString(),
+                        QueryBuilder.bindMarker() ) ) );
+
+        this.countProperty = session.prepare( QueryBuilder
+                .select().countAll()
+                .from( keyspace, DatastoreConstants.PROPERTY_TYPES_TABLE )
+                .where( QueryBuilder.eq( CommonColumns.NAMESPACE.toString(),
+                        QueryBuilder.bindMarker() ) )
+                .and( QueryBuilder.eq( CommonColumns.NAME.toString(),
+                        QueryBuilder.bindMarker() ) ) );
+
     }
 
+
     public void registerSchema( Schema schema ) {
+        Preconditions.checkArgument( schema.getEntityTypeFqns().size() == schema.getEntityTypes().size(),
+                "Schema is out of sync." );
         schema.getEntityTypes().forEach( et -> {
             entityTypeInsertStatements.put( et.getFullQualifiedName(),
                     session.prepare( QueryBuilder.insertInto( keyspace, getTypenameForEntityType( et ) )
@@ -65,27 +97,53 @@ public class CassandraTableManager {
                             .value( CommonColumns.SYNCIDS.toString(), QueryBuilder.bindMarker() ) ) );
 
         } );
+
         schema.getPropertyTypes().forEach( pt -> {
-            entityTypeInsertStatements.put( pt.getFullQualifiedName(),
+            propertyTypeInsertStatements.put( pt.getFullQualifiedName(),
                     session.prepare( QueryBuilder.insertInto( keyspace, getTypenameForPropertyType( pt ) )
                             .value( CommonColumns.OBJECTID.toString(), QueryBuilder.bindMarker() )
                             .value( CommonColumns.ACLID.toString(), QueryBuilder.bindMarker() )
-                            .value( CommonColumns.VALUE
-                                    .getType( c -> CassandraEdmMapping.getCassandraType( pt.getDatatype() ) )
-                                    .toString(), QueryBuilder.bindMarker() )
+                            .value( CommonColumns.VALUE.toString(), QueryBuilder.bindMarker() )
                             .value( CommonColumns.ENTITYSETS.toString(), QueryBuilder.bindMarker() )
                             .value( CommonColumns.SYNCIDS.toString(), QueryBuilder.bindMarker() ) ) );
 
         } );
     }
 
+    public PreparedStatement getInsertEntityPreparedStatement( EntityType entityType ) {
+        return getInsertEntityPreparedStatement( entityType.getFullQualifiedName() );
+    }
+
+    public PreparedStatement getInsertEntityPreparedStatement( FullQualifiedName fqn ) {
+        return entityTypeInsertStatements.get( fqn );
+    }
+
+    public PreparedStatement getInsertPropertyPreparedStatement( PropertyType entityType ) {
+        return getInsertEntityPreparedStatement( entityType.getFullQualifiedName() );
+    }
+
+    public PreparedStatement getInsertPropertyPreparedStatement( FullQualifiedName fqn ) {
+        return entityTypeInsertStatements.get( fqn );
+    }
+
+    public PreparedStatement getCountPropertyStatement() {
+        return countProperty;
+    }
+    
     public String createEntityTypeTable( EntityType entityType ) {
-        String typename;
-        String entityTableQuery;
+        // Ensure that type name doesn't exist
+        String typename = getTypenameForEntityType( entityType.getNamespace(), entityType.getName() );
+        Preconditions.checkState( StringUtils.isBlank( typename ) );
+        CassandraTableBuilder ctb = new CassandraTableBuilder( keyspace, typename )
+                .ifNotExists()
+                .partitionKey( CommonColumns.OBJECTID, CommonColumns.ACLID )
+                .clusteringColumns( CommonColumns.CLOCK )
+                .columns( CommonColumns.ENTITYSETS, CommonColumns.SYNCIDS );
+        String entityTableQuery = ctb.buildQuery();
         do {
-            typename = getEntityTypename();
-            entityTableQuery = String.format( keyspace,
+            entityTableQuery = String.format(
                     Queries.CREATE_ENTITY_TABLE,
+                    keyspace,
                     typename );
         } while ( !Util.wasLightweightTransactionApplied( session.execute( entityTableQuery ) ) );
         // Loop until table creation succeeds.
@@ -93,10 +151,10 @@ public class CassandraTableManager {
     }
 
     public String createPropertyTypeTable( PropertyType propertyType ) {
-        String typename;
+        String typename = getTypenameForPropertyType( propertyType.getNamespace(), propertyType.getName() );
+        CassandraTableBuilder ctb = new CassandraTableBuilder( keyspace, typename );
         String propertyTableQuery;
         do {
-            typename = getTypenameForPropertyType( propertyType.getNamespace(), propertyType.getName() );
             propertyTableQuery = String.format( Queries.CREATE_PROPERTY_TABLE,
                     keyspace,
                     typename,
@@ -110,7 +168,7 @@ public class CassandraTableManager {
         return "p_" + RandomStringUtils.randomAlphanumeric( 24 ) + "_properties";
     }
 
-    public static String getEntityTypename() {
+    public static String generateEntityTypename() {
         return "e_" + RandomStringUtils.randomAlphanumeric( 24 ) + "objects";
     }
 
@@ -135,13 +193,9 @@ public class CassandraTableManager {
     }
 
     public String getTypenameForEntityType( String namespace, String name ) {
-        // TODO: Extract strings... so many queries
-        Row r = session.execute(
-                "select * from sparks." + DatastoreConstants.ENTITY_TYPES_TABLE + " where namespace=:ns AND name:=t",
-                ImmutableMap.of( "ns", namespace, "t", name ) )
-                .one();
+        Row r = session.execute( this.getTypenameForEntityType.bind( namespace, name ) ).one();
         if ( r == null ) {
-            return getEntityTypename();
+            return null;
         }
         return r.getString( "typename" );
     }
@@ -159,12 +213,7 @@ public class CassandraTableManager {
     }
 
     private String getTypenameForPropertyType( String namespace, String name ) {
-        // TODO: Extract strings... so many queries
-        // TODO: Prepared statements
-        Row r = session.execute(
-                "select * from sparks." + DatastoreConstants.PROPERTY_TYPES_TABLE + " where namespace=:ns AND name=:t",
-                ImmutableMap.of( "ns", namespace, "t", name ) )
-                .one();
+        Row r = session.execute( this.getTypenameForPropertyType.bind( namespace, name ) ).one();
         if ( r == null ) {
             return null;
         }

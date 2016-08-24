@@ -63,6 +63,7 @@ public class DatastoreServicesPod {
     @Bean
     public EntitiyStorageClient dataStorageService() {
         return new EntitiyStorageClient(
+                DatastoreConstants.KEYSPACE,
                 hazelcastInstance,
                 dataModelService(),
                 session,

@@ -20,7 +20,7 @@ public class EntityTypeSerializerTest extends BaseJacksonSerializationTest<Entit
 
     @Override
     protected EntityType getSampleData() {
-        return new EntityType().setNamespace( "test" ).setType( "andino" )
+        return new EntityType().setNamespace( "test" ).setName( "andino" )
                 .setProperties( ImmutableSet.of( new FullQualifiedName( "test", "pan flute" ) ) )
                 .setKey( ImmutableSet.of( new FullQualifiedName( "test", "id" ) ) );
     }

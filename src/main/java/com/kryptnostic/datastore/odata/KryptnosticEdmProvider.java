@@ -63,7 +63,9 @@ public class KryptnosticEdmProvider extends CsdlAbstractEdmProvider {
                 .setDatatype( EdmPrimitiveTypeKind.String ).setMultiplicity( 0 ) );
         dms.createPropertyType( new PropertyType().setNamespace( NAMESPACE ).setName( "Description" )
                 .setDatatype( EdmPrimitiveTypeKind.String ).setMultiplicity( 0 ) );
-        EntityType product = new EntityType().setNamespace( NAMESPACE ).setType( ET_PRODUCT_NAME )
+        EntityType product = new EntityType()
+                .setNamespace( NAMESPACE )
+                .setName( ET_PRODUCT_NAME )
                 .setKey( ImmutableSet.of( new FullQualifiedName( NAMESPACE, "ID" ) ) )
                 .setProperties( ImmutableSet.of( new FullQualifiedName( NAMESPACE, "ID" ),
                         new FullQualifiedName( NAMESPACE, "Name" ),

@@ -29,17 +29,17 @@ import org.apache.olingo.server.api.uri.UriResourceEntitySet;
 import com.kryptnostic.conductor.rpc.UUIDs.ACLs;
 import com.kryptnostic.conductor.rpc.UUIDs.Syncs;
 import com.kryptnostic.datastore.util.Util;
-import com.kryptnostic.types.services.EntitiyStorageClient;
+import com.kryptnostic.types.services.EntityStorageClient;
 import com.kryptnostic.types.services.DatasourceManager;
 
 public class KryptnosticEntityProcessor implements EntityProcessor {
-    private final EntitiyStorageClient storage;
+    private final EntityStorageClient storage;
     private final DatasourceManager  dsm;
 
     private OData                    odata;
     private ServiceMetadata          serviceMetadata;
 
-    public KryptnosticEntityProcessor( EntitiyStorageClient storage, DatasourceManager dsm ) {
+    public KryptnosticEntityProcessor( EntityStorageClient storage, DatasourceManager dsm ) {
         this.storage = storage;
         this.dsm = dsm;
     }

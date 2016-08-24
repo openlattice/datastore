@@ -25,27 +25,22 @@ import com.datastax.driver.mapping.MappingManager;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.SetMultimap;
 import com.hazelcast.core.HazelcastInstance;
-import com.kryptnostic.conductor.rpc.odata.DatastoreConstants;
 import com.kryptnostic.conductor.rpc.odata.EntityType;
-import com.kryptnostic.datastore.edm.Queries;
-import com.kryptnostic.datastore.edm.Queries.ParamNames;
-import com.kryptnostic.datastore.util.Util;
 
-public class EntitiyStorageClient {
+public class EntityStorageClient {
     private static final Logger         logger = LoggerFactory
-            .getLogger( EntitiyStorageClient.class );
+            .getLogger( EntityStorageClient.class );
     // private final IMap<String, FullQualifiedName> entitySets;
     // private final IMap<FullQualifiedName, EntitySchema> entitySchemas;
     private final EdmManager            dms;
     private final CassandraTableManager tableManager;
     private final Session               session;
-    private final String keyspace;
-    
-    public EntitiyStorageClient(
+    private final String                keyspace;
+
+    public EntityStorageClient(
             String keyspace,
             HazelcastInstance hazelcast,
             EdmManager dms,
@@ -88,12 +83,23 @@ public class EntitiyStorageClient {
         Preconditions.checkArgument(
                 dms.isExistingEntitySet( entityFqn, edmEntitySet.getName() ),
                 "Cannot add data to non-existant entity set." );
-        
-        PreparedStatement query = tableManager.getInsertEntityPreparedStatement( edmEntitySet.getEntityType().getFullQualifiedName() );
-        UUID objectId = UUID.randomUUID(); 
-        BoundStatement boundQuery = query.bind( objectId, aclId, ImmutableList.of( edmEntitySet.getName() ), ImmutableList.of(syncId) );
+        return createEntityData( aclId, syncId, edmEntitySet.getName(), entityFqn, requestEntity );
+    }
+
+    public Entity createEntityData(
+            UUID aclId,
+            UUID syncId,
+            String entitySetName,
+            FullQualifiedName entityFqn,
+            Entity requestEntity ) {
+        PreparedStatement query = tableManager.getInsertEntityPreparedStatement( entityFqn );
+        UUID objectId = UUID.randomUUID();
+        BoundStatement boundQuery = query.bind( objectId,
+                aclId,
+                ImmutableSet.of( entitySetName ),
+                ImmutableList.of( syncId ) );
         session.execute( boundQuery );
-        
+
         EntityType entityType = dms.getEntityType( entityFqn.getNamespace(), entityFqn.getName() );
         writeProperties( entityType,
                 keyspace,

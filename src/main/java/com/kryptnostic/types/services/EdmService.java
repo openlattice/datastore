@@ -7,6 +7,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.olingo.commons.api.edm.FullQualifiedName;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -149,12 +150,19 @@ public class EdmService implements EdmManager {
          * transaction will fail and return value will be correctly set.
          */
         String typename = tableManager.getTypenameForPropertyType( propertyType );
-        return Util.wasLightweightTransactionApplied(
+        Preconditions.checkState( StringUtils.isBlank( typename ) );
+        propertyType.setTypename( CassandraTableManager.generatePropertyTypename() );
+        boolean propertyCreated = Util.wasLightweightTransactionApplied(
                 edmStore.createPropertyTypeIfNotExists( propertyType.getNamespace(),
                         propertyType.getName(),
-                        typename,
+                        propertyType.getTypename(),
                         propertyType.getDatatype(),
                         propertyType.getMultiplicity() ) );
+
+        if ( propertyCreated ) {
+            tableManager.createPropertyTypeTable( propertyType );
+        }
+        return propertyCreated;
     }
 
     @Override
@@ -197,11 +205,14 @@ public class EdmService implements EdmManager {
         // Make sure entity type is valid
         ensureValidEntityType( entityType );
         String typename = tableManager.getTypenameForEntityType( entityType );
-        entityType.setTypename( typename );
+        Preconditions.checkState( StringUtils.isBlank( typename ) );
+
+        entityType.setTypename( CassandraTableManager.generateEntityTypename() );
+
         entityCreated = Util.wasLightweightTransactionApplied(
                 edmStore.createEntityTypeIfNotExists( entityType.getNamespace(),
                         entityType.getName(),
-                        typename,
+                        entityType.getTypename(),
                         entityType.getKey(),
                         entityType.getProperties() ) );
         // Only create entity table if insert transaction succeeded.

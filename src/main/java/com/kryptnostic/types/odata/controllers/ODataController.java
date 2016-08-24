@@ -20,7 +20,7 @@ import com.hazelcast.core.HazelcastInstance;
 import com.kryptnostic.datastore.odata.KryptnosticEdmProvider;
 import com.kryptnostic.datastore.odata.KryptnosticEntityCollectionProcessor;
 import com.kryptnostic.datastore.odata.KryptnosticEntityProcessor;
-import com.kryptnostic.types.services.EntitiyStorageClient;
+import com.kryptnostic.types.services.EntityStorageClient;
 import com.kryptnostic.types.services.DatasourceManager;
 import com.kryptnostic.types.services.EdmManager;
 
@@ -34,7 +34,7 @@ public class ODataController {
     private EdmManager          dms;
     
     @Inject
-    private EntitiyStorageClient storage;
+    private EntityStorageClient storage;
     
     @Inject
     private DatasourceManager dsm;

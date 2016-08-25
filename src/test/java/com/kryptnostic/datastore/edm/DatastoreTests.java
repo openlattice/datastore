@@ -72,7 +72,8 @@ public class DatastoreTests {
                 ENTITY_SET_NAME,
                 ENTITY_TYPE,
                 e );
-
+        
+//        esc.readEntityData( edmEntitySet, keyParams );
     }
 
     private static void setupDatamodel() {

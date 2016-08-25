@@ -1,16 +1,17 @@
 package com.kryptnostic.types.services;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
-import java.util.stream.Collectors;
 
 import org.apache.olingo.commons.api.data.Entity;
 import org.apache.olingo.commons.api.data.EntityCollection;
 import org.apache.olingo.commons.api.data.Property;
 import org.apache.olingo.commons.api.edm.EdmEntitySet;
 import org.apache.olingo.commons.api.edm.EdmEntityType;
+import org.apache.olingo.commons.api.edm.EdmProperty;
 import org.apache.olingo.commons.api.edm.FullQualifiedName;
 import org.apache.olingo.server.api.ODataApplicationException;
 import org.apache.olingo.server.api.uri.UriParameter;
@@ -20,6 +21,7 @@ import org.slf4j.LoggerFactory;
 import com.datastax.driver.core.BoundStatement;
 import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.ResultSet;
+import com.datastax.driver.core.ResultSetFuture;
 import com.datastax.driver.core.Session;
 import com.datastax.driver.mapping.MappingManager;
 import com.google.common.base.Preconditions;
@@ -27,8 +29,11 @@ import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.SetMultimap;
+import com.google.common.util.concurrent.Futures;
 import com.hazelcast.core.HazelcastInstance;
 import com.kryptnostic.conductor.rpc.odata.EntityType;
+
+import jersey.repackaged.com.google.common.collect.Iterables;
 
 public class EntityStorageClient {
     private static final Logger         logger = LoggerFactory
@@ -69,7 +74,13 @@ public class EntityStorageClient {
             throws ODataApplicationException {
 
         EdmEntityType edmEntityType = edmEntitySet.getEntityType();
+        // readEntityData( edmEntityType.getFullQualifiedName() );
 
+        for ( UriParameter keyParam : keyParams ) {
+            String name = keyParam.getName();
+            String text = keyParam.getText();
+            EdmProperty edmProperty = (EdmProperty) edmEntityType.getProperty( name );
+        }
         // actually, this is only required if we have more than one Entity Type
         // if(edmEntityType.getName().equals(DemoEdmProvider.ET_PRODUCT_NAME)){
         //// return getProduct(edmEntityType, keyParams);
@@ -77,6 +88,10 @@ public class EntityStorageClient {
 
         return null;
     }
+
+    // public Entity readEntityData( Map<FullQualifiedName, Object> key ) {
+    //
+    // }
 
     public Entity createEntityData( UUID aclId, UUID syncId, EdmEntitySet edmEntitySet, Entity requestEntity ) {
         FullQualifiedName entityFqn = edmEntitySet.getEntityType().getFullQualifiedName();
@@ -93,6 +108,7 @@ public class EntityStorageClient {
             FullQualifiedName entityFqn,
             Entity requestEntity ) {
         PreparedStatement query = tableManager.getInsertEntityPreparedStatement( entityFqn );
+
         UUID objectId = UUID.randomUUID();
         BoundStatement boundQuery = query.bind( objectId,
                 aclId,
@@ -107,38 +123,24 @@ public class EntityStorageClient {
                 aclId,
                 syncId,
                 requestEntity.getProperties() );
+
         return requestEntity;
     }
 
-    private List<ResultSet> writeProperties(
+    private Iterable<ResultSet> writeProperties(
             EntityType entityType,
             String keyspace,
             UUID objectId,
             UUID aclId,
             UUID syncId,
             List<Property> properties ) {
-        Set<FullQualifiedName> propertyTypes = entityType.getProperties();
-        SetMultimap<String, FullQualifiedName> nameLookup = HashMultimap.create();
+        final Set<FullQualifiedName> key = entityType.getKey();
+        final Set<FullQualifiedName> propertyTypes = entityType.getProperties();
+        final SetMultimap<String, FullQualifiedName> nameLookup = HashMultimap.create();
 
         propertyTypes.forEach( fqn -> nameLookup.put( fqn.getName(), fqn ) );
-        return properties.parallelStream().map( property -> {
-            String propertyType = property.getType();
-
-            FullQualifiedName fqn = null;
-
-            if ( propertyType.contains( "." ) ) {
-                fqn = new FullQualifiedName( propertyType );
-            } else {
-                Set<FullQualifiedName> possibleTypes = nameLookup.get( propertyType );
-                if ( possibleTypes.size() == 1 ) {
-                    fqn = possibleTypes.iterator().next();
-                } else {
-                    logger.error( "Unable to resolve property {} for entity type {}... possible properties: {}",
-                            property,
-                            entityType,
-                            possibleTypes );
-                }
-            }
+        Iterable<List<ResultSetFuture>> propertyInsertion = properties.parallelStream().map( property -> {
+            FullQualifiedName fqn = resolveFqn( entityType.getFullQualifiedName(), property, nameLookup );
 
             if ( fqn == null ) {
                 logger.error( "Invalid property {} for entity type {}... skipping", property, entityType );
@@ -146,20 +148,49 @@ public class EntityStorageClient {
             }
 
             PreparedStatement insertQuery = tableManager.getUpdatePropertyPreparedStatement( fqn );
-            return session.executeAsync(
-                    insertQuery.bind( ImmutableList.of( syncId ), objectId, aclId, property.getValue() ) );
 
-        } ).map( rsf -> {
-            if ( rsf == null ) {
-                return null;
+            // Not safe to change this order without understanding bindMarker re-ordering quirks of QueryBuilder
+            ResultSetFuture rsfInsert = session.executeAsync(
+                    insertQuery.bind( ImmutableList.of( syncId ), objectId, aclId, property.getValue() ) );
+            if ( key.contains( fqn ) ) {
+                PreparedStatement indexQuery = tableManager.getUpdatePropertyIndexPreparedStatement( fqn );
+                // Not safe to change this order without understanding bindMarker re-ordering quirks of QueryBuilder
+                ResultSetFuture rsfIndex = session.executeAsync(
+                        indexQuery.bind( ImmutableList.of( syncId ), property.getValue(), aclId, objectId ) );
+                return Arrays.asList( rsfInsert, rsfIndex );
             }
-            try {
-                return rsf.get();
-            } catch ( InterruptedException | ExecutionException e ) {
-                logger.error( "Failed writing property!", e );
-                // Should probably wrap in uncheckced exception and bubble up.
-                return null;
-            }
-        } ).filter( rs -> rs != null ).collect( Collectors.toList() );
+            return Arrays.asList( rsfInsert );
+
+        } )::iterator;
+        
+        try {
+            return Futures.allAsList( Iterables.concat( propertyInsertion ) ).get();
+        } catch ( InterruptedException | ExecutionException e ) {
+            logger.error( "Failed writing properties for entity for object {}" , objectId );
+            return ImmutableList.of();
+        }
     }
+
+    private static FullQualifiedName resolveFqn(
+            FullQualifiedName entityType,
+            Property property,
+            SetMultimap<String, FullQualifiedName> nameLookup ) {
+        String propertyType = property.getType();
+        // Heuristic for type being FQN string.
+        if ( propertyType.contains( "." ) ) {
+            return new FullQualifiedName( propertyType );
+        } else {
+            Set<FullQualifiedName> possibleTypes = nameLookup.get( propertyType );
+            if ( possibleTypes.size() == 1 ) {
+                return possibleTypes.iterator().next();
+            } else {
+                logger.error( "Unable to resolve property {} for entity type {}... possible properties: {}",
+                        property,
+                        entityType,
+                        possibleTypes );
+                return null;
+            }
+        }
+    }
+
 }

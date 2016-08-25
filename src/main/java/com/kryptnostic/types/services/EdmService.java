@@ -1,17 +1,20 @@
 package com.kryptnostic.types.services;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import org.apache.cassandra.thrift.Cassandra;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.olingo.commons.api.edm.FullQualifiedName;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.datastax.driver.core.DataType;
 import com.datastax.driver.core.ResultSetFuture;
 import com.datastax.driver.core.Session;
 import com.datastax.driver.mapping.Mapper;
@@ -26,10 +29,12 @@ import com.kryptnostic.conductor.rpc.odata.EntitySet;
 import com.kryptnostic.conductor.rpc.odata.EntityType;
 import com.kryptnostic.conductor.rpc.odata.PropertyType;
 import com.kryptnostic.conductor.rpc.odata.Schema;
+import com.kryptnostic.datastore.cassandra.CassandraEdmMapping;
 import com.kryptnostic.datastore.odata.EntityDataModel;
 import com.kryptnostic.datastore.util.Util;
 
 import jersey.repackaged.com.google.common.base.Preconditions;
+import jersey.repackaged.com.google.common.collect.Maps;
 
 public class EdmService implements EdmManager {
     private static final Logger         logger = LoggerFactory.getLogger( EdmService.class );
@@ -152,7 +157,7 @@ public class EdmService implements EdmManager {
          */
         String typename = tableManager.getTypenameForPropertyType( propertyType );
         Preconditions.checkState( StringUtils.isBlank( typename ) );
-        propertyType.setTypename( CassandraTableManager.generatePropertyTypename() );
+        propertyType.setTypename( CassandraTableManager.generateTypename() );
         boolean propertyCreated = Util.wasLightweightTransactionApplied(
                 edmStore.createPropertyTypeIfNotExists( propertyType.getNamespace(),
                         propertyType.getName(),
@@ -205,10 +210,13 @@ public class EdmService implements EdmManager {
         boolean entityCreated = false;
         // Make sure entity type is valid
         ensureValidEntityType( entityType );
+
+        // Make sure that this type doesn't already exist
         String typename = tableManager.getTypenameForEntityType( entityType );
         Preconditions.checkState( StringUtils.isBlank( typename ) );
 
-        entityType.setTypename( CassandraTableManager.generateEntityTypename() );
+        // Generate the typename for this type
+        entityType.setTypename( CassandraTableManager.generateTypename() );
 
         entityCreated = Util.wasLightweightTransactionApplied(
                 edmStore.createEntityTypeIfNotExists( entityType.getNamespace(),
@@ -218,7 +226,10 @@ public class EdmService implements EdmManager {
                         entityType.getProperties() ) );
         // Only create entity table if insert transaction succeeded.
         if ( entityCreated ) {
-            tableManager.createEntityTypeTable( entityType );
+
+            tableManager.createEntityTypeTable( entityType,
+                    Maps.asMap( entityType.getKey(),
+                            fqn -> getPropertyType( fqn ) ) );
         }
         return entityCreated;
     }

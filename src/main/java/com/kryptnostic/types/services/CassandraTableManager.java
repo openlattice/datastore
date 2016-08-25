@@ -4,6 +4,7 @@ import java.util.Map;
 
 import org.apache.commons.lang3.NotImplementedException;
 import org.apache.commons.lang3.RandomStringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.olingo.commons.api.edm.FullQualifiedName;
 
 import com.datastax.driver.core.DataType;
@@ -13,12 +14,10 @@ import com.datastax.driver.core.Session;
 import com.datastax.driver.core.querybuilder.QueryBuilder;
 import com.datastax.driver.mapping.MappingManager;
 import com.hazelcast.core.HazelcastInstance;
-import com.hazelcast.core.IMap;
 import com.kryptnostic.conductor.rpc.odata.DatastoreConstants;
 import com.kryptnostic.conductor.rpc.odata.EntityType;
 import com.kryptnostic.conductor.rpc.odata.PropertyType;
 import com.kryptnostic.conductor.rpc.odata.Schema;
-import com.kryptnostic.conductor.rpc.odata.TypePK;
 import com.kryptnostic.datastore.cassandra.CassandraEdmMapping;
 import com.kryptnostic.datastore.cassandra.CassandraTableBuilder;
 import com.kryptnostic.datastore.cassandra.CommonColumns;
@@ -29,14 +28,19 @@ import jersey.repackaged.com.google.common.base.Preconditions;
 import jersey.repackaged.com.google.common.collect.Maps;
 
 public class CassandraTableManager {
+    static enum TableType {
+        property_,
+        entity_,
+        index_;
+    }
+
+    private final String                                    keyspace;
     private final Session                                   session;
-    IMap<TypePK, PropertyType>                              propertyTypes;
-    IMap<TypePK, EntityType>                                entityTypes;
 
     private final Map<FullQualifiedName, PreparedStatement> propertyTypeUpdateStatements;
+    private final Map<FullQualifiedName, PreparedStatement> propertyIndexUpdateStatements;
     private final Map<FullQualifiedName, PreparedStatement> entityTypeInsertStatements;
     private final Map<FullQualifiedName, PreparedStatement> entityTypeUpdateStatements;
-    private final String                                    keyspace;
 
     private final PreparedStatement                         getTypenameForEntityType;
     private final PreparedStatement                         getTypenameForPropertyType;
@@ -56,30 +60,31 @@ public class CassandraTableManager {
         this.session = session;
         this.keyspace = keyspace;
         this.propertyTypeUpdateStatements = Maps.newConcurrentMap();
+        this.propertyIndexUpdateStatements = Maps.newConcurrentMap();
         this.entityTypeInsertStatements = Maps.newConcurrentMap();
         this.entityTypeUpdateStatements = Maps.newConcurrentMap();
 
         this.getTypenameForEntityType = session.prepare( QueryBuilder
                 .select()
                 .from( keyspace, DatastoreConstants.ENTITY_TYPES_TABLE )
-                .where( QueryBuilder.eq( CommonColumns.NAMESPACE.toString(),
+                .where( QueryBuilder.eq( CommonColumns.NAMESPACE.cql(),
                         QueryBuilder.bindMarker() ) )
-                .and( QueryBuilder.eq( CommonColumns.NAME.toString(),
+                .and( QueryBuilder.eq( CommonColumns.NAME.cql(),
                         QueryBuilder.bindMarker() ) ) );
         this.getTypenameForPropertyType = session.prepare( QueryBuilder
                 .select()
                 .from( keyspace, DatastoreConstants.PROPERTY_TYPES_TABLE )
-                .where( QueryBuilder.eq( CommonColumns.NAMESPACE.toString(),
+                .where( QueryBuilder.eq( CommonColumns.NAMESPACE.cql(),
                         QueryBuilder.bindMarker() ) )
-                .and( QueryBuilder.eq( CommonColumns.NAME.toString(),
+                .and( QueryBuilder.eq( CommonColumns.NAME.cql(),
                         QueryBuilder.bindMarker() ) ) );
 
         this.countProperty = session.prepare( QueryBuilder
                 .select().countAll()
                 .from( keyspace, DatastoreConstants.PROPERTY_TYPES_TABLE )
-                .where( QueryBuilder.eq( CommonColumns.NAMESPACE.toString(),
+                .where( QueryBuilder.eq( CommonColumns.NAMESPACE.cql(),
                         QueryBuilder.bindMarker() ) )
-                .and( QueryBuilder.eq( CommonColumns.NAME.toString(),
+                .and( QueryBuilder.eq( CommonColumns.NAME.cql(),
                         QueryBuilder.bindMarker() ) ) );
 
     }
@@ -128,23 +133,48 @@ public class CassandraTableManager {
         return propertyTypeUpdateStatements.get( fqn );
     }
 
+    public PreparedStatement getUpdatePropertyIndexPreparedStatement( FullQualifiedName fqn ) {
+        return this.propertyIndexUpdateStatements.get( fqn );
+    }
+
     public PreparedStatement getCountPropertyStatement() {
         return countProperty;
     }
 
-    public void createEntityTypeTable( EntityType entityType ) {
+    public void createEntityTypeTable( EntityType entityType, Map<FullQualifiedName, PropertyType> keyPropertyTypes ) {
         // Ensure that type name doesn't exist
         CassandraTableBuilder ctb;
         String entityTableQuery;
 
         do {
-            ctb = new CassandraTableBuilder( keyspace, entityType.getTypename() )
+            ctb = new CassandraTableBuilder( keyspace, TableType.entity_.name() + entityType.getTypename() )
                     .ifNotExists()
                     .partitionKey( CommonColumns.OBJECTID, CommonColumns.ACLID )
                     .clusteringColumns( CommonColumns.CLOCK )
                     .columns( CommonColumns.ENTITYSETS, CommonColumns.SYNCIDS );
             entityTableQuery = ctb.buildQuery();
         } while ( !Util.wasLightweightTransactionApplied( session.execute( entityTableQuery ) ) );
+
+        entityType.getKey().forEach( fqn -> {
+            // TODO: Use elasticsearch for maintaining index instead of maintaining in Cassandra.
+            /*
+             * This makes sure that index tables are created if they do not exist. Other entity types may already be
+             * using this propety type as a key.
+             */
+            PropertyType keyPropertyType = keyPropertyTypes.get( fqn );
+            String typename = keyPropertyType.getTypename();
+            Preconditions.checkArgument( StringUtils.isNotBlank( typename ),
+                    "Typename for key property type cannot be null" );
+            session.execute(
+                    new CassandraTableBuilder( keyspace, TableType.index_.name() + typename )
+                            .partitionKey( CommonColumns.VALUE, CommonColumns.ACLID )
+                            .clusteringColumns( CommonColumns.OBJECTID )
+                            .columns( CommonColumns.SYNCIDS )
+                            .withTypeResolver(
+                                    cc -> CassandraEdmMapping.getCassandraType( keyPropertyType.getDatatype() ) )
+                            .buildQuery() );
+            putPropertyIndexUpdateStatement( fqn );
+        } );
         putEntityTypeInsertStatement( entityType.getFullQualifiedName() );
         putEntityTypeUpdateStatement( entityType.getFullQualifiedName() );
         // Loop until table creation succeeds.
@@ -155,23 +185,20 @@ public class CassandraTableManager {
         String propertyTableQuery;
         DataType valueType = CassandraEdmMapping.getCassandraType( propertyType.getDatatype() );
         do {
-            ctb = new CassandraTableBuilder( keyspace, propertyType.getTypename() )
+            ctb = new CassandraTableBuilder( keyspace, TableType.property_.name() + propertyType.getTypename() )
                     .partitionKey( CommonColumns.OBJECTID, CommonColumns.ACLID )
                     .clusteringColumns( CommonColumns.VALUE )
                     .columns( CommonColumns.SYNCIDS )
                     .withTypeResolver( cc -> valueType );
             propertyTableQuery = ctb.buildQuery();
+            // Loop until table creation succeeds.
         } while ( !Util.wasLightweightTransactionApplied( session.execute( propertyTableQuery ) ) );
-        // Loop until table creation succeeds.
+
         putPropertyTypeUpdateStatement( propertyType.getFullQualifiedName() );
     }
 
-    public static String generatePropertyTypename() {
-        return "p_" + RandomStringUtils.randomAlphanumeric( 24 ) + "_properties";
-    }
-
-    public static String generateEntityTypename() {
-        return "e_" + RandomStringUtils.randomAlphanumeric( 24 ) + "_objects";
+    public static String generateTypename() {
+        return RandomStringUtils.randomAlphanumeric( 24 );
     }
 
     public void deleteEntityTypeTable( String namespace, String entityName ) {
@@ -199,7 +226,7 @@ public class CassandraTableManager {
         if ( r == null ) {
             return null;
         }
-        return r.getString( "typename" );
+        return r.getString( CommonColumns.TYPENAME.cql() );
     }
 
     public String getTypenameForPropertyType( PropertyType propertyType ) {
@@ -208,6 +235,14 @@ public class CassandraTableManager {
 
     public String getTypenameForPropertyType( FullQualifiedName fullQualifiedName ) {
         return getTypenameForPropertyType( fullQualifiedName.getNamespace(), fullQualifiedName.getName() );
+    }
+
+    public String getTablenameForPropertyIndex( PropertyType propertyType ) {
+        return getTypenameForPropertyType( propertyType.getNamespace(), propertyType.getName() ) + "_index";
+    }
+
+    public String getTablenameForPropertyIndex( FullQualifiedName propertyType ) {
+        return getTypenameForPropertyType( propertyType.getNamespace(), propertyType.getName() ) + "_index";
     }
 
     public String getKeyspace() {
@@ -219,44 +254,59 @@ public class CassandraTableManager {
         if ( r == null ) {
             return null;
         }
-        return r.getString( "typename" );
+        return r.getString( CommonColumns.TYPENAME.cql() );
     }
 
     private void putEntityTypeInsertStatement( FullQualifiedName entityTypeFqn ) {
         entityTypeInsertStatements.put( entityTypeFqn,
                 session.prepare( QueryBuilder
-                        .insertInto( keyspace, getTypenameForEntityType( entityTypeFqn ) )
-                        .value( CommonColumns.OBJECTID.toString(), QueryBuilder.bindMarker() )
-                        .value( CommonColumns.ACLID.toString(), QueryBuilder.bindMarker() )
-                        .value( CommonColumns.CLOCK.toString(),
+                        .insertInto( keyspace, TableType.entity_.name() + getTypenameForEntityType( entityTypeFqn ) )
+                        .value( CommonColumns.OBJECTID.cql(), QueryBuilder.bindMarker() )
+                        .value( CommonColumns.ACLID.cql(), QueryBuilder.bindMarker() )
+                        .value( CommonColumns.CLOCK.cql(),
                                 QueryBuilder.fcall( "toTimestamp", QueryBuilder.now() ) )
-                        .value( CommonColumns.ENTITYSETS.toString(), QueryBuilder.bindMarker() )
-                        .value( CommonColumns.SYNCIDS.toString(), QueryBuilder.bindMarker() ) ) );
+                        .value( CommonColumns.ENTITYSETS.cql(), QueryBuilder.bindMarker() )
+                        .value( CommonColumns.SYNCIDS.cql(), QueryBuilder.bindMarker() ) ) );
     }
 
     private void putEntityTypeUpdateStatement( FullQualifiedName entityTypeFqn ) {
         entityTypeUpdateStatements.put( entityTypeFqn,
-                session.prepare( QueryBuilder.update( keyspace, getTypenameForEntityType( entityTypeFqn ) )
-                        .with( QueryBuilder.addAll( CommonColumns.ENTITYSETS.toString(),
+                session.prepare( QueryBuilder
+                        .update( keyspace, TableType.entity_.name() + getTypenameForEntityType( entityTypeFqn ) )
+                        .with( QueryBuilder.addAll( CommonColumns.ENTITYSETS.cql(),
                                 QueryBuilder.bindMarker() ) )
-                        .and( QueryBuilder.appendAll( CommonColumns.SYNCIDS.toString(),
+                        .and( QueryBuilder.appendAll( CommonColumns.SYNCIDS.cql(),
                                 QueryBuilder.bindMarker() ) )
-                        .where( QueryBuilder.eq( CommonColumns.OBJECTID.toString(), QueryBuilder.bindMarker() ) )
-                        .and( QueryBuilder.eq( CommonColumns.ACLID.toString(), QueryBuilder.bindMarker() ) )
-                        .and( QueryBuilder.eq( CommonColumns.CLOCK.toString(), QueryBuilder.bindMarker() ) ) ) );
+                        .where( QueryBuilder.eq( CommonColumns.OBJECTID.cql(), QueryBuilder.bindMarker() ) )
+                        .and( QueryBuilder.eq( CommonColumns.ACLID.cql(), QueryBuilder.bindMarker() ) )
+                        .and( QueryBuilder.eq( CommonColumns.CLOCK.cql(), QueryBuilder.bindMarker() ) ) ) );
     }
 
     private void putPropertyTypeUpdateStatement( FullQualifiedName propertyTypeFqn ) {
         // The preparation process re-orders the bind markers. Below they are set according to the order that they get
         // mapped to
         propertyTypeUpdateStatements.put( propertyTypeFqn,
-                session.prepare( QueryBuilder.update( keyspace, getTypenameForPropertyType( propertyTypeFqn ) )
-                        .with( QueryBuilder.appendAll( CommonColumns.SYNCIDS.toString(),
+                session.prepare( QueryBuilder
+                        .update( keyspace, TableType.property_.name() + getTypenameForPropertyType( propertyTypeFqn ) )
+                        .with( QueryBuilder.appendAll( CommonColumns.SYNCIDS.cql(),
                                 QueryBuilder.bindMarker() ) )
-                        .where( QueryBuilder.eq( CommonColumns.OBJECTID.toString(), QueryBuilder.bindMarker() ) )
-                        .and( QueryBuilder.eq( CommonColumns.ACLID.toString(), QueryBuilder.bindMarker() ) )
-                        .and( QueryBuilder.eq( CommonColumns.VALUE.toString(), QueryBuilder.bindMarker() ) ) ) );
+                        .where( QueryBuilder.eq( CommonColumns.OBJECTID.cql(), QueryBuilder.bindMarker() ) )
+                        .and( QueryBuilder.eq( CommonColumns.ACLID.cql(), QueryBuilder.bindMarker() ) )
+                        .and( QueryBuilder.eq( CommonColumns.VALUE.cql(), QueryBuilder.bindMarker() ) ) ) );
 
+    }
+
+    private void putPropertyIndexUpdateStatement( FullQualifiedName propertyTypeFqn ) {
+        // The preparation process re-orders the bind markers. Below they are set according to the order that they get
+        // mapped to
+        propertyIndexUpdateStatements.put( propertyTypeFqn,
+                session.prepare( QueryBuilder
+                        .update( keyspace, TableType.index_.name() + getTypenameForPropertyType( propertyTypeFqn ) )
+                        .with( QueryBuilder.appendAll( CommonColumns.SYNCIDS.cql(),
+                                QueryBuilder.bindMarker() ) )
+                        .where( QueryBuilder.eq( CommonColumns.VALUE.cql(), QueryBuilder.bindMarker() ) )
+                        .and( QueryBuilder.eq( CommonColumns.ACLID.cql(), QueryBuilder.bindMarker() ) )
+                        .and( QueryBuilder.eq( CommonColumns.OBJECTID.cql(), QueryBuilder.bindMarker() ) ) ) );
     }
 
     private static void createKeyspaceSparksIfNotExists( Session session ) {
@@ -279,4 +329,5 @@ public class CassandraTableManager {
     private void createPropertyTypesTableIfNotExists( Session session ) {
         session.execute( Queries.CREATE_PROPERTY_TYPES_TABLE );
     }
+
 }

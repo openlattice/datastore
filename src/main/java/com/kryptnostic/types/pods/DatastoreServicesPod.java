@@ -9,20 +9,19 @@ import org.springframework.context.annotation.Import;
 import com.datastax.driver.core.Session;
 import com.datastax.driver.mapping.MappingManager;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.geekbeast.rhizome.tests.pods.CassandraTestPod;
 import com.hazelcast.core.HazelcastInstance;
 import com.kryptnostic.conductor.rpc.odata.DatastoreConstants;
 import com.kryptnostic.rhizome.pods.CassandraPod;
 import com.kryptnostic.rhizome.registries.ObjectMapperRegistry;
 import com.kryptnostic.types.services.CassandraStorage;
 import com.kryptnostic.types.services.CassandraTableManager;
-import com.kryptnostic.types.services.EntityStorageClient;
 import com.kryptnostic.types.services.DatasourceManager;
 import com.kryptnostic.types.services.EdmManager;
 import com.kryptnostic.types.services.EdmService;
+import com.kryptnostic.types.services.EntityStorageClient;
 
 @Configuration
-@Import( { CassandraTestPod.class, CassandraPod.class } )
+@Import( { CassandraPod.class } )
 public class DatastoreServicesPod {
 
     @Inject

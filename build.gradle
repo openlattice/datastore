@@ -21,6 +21,8 @@ run {
   }
 }
 
+run.args = ["cassandra"]
+
 configurations {
     tests
       published.extendsFrom tests, archives

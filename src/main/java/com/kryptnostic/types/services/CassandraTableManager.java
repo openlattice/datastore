@@ -198,7 +198,7 @@ public class CassandraTableManager {
     }
 
     public static String generateTypename() {
-        return RandomStringUtils.randomAlphanumeric( 24 );
+        return RandomStringUtils.randomAlphanumeric( 24 ).toLowerCase();
     }
 
     public void deleteEntityTypeTable( String namespace, String entityName ) {
@@ -242,11 +242,13 @@ public class CassandraTableManager {
     }
 
     public String getTablenameForPropertyIndex( FullQualifiedName propertyType ) {
-        return TableType.index_.name() + getTypenameForPropertyType( propertyType.getNamespace(), propertyType.getName() ) + "_index";
+        return TableType.index_.name()
+                + getTypenameForPropertyType( propertyType.getNamespace(), propertyType.getName() );
     }
-    
+
     public String getTablenameForPropertyValues( FullQualifiedName propertyType ) {
-        return TableType.property_.name() + getTypenameForPropertyType( propertyType.getNamespace(), propertyType.getName() ) + "_index";
+        return TableType.property_.name()
+                + getTypenameForPropertyType( propertyType.getNamespace(), propertyType.getName() );
     }
 
     public String getKeyspace() {

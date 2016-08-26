@@ -1,11 +1,13 @@
 package com.kryptnostic.types.services;
 
+import java.net.URI;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 
+import org.apache.commons.lang3.tuple.Pair;
 import org.apache.olingo.commons.api.data.Entity;
 import org.apache.olingo.commons.api.data.EntityCollection;
 import org.apache.olingo.commons.api.data.Property;
@@ -98,10 +100,10 @@ public class EntityStorageClient {
         Preconditions.checkArgument(
                 dms.isExistingEntitySet( entityFqn, edmEntitySet.getName() ),
                 "Cannot add data to non-existant entity set." );
-        return createEntityData( aclId, syncId, edmEntitySet.getName(), entityFqn, requestEntity );
+        return createEntityData( aclId, syncId, edmEntitySet.getName(), entityFqn, requestEntity ).getRight();
     }
 
-    public Entity createEntityData(
+    public Pair<UUID, Entity> createEntityData(
             UUID aclId,
             UUID syncId,
             String entitySetName,
@@ -109,6 +111,8 @@ public class EntityStorageClient {
             Entity requestEntity ) {
         PreparedStatement query = tableManager.getInsertEntityPreparedStatement( entityFqn );
 
+        // this is dangerous, but fairly common practice.
+        // best way to fix is to have large pool of generated UUIDs to pull from that can be replenished in bulk.
         UUID objectId = UUID.randomUUID();
         BoundStatement boundQuery = query.bind( objectId,
                 aclId,
@@ -123,8 +127,8 @@ public class EntityStorageClient {
                 aclId,
                 syncId,
                 requestEntity.getProperties() );
-
-        return requestEntity;
+        requestEntity.setId( URI.create( objectId.toString() ) );
+        return Pair.of( objectId, requestEntity );
     }
 
     private Iterable<ResultSet> writeProperties(
@@ -149,6 +153,7 @@ public class EntityStorageClient {
 
             PreparedStatement insertQuery = tableManager.getUpdatePropertyPreparedStatement( fqn );
 
+            logger.info( "Attempting to write property value: {}", property.getValue() );
             // Not safe to change this order without understanding bindMarker re-ordering quirks of QueryBuilder
             ResultSetFuture rsfInsert = session.executeAsync(
                     insertQuery.bind( ImmutableList.of( syncId ), objectId, aclId, property.getValue() ) );
@@ -162,11 +167,11 @@ public class EntityStorageClient {
             return Arrays.asList( rsfInsert );
 
         } )::iterator;
-        
+
         try {
             return Futures.allAsList( Iterables.concat( propertyInsertion ) ).get();
         } catch ( InterruptedException | ExecutionException e ) {
-            logger.error( "Failed writing properties for entity for object {}" , objectId );
+            logger.error( "Failed writing properties for entity for object {}", objectId );
             return ImmutableList.of();
         }
     }

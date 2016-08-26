@@ -242,7 +242,11 @@ public class CassandraTableManager {
     }
 
     public String getTablenameForPropertyIndex( FullQualifiedName propertyType ) {
-        return getTypenameForPropertyType( propertyType.getNamespace(), propertyType.getName() ) + "_index";
+        return TableType.index_.name() + getTypenameForPropertyType( propertyType.getNamespace(), propertyType.getName() ) + "_index";
+    }
+    
+    public String getTablenameForPropertyValues( FullQualifiedName propertyType ) {
+        return TableType.property_.name() + getTypenameForPropertyType( propertyType.getNamespace(), propertyType.getName() ) + "_index";
     }
 
     public String getKeyspace() {

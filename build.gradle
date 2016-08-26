@@ -20,6 +20,12 @@ run {
     args System.getProperty("exec.args").split()
   }
 }
+
+configurations {
+    tests
+      published.extendsFrom tests, archives
+}
+
 ext.odata_version='4.2.0'
 dependencies {  
     

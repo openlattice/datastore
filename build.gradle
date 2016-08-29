@@ -20,6 +20,14 @@ run {
     args System.getProperty("exec.args").split()
   }
 }
+
+run.args = ["cassandra"]
+
+configurations {
+    tests
+      published.extendsFrom tests, archives
+}
+
 ext.odata_version='4.2.0'
 dependencies {  
     
@@ -48,7 +56,7 @@ dependencies {
      * TESTING
      */
     testCompile "junit:junit:${junit_version}"
-    testCompile "junit:junit:${junit_version}"
+    testCompile ('org.cassandraunit:cassandra-unit:3.0.0.1')
     testCompile( "org.mockito:mockito-all:${mockito_version}" ) {
         exclude module : 'hamcrest'
         exclude module : 'hamcrest-core'

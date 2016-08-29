@@ -26,13 +26,23 @@ import org.apache.olingo.server.api.uri.UriInfo;
 import org.apache.olingo.server.api.uri.UriParameter;
 import org.apache.olingo.server.api.uri.UriResourceEntitySet;
 
+import com.kryptnostic.conductor.rpc.UUIDs.ACLs;
+import com.kryptnostic.conductor.rpc.UUIDs.Syncs;
 import com.kryptnostic.datastore.util.Util;
-import com.kryptnostic.types.services.DataStorageService;
+import com.kryptnostic.types.services.EntityStorageClient;
+import com.kryptnostic.types.services.DatasourceManager;
 
 public class KryptnosticEntityProcessor implements EntityProcessor {
-    private OData              odata;
-    private ServiceMetadata    serviceMetadata;
-    private DataStorageService storage;
+    private final EntityStorageClient storage;
+    private final DatasourceManager  dsm;
+
+    private OData                    odata;
+    private ServiceMetadata          serviceMetadata;
+
+    public KryptnosticEntityProcessor( EntityStorageClient storage, DatasourceManager dsm ) {
+        this.storage = storage;
+        this.dsm = dsm;
+    }
 
     @Override
     public void init( OData odata, ServiceMetadata serviceMetadata ) {
@@ -88,7 +98,11 @@ public class KryptnosticEntityProcessor implements EntityProcessor {
         Entity requestEntity = result.getEntity();
 
         // 2.2 do the creation in backend, which returns the newly created entity
-        Entity createdEntity = storage.createEntityData( edmEntitySet, requestEntity );
+        Entity createdEntity = storage.createEntityData( 
+                ACLs.EVERYONE_ACL,
+                Syncs.BASE.getSyncId(),
+                edmEntitySet,
+                requestEntity );
 
         // 3. serialize the response (we have to return the created entity)
         ContextURL contextUrl = ContextURL.with().entitySet( edmEntitySet ).build();

@@ -21,15 +21,15 @@ import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
-import com.kryptnostic.datastore.util.UUIDs.ACLs;
+import com.kryptnostic.conductor.rpc.UUIDs.ACLs;
+import com.kryptnostic.conductor.rpc.odata.EntitySet;
+import com.kryptnostic.conductor.rpc.odata.EntityType;
+import com.kryptnostic.conductor.rpc.odata.PropertyType;
+import com.kryptnostic.conductor.rpc.odata.Schema;
+import com.kryptnostic.datastore.odata.EntityDataModel;
 import com.kryptnostic.datastore.util.Util;
-import com.kryptnostic.types.EntityDataModel;
-import com.kryptnostic.types.EntitySet;
-import com.kryptnostic.types.EntityType;
 import com.kryptnostic.types.GetSchemasRequest;
 import com.kryptnostic.types.GetSchemasRequest.TypeDetails;
-import com.kryptnostic.types.PropertyType;
-import com.kryptnostic.types.Schema;
 import com.kryptnostic.types.services.EdmManager;
 
 import retrofit.client.Response;
@@ -246,7 +246,7 @@ public class EdmController implements EdmApi {
         method = RequestMethod.DELETE )
     @ResponseStatus( HttpStatus.OK )
     public Response deleteEntityType( @PathVariable( NAMESPACE ) String namespace, @PathVariable( NAME ) String name ) {
-        modelService.deleteEntityType( new EntityType().setNamespace( namespace ).setType( name ) );
+        modelService.deleteEntityType( new EntityType().setNamespace( namespace ).setName( name ) );
         return null;
     }
 
@@ -266,8 +266,8 @@ public class EdmController implements EdmApi {
         method = RequestMethod.DELETE )
     public Response deletePropertyType(
             @PathVariable( NAMESPACE ) String namespace,
-            @PathVariable( NAME ) String propertyType ) {
-        modelService.deletePropertyType( new PropertyType().setNamespace( namespace ).setType( propertyType ) );
+            @PathVariable( NAME ) String name ) {
+        modelService.deletePropertyType( new PropertyType().setNamespace( namespace ).setName( name ) );
         return null;
     }
 

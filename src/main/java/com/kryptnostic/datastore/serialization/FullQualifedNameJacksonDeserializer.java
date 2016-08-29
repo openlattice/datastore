@@ -11,7 +11,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
 import com.fasterxml.jackson.databind.module.SimpleModule;
-import com.kryptnostic.datastore.edm.controllers.SerializationConstants;
+import com.kryptnostic.conductor.rpc.odata.SerializationConstants;
 
 public class FullQualifedNameJacksonDeserializer extends StdDeserializer<FullQualifiedName> {
     private static final long serialVersionUID = 4245054290957537357L;

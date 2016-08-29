@@ -84,7 +84,6 @@ public class KryptnosticEntityCollectionProcessor implements EntityCollectionPro
 
     private EntityCollection getData( EdmEntitySet edmEntitySet ) {
         EntityCollection productsCollection = new EntityCollection();
-        
         // check for which EdmEntitySet the data is requested
         if ( KryptnosticEdmProvider.ES_PRODUCTS_NAME.equals( edmEntitySet.getName() ) ) {
             List<Entity> productList = productsCollection.getEntities();

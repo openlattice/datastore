@@ -10,7 +10,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.fasterxml.jackson.databind.ser.std.StdSerializer;
-import com.kryptnostic.datastore.edm.controllers.SerializationConstants;
+import com.kryptnostic.conductor.rpc.odata.SerializationConstants;
 
 public class FullQualifedNameJacksonSerializer extends StdSerializer<FullQualifiedName>  {
 

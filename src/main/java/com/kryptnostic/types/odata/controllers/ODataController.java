@@ -19,6 +19,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import com.hazelcast.core.HazelcastInstance;
 import com.kryptnostic.datastore.odata.KryptnosticEdmProvider;
 import com.kryptnostic.datastore.odata.KryptnosticEntityCollectionProcessor;
+import com.kryptnostic.datastore.odata.KryptnosticEntityProcessor;
+import com.kryptnostic.types.services.EntityStorageClient;
+import com.kryptnostic.types.services.DatasourceManager;
 import com.kryptnostic.types.services.EdmManager;
 
 @Controller
@@ -28,18 +31,25 @@ public class ODataController {
     private HazelcastInstance   hazelcast;
 
     @Inject
-    private EdmManager            dms;
+    private EdmManager          dms;
+    
+    @Inject
+    private EntityStorageClient storage;
+    
+    @Inject
+    private DatasourceManager dsm;
+    
 
     @RequestMapping( { "", "/*" } )
     public void handleOData( HttpServletRequest req, HttpServletResponse resp ) throws ServletException {
         try {
             // create odata handler and configure it with CsdlEdmProvider and Processor
             OData odata = OData.newInstance();
-            ServiceMetadata edm = odata.createServiceMetadata( new KryptnosticEdmProvider( hazelcast, dms ),
+            ServiceMetadata edm = odata.createServiceMetadata( new KryptnosticEdmProvider( dms ),
                     new ArrayList<EdmxReference>() );
             ODataHttpHandler handler = odata.createHandler( edm );
             handler.register( new KryptnosticEntityCollectionProcessor() );
-
+            handler.register( new KryptnosticEntityProcessor( storage,dsm ) );
             // let the handler do the work
             handler.process( req, resp );
         } catch ( RuntimeException e ) {

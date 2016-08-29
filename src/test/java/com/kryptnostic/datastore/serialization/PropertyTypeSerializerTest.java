@@ -7,9 +7,9 @@ import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import com.kryptnostic.conductor.rpc.odata.PropertyType;
 import com.kryptnostic.rhizome.hazelcast.serializers.BaseJacksonSerializationTest;
 import com.kryptnostic.rhizome.registries.ObjectMapperRegistry;
-import com.kryptnostic.types.PropertyType;
 
 public class PropertyTypeSerializerTest extends BaseJacksonSerializationTest<PropertyType> {
 
@@ -21,7 +21,7 @@ public class PropertyTypeSerializerTest extends BaseJacksonSerializationTest<Pro
 
     @Override
     protected PropertyType getSampleData() {
-        return new PropertyType().setNamespace( "test" ).setType( "andino" )
+        return new PropertyType().setNamespace( "test" ).setName( "andino" )
                 .setDatatype( EdmPrimitiveTypeKind.String ).setMultiplicity( 0 );
     }
 

@@ -1,8 +1,12 @@
-package com.kryptnostic.types;
+package com.kryptnostic.datastore.odata;
 
 import java.util.Set;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.kryptnostic.conductor.rpc.odata.EntitySet;
+import com.kryptnostic.conductor.rpc.odata.EntityType;
+import com.kryptnostic.conductor.rpc.odata.PropertyType;
+import com.kryptnostic.conductor.rpc.odata.Schema;
 import com.kryptnostic.datastore.edm.controllers.EdmApi;
 
 public class EntityDataModel {

@@ -6,9 +6,9 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableSet;
+import com.kryptnostic.conductor.rpc.odata.EntityType;
 import com.kryptnostic.rhizome.hazelcast.serializers.BaseJacksonSerializationTest;
 import com.kryptnostic.rhizome.registries.ObjectMapperRegistry;
-import com.kryptnostic.types.EntityType;
 
 public class EntityTypeSerializerTest extends BaseJacksonSerializationTest<EntityType> {
 
@@ -20,7 +20,7 @@ public class EntityTypeSerializerTest extends BaseJacksonSerializationTest<Entit
 
     @Override
     protected EntityType getSampleData() {
-        return new EntityType().setNamespace( "test" ).setType( "andino" )
+        return new EntityType().setNamespace( "test" ).setName( "andino" )
                 .setProperties( ImmutableSet.of( new FullQualifiedName( "test", "pan flute" ) ) )
                 .setKey( ImmutableSet.of( new FullQualifiedName( "test", "id" ) ) );
     }

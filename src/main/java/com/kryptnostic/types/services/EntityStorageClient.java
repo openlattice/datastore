@@ -109,7 +109,9 @@ public class EntityStorageClient {
             String entitySetName,
             FullQualifiedName entityFqn,
             Entity requestEntity ) {
-        PreparedStatement query = tableManager.getInsertEntityPreparedStatement( entityFqn );
+        PreparedStatement query = Preconditions.checkNotNull(
+                tableManager.getInsertEntityPreparedStatement( entityFqn ),
+                "Insert data prepared statement does not exist." );
 
         // this is dangerous, but fairly common practice.
         // best way to fix is to have large pool of generated UUIDs to pull from that can be replenished in bulk.

@@ -227,7 +227,6 @@ public class EdmService implements EdmManager {
         
         // Only create entity table if insert transaction succeeded.
         if ( entityCreated ) {
-
             tableManager.createEntityTypeTable( entityType,
                     Maps.asMap( entityType.getKey(),
                             fqn -> getPropertyType( fqn ) ) );

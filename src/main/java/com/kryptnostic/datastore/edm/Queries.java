@@ -45,7 +45,11 @@ public final class Queries {
     public static final String CREATE_ENTITY_TABLE                 = "CREATE TABLE IF NOT EXISTS %s.%s_entities ( objectId uuid, aclId uuid, clock timestamp, entitySets set<text>, syncIds list<uuid>, PRIMARY KEY ( ( objectId, aclId ), clock ) )";
 
     // Index creation
-    public static final String CREATE_INDEX_ON_NAME                = "CREATE INDEX IF NOT EXISTS ON "
+    /*
+     * HOW DOES SOFTWARE EVEN WORK? https://issues.apache.org/jira/browse/CASSANDRA-11331
+     * Need to remove specific index name once we upgrade to version post patch.
+     */
+    public static final String CREATE_INDEX_ON_NAME                = "CREATE INDEX IF NOT EXISTS entity_sets_name_idx ON "
             + DatastoreConstants.KEYSPACE
             + "."
             + DatastoreConstants.ENTITY_SETS_TABLE + " (name)";

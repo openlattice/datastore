@@ -15,7 +15,7 @@ import com.kryptnostic.types.services.EdmManager;
 
 public class BootstrapDatastoreWithCassandra {
     public static final String               NAMESPACE       = "tests";
-    protected static final DatastoreServices ds              = new DatastoreServices();
+    protected static final DatastoreServices ds              = new DatastoreServices( CassandraTestPod.class );
     protected static final String            SALARY          = "salary";
     protected static final String            EMPLOYEE_NAME   = "employee-name";
     protected static final String            EMPLOYEE_TITLE  = "employee-title";

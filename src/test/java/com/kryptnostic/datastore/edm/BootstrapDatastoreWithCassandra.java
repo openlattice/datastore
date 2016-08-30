@@ -6,7 +6,6 @@ import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 
-import com.geekbeast.rhizome.tests.pods.CassandraTestPod;
 import com.google.common.collect.ImmutableSet;
 import com.kryptnostic.conductor.rpc.UUIDs.ACLs;
 import com.kryptnostic.conductor.rpc.odata.EntityType;
@@ -15,7 +14,7 @@ import com.kryptnostic.types.services.EdmManager;
 
 public class BootstrapDatastoreWithCassandra {
     public static final String               NAMESPACE       = "tests";
-    protected static final DatastoreServices ds              = new DatastoreServices( CassandraTestPod.class );
+    protected static final DatastoreServices ds              = new DatastoreServices();
     protected static final String            SALARY          = "salary";
     protected static final String            EMPLOYEE_NAME   = "employee-name";
     protected static final String            EMPLOYEE_TITLE  = "employee-title";
@@ -25,11 +24,7 @@ public class BootstrapDatastoreWithCassandra {
 
     @BeforeClass
     public static void init() {
-        // This is fine since unless cassandra is specified as runtime argument production cassandra pod won't be
-        // activated
-        CassandraTestPod.startCassandra();
-        ds.sprout( CassandraTestPod.PROFILE );
-        // ds.sprout( "cassandra" );
+        ds.sprout("cassandra");
         setupDatamodel();
     }
 

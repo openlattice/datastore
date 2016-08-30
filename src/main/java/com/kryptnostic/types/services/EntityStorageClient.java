@@ -30,12 +30,12 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.SetMultimap;
 import com.google.common.util.concurrent.Futures;
 import com.hazelcast.core.HazelcastInstance;
 import com.kryptnostic.conductor.rpc.odata.EntityType;
 
-import jersey.repackaged.com.google.common.collect.Iterables;
 
 public class EntityStorageClient {
     private static final Logger         logger = LoggerFactory

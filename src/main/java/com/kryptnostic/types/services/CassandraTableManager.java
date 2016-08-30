@@ -102,6 +102,7 @@ public class CassandraTableManager {
              */
             putEntityTypeInsertStatement( et.getFullQualifiedName() );
             putEntityTypeUpdateStatement( et.getFullQualifiedName() );
+            et.getKey().forEach( fqn -> putPropertyIndexUpdateStatement( fqn ) );
         } );
 
         schema.getPropertyTypes().forEach( pt -> {

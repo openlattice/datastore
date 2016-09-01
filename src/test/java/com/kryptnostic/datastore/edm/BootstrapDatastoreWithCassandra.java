@@ -55,7 +55,6 @@ public class BootstrapDatastoreWithCassandra {
         dms.createEntitySet( ENTITY_TYPE,
                 ENTITY_SET_NAME,
                 "The entity set title" );
-        dms.ge
         dms.createSchema( NAMESPACE,
                 "csv",
                 ACLs.EVERYONE_ACL,

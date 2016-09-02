@@ -8,12 +8,15 @@ import com.kryptnostic.conductor.rpc.UUIDs.ACLs;
 import com.kryptnostic.conductor.rpc.odata.EntityType;
 import com.kryptnostic.conductor.rpc.odata.PropertyType;
 import com.kryptnostic.datastore.odata.KryptnosticEdmProvider;
+import com.kryptnostic.datastore.serialization.FullQualifedNameJacksonDeserializer;
+import com.kryptnostic.datastore.serialization.FullQualifedNameJacksonSerializer;
 import com.kryptnostic.mapstores.pods.BaseSerializersPod;
 import com.kryptnostic.rhizome.configuration.websockets.BaseRhizomeServer;
 import com.kryptnostic.rhizome.core.RhizomeApplicationServer;
 import com.kryptnostic.rhizome.hazelcast.serializers.RhizomeUtils.Pods;
 import com.kryptnostic.rhizome.pods.CassandraPod;
 import com.kryptnostic.rhizome.pods.hazelcast.RegistryBasedHazelcastInstanceConfigurationPod;
+import com.kryptnostic.rhizome.registries.ObjectMapperRegistry;
 import com.kryptnostic.types.pods.DataStoreSecurityPod;
 import com.kryptnostic.types.pods.DatastoreServicesPod;
 import com.kryptnostic.types.pods.DatastoreServletsPod;
@@ -35,6 +38,11 @@ public class Datastore extends BaseRhizomeServer {
             DatastoreTypeCodecsPod.class, DatastoreStreamSerializersPod.class
     };
 
+    static {
+        ObjectMapperRegistry.foreach( FullQualifedNameJacksonSerializer::registerWithMapper );
+        ObjectMapperRegistry.foreach( FullQualifedNameJacksonDeserializer::registerWithMapper );
+    }
+    
     public Datastore( Class<?>... pods ) {
         super( Pods.concatenate( pods, webPods, rhizomePods, RhizomeApplicationServer.defaultPods ) );
     }

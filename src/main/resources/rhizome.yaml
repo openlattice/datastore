@@ -9,15 +9,15 @@ session-clustering-enabled: false
 rethinkdb:
     hostname: "localhost"
     port: 28015
-    
+
 cassandra:
     replication-factor: 2
     seed-nodes:
-        - "127.0.0.1"
+        - "cassandra"
 
 hazelcast:
     server: true
     group: "local"
     password: "trumpisboss"
     seed-nodes: 
-        - "127.0.0.1"
+        - "localhost"

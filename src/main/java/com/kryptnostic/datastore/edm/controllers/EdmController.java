@@ -26,11 +26,12 @@ import com.kryptnostic.conductor.rpc.odata.EntitySet;
 import com.kryptnostic.conductor.rpc.odata.EntityType;
 import com.kryptnostic.conductor.rpc.odata.PropertyType;
 import com.kryptnostic.conductor.rpc.odata.Schema;
-import com.kryptnostic.datastore.GetSchemasRequest;
-import com.kryptnostic.datastore.GetSchemasRequest.TypeDetails;
-import com.kryptnostic.datastore.odata.EntityDataModel;
+import com.kryptnostic.datastore.ServerUtil;
+import com.kryptnostic.datastore.services.EdmApi;
 import com.kryptnostic.datastore.services.EdmManager;
-import com.kryptnostic.datastore.util.Util;
+import com.kryptnostic.datastore.services.EntityDataModel;
+import com.kryptnostic.datastore.services.GetSchemasRequest;
+import com.kryptnostic.datastore.services.GetSchemasRequest.TypeDetails;
 
 import retrofit.client.Response;
 
@@ -59,7 +60,7 @@ public class EdmController implements EdmApi {
         method = RequestMethod.GET )
     @ResponseBody
     public Iterable<Schema> getSchemas() {
-        return Util.wrapForJackson( modelService.getSchemas() );
+        return ServerUtil.wrapForJackson( modelService.getSchemas() );
     }
 
     @Override
@@ -83,7 +84,7 @@ public class EdmController implements EdmApi {
         }
 
         // This defers enrichment until serializtion
-        return Util.wrapForJackson( Iterables.transform( schemas, schema -> {
+        return ServerUtil.wrapForJackson( Iterables.transform( schemas, schema -> {
             if ( request.getLoadDetails().contains( TypeDetails.ENTITY_TYPES ) ) {
                 modelService.enrichSchemaWithEntityTypes( schema );
             }
@@ -109,7 +110,7 @@ public class EdmController implements EdmApi {
         path = SCHEMA_BASE_PATH + NAMESPACE_PATH )
     @ResponseBody
     public Iterable<Schema> getSchemasInNamespace( String namespace ) {
-        return Util.wrapForJackson( modelService.getSchemasInNamespace( namespace ) );
+        return ServerUtil.wrapForJackson( modelService.getSchemasInNamespace( namespace ) );
     }
 
     /*

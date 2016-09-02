@@ -17,8 +17,8 @@ import com.kryptnostic.conductor.rpc.odata.EntitySet;
 import com.kryptnostic.conductor.rpc.odata.EntityType;
 import com.kryptnostic.conductor.rpc.odata.PropertyType;
 import com.kryptnostic.conductor.rpc.odata.Schema;
-import com.kryptnostic.datastore.edm.Queries;
-import com.kryptnostic.datastore.edm.Queries.ParamNames;
+import com.kryptnostic.datastore.cassandra.Queries;
+import com.kryptnostic.datastore.cassandra.Queries.ParamNames;
 
 @Accessor
 public interface CassandraEdmStore {

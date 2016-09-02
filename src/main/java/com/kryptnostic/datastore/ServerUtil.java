@@ -1,9 +1,7 @@
-package com.kryptnostic.datastore.util;
+package com.kryptnostic.datastore;
 
 import java.util.List;
 import java.util.Locale;
-import java.util.Set;
-import java.util.concurrent.ExecutionException;
 
 import org.apache.olingo.commons.api.data.Entity;
 import org.apache.olingo.commons.api.data.EntityCollection;
@@ -19,19 +17,11 @@ import org.apache.olingo.server.api.uri.UriInfoResource;
 import org.apache.olingo.server.api.uri.UriParameter;
 import org.apache.olingo.server.api.uri.UriResource;
 import org.apache.olingo.server.api.uri.UriResourceEntitySet;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-import com.datastax.driver.core.ResultSet;
-import com.datastax.driver.core.Row;
-import com.google.common.collect.Sets;
-import com.google.common.util.concurrent.ListenableFuture;
-import com.kryptnostic.conductor.rpc.odata.DatastoreConstants;
+import com.kryptnostic.datastore.util.JacksonCassandraIterableWrapper;
 
-public final class Util {
-    private static final Logger logger = LoggerFactory.getLogger( Util.class );
-    
-    private Util() {}
+public final class ServerUtil {
+    private ServerUtil() {}
 
     public static EdmEntitySet getEdmEntitySet( UriInfoResource uriInfo ) throws ODataApplicationException {
 
@@ -128,34 +118,8 @@ public final class Util {
         return true;
     }
 
-    public static <T> T getFutureSafely( ListenableFuture<T> futurePropertyType ) {
-        try {
-            return futurePropertyType.get();
-        } catch ( InterruptedException | ExecutionException e1 ) {
-            logger.error( "Failed to load {} type",
-                    futurePropertyType.getClass().getTypeParameters()[ 0 ].getTypeName() );
-            return null;
-        }
-    }
-
     public static <T> Iterable<T> wrapForJackson( Iterable<T> iterable ) {
         return new JacksonCassandraIterableWrapper<T>( iterable );
     }
 
-    public static boolean wasLightweightTransactionApplied( ResultSet rs ) {
-        Row row = rs.one();
-        if ( row == null ) {
-            return true;
-        } else {
-            return row.getBool( DatastoreConstants.APPLIED_FIELD );
-        }
-    }
-
-    public static long getCount( ResultSet rs ) {
-        return rs.one().getLong( DatastoreConstants.COUNT_FIELD );
-    }
-
-    public static boolean isCountNonZero( ResultSet rs ) {
-        return getCount( rs ) > 0;
-    }
 }

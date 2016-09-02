@@ -10,7 +10,7 @@ import org.springframework.context.annotation.Configuration;
 
 import com.datastax.driver.core.TypeCodec;
 import com.datastax.driver.extras.codecs.enums.EnumNameCodec;
-import com.kryptnostic.types.FullQualifiedNameTypeCodec;
+import com.kryptnostic.datastore.FullQualifiedNameTypeCodec;
 
 @Configuration
 public class DatastoreTypeCodecsPod {

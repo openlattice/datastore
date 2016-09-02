@@ -30,7 +30,7 @@ import org.apache.olingo.server.api.uri.UriInfo;
 import org.apache.olingo.server.api.uri.UriResource;
 import org.apache.olingo.server.api.uri.UriResourceEntitySet;
 
-import com.kryptnostic.types.Datastore;
+import com.kryptnostic.datastore.Datastore;
 
 public class KryptnosticEntityCollectionProcessor implements EntityCollectionProcessor {
     private OData           odata;

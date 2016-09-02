@@ -1,4 +1,4 @@
-package com.kryptnostic.types;
+package com.kryptnostic.datastore;
 
 import java.util.EnumSet;
 import java.util.Set;

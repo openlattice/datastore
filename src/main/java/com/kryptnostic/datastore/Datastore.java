@@ -1,4 +1,4 @@
-package com.kryptnostic.types;
+package com.kryptnostic.datastore;
 
 import org.apache.olingo.commons.api.edm.EdmPrimitiveTypeKind;
 import org.apache.olingo.commons.api.edm.FullQualifiedName;

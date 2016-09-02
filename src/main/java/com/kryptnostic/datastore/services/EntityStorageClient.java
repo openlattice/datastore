@@ -1,6 +1,7 @@
 package com.kryptnostic.datastore.services;
 
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
@@ -12,10 +13,12 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.apache.olingo.commons.api.data.Entity;
 import org.apache.olingo.commons.api.data.EntityCollection;
 import org.apache.olingo.commons.api.data.Property;
+import org.apache.olingo.commons.api.data.ValueType;
 import org.apache.olingo.commons.api.edm.EdmEntitySet;
 import org.apache.olingo.commons.api.edm.EdmEntityType;
 import org.apache.olingo.commons.api.edm.EdmProperty;
 import org.apache.olingo.commons.api.edm.FullQualifiedName;
+import org.apache.olingo.commons.api.ex.ODataRuntimeException;
 import org.apache.olingo.server.api.ODataApplicationException;
 import org.apache.olingo.server.api.uri.UriParameter;
 import org.slf4j.Logger;
@@ -37,6 +40,7 @@ import com.google.common.collect.SetMultimap;
 import com.google.common.util.concurrent.Futures;
 import com.hazelcast.core.HazelcastInstance;
 import com.kryptnostic.conductor.rpc.odata.EntityType;
+import com.kryptnostic.datastore.Datastore;
 
 public class EntityStorageClient {
     private static final Logger         logger = LoggerFactory
@@ -64,13 +68,48 @@ public class EntityStorageClient {
 
     public EntityCollection readEntitySetData( EdmEntitySet edmEntitySet ) throws ODataApplicationException {
         // exec.submit( new ConductorCallable )
-        // actually, this is only required if we have more than one Entity Sets
-        // if(edmEntitySet.getName().equals(DemoEdmProvider.ES_PRODUCTS_NAME)){
-        // return getProducts();
-        // }
+        EntityCollection productsCollection = new EntityCollection();
+        // check for which EdmEntitySet the data is requested
+        if ( Datastore.ES_PRODUCTS_NAME.equals( edmEntitySet.getName() ) ) {
+            List<Entity> productList = productsCollection.getEntities();
 
-        // TODO: RPC to Spark to load data.
-        return null;
+            // add some sample product entities
+            final Entity e1 = new Entity()
+                    .addProperty( new Property( null, "ID", ValueType.PRIMITIVE, 1 ) )
+                    .addProperty( new Property( null, "Name", ValueType.PRIMITIVE, "Notebook Basic 15" ) )
+                    .addProperty( new Property(
+                            null,
+                            "Description",
+                            ValueType.PRIMITIVE,
+                            "Notebook Basic, 1.7GHz - 15 XGA - 1024MB DDR2 SDRAM - 40GB" ) );
+            e1.setId( createId( "Products", 1 ) );
+            productList.add( e1 );
+
+            final Entity e2 = new Entity()
+                    .addProperty( new Property( null, "ID", ValueType.PRIMITIVE, 2 ) )
+                    .addProperty( new Property( null, "Name", ValueType.PRIMITIVE, "1UMTS PDA" ) )
+                    .addProperty( new Property(
+                            null,
+                            "Description",
+                            ValueType.PRIMITIVE,
+                            "Ultrafast 3G UMTS/HSDPA Pocket PC, supports GSM network" ) );
+            e2.setId( createId( "Products", 1 ) );
+            productList.add( e2 );
+
+            final Entity e3 = new Entity()
+                    .addProperty( new Property( null, "ID", ValueType.PRIMITIVE, 3 ) )
+                    .addProperty( new Property( null, "Name", ValueType.PRIMITIVE, "Ergo Screen" ) )
+                    .addProperty( new Property(
+                            null,
+                            "Description",
+                            ValueType.PRIMITIVE,
+                            "19 Optimum Resolution 1024 x 768 @ 85Hz, resolution 1280 x 960" ) );
+            e3.setId( createId( "Products", 1 ) );
+            productList.add( e3 );
+        } else {
+            // TODO: RPC to Spark to load data.
+        }
+        return productsCollection;
     }
 
     public Entity readEntityData( EdmEntitySet edmEntitySet, List<UriParameter> keyParams )
@@ -198,6 +237,14 @@ public class EntityStorageClient {
                         possibleTypes );
                 return null;
             }
+        }
+    }
+
+    private URI createId( String entitySetName, Object id ) {
+        try {
+            return new URI( entitySetName + "(" + String.valueOf( id ) + ")" );
+        } catch ( URISyntaxException e ) {
+            throw new ODataRuntimeException( "Unable to create id for entity: " + entitySetName, e );
         }
     }
 

@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
+import java.util.stream.Collector;
 
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.olingo.commons.api.data.Entity;
@@ -30,12 +31,12 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.SetMultimap;
 import com.google.common.util.concurrent.Futures;
 import com.hazelcast.core.HazelcastInstance;
 import com.kryptnostic.conductor.rpc.odata.EntityType;
-
 
 public class EntityStorageClient {
     private static final Logger         logger = LoggerFactory

@@ -30,6 +30,8 @@ import org.apache.olingo.server.api.uri.UriInfo;
 import org.apache.olingo.server.api.uri.UriResource;
 import org.apache.olingo.server.api.uri.UriResourceEntitySet;
 
+import com.kryptnostic.datastore.Datastore;
+
 public class KryptnosticEntityCollectionProcessor implements EntityCollectionProcessor {
     private OData           odata;
     private ServiceMetadata serviceMetadata;
@@ -85,7 +87,7 @@ public class KryptnosticEntityCollectionProcessor implements EntityCollectionPro
     private EntityCollection getData( EdmEntitySet edmEntitySet ) {
         EntityCollection productsCollection = new EntityCollection();
         // check for which EdmEntitySet the data is requested
-        if ( KryptnosticEdmProvider.ES_PRODUCTS_NAME.equals( edmEntitySet.getName() ) ) {
+        if ( Datastore.ES_PRODUCTS_NAME.equals( edmEntitySet.getName() ) ) {
             List<Entity> productList = productsCollection.getEntities();
 
             // add some sample product entities

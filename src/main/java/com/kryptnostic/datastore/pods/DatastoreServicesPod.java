@@ -11,7 +11,7 @@ import com.datastax.driver.mapping.MappingManager;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.hazelcast.core.HazelcastInstance;
 import com.kryptnostic.conductor.rpc.odata.DatastoreConstants;
-import com.kryptnostic.datastore.services.CassandraStorage;
+import com.kryptnostic.datastore.cassandra.CassandraStorage;
 import com.kryptnostic.datastore.services.CassandraTableManager;
 import com.kryptnostic.datastore.services.DatasourceManager;
 import com.kryptnostic.datastore.services.EdmManager;

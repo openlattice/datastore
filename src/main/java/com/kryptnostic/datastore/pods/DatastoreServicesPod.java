@@ -1,4 +1,4 @@
-package com.kryptnostic.types.pods;
+package com.kryptnostic.datastore.pods;
 
 import javax.inject.Inject;
 
@@ -11,14 +11,14 @@ import com.datastax.driver.mapping.MappingManager;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.hazelcast.core.HazelcastInstance;
 import com.kryptnostic.conductor.rpc.odata.DatastoreConstants;
+import com.kryptnostic.datastore.services.CassandraStorage;
+import com.kryptnostic.datastore.services.CassandraTableManager;
+import com.kryptnostic.datastore.services.DatasourceManager;
+import com.kryptnostic.datastore.services.EdmManager;
+import com.kryptnostic.datastore.services.EdmService;
+import com.kryptnostic.datastore.services.EntityStorageClient;
 import com.kryptnostic.rhizome.pods.CassandraPod;
 import com.kryptnostic.rhizome.registries.ObjectMapperRegistry;
-import com.kryptnostic.types.services.CassandraStorage;
-import com.kryptnostic.types.services.CassandraTableManager;
-import com.kryptnostic.types.services.DatasourceManager;
-import com.kryptnostic.types.services.EdmManager;
-import com.kryptnostic.types.services.EdmService;
-import com.kryptnostic.types.services.EntityStorageClient;
 
 @Configuration
 @Import( { CassandraPod.class } )

@@ -1,4 +1,4 @@
-package com.kryptnostic.types.services;
+package com.kryptnostic.datastore.services;
 
 import java.net.URI;
 import java.util.Arrays;

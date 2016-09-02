@@ -8,8 +8,14 @@ import com.kryptnostic.conductor.rpc.UUIDs.ACLs;
 import com.kryptnostic.conductor.rpc.odata.EntityType;
 import com.kryptnostic.conductor.rpc.odata.PropertyType;
 import com.kryptnostic.datastore.odata.KryptnosticEdmProvider;
+import com.kryptnostic.datastore.pods.DataStoreSecurityPod;
+import com.kryptnostic.datastore.pods.DatastoreServicesPod;
+import com.kryptnostic.datastore.pods.DatastoreServletsPod;
+import com.kryptnostic.datastore.pods.DatastoreStreamSerializersPod;
+import com.kryptnostic.datastore.pods.DatastoreTypeCodecsPod;
 import com.kryptnostic.datastore.serialization.FullQualifedNameJacksonDeserializer;
 import com.kryptnostic.datastore.serialization.FullQualifedNameJacksonSerializer;
+import com.kryptnostic.datastore.services.EdmManager;
 import com.kryptnostic.mapstores.pods.BaseSerializersPod;
 import com.kryptnostic.rhizome.configuration.websockets.BaseRhizomeServer;
 import com.kryptnostic.rhizome.core.RhizomeApplicationServer;
@@ -17,12 +23,6 @@ import com.kryptnostic.rhizome.hazelcast.serializers.RhizomeUtils.Pods;
 import com.kryptnostic.rhizome.pods.CassandraPod;
 import com.kryptnostic.rhizome.pods.hazelcast.RegistryBasedHazelcastInstanceConfigurationPod;
 import com.kryptnostic.rhizome.registries.ObjectMapperRegistry;
-import com.kryptnostic.types.pods.DataStoreSecurityPod;
-import com.kryptnostic.types.pods.DatastoreServicesPod;
-import com.kryptnostic.types.pods.DatastoreServletsPod;
-import com.kryptnostic.types.pods.DatastoreStreamSerializersPod;
-import com.kryptnostic.types.pods.DatastoreTypeCodecsPod;
-import com.kryptnostic.types.services.EdmManager;
 
 public class Datastore extends BaseRhizomeServer {
     @Deprecated

@@ -1,4 +1,4 @@
-package com.kryptnostic.types.pods;
+package com.kryptnostic.datastore.pods;
 
 import java.util.Set;
 import java.util.UUID;
@@ -10,7 +10,7 @@ import org.springframework.context.annotation.Configuration;
 
 import com.datastax.driver.core.TypeCodec;
 import com.datastax.driver.extras.codecs.enums.EnumNameCodec;
-import com.kryptnostic.datastore.FullQualifiedNameTypeCodec;
+import com.kryptnostic.conductor.codecs.FullQualifiedNameTypeCodec;
 
 @Configuration
 public class DatastoreTypeCodecsPod {

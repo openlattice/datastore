@@ -29,8 +29,8 @@ import com.kryptnostic.conductor.rpc.odata.Schema;
 import com.kryptnostic.datastore.GetSchemasRequest;
 import com.kryptnostic.datastore.GetSchemasRequest.TypeDetails;
 import com.kryptnostic.datastore.odata.EntityDataModel;
+import com.kryptnostic.datastore.services.EdmManager;
 import com.kryptnostic.datastore.util.Util;
-import com.kryptnostic.types.services.EdmManager;
 
 import retrofit.client.Response;
 

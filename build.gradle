@@ -1,16 +1,16 @@
 plugins {
   id 'com.palantir.docker' version '0.8.0'
+  id 'application'
+  id 'java'
+  id 'eclipse'
+  id 'idea'
+  id 'jacoco'
 }
 
 description = "Kryptnostic Datastore"
 group = "com.kryptnostic"
 ext.projectName = "datastore"
 
-apply plugin: "application"
-apply plugin: "java"
-apply plugin: "eclipse"
-apply plugin: "idea"
-apply plugin: "jacoco"
 apply from: "https://raw.githubusercontent.com/kryptnostic/gradles/master/kryptnostic.gradle"
 apply from: "https://raw.githubusercontent.com/kryptnostic/gradles/master/docker.gradle"
 
@@ -33,8 +33,8 @@ configurations {
 }
 
 ext.odata_version='4.2.0'
-dependencies {  
-    
+dependencies {
+
     if( project.hasProperty('developmentMode') && project.developmentMode ) {
         logger.quiet(project.name + " using project dependencies.")
         compile project(":rhizome")
@@ -49,12 +49,10 @@ dependencies {
         testCompile "com.kryptnostic:rhizome:${rhizome_version}:tests"
     }
 
-
     compile "org.apache.olingo:odata-server-api:${odata_version}"
     compile "org.apache.olingo:odata-server-core:${odata_version}"
     compile "org.apache.olingo:odata-commons-api:${odata_version}"
     compile "org.apache.olingo:odata-commons-core:${odata_version}"
-
 
     /*
      * TESTING

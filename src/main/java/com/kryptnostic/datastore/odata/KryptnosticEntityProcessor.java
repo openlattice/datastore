@@ -28,9 +28,9 @@ import org.apache.olingo.server.api.uri.UriResourceEntitySet;
 
 import com.kryptnostic.conductor.rpc.UUIDs.ACLs;
 import com.kryptnostic.conductor.rpc.UUIDs.Syncs;
+import com.kryptnostic.datastore.services.DatasourceManager;
+import com.kryptnostic.datastore.services.EntityStorageClient;
 import com.kryptnostic.datastore.util.Util;
-import com.kryptnostic.types.services.EntityStorageClient;
-import com.kryptnostic.types.services.DatasourceManager;
 
 public class KryptnosticEntityProcessor implements EntityProcessor {
     private final EntityStorageClient storage;

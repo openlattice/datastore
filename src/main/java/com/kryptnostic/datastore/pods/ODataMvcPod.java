@@ -1,4 +1,4 @@
-package com.kryptnostic.types.pods;
+package com.kryptnostic.datastore.pods;
 
 import java.util.List;
 
@@ -12,18 +12,17 @@ import org.springframework.http.converter.json.MappingJackson2HttpMessageConvert
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurationSupport;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.kryptnostic.datastore.edm.controllers.EdmController;
 import com.ryantenney.metrics.spring.config.annotation.EnableMetrics;
 
 @Configuration
 @ComponentScan(
-    basePackageClasses = EdmController.class,
+    basePackages = { "com.kryptnostic.types.odata.controllers" },
     includeFilters = @ComponentScan.Filter(
         value = { org.springframework.stereotype.Controller.class },
         type = FilterType.ANNOTATION ) )
 @EnableMetrics(
     proxyTargetClass = true )
-public class EdmMvcPod extends WebMvcConfigurationSupport {
+public class ODataMvcPod extends WebMvcConfigurationSupport {
     @Inject
     private ObjectMapper defaultObjectMapper;
 

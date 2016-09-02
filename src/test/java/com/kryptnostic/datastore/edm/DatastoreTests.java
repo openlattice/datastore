@@ -16,7 +16,7 @@ import org.junit.Test;
 
 import com.kryptnostic.conductor.rpc.UUIDs.ACLs;
 import com.kryptnostic.conductor.rpc.UUIDs.Syncs;
-import com.kryptnostic.types.services.EntityStorageClient;
+import com.kryptnostic.datastore.services.EntityStorageClient;
 
 public class DatastoreTests extends BootstrapDatastoreWithCassandra {
 

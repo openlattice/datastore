@@ -9,7 +9,7 @@ import org.apache.olingo.commons.api.edm.provider.CsdlPropertyRef;
 
 import com.kryptnostic.conductor.rpc.odata.EntitySet;
 import com.kryptnostic.conductor.rpc.odata.EntityType;
-import com.kryptnostic.types.services.EdmManager;
+import com.kryptnostic.datastore.services.EdmManager;
 
 public final class Transformers {
     private Transformers() {}

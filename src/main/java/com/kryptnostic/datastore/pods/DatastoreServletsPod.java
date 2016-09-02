@@ -1,4 +1,4 @@
-package com.kryptnostic.types.pods;
+package com.kryptnostic.datastore.pods;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

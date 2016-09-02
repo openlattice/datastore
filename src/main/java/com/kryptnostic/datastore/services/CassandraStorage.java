@@ -1,4 +1,4 @@
-package com.kryptnostic.types.services;
+package com.kryptnostic.datastore.services;
 
 import com.datastax.driver.mapping.annotations.Accessor;
 

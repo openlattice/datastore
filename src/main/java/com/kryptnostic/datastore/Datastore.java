@@ -42,9 +42,9 @@ public class Datastore extends BaseRhizomeServer {
         ObjectMapperRegistry.foreach( FullQualifedNameJacksonSerializer::registerWithMapper );
         ObjectMapperRegistry.foreach( FullQualifedNameJacksonDeserializer::registerWithMapper );
     }
-    
+
     public Datastore( Class<?>... pods ) {
-        super( Pods.concatenate( pods, webPods, rhizomePods, RhizomeApplicationServer.defaultPods ) );
+        super( Pods.concatenate( pods, webPods, rhizomePods, RhizomeApplicationServer.defaultPods, datastorePods ) );
     }
 
     public static void main( String[] args ) throws Exception {

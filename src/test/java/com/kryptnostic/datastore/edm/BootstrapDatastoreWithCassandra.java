@@ -13,11 +13,12 @@ import com.kryptnostic.conductor.rpc.odata.PropertyType;
 import com.kryptnostic.types.services.EdmManager;
 
 public class BootstrapDatastoreWithCassandra {
-    public static final String               NAMESPACE       = "tests";
+    public static final String               NAMESPACE       = "testcsv";
     protected static final DatastoreServices ds              = new DatastoreServices();
     protected static final String            SALARY          = "salary";
     protected static final String            EMPLOYEE_NAME   = "employee-name";
     protected static final String            EMPLOYEE_TITLE  = "employee-title";
+    protected static final String            EMPLOYEE_DEPT   = "employee-dept";
     protected static final String            EMPLOYEE_ID     = "employee-id";
     protected static final String            ENTITY_SET_NAME = "Employees";
     protected static final FullQualifiedName ENTITY_TYPE     = new FullQualifiedName( NAMESPACE, "employee" );
@@ -37,6 +38,8 @@ public class BootstrapDatastoreWithCassandra {
                 .setDatatype( EdmPrimitiveTypeKind.String ).setMultiplicity( 0 ) );
         dms.createPropertyType( new PropertyType().setNamespace( NAMESPACE ).setName( EMPLOYEE_NAME )
                 .setDatatype( EdmPrimitiveTypeKind.String ).setMultiplicity( 0 ) );
+        dms.createPropertyType( new PropertyType().setNamespace( NAMESPACE ).setName( EMPLOYEE_DEPT )
+                .setDatatype( EdmPrimitiveTypeKind.String ).setMultiplicity( 0 ) );
         dms.createPropertyType( new PropertyType().setNamespace( NAMESPACE ).setName( SALARY )
                 .setDatatype( EdmPrimitiveTypeKind.Int64 ).setMultiplicity( 0 ) );
 
@@ -45,15 +48,15 @@ public class BootstrapDatastoreWithCassandra {
                 .setProperties( ImmutableSet.of( new FullQualifiedName( NAMESPACE, EMPLOYEE_ID ),
                         new FullQualifiedName( NAMESPACE, EMPLOYEE_TITLE ),
                         new FullQualifiedName( NAMESPACE, EMPLOYEE_NAME ),
+                        new FullQualifiedName( NAMESPACE, EMPLOYEE_DEPT ),
                         new FullQualifiedName( NAMESPACE, SALARY ) ) );
 
         dms.createEntityType( metadataLevel );
         dms.createEntitySet( ENTITY_TYPE,
                 ENTITY_SET_NAME,
                 "The entity set title" );
-
         dms.createSchema( NAMESPACE,
-                "anubis",
+                "csv",
                 ACLs.EVERYONE_ACL,
                 ImmutableSet.of( ENTITY_TYPE ) );
 

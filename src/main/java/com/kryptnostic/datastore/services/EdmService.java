@@ -132,7 +132,7 @@ public class EdmService implements EdmManager {
         String typename = tableManager.getTypenameForPropertyType( propertyType );
         propertyType.setTypename( typename );
         propertyTypeMapper.save( propertyType );
-        tableManager.upsertFQNLookupTable( propertyType );
+        tableManager.updateFQNLookupTable( propertyType );
     }
 
     /*

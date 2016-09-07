@@ -17,4 +17,4 @@ hazelcast:
     group: "local"
     password: "trumpisboss"
     seed-nodes: 
-        - "localhost"
+        - "conductor"

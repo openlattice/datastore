@@ -11,6 +11,6 @@ ENV VERSION=${IMG_VER:-v1.0.0} NAME=${IMAGE_NAME:-derpName}
 
 ADD $NAME-$VERSION.tgz /opt
 
-CMD /opt/$NAME-$VERSION/bin/$NAME cassandra
+CMD dockerize -wait tcp://conductor:5701 -timeout 300s; /opt/$NAME-$VERSION/bin/$NAME cassandra
 
 EXPOSE 5701

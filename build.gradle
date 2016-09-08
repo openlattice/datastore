@@ -58,7 +58,7 @@ dependencies {
      * TESTING
      */
     testCompile "junit:junit:${junit_version}"
-    testCompile ('org.cassandraunit:cassandra-unit:3.0.0.1')
+    
     testCompile( "org.mockito:mockito-all:${mockito_version}" ) {
         exclude module : 'hamcrest'
         exclude module : 'hamcrest-core'

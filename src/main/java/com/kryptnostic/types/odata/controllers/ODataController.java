@@ -20,9 +20,9 @@ import com.hazelcast.core.HazelcastInstance;
 import com.kryptnostic.datastore.odata.KryptnosticEdmProvider;
 import com.kryptnostic.datastore.odata.KryptnosticEntityCollectionProcessor;
 import com.kryptnostic.datastore.odata.KryptnosticEntityProcessor;
-import com.kryptnostic.types.services.EntityStorageClient;
-import com.kryptnostic.types.services.DatasourceManager;
-import com.kryptnostic.types.services.EdmManager;
+import com.kryptnostic.datastore.services.DatasourceManager;
+import com.kryptnostic.datastore.services.EdmManager;
+import com.kryptnostic.datastore.services.EntityStorageClient;
 
 @Controller
 public class ODataController {
@@ -32,13 +32,12 @@ public class ODataController {
 
     @Inject
     private EdmManager          dms;
-    
+
     @Inject
     private EntityStorageClient storage;
-    
+
     @Inject
-    private DatasourceManager dsm;
-    
+    private DatasourceManager   dsm;
 
     @RequestMapping( { "", "/*" } )
     public void handleOData( HttpServletRequest req, HttpServletResponse resp ) throws ServletException {
@@ -48,8 +47,8 @@ public class ODataController {
             ServiceMetadata edm = odata.createServiceMetadata( new KryptnosticEdmProvider( dms ),
                     new ArrayList<EdmxReference>() );
             ODataHttpHandler handler = odata.createHandler( edm );
-            handler.register( new KryptnosticEntityCollectionProcessor() );
-            handler.register( new KryptnosticEntityProcessor( storage,dsm ) );
+            handler.register( new KryptnosticEntityCollectionProcessor( storage ) );
+            handler.register( new KryptnosticEntityProcessor( storage, dsm ) );
             // let the handler do the work
             handler.process( req, resp );
         } catch ( RuntimeException e ) {

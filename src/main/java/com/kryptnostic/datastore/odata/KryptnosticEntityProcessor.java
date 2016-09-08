@@ -28,9 +28,9 @@ import org.apache.olingo.server.api.uri.UriResourceEntitySet;
 
 import com.kryptnostic.conductor.rpc.UUIDs.ACLs;
 import com.kryptnostic.conductor.rpc.UUIDs.Syncs;
-import com.kryptnostic.datastore.util.Util;
-import com.kryptnostic.types.services.EntityStorageClient;
-import com.kryptnostic.types.services.DatasourceManager;
+import com.kryptnostic.datastore.ServerUtil;
+import com.kryptnostic.datastore.services.DatasourceManager;
+import com.kryptnostic.datastore.services.EntityStorageClient;
 
 public class KryptnosticEntityProcessor implements EntityProcessor {
     private final EntityStorageClient storage;
@@ -54,7 +54,7 @@ public class KryptnosticEntityProcessor implements EntityProcessor {
     public void readEntity( ODataRequest request, ODataResponse response, UriInfo uriInfo, ContentType responseFormat )
             throws ODataApplicationException, ODataLibraryException {
         // 1. retrieve the Entity Type
-        EdmEntitySet edmEntitySet = Util.getEdmEntitySet( uriInfo );
+        EdmEntitySet edmEntitySet = ServerUtil.getEdmEntitySet( uriInfo );
 
         // 2. retrieve the data from backend
         List<UriParameter> keyPredicates = ( (UriResourceEntitySet) uriInfo ).getKeyPredicates();
@@ -86,7 +86,7 @@ public class KryptnosticEntityProcessor implements EntityProcessor {
             ContentType requestFormat,
             ContentType responseFormat ) throws ODataApplicationException, ODataLibraryException {
         // 1. Retrieve the entity type from the URI
-        EdmEntitySet edmEntitySet = Util.getEdmEntitySet( uriInfo );
+        EdmEntitySet edmEntitySet = ServerUtil.getEdmEntitySet( uriInfo );
         EdmEntityType edmEntityType = edmEntitySet.getEntityType();
 
         // 2. create the data in backend

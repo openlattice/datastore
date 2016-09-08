@@ -1,4 +1,4 @@
-package com.kryptnostic.types.services;
+package com.kryptnostic.datastore.services;
 
 import java.util.Map;
 import java.util.UUID;
@@ -9,6 +9,7 @@ import org.slf4j.LoggerFactory;
 import com.datastax.driver.core.Session;
 import com.datastax.driver.mapping.MappingManager;
 import com.hazelcast.core.HazelcastInstance;
+import com.kryptnostic.datastore.cassandra.CassandraStorage;
 
 public class DataStorageClient {
     private static final Logger         logger = LoggerFactory

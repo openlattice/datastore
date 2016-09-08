@@ -12,9 +12,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseBody;
 
-import com.kryptnostic.datastore.odata.EntityDataModel;
-import com.kryptnostic.types.services.DataStorageClient;
-import com.kryptnostic.types.services.EdmManager;
+import com.kryptnostic.datastore.services.DataStorageClient;
+import com.kryptnostic.datastore.services.EdmManager;
+import com.kryptnostic.datastore.services.EntityDataModel;
 
 @Controller
 @RequestMapping( "/raw" )

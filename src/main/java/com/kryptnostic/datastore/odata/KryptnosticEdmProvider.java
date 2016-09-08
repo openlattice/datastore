@@ -21,7 +21,7 @@ import com.kryptnostic.conductor.rpc.odata.EntitySet;
 import com.kryptnostic.conductor.rpc.odata.EntityType;
 import com.kryptnostic.conductor.rpc.odata.Schema;
 import com.kryptnostic.datastore.odata.Transformers.EntityTypeTransformer;
-import com.kryptnostic.types.services.EdmManager;
+import com.kryptnostic.datastore.services.EdmManager;
 
 import jersey.repackaged.com.google.common.collect.Lists;
 

@@ -10,7 +10,7 @@ cassandra:
     keyspace: "sparks"
     replication-factor: 2
     seed-nodes:
-        - "localhost"
+        - "cassandra"
 
 hazelcast:
     server: true

@@ -1,6 +1,6 @@
-FROM java:8u92-jre-alpine
+FROM openjdk:8u102-jre
 
-RUN apk add --update bash wget && rm -rf /var/cache/apk/* \
+RUN apt-get install wget \
     && wget https://github.com/jwilder/dockerize/releases/download/v0.2.0/dockerize-linux-amd64-v0.2.0.tar.gz \
     && tar -C /usr/local/bin -xzvf dockerize-linux-amd64-v0.2.0.tar.gz
 
@@ -11,6 +11,6 @@ ENV VERSION=${IMG_VER:-v1.0.0} NAME=${IMAGE_NAME:-derpName}
 
 ADD $NAME-$VERSION.tgz /opt
 
-CMD dockerize -wait tcp://cassandra:9042 -timeout 300s; /opt/$NAME-$VERSION/bin/$NAME cassandra
+CMD dockerize -wait tcp://conductor:5701 -timeout 300s; /opt/$NAME-$VERSION/bin/$NAME cassandra
 
 EXPOSE 5701

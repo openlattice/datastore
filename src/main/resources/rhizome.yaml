@@ -6,11 +6,8 @@
 enable-persistence:  false
 session-clustering-enabled: false
 
-rethinkdb:
-    hostname: "localhost"
-    port: 28015
-
 cassandra:
+    keyspace: "sparks"
     replication-factor: 2
     seed-nodes:
         - "cassandra"
@@ -20,4 +17,4 @@ hazelcast:
     group: "local"
     password: "trumpisboss"
     seed-nodes: 
-        - "localhost"
+        - "conductor"

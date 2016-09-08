@@ -1,5 +1,6 @@
 package com.kryptnostic.datastore.edm.controllers;
 
+import java.util.EnumSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -18,8 +19,6 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
 
 import com.google.common.base.Optional;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import com.kryptnostic.conductor.rpc.UUIDs.ACLs;
 import com.kryptnostic.conductor.rpc.odata.EntitySet;
@@ -70,30 +69,18 @@ public class EdmController implements EdmApi {
         consumes = MediaType.APPLICATION_JSON_VALUE )
     @ResponseBody
     public Iterable<Schema> getSchemas( @RequestBody GetSchemasRequest request ) {
-        Iterable<Schema> schemas;
-
         if ( request.getNamespace().isPresent() ) {
             if ( request.getName().isPresent() ) {
-                schemas = ImmutableList
-                        .of( modelService.getSchema( request.getNamespace().get(), request.getName().get() ) );
+                return modelService.getSchema( request.getNamespace().get(),
+                        request.getName().get(),
+                        request.getLoadDetails() );
             } else {
-                schemas = modelService.getSchemasInNamespace( request.getNamespace().get() );
+                return modelService.getSchemasInNamespace( request.getNamespace().get(),
+                        request.getLoadDetails() );
             }
         } else {
-            schemas = modelService.getSchemas();
+            return modelService.getSchemas( request.getLoadDetails() );
         }
-
-        // This defers enrichment until serializtion
-        return ServerUtil.wrapForJackson( Iterables.transform( schemas, schema -> {
-            if ( request.getLoadDetails().contains( TypeDetails.ENTITY_TYPES ) ) {
-                modelService.enrichSchemaWithEntityTypes( schema );
-            }
-
-            if ( request.getLoadDetails().contains( TypeDetails.PROPERTY_TYPES ) ) {
-                modelService.enrichSchemaWithEntityTypes( schema );
-            }
-            return schema;
-        } ) );
     }
 
     @Override
@@ -101,16 +88,18 @@ public class EdmController implements EdmApi {
         path = SCHEMA_BASE_PATH + NAMESPACE_PATH + NAME_PATH,
         method = RequestMethod.GET )
     @ResponseBody
-    public Schema getSchemaContents( String namespace, String name ) {
-        return modelService.getSchema( namespace, name );
+    public Iterable<Schema> getSchemaContents(
+            @PathVariable( NAMESPACE ) String namespace,
+            @PathVariable( NAME ) String name ) {
+        return modelService.getSchema( namespace, name, EnumSet.allOf( TypeDetails.class ) );
     }
 
     @Override
     @RequestMapping(
         path = SCHEMA_BASE_PATH + NAMESPACE_PATH )
     @ResponseBody
-    public Iterable<Schema> getSchemasInNamespace( String namespace ) {
-        return ServerUtil.wrapForJackson( modelService.getSchemasInNamespace( namespace ) );
+    public Iterable<Schema> getSchemasInNamespace( @PathVariable( NAMESPACE ) String namespace ) {
+        return modelService.getSchemasInNamespace( namespace, EnumSet.allOf( TypeDetails.class ) );
     }
 
     /*

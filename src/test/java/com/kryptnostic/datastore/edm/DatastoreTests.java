@@ -1,19 +1,17 @@
 package com.kryptnostic.datastore.edm;
 
 import java.io.BufferedReader;
-import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.UUID;
 
-import com.kryptnostic.conductor.rpc.Employee;
 import org.apache.olingo.commons.api.data.Entity;
 import org.apache.olingo.commons.api.data.Property;
 import org.apache.olingo.commons.api.data.ValueType;
 import org.apache.olingo.commons.api.edm.FullQualifiedName;
-import org.apache.tools.ant.taskdefs.Sync;
 import org.junit.Test;
 
+import com.kryptnostic.conductor.rpc.Employee;
 import com.kryptnostic.conductor.rpc.UUIDs.ACLs;
 import com.kryptnostic.conductor.rpc.UUIDs.Syncs;
 import com.kryptnostic.datastore.services.EntityStorageClient;

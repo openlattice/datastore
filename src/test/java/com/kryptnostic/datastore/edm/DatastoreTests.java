@@ -3,17 +3,38 @@ package com.kryptnostic.datastore.edm;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
+import java.util.Set;
 import java.util.UUID;
 
 import org.apache.olingo.commons.api.data.Entity;
+import org.apache.olingo.commons.api.data.EntityCollection;
 import org.apache.olingo.commons.api.data.Property;
 import org.apache.olingo.commons.api.data.ValueType;
+import org.apache.olingo.commons.api.edm.Edm;
+import org.apache.olingo.commons.api.edm.EdmEntityContainer;
+import org.apache.olingo.commons.api.edm.EdmEntitySet;
+import org.apache.olingo.commons.api.edm.EdmEntityType;
 import org.apache.olingo.commons.api.edm.FullQualifiedName;
+import org.apache.olingo.commons.api.edm.provider.CsdlEntityContainerInfo;
+import org.apache.olingo.commons.api.edm.provider.CsdlEntitySet;
+import org.apache.olingo.commons.api.edm.provider.CsdlEntityType;
+import org.apache.olingo.commons.core.edm.EdmEntityContainerImpl;
+import org.apache.olingo.commons.core.edm.EdmEntitySetImpl;
+import org.apache.olingo.commons.core.edm.EdmEntityTypeImpl;
+import org.apache.olingo.commons.core.edm.EdmProviderImpl;
+import org.apache.olingo.server.api.ODataApplicationException;
 import org.junit.Test;
 
+import com.google.common.collect.ImmutableSet;
 import com.kryptnostic.conductor.rpc.Employee;
 import com.kryptnostic.conductor.rpc.UUIDs.ACLs;
 import com.kryptnostic.conductor.rpc.UUIDs.Syncs;
+import com.kryptnostic.conductor.rpc.odata.EntitySet;
+import com.kryptnostic.conductor.rpc.odata.EntityType;
+import com.kryptnostic.datastore.odata.KryptnosticEdmProvider;
+import com.kryptnostic.datastore.odata.Transformers;
+import com.kryptnostic.datastore.odata.Transformers.EntityTypeTransformer;
+import com.kryptnostic.datastore.services.EdmManager;
 import com.kryptnostic.datastore.services.EntityStorageClient;
 
 public class DatastoreTests extends BootstrapDatastoreWithCassandra {
@@ -114,6 +135,41 @@ public class DatastoreTests extends BootstrapDatastoreWithCassandra {
 
             }
         }
+    }
 
+    @Test
+    public void testRead() {
+    	Set<FullQualifiedName> properties = ImmutableSet.of( 
+    			new FullQualifiedName( NAMESPACE, EMPLOYEE_ID ),
+        		new FullQualifiedName( NAMESPACE, EMPLOYEE_NAME ),
+        		new FullQualifiedName( NAMESPACE, EMPLOYEE_TITLE ),
+        		new FullQualifiedName( NAMESPACE, EMPLOYEE_DEPT ),
+        		new FullQualifiedName( NAMESPACE, SALARY ) );
+    	
+    	EntityStorageClient esc = ds.getContext().getBean( EntityStorageClient.class );
+    	EdmManager dms = ds.getContext().getBean( EdmManager.class );
+        KryptnosticEdmProvider provider = new KryptnosticEdmProvider( dms );
+        Edm edm = new EdmProviderImpl( provider );
+
+        CsdlEntityContainerInfo info = new CsdlEntityContainerInfo().setContainerName( ENTITY_TYPE );
+        EdmEntityContainer edmEntityContainer = new EdmEntityContainerImpl( edm, provider, info );
+
+        CsdlEntityType csdlEntityType = new EntityTypeTransformer( dms ).transform( 
+        		new EntityType()
+        		.setName( ENTITY_TYPE.getName() )
+        		.setNamespace( ENTITY_TYPE.getNamespace() )
+        		.setProperties( properties )
+        		.setKey( ImmutableSet.of() ) );
+        EdmEntityType edmEntityType = new EdmEntityTypeImpl( edm, ENTITY_TYPE, csdlEntityType );
+
+        CsdlEntitySet csdlEntitySet = Transformers.transform( new EntitySet().setName( ENTITY_SET_NAME ).setTitle( ENTITY_SET_NAME ).setType( ENTITY_TYPE) );
+        EdmEntitySet edmEntitySet = new EdmEntitySetImpl( edm, edmEntityContainer, csdlEntitySet );
+
+        try {
+			EntityCollection ec = esc.readEntitySetData( edmEntitySet );
+			ec.forEach( currEntity -> System.out.println( currEntity ) );
+		} catch (ODataApplicationException e) {
+			e.printStackTrace();
+		}
     }
 }

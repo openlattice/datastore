@@ -111,19 +111,6 @@ public class DatastoreTests extends BootstrapDatastoreWithCassandra {
                         ENTITY_SET_NAME,
                         ENTITY_TYPE,
                         entity );
-                
-                //Created by Ho Chung for testing different entity types
-                esc.createEntityData( ACLs.EVERYONE_ACL,
-                        Syncs.BASE.getSyncId(),
-                        ENTITY_SET_NAME,
-                        ENTITY_TYPE_MARS,
-                        entity );
-                
-                esc.createEntityData( ACLs.EVERYONE_ACL,
-                        Syncs.BASE.getSyncId(),
-                        ENTITY_SET_NAME,
-                        ENTITY_TYPE_SATURN,
-                        entity );
 
             }
         }

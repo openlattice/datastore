@@ -22,6 +22,7 @@ public class BootstrapDatastoreWithCassandra {
     protected static final String            EMPLOYEE_ID     = "employee-id";
     protected static final String            ENTITY_SET_NAME = "Employees";
     protected static final FullQualifiedName ENTITY_TYPE     = new FullQualifiedName( NAMESPACE, "employee" );
+    //created by Ho Chung to populate two more entity Types
     protected static final FullQualifiedName ENTITY_TYPE_MARS= new FullQualifiedName( NAMESPACE, "employeeMars" );
     protected static final FullQualifiedName ENTITY_TYPE_SATURN= new FullQualifiedName( NAMESPACE, "employeeSaturn" );
 

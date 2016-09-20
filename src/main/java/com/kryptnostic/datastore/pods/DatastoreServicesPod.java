@@ -16,7 +16,7 @@ import com.kryptnostic.datastore.services.CassandraTableManager;
 import com.kryptnostic.datastore.services.DatasourceManager;
 import com.kryptnostic.datastore.services.EdmManager;
 import com.kryptnostic.datastore.services.EdmService;
-import com.kryptnostic.datastore.services.EntityStorageClient;
+import com.kryptnostic.datastore.services.ODataStorageService;
 import com.kryptnostic.rhizome.pods.CassandraPod;
 import com.kryptnostic.rhizome.registries.ObjectMapperRegistry;
 
@@ -60,8 +60,8 @@ public class DatastoreServicesPod {
     }
 
     @Bean
-    public EntityStorageClient dataStorageService() {
-        return new EntityStorageClient(
+    public ODataStorageService dataStorageService() {
+        return new ODataStorageService(
                 DatastoreConstants.KEYSPACE,
                 hazelcastInstance,
                 dataModelService(),

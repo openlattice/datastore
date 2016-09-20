@@ -11,9 +11,9 @@ import com.datastax.driver.mapping.MappingManager;
 import com.hazelcast.core.HazelcastInstance;
 import com.kryptnostic.datastore.cassandra.CassandraStorage;
 
-public class DataStorageClient {
+public class RawDataStorageService {
     private static final Logger         logger = LoggerFactory
-            .getLogger( DataStorageClient.class );
+            .getLogger( RawDataStorageService.class );
     // private final IMap<String, FullQualifiedName> entitySets;
     // private final IMap<FullQualifiedName, EntitySchema> entitySchemas;
     private final EdmManager            dms;
@@ -21,7 +21,7 @@ public class DataStorageClient {
     private final Session               session;
     private final String                keyspace;
 
-    public DataStorageClient(
+    public RawDataStorageService(
             String keyspace,
             HazelcastInstance hazelcast,
             EdmManager dms,

@@ -26,6 +26,7 @@ import com.kryptnostic.conductor.rpc.GetAllEntitiesOfTypeLambda;
 import com.kryptnostic.conductor.rpc.QueryResult;
 import com.kryptnostic.conductor.rpc.ResultSetAdapterFactory;
 import com.kryptnostic.conductor.rpc.odata.EntityType;
+import com.kryptnostic.conductor.rpc.odata.PropertyType;
 import com.kryptnostic.datastore.cassandra.CassandraStorage;
 
 public class DataStorageClient {
@@ -73,14 +74,12 @@ public class DataStorageClient {
                     .get();
     		//Get properties of the entityType
         	EntityType entityType = dms.getEntityType( fqn );
-        	Set<String> propertyTypenames = new HashSet<String>();
+        	Set<PropertyType> properties = new HashSet<PropertyType>();
         	entityType.getProperties().forEach( 
-        				property -> propertyTypenames.add( dms.getPropertyType( property ).getName() ) 
+        				property -> properties.add( dms.getPropertyType( property ) ) 
         			);
-        	//Get Map from typename to FullQualifiedName of the property types
-    		Map<String, FullQualifiedName> map = tableManager.getFullQualifiedNamesForTypenames(propertyTypenames);
     		
-    		return Iterables.transform( result, ResultSetAdapterFactory.toSetMultimap(map) );
+    		return Iterables.transform( result, row -> ResultSetAdapterFactory.mapRowToObject(row, properties) );
     		
     	} catch ( InterruptedException | ExecutionException e ) {
         	e.printStackTrace();

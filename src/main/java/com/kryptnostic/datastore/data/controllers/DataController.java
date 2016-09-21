@@ -7,7 +7,7 @@ import java.util.UUID;
 
 import javax.inject.Inject;
 
-import com.google.common.collect.SetMultimap;
+import com.google.common.collect.Multimap;
 import com.kryptnostic.conductor.rpc.*;
 import com.kryptnostic.datastore.services.DataApi;
 import com.squareup.okhttp.Response;
@@ -66,7 +66,7 @@ public class DataController implements DataApi {
             consumes = MediaType.APPLICATION_JSON_VALUE,
             produces = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
-    public Iterable<SetMultimap<FullQualifiedName, Object>> getAllEntitiesOfType(
+    public Iterable<Multimap<FullQualifiedName, Object>> getAllEntitiesOfType(
             LoadAllEntitiesOfTypeRequest loadAllEntitiesOfTypeRequest ) {
         return null;
     }
@@ -78,7 +78,7 @@ public class DataController implements DataApi {
             consumes = MediaType.APPLICATION_JSON_VALUE,
             produces = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
-    public Iterable<SetMultimap<FullQualifiedName, Object>> getFilteredEntitiesOfType( LookupEntitiesRequest lookupEntitiesRequest ) {
+    public Iterable<Multimap<FullQualifiedName, Object>> getFilteredEntitiesOfType( LookupEntitiesRequest lookupEntitiesRequest ) {
         return null;
     }
 

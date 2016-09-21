@@ -21,9 +21,9 @@ import com.google.common.collect.Multimap;
 import com.kryptnostic.conductor.rpc.Employee;
 import com.kryptnostic.conductor.rpc.UUIDs.ACLs;
 import com.kryptnostic.conductor.rpc.UUIDs.Syncs;
+import com.kryptnostic.datastore.services.ODataStorageService;
 import com.kryptnostic.datastore.converters.IterableCsvHttpMessageConverter;
 import com.kryptnostic.datastore.services.EdmService;
-import com.kryptnostic.datastore.services.EntityStorageClient;
 
 public class DatastoreTests extends BootstrapDatastoreWithCassandra {
 
@@ -52,7 +52,7 @@ public class DatastoreTests extends BootstrapDatastoreWithCassandra {
 
     // @Test
     public void testCreateEntityType() {
-        EntityStorageClient esc = ds.getContext().getBean( EntityStorageClient.class );
+        ODataStorageService esc = ds.getContext().getBean( ODataStorageService.class );
         Property empId = new Property();
         Property empName = new Property();
         Property empTitle = new Property();
@@ -87,7 +87,7 @@ public class DatastoreTests extends BootstrapDatastoreWithCassandra {
 
     @Test
     public void polulateEmployeeCsv() throws IOException {
-        EntityStorageClient esc = ds.getContext().getBean( EntityStorageClient.class );
+        ODataStorageService esc = ds.getContext().getBean( ODataStorageService.class );
         Property employeeId;
         Property employeeName;
         Property employeeTitle;

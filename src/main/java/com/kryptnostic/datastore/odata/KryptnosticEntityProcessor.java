@@ -30,16 +30,16 @@ import com.kryptnostic.conductor.rpc.UUIDs.ACLs;
 import com.kryptnostic.conductor.rpc.UUIDs.Syncs;
 import com.kryptnostic.datastore.ServerUtil;
 import com.kryptnostic.datastore.services.DatasourceManager;
-import com.kryptnostic.datastore.services.EntityStorageClient;
+import com.kryptnostic.datastore.services.ODataStorageService;
 
 public class KryptnosticEntityProcessor implements EntityProcessor {
-    private final EntityStorageClient storage;
-    private final DatasourceManager  dsm;
+    private final ODataStorageService storage;
+    private final DatasourceManager   dsm;
 
     private OData                    odata;
     private ServiceMetadata          serviceMetadata;
 
-    public KryptnosticEntityProcessor( EntityStorageClient storage, DatasourceManager dsm ) {
+    public KryptnosticEntityProcessor( ODataStorageService storage, DatasourceManager dsm ) {
         this.storage = storage;
         this.dsm = dsm;
     }

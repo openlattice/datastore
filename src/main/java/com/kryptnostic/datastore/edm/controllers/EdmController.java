@@ -10,13 +10,7 @@ import javax.inject.Inject;
 import org.apache.olingo.commons.api.edm.FullQualifiedName;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
-import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.ResponseBody;
-import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.web.bind.annotation.*;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.Maps;
@@ -34,7 +28,7 @@ import com.kryptnostic.datastore.services.GetSchemasRequest.TypeDetails;
 
 import retrofit.client.Response;
 
-@Controller
+@RestController
 public class EdmController implements EdmApi {
     @Inject
     private EdmManager modelService;
@@ -44,7 +38,7 @@ public class EdmController implements EdmApi {
         path = { "", "/" },
         method = RequestMethod.GET,
         produces = MediaType.APPLICATION_JSON_VALUE )
-    @ResponseBody
+    @ResponseStatus( HttpStatus.OK )
     public EntityDataModel getEntityDataModel() {
         return modelService.getEntityDataModel();
     }
@@ -57,7 +51,7 @@ public class EdmController implements EdmApi {
     @RequestMapping(
         path = SCHEMA_BASE_PATH,
         method = RequestMethod.GET )
-    @ResponseBody
+    @ResponseStatus( HttpStatus.OK )
     public Iterable<Schema> getSchemas() {
         return ServerUtil.wrapForJackson( modelService.getSchemas() );
     }
@@ -67,7 +61,7 @@ public class EdmController implements EdmApi {
         path = SCHEMA_BASE_PATH,
         method = RequestMethod.POST,
         consumes = MediaType.APPLICATION_JSON_VALUE )
-    @ResponseBody
+    @ResponseStatus( HttpStatus.OK )
     public Iterable<Schema> getSchemas( @RequestBody GetSchemasRequest request ) {
         if ( request.getNamespace().isPresent() ) {
             if ( request.getName().isPresent() ) {
@@ -87,7 +81,7 @@ public class EdmController implements EdmApi {
     @RequestMapping(
         path = SCHEMA_BASE_PATH + NAMESPACE_PATH + NAME_PATH,
         method = RequestMethod.GET )
-    @ResponseBody
+    @ResponseStatus( HttpStatus.OK )
     public Iterable<Schema> getSchemaContents(
             @PathVariable( NAMESPACE ) String namespace,
             @PathVariable( NAME ) String name ) {
@@ -97,7 +91,7 @@ public class EdmController implements EdmApi {
     @Override
     @RequestMapping(
         path = SCHEMA_BASE_PATH + NAMESPACE_PATH )
-    @ResponseBody
+    @ResponseStatus( HttpStatus.OK )
     public Iterable<Schema> getSchemasInNamespace( @PathVariable( NAMESPACE ) String namespace ) {
         return modelService.getSchemasInNamespace( namespace, EnumSet.allOf( TypeDetails.class ) );
     }
@@ -128,7 +122,7 @@ public class EdmController implements EdmApi {
         method = RequestMethod.POST,
         consumes = MediaType.APPLICATION_JSON_VALUE,
         produces = MediaType.APPLICATION_JSON_VALUE )
-    @ResponseBody
+    @ResponseStatus( HttpStatus.OK )
     public Map<String, Boolean> postEntitySets( @RequestBody Set<EntitySet> entitySets ) {
         Map<String, Boolean> results = Maps.newHashMapWithExpectedSize( entitySets.size() );
 
@@ -216,7 +210,7 @@ public class EdmController implements EdmApi {
         path = ENTITY_TYPE_BASE_PATH,
         method = RequestMethod.POST,
         consumes = MediaType.APPLICATION_JSON_VALUE )
-    @ResponseBody
+    @ResponseStatus( HttpStatus.OK )
     public boolean postEntityType( @RequestBody EntityType objectType ) {
         return modelService.createEntityType( objectType );
     }
@@ -225,7 +219,7 @@ public class EdmController implements EdmApi {
     @RequestMapping(
         path = ENTITY_TYPE_BASE_PATH + NAMESPACE_PATH + NAME_PATH,
         method = RequestMethod.GET )
-    @ResponseBody
+    @ResponseStatus( HttpStatus.OK )
     public EntityType getEntityType( @PathVariable( NAMESPACE ) String namespace, @PathVariable( NAME ) String name ) {
         return modelService.getEntityType( namespace, name );
     }
@@ -245,7 +239,7 @@ public class EdmController implements EdmApi {
         path = PROPERTY_TYPE_BASE_PATH,
         method = RequestMethod.POST,
         consumes = MediaType.APPLICATION_JSON_VALUE )
-    @ResponseBody
+    @ResponseStatus( HttpStatus.OK )
     public boolean postPropertyType( @RequestBody PropertyType propertyType ) {
         return modelService.createPropertyType( propertyType );
     }
@@ -254,6 +248,7 @@ public class EdmController implements EdmApi {
     @RequestMapping(
         path = PROPERTY_TYPE_BASE_PATH + NAMESPACE_PATH + NAME_PATH,
         method = RequestMethod.DELETE )
+    @ResponseStatus( HttpStatus.OK )
     public Response deletePropertyType(
             @PathVariable( NAMESPACE ) String namespace,
             @PathVariable( NAME ) String name ) {

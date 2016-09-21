@@ -1,0 +1,20 @@
+##
+# Rhizome Bootstrap Configuration
+##
+
+# Set to false to disable persistence 
+enable-persistence:  false
+session-clustering-enabled: false
+
+cassandra:
+    keyspace: "sparks"
+    replication-factor: 2
+    seed-nodes:
+        - "cassandra"
+
+hazelcast:
+    server: true
+    group: "local"
+    password: "trumpisboss"
+    seed-nodes: 
+        - "conductor"

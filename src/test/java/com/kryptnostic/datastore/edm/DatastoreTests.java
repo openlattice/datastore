@@ -3,6 +3,7 @@ package com.kryptnostic.datastore.edm;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.util.UUID;
 
 import org.apache.olingo.commons.api.data.Entity;
@@ -10,15 +11,46 @@ import org.apache.olingo.commons.api.data.Property;
 import org.apache.olingo.commons.api.data.ValueType;
 import org.apache.olingo.commons.api.edm.FullQualifiedName;
 import org.junit.Test;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpOutputMessage;
+import org.springframework.http.converter.HttpMessageNotWritableException;
 
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Multimap;
 import com.kryptnostic.conductor.rpc.Employee;
 import com.kryptnostic.conductor.rpc.UUIDs.ACLs;
 import com.kryptnostic.conductor.rpc.UUIDs.Syncs;
+import com.kryptnostic.datastore.converters.IterableCsvHttpMessageConverter;
+import com.kryptnostic.datastore.services.EdmService;
 import com.kryptnostic.datastore.services.EntityStorageClient;
 
 public class DatastoreTests extends BootstrapDatastoreWithCassandra {
 
-    //@Test
+    private static final Multimap<String, Object> m = HashMultimap.create();
+
+    @Test
+    public void testSerialization() throws HttpMessageNotWritableException, IOException {
+        IterableCsvHttpMessageConverter converter = new IterableCsvHttpMessageConverter(
+                ds.getContext().getBean( EdmService.class ) );
+        m.put( new FullQualifiedName( NAMESPACE, SALARY ).getFullQualifiedNameAsString(), 1 );
+        m.put( new FullQualifiedName( NAMESPACE, EMPLOYEE_ID ).getFullQualifiedNameAsString(), UUID.randomUUID() );
+        m.put( new FullQualifiedName( NAMESPACE, EMPLOYEE_TITLE ).getFullQualifiedNameAsString(), "Master Chief" );
+        converter.write( ImmutableList.of( m ), null, null, new HttpOutputMessage() {
+
+            @Override
+            public HttpHeaders getHeaders() {
+                return new HttpHeaders();
+            }
+
+            @Override
+            public OutputStream getBody() throws IOException {
+                return System.out;
+            }
+        } );
+    }
+
+    // @Test
     public void testCreateEntityType() {
         EntityStorageClient esc = ds.getContext().getBean( EntityStorageClient.class );
         Property empId = new Property();
@@ -50,7 +82,7 @@ public class DatastoreTests extends BootstrapDatastoreWithCassandra {
                 ENTITY_TYPE,
                 e );
 
-        //        esc.readEntityData( edmEntitySet, keyParams );
+        // esc.readEntityData( edmEntitySet, keyParams );
     }
 
     @Test

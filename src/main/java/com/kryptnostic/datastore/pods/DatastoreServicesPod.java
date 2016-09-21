@@ -2,6 +2,7 @@ package com.kryptnostic.datastore.pods;
 
 import javax.inject.Inject;
 
+import com.kryptnostic.datastore.services.*;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
@@ -12,11 +13,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.hazelcast.core.HazelcastInstance;
 import com.kryptnostic.conductor.rpc.odata.DatastoreConstants;
 import com.kryptnostic.datastore.cassandra.CassandraStorage;
-import com.kryptnostic.datastore.services.CassandraTableManager;
-import com.kryptnostic.datastore.services.DatasourceManager;
-import com.kryptnostic.datastore.services.EdmManager;
-import com.kryptnostic.datastore.services.EdmService;
-import com.kryptnostic.datastore.services.ODataStorageService;
 import com.kryptnostic.rhizome.pods.CassandraPod;
 import com.kryptnostic.rhizome.registries.ObjectMapperRegistry;
 
@@ -69,6 +65,19 @@ public class DatastoreServicesPod {
                 tableManager(),
                 storage(),
                 mappingManager() );
+    }
+
+    @Bean
+    public DataService rawDataStorageService(){
+        return new DataService(
+                DatastoreConstants.KEYSPACE,
+                hazelcastInstance,
+                dataModelService(),
+                session,
+                tableManager(),
+                storage(),
+                mappingManager()
+        );
     }
 
     @Bean

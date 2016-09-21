@@ -9,12 +9,12 @@ import com.kryptnostic.rhizome.configuration.servlets.DispatcherServletConfigura
 @Configuration
 public class DatastoreServletsPod {
     @Bean
-    public DispatcherServletConfiguration odataServlet() {
+    public DispatcherServletConfiguration dataStoreServlet() {
         return new DispatcherServletConfiguration(
-                "odata",
-                new String[] { "/odata/*" },
+                "v1",
+                new String[] { "/v1/*" },
                 1,
-                Lists.<Class<?>> newArrayList( ODataMvcPod.class ) );
+                Lists.<Class<?>> newArrayList( DataStoreMvcPod.class ) );
     }
 
     @Bean
@@ -23,6 +23,6 @@ public class DatastoreServletsPod {
                 "ontology",
                 new String[] { "/ontology/*" },
                 1,
-                Lists.<Class<?>> newArrayList( EdmMvcPod.class ) );
+                Lists.<Class<?>> newArrayList( DataStoreMvcPod.class ) );
     }
 }

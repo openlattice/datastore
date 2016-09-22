@@ -42,9 +42,9 @@ import com.kryptnostic.datastore.odata.KryptnosticEdmProvider;
 import com.kryptnostic.datastore.odata.Transformers;
 import com.kryptnostic.datastore.odata.Transformers.EntityTypeTransformer;
 import com.kryptnostic.datastore.services.EdmManager;
+import com.kryptnostic.datastore.services.ODataStorageService;
 import com.kryptnostic.datastore.converters.IterableCsvHttpMessageConverter;
 import com.kryptnostic.datastore.services.EdmService;
-import com.kryptnostic.datastore.services.EntityStorageClient;
 
 public class DatastoreTests extends BootstrapDatastoreWithCassandra {
 
@@ -71,9 +71,9 @@ public class DatastoreTests extends BootstrapDatastoreWithCassandra {
         } );
     }
 
-    // @Test
+    @Test
     public void testCreateEntityType() {
-        EntityStorageClient esc = ds.getContext().getBean( EntityStorageClient.class );
+        ODataStorageService esc = ds.getContext().getBean( ODataStorageService.class );
         Property empId = new Property();
         Property empName = new Property();
         Property empTitle = new Property();
@@ -108,7 +108,7 @@ public class DatastoreTests extends BootstrapDatastoreWithCassandra {
 
     @Test
     public void polulateEmployeeCsv() throws IOException {
-        EntityStorageClient esc = ds.getContext().getBean( EntityStorageClient.class );
+        ODataStorageService esc = ds.getContext().getBean( ODataStorageService.class );
         Property employeeId;
         Property employeeName;
         Property employeeTitle;
@@ -164,6 +164,20 @@ public class DatastoreTests extends BootstrapDatastoreWithCassandra {
                         ENTITY_SET_NAME,
                         ENTITY_TYPE,
                         entity );
+                
+                //Created by Ho Chung for testing different entity types
+                //add entityType "employeeMars"
+                esc.createEntityData( ACLs.EVERYONE_ACL,
+                        Syncs.BASE.getSyncId(),
+                        ENTITY_SET_NAME,
+                        ENTITY_TYPE_MARS,
+                        entity );
+              //add entityType "employeeSaturn"
+                esc.createEntityData( ACLs.EVERYONE_ACL,
+                        Syncs.BASE.getSyncId(),
+                        ENTITY_SET_NAME,
+                        ENTITY_TYPE_SATURN,
+                        entity );
 
             }
         }
@@ -178,7 +192,7 @@ public class DatastoreTests extends BootstrapDatastoreWithCassandra {
         		new FullQualifiedName( NAMESPACE, EMPLOYEE_DEPT ),
         		new FullQualifiedName( NAMESPACE, SALARY ) );
     	
-    	EntityStorageClient esc = ds.getContext().getBean( EntityStorageClient.class );
+    	ODataStorageService esc = ds.getContext().getBean( ODataStorageService.class );
     	EdmManager dms = ds.getContext().getBean( EdmManager.class );
         KryptnosticEdmProvider provider = new KryptnosticEdmProvider( dms );
         Edm edm = new EdmProviderImpl( provider );

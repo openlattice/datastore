@@ -22,6 +22,9 @@ public class BootstrapDatastoreWithCassandra {
     protected static final String            EMPLOYEE_ID     = "employee-id";
     protected static final String            ENTITY_SET_NAME = "Employees";
     protected static final FullQualifiedName ENTITY_TYPE     = new FullQualifiedName( NAMESPACE, "employee" );
+    //created by Ho Chung to populate two more entity Types
+    protected static final FullQualifiedName ENTITY_TYPE_MARS= new FullQualifiedName( NAMESPACE, "employeeMars" );
+    protected static final FullQualifiedName ENTITY_TYPE_SATURN= new FullQualifiedName( NAMESPACE, "employeeSaturn" );
 
     @BeforeClass
     public static void init() {
@@ -52,13 +55,35 @@ public class BootstrapDatastoreWithCassandra {
                         new FullQualifiedName( NAMESPACE, SALARY ) ) );
 
         dms.createEntityType( metadataLevel );
+        
+        EntityType metadataLevelMars = new EntityType().setNamespace( NAMESPACE ).setName( ENTITY_TYPE_MARS.getName() )
+                .setKey( ImmutableSet.of( new FullQualifiedName( NAMESPACE, EMPLOYEE_ID ) ) )
+                .setProperties( ImmutableSet.of( new FullQualifiedName( NAMESPACE, EMPLOYEE_ID ),
+                        new FullQualifiedName( NAMESPACE, EMPLOYEE_TITLE ),
+                        new FullQualifiedName( NAMESPACE, EMPLOYEE_NAME ),
+                        new FullQualifiedName( NAMESPACE, EMPLOYEE_DEPT ),
+                        new FullQualifiedName( NAMESPACE, SALARY ) ) );
+
+        dms.createEntityType( metadataLevelMars );
+
+        EntityType metadataLevelSaturn = new EntityType().setNamespace( NAMESPACE ).setName( ENTITY_TYPE_SATURN.getName() )
+                .setKey( ImmutableSet.of( new FullQualifiedName( NAMESPACE, EMPLOYEE_ID ) ) )
+                .setProperties( ImmutableSet.of( new FullQualifiedName( NAMESPACE, EMPLOYEE_ID ),
+                        new FullQualifiedName( NAMESPACE, EMPLOYEE_TITLE ),
+                        new FullQualifiedName( NAMESPACE, EMPLOYEE_NAME ),
+                        new FullQualifiedName( NAMESPACE, EMPLOYEE_DEPT ),
+                        new FullQualifiedName( NAMESPACE, SALARY ) ) );
+
+        dms.createEntityType( metadataLevelSaturn );
+
         dms.createEntitySet( ENTITY_TYPE,
                 ENTITY_SET_NAME,
                 "The entity set title" );
+        
         dms.createSchema( NAMESPACE,
                 "csv",
                 ACLs.EVERYONE_ACL,
-                ImmutableSet.of( ENTITY_TYPE ) );
+                ImmutableSet.of( ENTITY_TYPE, ENTITY_TYPE_MARS, ENTITY_TYPE_SATURN ) );
 
         Assert.assertTrue(
                 dms.isExistingEntitySet( ENTITY_TYPE, ENTITY_SET_NAME ) );

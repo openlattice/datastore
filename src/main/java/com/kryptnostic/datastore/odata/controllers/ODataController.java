@@ -1,4 +1,4 @@
-package com.kryptnostic.types.odata.controllers;
+package com.kryptnostic.datastore.odata.controllers;
 
 import java.util.ArrayList;
 
@@ -22,7 +22,7 @@ import com.kryptnostic.datastore.odata.KryptnosticEntityCollectionProcessor;
 import com.kryptnostic.datastore.odata.KryptnosticEntityProcessor;
 import com.kryptnostic.datastore.services.DatasourceManager;
 import com.kryptnostic.datastore.services.EdmManager;
-import com.kryptnostic.datastore.services.EntityStorageClient;
+import com.kryptnostic.datastore.services.ODataStorageService;
 
 @Controller
 public class ODataController {
@@ -34,7 +34,7 @@ public class ODataController {
     private EdmManager          dms;
 
     @Inject
-    private EntityStorageClient storage;
+    private ODataStorageService storage;
 
     @Inject
     private DatasourceManager   dsm;

@@ -6,14 +6,11 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 
+import com.kryptnostic.conductor.rpc.*;
 import org.apache.olingo.commons.api.edm.FullQualifiedName;
+import com.hazelcast.core.IMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.http.MediaType;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.ResponseBody;
 
 import com.datastax.driver.core.Session;
 import com.datastax.driver.mapping.MappingManager;
@@ -21,17 +18,13 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.SetMultimap;
 import com.hazelcast.core.HazelcastInstance;
 import com.hazelcast.durableexecutor.DurableExecutorService;
-import com.kryptnostic.conductor.rpc.ConductorCall;
-import com.kryptnostic.conductor.rpc.GetAllEntitiesOfTypeLambda;
-import com.kryptnostic.conductor.rpc.QueryResult;
-import com.kryptnostic.conductor.rpc.ResultSetAdapterFactory;
 import com.kryptnostic.conductor.rpc.odata.EntityType;
 import com.kryptnostic.conductor.rpc.odata.PropertyType;
 import com.kryptnostic.datastore.cassandra.CassandraStorage;
 
-public class DataStorageClient {
+public class DataService {
     private static final Logger         logger = LoggerFactory
-            .getLogger( DataStorageClient.class );
+            .getLogger( DataService.class );
     // private final IMap<String, FullQualifiedName> entitySets;
     // private final IMap<FullQualifiedName, EntitySchema> entitySchemas;
     private final EdmManager            dms;
@@ -39,8 +32,9 @@ public class DataStorageClient {
     private final Session               session;
     private final String                keyspace;
     private final DurableExecutorService executor;
+    private final IMap<String, String>  urlToIntegrationScripts;
 
-    public DataStorageClient(
+    public DataService(
             String keyspace,
             HazelcastInstance hazelcast,
             EdmManager dms,
@@ -54,6 +48,7 @@ public class DataStorageClient {
         this.keyspace = keyspace;
         // TODO: Configure executor service.
         this.executor = hazelcast.getDurableExecutorService( "default" );
+        this.urlToIntegrationScripts = hazelcast.getMap( "url_to_scripts" );
     }
 
     public Map<String, Object> getObject( UUID objectId ) {
@@ -66,25 +61,38 @@ public class DataStorageClient {
      * @param fqn FullQualifiedName of Entity Type
      * @return Iterable of all properties of each entity of the correct type, in the form of SetMultimap<Property Names, Value>
      */
-    public Iterable< SetMultimap<FullQualifiedName, Object> > readAllEntitiesOfType( FullQualifiedName fqn ){
-    	try{
-    		QueryResult result = executor
+    public Iterable< SetMultimap<FullQualifiedName, Object> > readAllEntitiesOfType( FullQualifiedName fqn ) {
+        try {
+            QueryResult result = executor
                     .submit( ConductorCall
-                            .wrap( new GetAllEntitiesOfTypeLambda( fqn ) ) )
+                            .wrap( Lambdas.getEntities( fqn ) ) )
                     .get();
-    		//Get properties of the entityType
-        	EntityType entityType = dms.getEntityType( fqn );
-        	Set<PropertyType> properties = new HashSet<PropertyType>();
-        	entityType.getProperties().forEach( 
-        				property -> properties.add( dms.getPropertyType( property ) ) 
-        			);
-    		
-    		return Iterables.transform( result, row -> ResultSetAdapterFactory.mapRowToObject(row, properties) );
-    		
-    	} catch ( InterruptedException | ExecutionException e ) {
-        	e.printStackTrace();
-        };
-    	return null;    	
+            //Get properties of the entityType
+            EntityType entityType = dms.getEntityType( fqn );
+            Set<PropertyType> properties = new HashSet<PropertyType>();
+            entityType.getProperties().forEach(
+                    property -> properties.add( dms.getPropertyType( property ) )
+            );
+
+            return Iterables.transform( result, row -> ResultSetAdapterFactory.mapRowToObject( row, properties ) );
+
+        } catch ( InterruptedException | ExecutionException e ) {
+            e.printStackTrace();
+        }
+        ;
+        return null;
+    }
+
+    public Map<String, String> getAllIntegrationScripts() {
+        return urlToIntegrationScripts;
+    }
+
+    public Map<String, String> getIntegrationScriptForUrl(Set<String> urls){
+        return urlToIntegrationScripts.getAll( urls );
+    }
+
+    public void createIntegrationScript( Map<String, String> integrationScripts ){
+        urlToIntegrationScripts.putAll( integrationScripts );
     }
 
 }

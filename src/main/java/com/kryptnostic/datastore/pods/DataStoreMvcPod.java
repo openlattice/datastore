@@ -10,6 +10,8 @@ import org.springframework.http.converter.json.MappingJackson2HttpMessageConvert
 import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurationSupport;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.ryantenney.metrics.spring.config.annotation.EnableMetrics;
 import javax.inject.Inject;
 import java.util.List;
 
@@ -28,6 +30,7 @@ import java.util.List;
 @EnableMetrics(
         proxyTargetClass = true )
 public class DataStoreMvcPod extends WebMvcConfigurationSupport {
+
     @Inject
     private ObjectMapper defaultObjectMapper;
 

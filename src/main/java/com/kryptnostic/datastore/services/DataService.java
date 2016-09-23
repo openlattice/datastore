@@ -61,11 +61,6 @@ public class DataService {
         return null;
     }
 
-    /**
-     * 
-     * @param fqn FullQualifiedName of Entity Type
-     * @return Iterable of all properties of each entity of the correct type, in the form of SetMultimap<Property Names, Value>
-     */
     public Iterable< Multimap<FullQualifiedName, Object> > readAllEntitiesOfType( FullQualifiedName fqn ) {
         try {
             QueryResult result = executor

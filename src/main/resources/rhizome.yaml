@@ -10,11 +10,11 @@ cassandra:
     keyspace: "sparks"
     replication-factor: 2
     seed-nodes:
-        - "localhost"
+        - "cassandra"
 
 hazelcast:
-    server: false
+    server: true
     group: "local"
     password: "trumpisboss"
     seed-nodes: 
-        - "localhost"
+        - "conductor"

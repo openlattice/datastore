@@ -183,7 +183,7 @@ public class DatastoreTests extends BootstrapDatastoreWithCassandra {
         }
     }
 
-    @Test
+    //@Test
     public void testRead() {
     	Set<FullQualifiedName> properties = ImmutableSet.of( 
     			new FullQualifiedName( NAMESPACE, EMPLOYEE_ID ),

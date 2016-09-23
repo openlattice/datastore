@@ -7,27 +7,18 @@ import java.util.UUID;
 
 import javax.inject.Inject;
 
-import com.google.common.collect.HashMultimap;
-import com.google.common.collect.Multimap;
-import com.google.common.collect.SetMultimap;
+import com.google.common.collect.*;
 import com.kryptnostic.conductor.rpc.*;
-import com.kryptnostic.datastore.services.DataApi;
+import com.kryptnostic.datastore.services.*;
 import com.squareup.okhttp.Response;
 import org.apache.olingo.commons.api.edm.FullQualifiedName;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
 
-import com.kryptnostic.datastore.services.DataService;
-import com.kryptnostic.datastore.services.EdmManager;
-import retrofit.http.Body;
-import retrofit.http.Path;
-
 @RestController
 @RequestMapping( DataApi.CONTROLLER )
 public class DataController implements DataApi {
-    @Inject
-    private EdmManager modelService;
 
     @Inject
     private DataService dataService;
@@ -82,7 +73,7 @@ public class DataController implements DataApi {
             consumes = MediaType.APPLICATION_JSON_VALUE,
             produces = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
-    public Iterable<SetMultimap<FullQualifiedName, Object>> getAllEntitiesOfType( @RequestBody FullQualifiedName fqn ) {
+    public Iterable<Multimap<FullQualifiedName, Object>> getAllEntitiesOfType( @RequestBody FullQualifiedName fqn ) {
         return dataService.readAllEntitiesOfType( fqn );
     }
 
@@ -92,7 +83,7 @@ public class DataController implements DataApi {
             method = RequestMethod.GET,
             produces = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
-    public Iterable<SetMultimap<FullQualifiedName, Object>> getAllEntitiesOfType(
+    public Iterable<Multimap<FullQualifiedName, Object>> getAllEntitiesOfType(
             @PathVariable( FULLQUALIFIEDNAME ) String fanAsString ) {
         return dataService.readAllEntitiesOfType( new FullQualifiedName( fanAsString ) );
     }
@@ -103,7 +94,7 @@ public class DataController implements DataApi {
             method = RequestMethod.GET,
             produces = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
-    public Iterable<SetMultimap<FullQualifiedName, Object>> getAllEntitiesOfType(
+    public Iterable<Multimap<FullQualifiedName, Object>> getAllEntitiesOfType(
             @PathVariable( NAME_SPACE ) String namespace, @PathVariable( NAME ) String name ) {
         return dataService.readAllEntitiesOfType( new FullQualifiedName( namespace, name ) );
     }
@@ -115,7 +106,7 @@ public class DataController implements DataApi {
             consumes = MediaType.APPLICATION_JSON_VALUE,
             produces = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
-    public Iterable<SetMultimap<FullQualifiedName, Object>> getFilteredEntitiesOfType( LookupEntitiesRequest lookupEntitiesRequest ) {
+    public Iterable<Multimap<FullQualifiedName, Object>> getFilteredEntitiesOfType( LookupEntitiesRequest lookupEntitiesRequest ) {
         return null;
     }
 
@@ -126,7 +117,8 @@ public class DataController implements DataApi {
             consumes = MediaType.APPLICATION_JSON_VALUE,
             produces = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
-    public Response createEntityData( CreateEntityRequest createEntityRequest ) {
+    public Response createEntityData( @RequestBody CreateEntityRequest createEntityRequest ) {
+        dataService.createEntityData( createEntityRequest );
         return null;
     }
 
@@ -159,34 +151,6 @@ public class DataController implements DataApi {
     @ResponseStatus( HttpStatus.OK )
     public Response createIntegrationScript( @RequestBody Map<String, String> integrationScripts ) {
         dataService.createIntegrationScript( integrationScripts );
-        return null;
-    }
-
-    @Override
-    @RequestMapping(
-            path = "/multimap",
-            method = RequestMethod.GET,
-            produces = MediaType.APPLICATION_JSON_VALUE )
-    @ResponseStatus( HttpStatus.OK )
-    public SetMultimap<FullQualifiedName, Object> getSetMultimap() {
-        SetMultimap<FullQualifiedName, Object> test = HashMultimap.create();
-        test.put( new FullQualifiedName( "test", "k1" ), "hallo" );
-        test.put( new FullQualifiedName( "test", "k1" ), "world" );
-        test.put( new FullQualifiedName( "test", "k2" ), "gogogo" );
-        test.put( new FullQualifiedName( "test2", "k2" ), "haha" );
-        return test;
-    }
-
-    @Override
-    @RequestMapping(
-            path = "/multimap",
-            method = RequestMethod.POST,
-            consumes = MediaType.APPLICATION_JSON_VALUE,
-            produces = MediaType.APPLICATION_JSON_VALUE )
-    @ResponseStatus( HttpStatus.OK )
-    public Response createSetMultimap(
-            @Body SetMultimap<FullQualifiedName, Object> setMultimap ) {
-
         return null;
     }
 

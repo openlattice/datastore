@@ -65,7 +65,7 @@ public class DataService {
         try {
             QueryResult result = executor
                     .submit( ConductorCall
-                            .wrap( new GetAllEntitiesOfTypeLambda( fqn ) ) )
+                            .wrap( api -> api.loadAllEntitiesOfType( fqn ) ) )
                     .get();
             //Get properties of the entityType
             EntityType entityType = dms.getEntityType( fqn );
@@ -145,5 +145,29 @@ public class DataService {
             } );
         });
     }
+
+	public Iterable<Multimap<FullQualifiedName, Object>> readFilteredEntitiesOfType(
+			LookupEntitiesRequest lookupEntitiesRequest) {
+		/**
+        try {
+            QueryResult result = executor
+                    .submit( ConductorCall
+                            .wrap( new GetFilteredEntitiesOfTypeLambda( lookupEntitiesRequest ) ) )
+                    .get();
+            //Get properties of the entityType
+            EntityType entityType = dms.getEntityType( fqn );
+            Set<PropertyType> properties = new HashSet<PropertyType>();
+            entityType.getProperties().forEach(
+                    property -> properties.add( dms.getPropertyType( property ) )
+            );
+
+            return Iterables.transform( result, row -> ResultSetAdapterFactory.mapRowToObject( row, properties ) );
+
+        } catch ( InterruptedException | ExecutionException e ) {
+            e.printStackTrace();
+        }
+        */
+        return null;
+	}
 
 }

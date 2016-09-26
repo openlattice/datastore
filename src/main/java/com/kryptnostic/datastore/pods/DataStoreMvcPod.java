@@ -45,6 +45,6 @@ public class DataStoreMvcPod extends WebMvcConfigurationSupport {
             }
         }
         //Ho Chung: Register CSV MessageConverter; should I do it here?
-        // converters.add(new CsvHttpMessageConverter());
+        converters.add(new CsvHttpMessageConverter());
     }
 }

@@ -66,7 +66,8 @@ public class CsvHttpMessageConverter extends AbstractGenericHttpMessageConverter
 
     public CsvSchema schemaBuilder( Multimap<FullQualifiedName, ?> obj ) {
         Builder schemaBuilder = CsvSchema.builder();
-
+        
+        //Ignoring Property Multiplicity for now
         for ( FullQualifiedName type : obj.keySet() ) {
             schemaBuilder.addColumn( type.toString(), ColumnType.NUMBER_OR_STRING );
         }

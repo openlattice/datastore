@@ -22,6 +22,8 @@ public class DataController implements DataApi {
 
     @Inject
     private DataService dataService;
+    
+    final String MEDIA_TYPE_CSV = "text/csv";
 
     @RequestMapping(
             path = { "/object/{id}" },
@@ -71,7 +73,7 @@ public class DataController implements DataApi {
             path = DataApi.ENTITY_DATA,
             method = RequestMethod.PUT,
             consumes = MediaType.APPLICATION_JSON_VALUE,
-            produces = {MediaType.APPLICATION_JSON_VALUE, "text/csv"} )
+            produces = {MediaType.APPLICATION_JSON_VALUE, MEDIA_TYPE_CSV} )
     @ResponseStatus( HttpStatus.OK )
     public Iterable<Multimap<FullQualifiedName, Object>> getAllEntitiesOfType( @RequestBody FullQualifiedName fqn ) {
         return dataService.readAllEntitiesOfType( fqn );

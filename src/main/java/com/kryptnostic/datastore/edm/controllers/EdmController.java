@@ -140,6 +140,16 @@ public class EdmController implements EdmApi {
         return null;
     }
 
+    @Override
+    @RequestMapping(
+            path = ENTITY_SETS_BASE_PATH,
+            method = RequestMethod.GET,
+            produces = MediaType.APPLICATION_JSON_VALUE )
+    @ResponseStatus( HttpStatus.OK )
+    public Iterable<EntitySet> getEntitySets() {
+        return modelService.getEntitySets();
+    }
+
     /*
      * (non-Javadoc)
      * @see com.kryptnostic.datastore.edm.controllers.EdmAPI#createObjectType(java.lang.String, java.lang.String,
@@ -153,6 +163,16 @@ public class EdmController implements EdmApi {
     public Response putEntityType( @RequestBody EntityType entityType ) {
         modelService.createEntityType( entityType );
         return null;
+    }
+
+    @Override
+    @RequestMapping(
+            path = ENTITY_TYPE_BASE_PATH,
+            method = RequestMethod.GET,
+            produces = MediaType.APPLICATION_JSON_VALUE )
+    @ResponseStatus( HttpStatus.OK )
+    public Iterable<EntityType> getEntityTypes() {
+        return modelService.getEntityTypes();
     }
 
     /*

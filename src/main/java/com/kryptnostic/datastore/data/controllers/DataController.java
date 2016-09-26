@@ -1,5 +1,6 @@
 package com.kryptnostic.datastore.data.controllers;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -8,12 +9,14 @@ import javax.inject.Inject;
 
 import com.google.common.collect.*;
 import com.kryptnostic.conductor.rpc.*;
+import com.kryptnostic.conductor.rpc.odata.Schema;
 import com.kryptnostic.datastore.services.*;
 import com.squareup.okhttp.Response;
 import org.apache.olingo.commons.api.edm.FullQualifiedName;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
+import retrofit.http.Path;
 
 @RestController
 @RequestMapping( DataApi.CONTROLLER )
@@ -85,6 +88,18 @@ public class DataController implements DataApi {
     @ResponseStatus( HttpStatus.OK )
     public Iterable<Multimap<FullQualifiedName, Object>> getAllEntitiesOfType( @RequestBody FullQualifiedName fqn ) {
         return dataService.readAllEntitiesOfType( fqn );
+    }
+
+    @Override
+    @RequestMapping(
+            path = DataApi.ENTITY_DATA + DataApi.SCHEMA,
+            method = RequestMethod.PUT,
+            consumes = MediaType.APPLICATION_JSON_VALUE,
+            produces = MediaType.APPLICATION_JSON_VALUE )
+    @ResponseStatus( HttpStatus.OK )
+    public Iterable<Iterable<Multimap<FullQualifiedName, Object>>> getAllEntitiesOfSchema( @RequestBody
+            List<FullQualifiedName> fqns ) {
+        return dataService.readAllEntitiesOfSchema( fqns );
     }
 
     @Override

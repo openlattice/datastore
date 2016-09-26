@@ -1,9 +1,6 @@
 package com.kryptnostic.datastore.services;
 
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
@@ -13,6 +10,7 @@ import com.datastax.driver.core.PreparedStatement;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.*;
 import com.kryptnostic.conductor.rpc.*;
+import com.kryptnostic.conductor.rpc.odata.Schema;
 import com.kryptnostic.datastore.cassandra.CassandraEdmMapping;
 import org.apache.olingo.commons.api.edm.FullQualifiedName;
 import com.hazelcast.core.IMap;
@@ -80,6 +78,27 @@ public class DataService {
             e.printStackTrace();
         }
         return null;
+    }
+
+    public Iterable<Iterable<Multimap<FullQualifiedName, Object>>> readAllEntitiesOfSchema( List<FullQualifiedName> fqns ){
+
+        List<Iterable<Multimap<FullQualifiedName, Object>>> results = Lists.newArrayList();
+        fqns.forEach( fqn -> {
+            try {
+                QueryResult result = executor.submit( ConductorCall
+                .wrap( Lambdas.getAllEntitiesOfType( fqn ) )).get();
+
+                EntityType entityType = dms.getEntityType( fqn );
+                Set<PropertyType> properties = entityType.getProperties().stream().map(
+                        property ->  dms.getPropertyType( property ) ).collect( Collectors.toSet());
+
+                results.add( Iterables.transform( result, row -> ResultSetAdapterFactory.mapRowToObject( row, properties ) ) );
+            } catch ( InterruptedException | ExecutionException e ) {
+                e.printStackTrace();
+            }
+        } );
+
+        return results;
     }
 
     public Iterable<UUID> loadEntitySetOfType( FullQualifiedName fqn ) {

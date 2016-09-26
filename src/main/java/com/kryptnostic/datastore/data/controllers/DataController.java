@@ -92,7 +92,7 @@ public class DataController implements DataApi {
 
     @Override
     @RequestMapping(
-            path = DataApi.ENTITY_DATA + DataApi.SCHEMA,
+            path = DataApi.ENTITY_DATA + DataApi.MULTIPLE,
             method = RequestMethod.PUT,
             consumes = MediaType.APPLICATION_JSON_VALUE,
             produces = MediaType.APPLICATION_JSON_VALUE )

@@ -61,7 +61,7 @@ public class DataController implements DataApi {
             path = DataApi.ENTITY_DATA,
             method = RequestMethod.GET,
             consumes = MediaType.APPLICATION_JSON_VALUE,
-            produces = MediaType.APPLICATION_JSON_VALUE )
+            produces = {MediaType.APPLICATION_JSON_VALUE, MEDIA_TYPE_CSV} )
     @ResponseStatus( HttpStatus.OK )
     public Iterable<Multimap<FullQualifiedName, Object>> getAllEntitiesOfType(
             LoadAllEntitiesOfTypeRequest loadAllEntitiesOfTypeRequest ) {
@@ -83,7 +83,7 @@ public class DataController implements DataApi {
     @RequestMapping(
             path = DataApi.ENTITY_DATA + DataApi.FULLQUALIFIEDNAME_PATH,
             method = RequestMethod.GET,
-            produces = MediaType.APPLICATION_JSON_VALUE )
+            produces = {MediaType.APPLICATION_JSON_VALUE, MEDIA_TYPE_CSV} )
     @ResponseStatus( HttpStatus.OK )
     public Iterable<Multimap<FullQualifiedName, Object>> getAllEntitiesOfType(
             @PathVariable( FULLQUALIFIEDNAME ) String fanAsString ) {
@@ -94,7 +94,7 @@ public class DataController implements DataApi {
     @RequestMapping(
             path = DataApi.ENTITY_DATA + DataApi.NAME_SPACE_PATH + DataApi.NAME_PATH,
             method = RequestMethod.GET,
-            produces = MediaType.APPLICATION_JSON_VALUE )
+            produces = {MediaType.APPLICATION_JSON_VALUE, MEDIA_TYPE_CSV} )
     @ResponseStatus( HttpStatus.OK )
     public Iterable<Multimap<FullQualifiedName, Object>> getAllEntitiesOfType(
             @PathVariable( NAME_SPACE ) String namespace, @PathVariable( NAME ) String name ) {

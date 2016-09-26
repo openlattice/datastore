@@ -71,12 +71,12 @@ public class DataController implements DataApi {
             path = DataApi.ENTITY_DATA,
             method = RequestMethod.PUT,
             consumes = MediaType.APPLICATION_JSON_VALUE,
-            produces = MediaType.APPLICATION_JSON_VALUE )
+            produces = {MediaType.APPLICATION_JSON_VALUE, "text/csv"} )
     @ResponseStatus( HttpStatus.OK )
     public Iterable<Multimap<FullQualifiedName, Object>> getAllEntitiesOfType( @RequestBody FullQualifiedName fqn ) {
         return dataService.readAllEntitiesOfType( fqn );
     }
-
+    
     @Override
     @RequestMapping(
             path = DataApi.ENTITY_DATA + DataApi.FULLQUALIFIEDNAME_PATH,

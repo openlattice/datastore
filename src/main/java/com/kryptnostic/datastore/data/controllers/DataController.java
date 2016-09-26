@@ -1,12 +1,10 @@
 package com.kryptnostic.datastore.data.controllers;
 
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
 import javax.inject.Inject;
-import javax.xml.crypto.Data;
 
 import com.google.common.collect.*;
 import com.kryptnostic.conductor.rpc.*;
@@ -16,7 +14,6 @@ import org.apache.olingo.commons.api.edm.FullQualifiedName;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
-import retrofit.http.Path;
 
 @RestController
 @RequestMapping( DataApi.CONTROLLER )
@@ -62,7 +59,9 @@ public class DataController implements DataApi {
             consumes = MediaType.APPLICATION_JSON_VALUE,
             produces = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
-    public Iterable<UUID> getEntitySetOfType( @PathVariable( NAME_SPACE ) String namespace, @PathVariable( NAME ) String name ) {
+    public Iterable<UUID> getEntitySetOfType(
+            @PathVariable( NAME_SPACE ) String namespace,
+            @PathVariable( NAME ) String name ) {
         return dataService.loadEntitySetOfType( new FullQualifiedName( namespace, name ) );
     }
 

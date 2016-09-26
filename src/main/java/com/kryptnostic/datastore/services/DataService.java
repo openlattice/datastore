@@ -28,16 +28,16 @@ import com.kryptnostic.conductor.rpc.odata.PropertyType;
 import com.kryptnostic.datastore.cassandra.CassandraStorage;
 
 public class DataService {
-    private static final Logger         logger = LoggerFactory
+    private static final Logger logger = LoggerFactory
             .getLogger( DataService.class );
     // private final IMap<String, FullQualifiedName> entitySets;
     // private final IMap<FullQualifiedName, EntitySchema> entitySchemas;
-    private final EdmManager            dms;
-    private final CassandraTableManager tableManager;
-    private final Session               session;
-    private final String                keyspace;
+    private final EdmManager             dms;
+    private final CassandraTableManager  tableManager;
+    private final Session                session;
+    private final String                 keyspace;
     private final DurableExecutorService executor;
-    private final IMap<String, String>  urlToIntegrationScripts;
+    private final IMap<String, String>   urlToIntegrationScripts;
 
     public DataService(
             String keyspace,
@@ -57,15 +57,15 @@ public class DataService {
     }
 
     public Map<String, Object> getObject( UUID objectId ) {
-//        tableManager.getTablenameForPropertyValues( )
+        //        tableManager.getTablenameForPropertyValues( )
         return null;
     }
 
-    public Iterable< Multimap<FullQualifiedName, Object> > readAllEntitiesOfType( FullQualifiedName fqn ) {
+    public Iterable<Multimap<FullQualifiedName, Object>> readAllEntitiesOfType( FullQualifiedName fqn ) {
         try {
             QueryResult result = executor
                     .submit( ConductorCall
-                            .wrap( new GetAllEntitiesOfTypeLambda( fqn ) ) )
+                            .wrap( Lambdas.getAllEntitiesOfType( fqn ) ) )
                     .get();
             //Get properties of the entityType
             EntityType entityType = dms.getEntityType( fqn );
@@ -82,30 +82,43 @@ public class DataService {
         return null;
     }
 
+    public Iterable<UUID> loadEntitySetOfType( FullQualifiedName fqn ) {
+        try {
+            Iterable<UUID> result = executor
+                    .submit( ConductorCall
+                            .wrap( Lambdas.getEntitySetOfType( fqn ) ) )
+                    .get();
+            return result;
+        } catch ( InterruptedException | ExecutionException e ) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
     public Map<String, String> getAllIntegrationScripts() {
         return urlToIntegrationScripts;
     }
 
-    public Map<String, String> getIntegrationScriptForUrl(Set<String> urls){
+    public Map<String, String> getIntegrationScriptForUrl( Set<String> urls ) {
         return urlToIntegrationScripts.getAll( urls );
     }
 
-    public void createIntegrationScript( Map<String, String> integrationScripts ){
+    public void createIntegrationScript( Map<String, String> integrationScripts ) {
         urlToIntegrationScripts.putAll( integrationScripts );
     }
 
-    public void createEntityData(CreateEntityRequest createEntityRequest ) {
+    public void createEntityData( CreateEntityRequest createEntityRequest ) {
 
         FullQualifiedName entityFqn = createEntityRequest.getEntityType();
         Set<FullQualifiedName> propertyFqns = dms.getEntityType( entityFqn ).getProperties();
         Set<HashMultimap<FullQualifiedName, Object>> propertyValues = createEntityRequest.getPropertyValues();
-        UUID aclId = createEntityRequest.getAclId().or (UUIDs.ACLs.EVERYONE_ACL );
+        UUID aclId = createEntityRequest.getAclId().or( UUIDs.ACLs.EVERYONE_ACL );
         UUID syncId = createEntityRequest.getSyncId().or( UUIDs.Syncs.BASE.getSyncId() );
 
         propertyValues.stream().forEach( obj -> {
             PreparedStatement createQuery = Preconditions.checkNotNull(
                     tableManager.getInsertEntityPreparedStatement( entityFqn ),
-                    "Insert data prepared statement does not exist.");
+                    "Insert data prepared statement does not exist." );
 
             PreparedStatement entityIdTypenameLookupQuery = Preconditions.checkNotNull(
                     tableManager.getUpdateEntityIdTypenamePreparedStatement( entityFqn ),
@@ -115,15 +128,15 @@ public class DataService {
             String typename = tableManager.getTypenameForEntityType( entityFqn );
             BoundStatement boundQuery = createQuery.bind( entityId,
                     typename,
-                    ImmutableSet.of(createEntityRequest.getEntitySetName()),
+                    ImmutableSet.of( createEntityRequest.getEntitySetName() ),
                     ImmutableList.of( syncId ) );
             logger.info( "Attempting to create entity : {}", boundQuery.toString() );
             session.execute( boundQuery );
-            session.execute( entityIdTypenameLookupQuery.bind(typename, entityId) );
+            session.execute( entityIdTypenameLookupQuery.bind( typename, entityId ) );
 
             EntityType entityType = dms.getEntityType( entityFqn );
             Map<FullQualifiedName, DataType> propertyDataTypeMap = propertyFqns.stream().collect( Collectors.toMap(
-                    fqn->fqn,
+                    fqn -> fqn,
                     fqn -> CassandraEdmMapping.getCassandraType( dms.getPropertyType( fqn ).getDatatype() ) ) );
 
             Set<FullQualifiedName> key = entityType.getKey();
@@ -133,17 +146,17 @@ public class DataService {
                 logger.info( "Attempting to write property value: {}", e.getValue() );
                 DataType dt = propertyDataTypeMap.get( e.getKey() );
                 Object propertyValue = e.getValue();
-                if( dt.equals( DataType.bigint() )){
+                if ( dt.equals( DataType.bigint() ) ) {
                     propertyValue = Long.valueOf( propertyValue.toString() );
                 }
                 session.executeAsync( pps.bind( ImmutableList.of( syncId ), entityId, propertyValue ) );
                 if ( key.contains( e.getKey() ) ) {
                     PreparedStatement pipps = tableManager.getUpdatePropertyIndexPreparedStatement( e.getKey() );
                     logger.info( "Attempting to write property Index: {}", e.getValue() );
-                    session.executeAsync( pipps.bind( ImmutableList.of(syncId), propertyValue, entityId) );
+                    session.executeAsync( pipps.bind( ImmutableList.of( syncId ), propertyValue, entityId ) );
                 }
             } );
-        });
+        } );
     }
 
 }

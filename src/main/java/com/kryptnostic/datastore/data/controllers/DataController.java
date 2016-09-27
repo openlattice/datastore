@@ -1,14 +1,21 @@
 package com.kryptnostic.datastore.data.controllers;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import javax.inject.Inject;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.common.collect.*;
 import com.kryptnostic.conductor.rpc.*;
+import com.kryptnostic.conductor.rpc.odata.SerializationConstants;
+import com.kryptnostic.datastore.serialization.FullQualifedNameJacksonDeserializer;
 import com.kryptnostic.datastore.services.*;
 import com.squareup.okhttp.Response;
 import org.apache.olingo.commons.api.edm.FullQualifiedName;
@@ -100,18 +107,40 @@ public class DataController implements DataApi {
             @PathVariable( NAME_SPACE ) String namespace, @PathVariable( NAME ) String name ) {
         return dataService.readAllEntitiesOfType( new FullQualifiedName( namespace, name ) );
     }
-
+    
     @Override
     @RequestMapping(
             path = DataApi.ENTITY_DATA + DataApi.FILTERED,
-            method = RequestMethod.GET,
+            method = RequestMethod.PUT,
             consumes = MediaType.APPLICATION_JSON_VALUE,
             produces = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
-    public Iterable<Multimap<FullQualifiedName, Object>> getFilteredEntities( LookupEntitiesRequest lookupEntitiesRequest ) {
-        return dataService.getFilteredEntities( lookupEntitiesRequest );
+    public Iterable<UUID> getFilteredEntities( @RequestBody ObjectNode obj ) {
+    	try{
+	    	ObjectMapper mapper = new ObjectMapper();
+	    	//Register FQN deserializer with mapper
+	    	FullQualifedNameJacksonDeserializer.registerWithMapper(mapper);
+	    	//Parse Object
+	    	UUID userId = mapper.convertValue(obj.get(SerializationConstants.USER_ID), UUID.class);
+	    	Set<FullQualifiedName> entityTypes = mapper.convertValue(obj.get(SerializationConstants.TYPE_FIELD), new TypeReference< Set<FullQualifiedName> >() {});
+	    	Map<String, Object> propertyMapInString = mapper.convertValue(obj.get(SerializationConstants.PROPERTIES_FIELD), new TypeReference< Map<String, Object> >() {});
+	    	//Build map with FQN as key
+	    	Map<FullQualifiedName, Object> propertyMapInFQN = propertyMapInString.entrySet()
+	    			.stream()
+	    			.collect(Collectors.toMap(entry -> new FullQualifiedName(entry.getKey()), Map.Entry::getValue));
+	    	//Build request
+	    	LookupEntitiesRequest lookupEntitiesRequest = new LookupEntitiesRequest(
+	    			userId,
+	    			entityTypes,
+	    			propertyMapInFQN
+	    			);
+	        return dataService.getFilteredEntities( lookupEntitiesRequest );  	
+		}catch(Exception e){
+            e.printStackTrace();
+		}
+    	return null;
     }
-
+        
     @Override
     @RequestMapping(
             path = DataApi.ENTITY_DATA,

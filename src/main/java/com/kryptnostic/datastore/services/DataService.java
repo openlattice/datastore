@@ -148,23 +148,14 @@ public class DataService {
         });
     }
 
-	public Iterable<Multimap<FullQualifiedName, Object>> getFilteredEntities(
+	public Iterable<UUID> getFilteredEntities(
 			LookupEntitiesRequest lookupEntitiesRequest) {
         try {
             QueryResult result = executor
                     .submit( ConductorCall
                             .wrap( Lambdas.getFilteredEntities ( lookupEntitiesRequest ) ) )
                     .get();
-            //TODO: Get allowed properties of entityTypes involved
-            EntityType entityType = dms.getEntityType( fqn );
-            Set<PropertyType> properties = new HashSet<PropertyType>();
-            entityType.getProperties().forEach(
-                    property -> properties.add( dms.getPropertyType( property ) )
-            );
-            //TODO: Update ConductorSparkApi to include filterEntities function
-            //TODO: Load Cassandra Properties Table
-            //TODO: Add mapUUIDToObject function, that takes in UUID, properties, and pointer to cassandra properties table
-            return Iterables.transform( result, row -> ResultSetAdapterFactory.mapRowToObject( row, properties ) );
+            return Iterables.transform( result, row -> ResultSetAdapterFactory.mapRowToUUID( row ) );
 
         } catch ( InterruptedException | ExecutionException e ) {
             e.printStackTrace();

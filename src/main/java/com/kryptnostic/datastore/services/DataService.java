@@ -178,7 +178,6 @@ public class DataService {
         } );
     }
 
-<<<<<<< HEAD
 	public Iterable<UUID> getFilteredEntities(
 			LookupEntitiesRequest lookupEntitiesRequest) {
         try {
@@ -194,7 +193,6 @@ public class DataService {
         return null;
 	}
 
-=======
     public Iterable<Multimap<FullQualifiedName,Object>> getAllEntitiesOfEntitySet( String entitySetName, String entityTypeName ) {
         Iterable<Multimap<FullQualifiedName, Object>> result = Lists.newArrayList();
         FullQualifiedName fqn = tableManager.getEntityTypeForTypename( entityTypeName );
@@ -211,5 +209,4 @@ public class DataService {
         }
         return result;
     }
->>>>>>> develop
 }

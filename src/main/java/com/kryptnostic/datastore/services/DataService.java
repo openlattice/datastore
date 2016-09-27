@@ -10,7 +10,6 @@ import com.datastax.driver.core.PreparedStatement;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.*;
 import com.kryptnostic.conductor.rpc.*;
-import com.kryptnostic.conductor.rpc.odata.Schema;
 import com.kryptnostic.datastore.cassandra.CassandraEdmMapping;
 import org.apache.olingo.commons.api.edm.FullQualifiedName;
 import com.hazelcast.core.IMap;
@@ -178,4 +177,20 @@ public class DataService {
         } );
     }
 
+    public Iterable<Multimap<FullQualifiedName,Object>> getAllEntitiesOfEntitySet( String entitySetName, String entityTypeName ) {
+        Iterable<Multimap<FullQualifiedName, Object>> result = Lists.newArrayList();
+        FullQualifiedName fqn = tableManager.getEntityTypeForTypename( entityTypeName );
+        try{
+            QueryResult qr = executor
+                    .submit( ConductorCall.wrap( Lambdas.getAllEntitiesOfEntitySet( fqn, entitySetName ) ) ).get();
+            EntityType entityType = dms.getEntityType( fqn );
+            Set<PropertyType> properties = entityType.getProperties().stream().map(
+                    property ->  dms.getPropertyType( property ) ).collect( Collectors.toSet());
+
+            result = Iterables.transform( qr, row -> ResultSetAdapterFactory.mapRowToObject( row, properties ) );
+        } catch ( InterruptedException | ExecutionException e ) {
+            logger.error( e.getMessage() );
+        }
+        return result;
+    }
 }

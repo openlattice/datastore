@@ -24,6 +24,8 @@ public class DataController implements DataApi {
 
     @Inject
     private DataService dataService;
+    
+    final String MEDIA_TYPE_CSV = "text/csv";
 
     @RequestMapping(
             path = { "/object/{id}" },
@@ -73,7 +75,7 @@ public class DataController implements DataApi {
             path = DataApi.ENTITYSET + DataApi.FILTERED,
             method = RequestMethod.GET,
             consumes = MediaType.APPLICATION_JSON_VALUE,
-            produces = MediaType.APPLICATION_JSON_VALUE )
+            produces = {MediaType.APPLICATION_JSON_VALUE, MEDIA_TYPE_CSV} )
     @ResponseStatus( HttpStatus.OK )
     public Iterable<UUID> getFilteredEntitySet( LookupEntitySetRequest lookupEntitiesRequest ) {
         return null;
@@ -84,12 +86,12 @@ public class DataController implements DataApi {
             path = DataApi.ENTITY_DATA,
             method = RequestMethod.PUT,
             consumes = MediaType.APPLICATION_JSON_VALUE,
-            produces = MediaType.APPLICATION_JSON_VALUE )
+            produces = {MediaType.APPLICATION_JSON_VALUE, MEDIA_TYPE_CSV} )
     @ResponseStatus( HttpStatus.OK )
     public Iterable<Multimap<FullQualifiedName, Object>> getAllEntitiesOfType( @RequestBody FullQualifiedName fqn ) {
         return dataService.readAllEntitiesOfType( fqn );
     }
-
+    
     @Override
     @RequestMapping(
             path = DataApi.ENTITY_DATA + DataApi.MULTIPLE,
@@ -106,7 +108,7 @@ public class DataController implements DataApi {
     @RequestMapping(
             path = DataApi.ENTITY_DATA + DataApi.FULLQUALIFIEDNAME_PATH_WITH_DOT,
             method = RequestMethod.GET,
-            produces = MediaType.APPLICATION_JSON_VALUE )
+            produces = {MediaType.APPLICATION_JSON_VALUE, MEDIA_TYPE_CSV} )
     @ResponseStatus( HttpStatus.OK )
     public Iterable<Multimap<FullQualifiedName, Object>> getAllEntitiesOfType(
             @PathVariable( FULLQUALIFIEDNAME ) String fanAsString ) {
@@ -117,7 +119,7 @@ public class DataController implements DataApi {
     @RequestMapping(
             path = DataApi.ENTITY_DATA + DataApi.NAME_SPACE_PATH + DataApi.NAME_PATH,
             method = RequestMethod.GET,
-            produces = MediaType.APPLICATION_JSON_VALUE )
+            produces = {MediaType.APPLICATION_JSON_VALUE, MEDIA_TYPE_CSV} )
     @ResponseStatus( HttpStatus.OK )
     public Iterable<Multimap<FullQualifiedName, Object>> getAllEntitiesOfType(
             @PathVariable( NAME_SPACE ) String namespace, @PathVariable( NAME ) String name ) {

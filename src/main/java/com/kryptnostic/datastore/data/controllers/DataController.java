@@ -108,8 +108,8 @@ public class DataController implements DataApi {
             consumes = MediaType.APPLICATION_JSON_VALUE,
             produces = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
-    public Iterable<Multimap<FullQualifiedName, Object>> getFilteredEntitiesOfType( LookupEntitiesRequest lookupEntitiesRequest ) {
-        return dataService.readFilteredEntitiesOfType( lookupEntitiesRequest );
+    public Iterable<Multimap<FullQualifiedName, Object>> getFilteredEntities( LookupEntitiesRequest lookupEntitiesRequest ) {
+        return dataService.getFilteredEntities( lookupEntitiesRequest );
     }
 
     @Override

@@ -1,10 +1,12 @@
 package com.kryptnostic.datastore.services;
 
+import java.io.Serializable;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import com.datastax.driver.core.BoundStatement;
@@ -65,7 +67,7 @@ public class DataService {
         try {
             QueryResult result = executor
                     .submit( ConductorCall
-                            .wrap( api -> api.loadAllEntitiesOfType( fqn ) ) )
+                            .wrap( Lambdas.getAllEntitiesOfType( fqn ) ) )
                     .get();
             //Get properties of the entityType
             EntityType entityType = dms.getEntityType( fqn );
@@ -146,27 +148,27 @@ public class DataService {
         });
     }
 
-	public Iterable<Multimap<FullQualifiedName, Object>> readFilteredEntitiesOfType(
+	public Iterable<Multimap<FullQualifiedName, Object>> getFilteredEntities(
 			LookupEntitiesRequest lookupEntitiesRequest) {
-		/**
         try {
             QueryResult result = executor
                     .submit( ConductorCall
-                            .wrap( new GetFilteredEntitiesOfTypeLambda( lookupEntitiesRequest ) ) )
+                            .wrap( Lambdas.getFilteredEntities ( lookupEntitiesRequest ) ) )
                     .get();
-            //Get properties of the entityType
+            //TODO: Get allowed properties of entityTypes involved
             EntityType entityType = dms.getEntityType( fqn );
             Set<PropertyType> properties = new HashSet<PropertyType>();
             entityType.getProperties().forEach(
                     property -> properties.add( dms.getPropertyType( property ) )
             );
-
+            //TODO: Update ConductorSparkApi to include filterEntities function
+            //TODO: Load Cassandra Properties Table
+            //TODO: Add mapUUIDToObject function, that takes in UUID, properties, and pointer to cassandra properties table
             return Iterables.transform( result, row -> ResultSetAdapterFactory.mapRowToObject( row, properties ) );
 
         } catch ( InterruptedException | ExecutionException e ) {
             e.printStackTrace();
         }
-        */
         return null;
 	}
 

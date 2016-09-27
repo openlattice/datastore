@@ -1,6 +1,7 @@
 package com.kryptnostic.datastore.pods;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.kryptnostic.datastore.converters.CsvHttpMessageConverter;
 import com.ryantenney.metrics.spring.config.annotation.EnableMetrics;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
@@ -43,5 +44,7 @@ public class DataStoreMvcPod extends WebMvcConfigurationSupport {
                 jackson2HttpMessageConverter.setObjectMapper( defaultObjectMapper );
             }
         }
+        //Ho Chung: Register CSV MessageConverter; should I do it here?
+        converters.add(new CsvHttpMessageConverter());
     }
 }

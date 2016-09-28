@@ -269,4 +269,5 @@ public class EdmController implements EdmApi {
         modelService.deletePropertyType( new PropertyType().setNamespace( namespace ).setName( name ) );
         return null;
     }
+
 }

@@ -89,17 +89,6 @@ public class DataController implements DataApi {
 
     @Override
     @RequestMapping(
-            path = DataApi.ENTITYSET + DataApi.FILTERED,
-            method = RequestMethod.GET,
-            consumes = MediaType.APPLICATION_JSON_VALUE,
-            produces = { MediaType.APPLICATION_JSON_VALUE, MEDIA_TYPE_CSV } )
-    @ResponseStatus( HttpStatus.OK )
-    public Iterable<UUID> getFilteredEntitySet( LookupEntitySetRequest lookupEntitiesRequest ) {
-        return null;
-    }
-
-    @Override
-    @RequestMapping(
             path = DataApi.ENTITY_DATA,
             method = RequestMethod.PUT,
             consumes = MediaType.APPLICATION_JSON_VALUE,

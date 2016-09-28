@@ -56,7 +56,7 @@ public class DatastoreServicesPod {
     }
 
     @Bean
-    public ODataStorageService dataStorageService() {
+    public ODataStorageService odataStorageService() {
         return new ODataStorageService(
                 DatastoreConstants.KEYSPACE,
                 hazelcastInstance,
@@ -68,7 +68,7 @@ public class DatastoreServicesPod {
     }
 
     @Bean
-    public DataService rawDataStorageService(){
+    public DataService dataService(){
         return new DataService(
                 DatastoreConstants.KEYSPACE,
                 hazelcastInstance,

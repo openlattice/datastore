@@ -244,7 +244,7 @@ public class EdmController implements EdmApi {
             method = RequestMethod.DELETE )
     @ResponseStatus( HttpStatus.OK )
     public Response deleteEntityType( @PathVariable( NAMESPACE ) String namespace, @PathVariable( NAME ) String name ) {
-        modelService.deleteEntityType( new EntityType().setNamespace( namespace ).setName( name ) );
+        modelService.deleteEntityType( new FullQualifiedName( namespace, name ) );
         return null;
     }
 

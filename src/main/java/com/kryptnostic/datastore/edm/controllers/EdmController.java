@@ -269,13 +269,4 @@ public class EdmController implements EdmApi {
         modelService.deletePropertyType( new PropertyType().setNamespace( namespace ).setName( name ) );
         return null;
     }
-    
-    @Override
-    @RequestMapping(
-            path = PROPERTY_TYPE_BASE_PATH + NAMESPACE_PATH + NAME_PATH,
-            method = RequestMethod.GET )
-    @ResponseStatus( HttpStatus.OK )
-    public PropertyType getPropertyType( @PathVariable( NAMESPACE ) String namespace, @PathVariable( NAME ) String name ) {
-        return modelService.getPropertyType( new FullQualifiedName( namespace, name ) );
-    }
 }

@@ -130,7 +130,7 @@ public class DataService {
 
         FullQualifiedName entityFqn = createEntityRequest.getEntityType();
         Set<FullQualifiedName> propertyFqns = dms.getEntityType( entityFqn ).getProperties();
-        Set<HashMultimap<FullQualifiedName, Object>> propertyValues = createEntityRequest.getPropertyValues();
+        Set<Multimap<FullQualifiedName, Object>> propertyValues = createEntityRequest.getPropertyValues();
         UUID aclId = createEntityRequest.getAclId().or( UUIDs.ACLs.EVERYONE_ACL );
         UUID syncId = createEntityRequest.getSyncId().or( UUIDs.Syncs.BASE.getSyncId() );
 

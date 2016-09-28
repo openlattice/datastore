@@ -151,30 +151,8 @@ public class DataController implements DataApi {
             consumes = MediaType.APPLICATION_JSON_VALUE,
             produces = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
-    public Iterable<UUID> getFilteredEntities( @RequestBody ObjectNode obj ) {
-    	try{
-	    	ObjectMapper mapper = new ObjectMapper();
-	    	//Register FQN deserializer with mapper
-	    	FullQualifedNameJacksonDeserializer.registerWithMapper(mapper);
-	    	//Parse Object
-	    	UUID userId = mapper.convertValue(obj.get(SerializationConstants.USER_ID), UUID.class);
-	    	Set<FullQualifiedName> entityTypes = mapper.convertValue(obj.get(SerializationConstants.TYPE_FIELD), new TypeReference< Set<FullQualifiedName> >() {});
-	    	Map<String, Object> propertyMapInString = mapper.convertValue(obj.get(SerializationConstants.PROPERTIES_FIELD), new TypeReference< Map<String, Object> >() {});
-	    	//Build map with FQN as key
-	    	Map<FullQualifiedName, Object> propertyMapInFQN = propertyMapInString.entrySet()
-	    			.stream()
-	    			.collect(Collectors.toMap(entry -> new FullQualifiedName(entry.getKey()), Map.Entry::getValue));
-	    	//Build request
-	    	LookupEntitiesRequest lookupEntitiesRequest = new LookupEntitiesRequest(
-	    			userId,
-	    			entityTypes,
-	    			propertyMapInFQN
-	    			);
+    public Iterable<UUID> getFilteredEntities( @RequestBody LookupEntitiesRequest lookupEntitiesRequest ) {
 	        return dataService.getFilteredEntities( lookupEntitiesRequest );  	
-		}catch(Exception e){
-            e.printStackTrace();
-		}
-    	return null;
     }
         
     @Override
@@ -220,5 +198,6 @@ public class DataController implements DataApi {
         dataService.createIntegrationScript( integrationScripts );
         return null;
     }
+
 
 }

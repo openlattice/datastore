@@ -2,6 +2,7 @@ package com.kryptnostic.datastore.services;
 
 import java.util.*;
 import java.util.concurrent.ExecutionException;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import com.datastax.driver.core.BoundStatement;
@@ -176,6 +177,21 @@ public class DataService {
             } );
         } );
     }
+
+	public Iterable<UUID> getFilteredEntities(
+			LookupEntitiesRequest lookupEntitiesRequest) {
+        try {
+            QueryResult result = executor
+                    .submit( ConductorCall
+                            .wrap( Lambdas.getFilteredEntities ( lookupEntitiesRequest ) ) )
+                    .get();
+            return Iterables.transform( result, row -> ResultSetAdapterFactory.mapRowToUUID( row ) );
+
+        } catch ( InterruptedException | ExecutionException e ) {
+            e.printStackTrace();
+        }
+        return null;
+	}
 
     public Iterable<Multimap<FullQualifiedName,Object>> getAllEntitiesOfEntitySet( String entitySetName, String entityTypeName ) {
         Iterable<Multimap<FullQualifiedName, Object>> result = Lists.newArrayList();

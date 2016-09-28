@@ -273,7 +273,8 @@ public class EdmController implements EdmApi {
     @Override
     @RequestMapping(
             path = PROPERTY_TYPE_BASE_PATH + NAMESPACE_PATH + NAME_PATH,
-            method = RequestMethod.GET )
+            method = RequestMethod.GET,
+            produces = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
     public PropertyType getPropertyType( @PathVariable( NAMESPACE ) String namespace, @PathVariable( NAME ) String name ) {
         return modelService.getPropertyType( new FullQualifiedName( namespace, name ) );

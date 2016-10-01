@@ -7,6 +7,7 @@ import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
+import java.net.URL;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -127,20 +128,23 @@ public class CustomCSVPopulation {
 		
 		defaultTypeList.add( new customPropertyType("alpha", EdmPrimitiveTypeKind.String, "alpha", () -> RandomStringUtils.randomAlphabetic(8), "String" ) );
 		multiplicityOfDefaultType.add(0);
-				
+/**			
 		defaultTypeList.add( new customPropertyType("bool", EdmPrimitiveTypeKind.Boolean, "bool", () -> (new Random()).nextBoolean(), "Boolean" ) );
 		multiplicityOfDefaultType.add(0);
-		
+*/	
 		defaultTypeList.add( new customPropertyType("char", EdmPrimitiveTypeKind.String, "char", () -> RandomStringUtils.randomAlphabetic(1), "String" ) );
 		multiplicityOfDefaultType.add(0);
-		
+/**		
+		defaultTypeList.add( new customPropertyType("digit", EdmPrimitiveTypeKind.Int32, "digit", () -> (new Random()).nextInt(9), "Integer" ) );
+		multiplicityOfDefaultType.add(0);
+*/	
 		defaultTypeList.add( new customPropertyType("float", EdmPrimitiveTypeKind.Double, "float", () -> (new Random()).nextFloat(), "Double" ) );
 		multiplicityOfDefaultType.add(0);
 		
 		defaultTypeList.add( new customPropertyType("guid", EdmPrimitiveTypeKind.Guid, "guid", () -> UUID.randomUUID(), "UUID" ) );
 		multiplicityOfDefaultType.add(0);
 		
-		defaultTypeList.add( new customPropertyType("integer", EdmPrimitiveTypeKind.Int32, "integer", () -> (new Random()).nextInt(12345678), "Integer" ) );
+		defaultTypeList.add( new customPropertyType("integer", EdmPrimitiveTypeKind.Int32, "integer", () -> (new Random()).nextInt(123456), "Integer" ) );
 		multiplicityOfDefaultType.add(0);
 		
 		defaultTypeList.add( new customPropertyType("string", EdmPrimitiveTypeKind.String, "string", () -> RandomStringUtils.randomAscii(10), "String" ) );
@@ -292,6 +296,8 @@ public class CustomCSVPopulation {
 			return Double.parseDouble(str);
 		}else if(type.equals("UUID")){
 			return UUID.fromString(str);
+		}else if(type.equals("Long")){
+			return Long.parseLong(str);
 		}else{
 			return str;
 		}		
@@ -333,17 +339,49 @@ public class CustomCSVPopulation {
                   entity );
 		}
 	}
+/**	
+	public static void TimeJoin(int numTest){
+		for (int i = 0; i < numTest; i++){
+			String url = "http://localhost:8080/ontology/data/entitydata/";
+			URL obj = new URL();
+			HttpURLConnection con = (HttpURLConnection) obj.openConnection();
+
+			// optional default is GET
+			con.setRequestMethod("GET");
+
+			//add request header
+			con.setRequestProperty("User-Agent", USER_AGENT);
+
+			int responseCode = con.getResponseCode();
+			System.out.println("\nSending 'GET' request to URL : " + url);
+			System.out.println("Response Code : " + responseCode);
+
+			BufferedReader in = new BufferedReader(
+			        new InputStreamReader(con.getInputStream()));
+			String inputLine;
+			StringBuffer response = new StringBuffer();
+
+			while ((inputLine = in.readLine()) != null) {
+				response.append(inputLine);
+			}
+			in.close();
+
+			//print result
+			System.out.println(response.toString());
+		}
+	}
+*/	
 	public static void main(String args[]) throws Exception{
 		//Perhaps drop keyspace to make things cleaner
 		//DONE: Load the default property types, from part of the keywords in http://www.convertcsv.com/generate-test-data.htm#keywords
 		LoadDefaultPropertyTypes();
 		//DONE: Generate a list of custom property types
-		GeneratePropertyTypes(10);
+		GeneratePropertyTypes(100);
 		//DONE: Add in a key column that will be used as partition key
-		propertyTypesList.add( new customPropertyType("key", EdmPrimitiveTypeKind.Int64, "key", () -> ++partitionKey, "Integer" ) );
+		propertyTypesList.add( new customPropertyType("key", EdmPrimitiveTypeKind.Int64, "key", () -> ++partitionKey, "Long" ) );
 		//Generate CSV
 		try {
-			GenerateCSV(100, "src/test/resources/stressTest.csv");
+			GenerateCSV(100000, "src/test/resources/stressTest.csv");
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -363,6 +401,8 @@ public class CustomCSVPopulation {
 		//Write CSV into database
 		WriteCSVtoDB( "src/test/resources/stressTest.csv" );
 		
+		//Time getAllEntitiesOfType, with random Entity Type
+		TimeJoin(50);
 		//End Cassandra
         ds.plowUnder();
         

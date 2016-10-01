@@ -6,9 +6,9 @@
 enable-persistence:  false
 session-clustering-enabled: false
 
-rethinkdb:
-    hostname: "localhost"
-    port: 28015
+#rethinkdb:
+#    hostname: "localhost"
+#    port: 28015
     
 cassandra:
     replication-factor: 1

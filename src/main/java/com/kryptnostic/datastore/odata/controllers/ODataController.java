@@ -7,14 +7,19 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import org.apache.olingo.commons.api.data.EntityCollection;
+import org.apache.olingo.commons.api.edm.EdmEntitySet;
 import org.apache.olingo.commons.api.edmx.EdmxReference;
 import org.apache.olingo.server.api.OData;
+import org.apache.olingo.server.api.ODataApplicationException;
 import org.apache.olingo.server.api.ODataHttpHandler;
 import org.apache.olingo.server.api.ServiceMetadata;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.*;
 
 import com.hazelcast.core.HazelcastInstance;
 import com.kryptnostic.datastore.odata.KryptnosticEdmProvider;
@@ -55,5 +60,15 @@ public class ODataController {
             logger.error( "Server Error occurred in ExampleServlet", e );
             throw new ServletException( e );
         }
+    }
+    
+    @RequestMapping( 
+    		path = { "/readEntitySetData" },
+    		method = RequestMethod.POST,
+            consumes = MediaType.APPLICATION_JSON_VALUE,
+            produces = MediaType.APPLICATION_JSON_VALUE )
+    @ResponseStatus( HttpStatus.OK )
+    public EntityCollection readEntitySetData( EdmEntitySet edmEntitySet ) throws ServletException, ODataApplicationException {
+    	return storage.readEntitySetData( edmEntitySet );
     }
 }

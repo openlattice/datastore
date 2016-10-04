@@ -2,11 +2,18 @@ package com.kryptnostic.datastore.edm;
 
 import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
+import java.math.BigInteger;
+import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
+import java.net.ProtocolException;
 import java.net.URL;
 import java.nio.file.Files;
 import java.util.ArrayList;
@@ -21,6 +28,7 @@ import java.util.Scanner;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.Callable;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
@@ -30,6 +38,7 @@ import org.apache.olingo.commons.api.data.Property;
 import org.apache.olingo.commons.api.data.ValueType;
 import org.apache.olingo.commons.api.edm.EdmPrimitiveTypeKind;
 import org.apache.olingo.commons.api.edm.FullQualifiedName;
+import org.junit.Test;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -39,23 +48,34 @@ import com.fasterxml.jackson.dataformat.csv.CsvMapper;
 import com.fasterxml.jackson.dataformat.csv.CsvParser;
 import com.fasterxml.jackson.dataformat.csv.CsvSchema;
 import com.fasterxml.jackson.dataformat.csv.CsvSchema.ColumnType;
+import com.google.common.base.Stopwatch;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Multimap;
 import com.kryptnostic.conductor.rpc.UUIDs.ACLs;
 import com.kryptnostic.conductor.rpc.UUIDs.Syncs;
 import com.kryptnostic.conductor.rpc.odata.EntityType;
 import com.kryptnostic.conductor.rpc.odata.PropertyType;
+import com.kryptnostic.datastore.services.DataService;
 import com.kryptnostic.datastore.services.EdmManager;
 import com.kryptnostic.datastore.services.ODataStorageService;
 
 public class CustomCSVPopulation {
+	public static int numPropertyTypes;
+	public static int numEntityTypes;
+	public static int numEntitySets;
+	public static int numRows;
+	
+	public static String individualResultLoc = "src/test/resources/allResult.txt";
+	public static String averageResultLoc = "src/test/resources/averageResult.txt";
+	
     public static final String               NAMESPACE       = "stressTest";
     protected static final DatastoreServices ds              = new DatastoreServices();
     static EdmManager dms;
     static ODataStorageService odsc;
+    static DataService dataService;
     
 	public static int defaultTypeSize = 0;
 	public static List<customPropertyType> defaultTypeList = new ArrayList<customPropertyType>();
-	public static List<Integer> multiplicityOfDefaultType = new ArrayList<Integer>();
 	
 	public static List<customPropertyType> propertyTypesList = new ArrayList<customPropertyType>();
 	public static CsvSchema csvSchema;
@@ -66,9 +86,8 @@ public class CustomCSVPopulation {
 	//Random
 	public static Map<String, Supplier> RandomGenerator = new HashMap<String, Supplier>();
 	
-	//Partition Key
+	//Partition Key Count
 	public static int partitionKey = 0;
-	
 	/**
 	 * Custom PropertyType. Will use to generate PropertyType in datastore.
 	 * @param name Name of property type to be used in generating datastore PropertyType
@@ -81,7 +100,6 @@ public class CustomCSVPopulation {
 		private String name;
 		private EdmPrimitiveTypeKind dataType;
 		private String keyword;
-//		private ColumnType columnType;
 		private Callable randomGenCallable;
 		private String javaTypeName;
 		
@@ -89,7 +107,6 @@ public class CustomCSVPopulation {
 			this.name = name;
 			this.dataType = dataType;
 			this.keyword = keyword;
-//			this.columnType = columnType;
 			this.randomGenCallable = randomGenCallable;
 			this.javaTypeName = javaTypeName;
 		}
@@ -97,10 +114,6 @@ public class CustomCSVPopulation {
 		public String getJavaTypeName() {
 			return javaTypeName;
 		}
-
-//		public ColumnType getColumnType() {
-//			return columnType;
-//		}
 
 		public String getKeyword() {
 			return keyword;
@@ -124,31 +137,24 @@ public class CustomCSVPopulation {
 	
 	public static void LoadDefaultPropertyTypes(){
 		defaultTypeList.add( new customPropertyType("age", EdmPrimitiveTypeKind.Int32, "age", () -> (new Random()).nextInt(120), "Integer") );
-		multiplicityOfDefaultType.add(0);
 		
 		defaultTypeList.add( new customPropertyType("alpha", EdmPrimitiveTypeKind.String, "alpha", () -> RandomStringUtils.randomAlphabetic(8), "String" ) );
-		multiplicityOfDefaultType.add(0);
 /**			
 		defaultTypeList.add( new customPropertyType("bool", EdmPrimitiveTypeKind.Boolean, "bool", () -> (new Random()).nextBoolean(), "Boolean" ) );
 		multiplicityOfDefaultType.add(0);
 */	
 		defaultTypeList.add( new customPropertyType("char", EdmPrimitiveTypeKind.String, "char", () -> RandomStringUtils.randomAlphabetic(1), "String" ) );
-		multiplicityOfDefaultType.add(0);
 /**		
 		defaultTypeList.add( new customPropertyType("digit", EdmPrimitiveTypeKind.Int32, "digit", () -> (new Random()).nextInt(9), "Integer" ) );
 		multiplicityOfDefaultType.add(0);
 */	
 		defaultTypeList.add( new customPropertyType("float", EdmPrimitiveTypeKind.Double, "float", () -> (new Random()).nextFloat(), "Double" ) );
-		multiplicityOfDefaultType.add(0);
 		
 		defaultTypeList.add( new customPropertyType("guid", EdmPrimitiveTypeKind.Guid, "guid", () -> UUID.randomUUID(), "UUID" ) );
-		multiplicityOfDefaultType.add(0);
 		
 		defaultTypeList.add( new customPropertyType("integer", EdmPrimitiveTypeKind.Int32, "integer", () -> (new Random()).nextInt(123456), "Integer" ) );
-		multiplicityOfDefaultType.add(0);
 		
 		defaultTypeList.add( new customPropertyType("string", EdmPrimitiveTypeKind.String, "string", () -> RandomStringUtils.randomAscii(10), "String" ) );
-		multiplicityOfDefaultType.add(0);
 				
 		defaultTypeSize = defaultTypeList.size();				
 	}
@@ -161,19 +167,16 @@ public class CustomCSVPopulation {
  	 * @return
 	 */
 	public static List<customPropertyType> GeneratePropertyTypes(int n){
+		numPropertyTypes = n;
 		
 		Random rand = new Random();
 		for (int i = 0; i < n; i++){
 			int index = rand.nextInt(defaultTypeSize);
 			
-			int count = multiplicityOfDefaultType.get( index ) + 1;
-			multiplicityOfDefaultType.set( index, count );
-			
 			customPropertyType propertyType = defaultTypeList.get(index);
-			String newName = propertyType.getName() + "-" + count;
+			String newName = propertyType.getName() + "-" + rand.nextLong();
 			EdmPrimitiveTypeKind dataType = propertyType.getDataType();
 			String keyword = propertyType.getKeyword();
-//			ColumnType columnType = propertyType.getColumnType();
 			Callable randomGenCallable = propertyType.getRandomGenCallable();
 			String javaTypeName = propertyType.getJavaTypeName();
 			
@@ -182,11 +185,11 @@ public class CustomCSVPopulation {
 		return propertyTypesList;
 	}
 	
-	public static void GenerateCSV(int numRows, String location) throws Exception{
+	public static void GenerateCSV(int n, String location) throws Exception{
+		numRows = n;
 		//Build CSV Schema
 		CsvSchema.Builder schemaBuilder = CsvSchema.builder();
 		for (customPropertyType type: propertyTypesList){
-//			schemaBuilder.addColumn(type.getName(), type.getColumnType());
 			schemaBuilder.addColumn(type.getName());
 		}
 		csvSchema = schemaBuilder.build();
@@ -233,7 +236,9 @@ public class CustomCSVPopulation {
 	 * * Each Entity Type has 
 	 */
 	public static void CreateEntityTypes(int n, int m){
-		for(int i = 0; i < n; i++){
+		numEntityTypes = n;
+		numEntitySets = m;
+		for(int i = 0; i < numEntityTypes; i++){
 			//Entity Type of 10-character names
 			String entityTypeName = RandomStringUtils.randomAlphabetic(10);
 			
@@ -255,7 +260,7 @@ public class CustomCSVPopulation {
 			EntityTypesList.add( entityTypeName );
 			
 			//Create entity set
-			for(int j = 0; j < m; j++){
+			for(int j = 0; j < numEntitySets; j++){
 				String entitySetName = RandomStringUtils.randomAlphabetic(10);
 				//Create entity set
 		        dms.createEntitySet( 
@@ -339,74 +344,95 @@ public class CustomCSVPopulation {
                   entity );
 		}
 	}
-/**	
-	public static void TimeJoin(int numTest){
-		for (int i = 0; i < numTest; i++){
-			String url = "http://localhost:8080/ontology/data/entitydata/";
-			URL obj = new URL();
-			HttpURLConnection con = (HttpURLConnection) obj.openConnection();
+	/**
+	 * Benchmarking getAllEntitiesOfType
+	 * @param numTest
+	 * @throws IOException 
+	 */
+	public static void TimeGetAllEntitiesOfType(int numTest) throws IOException{
+		//Initialize file writers
+		File fileAll = new File(individualResultLoc);
+		FileWriter fwAll = new FileWriter(fileAll.getAbsoluteFile());
+		BufferedWriter bwAll = new BufferedWriter(fwAll);
+		
+		File fileAverage = new File(averageResultLoc);
+		FileWriter fwAverage = new FileWriter(fileAverage.getAbsoluteFile());
+		BufferedWriter bwAverage = new BufferedWriter(fwAverage);
+		
+		bwAll.write("========================================================== \n");
+		bwAll.write("Testing: getAllEntitiesOfType \n");
+		bwAll.write("Number of Columns: " + numPropertyTypes + " \n");
+		bwAll.write("Number of Rows: " + numRows + " \n");
+		bwAll.write("Number of Entity Types: " + numEntityTypes + " \n");
+		bwAll.write("Number of Entity Sets: " + numEntitySets + " \n");
+		bwAll.write("========================================================== \n");
+		bwAll.write("Test #, Time elapsed (ms) \n");
+		
+		bwAverage.write("========================================================== \n");
+		bwAverage.write("Testing: getAllEntitiesOfType \n");
+		bwAverage.write("Number of Columns: " + numPropertyTypes + " \n");
+		bwAverage.write("Number of Rows: " + numRows + " \n");
+		bwAverage.write("Number of Entity Types: " + numEntityTypes + " \n");
+		bwAverage.write("Number of Entity Sets: " + numEntitySets + " \n");
+		bwAverage.write("========================================================== \n");
 
-			// optional default is GET
-			con.setRequestMethod("GET");
-
-			//add request header
-			con.setRequestProperty("User-Agent", USER_AGENT);
-
-			int responseCode = con.getResponseCode();
-			System.out.println("\nSending 'GET' request to URL : " + url);
-			System.out.println("Response Code : " + responseCode);
-
-			BufferedReader in = new BufferedReader(
-			        new InputStreamReader(con.getInputStream()));
-			String inputLine;
-			StringBuffer response = new StringBuffer();
-
-			while ((inputLine = in.readLine()) != null) {
-				response.append(inputLine);
-			}
-			in.close();
-
+		//Actual testing
+		float totalTime = 0;
+		
+		for (int i = 0; i < numTest; i++){			
+			//Decide which EntityType to look up
+			String entityTypeName = EntityTypesList.get( (new Random()).nextInt(EntityTypesList.size()) );
+			//Make request
+			Stopwatch stopwatch = Stopwatch.createStarted();
+			Iterable<Multimap<FullQualifiedName,Object>> result = dataService.readAllEntitiesOfType( new FullQualifiedName( NAMESPACE, entityTypeName ) );
 			//print result
-			System.out.println(response.toString());
+			stopwatch.stop();
+			
+			totalTime += stopwatch.elapsed(TimeUnit.MILLISECONDS);
+			
+			bwAll.write(i + "," + stopwatch.elapsed(TimeUnit.MILLISECONDS) + " \n");
 		}
+		
+		bwAverage.write("Number of tests: " + numTest + " \n");
+		bwAverage.write("Average Time (ms):" + totalTime/numTest + " \n");
+		
+		bwAll.close();
+		bwAverage.close();
 	}
-*/	
+	@Test
 	public static void main(String args[]) throws Exception{
 		//Perhaps drop keyspace to make things cleaner
-		//DONE: Load the default property types, from part of the keywords in http://www.convertcsv.com/generate-test-data.htm#keywords
 		LoadDefaultPropertyTypes();
-		//DONE: Generate a list of custom property types
-		GeneratePropertyTypes(100);
-		//DONE: Add in a key column that will be used as partition key
-		propertyTypesList.add( new customPropertyType("key", EdmPrimitiveTypeKind.Int64, "key", () -> ++partitionKey, "Long" ) );
-		//Generate CSV
+		GeneratePropertyTypes(20);
+		//Add in a key column that will be used as partition key
+		propertyTypesList.add( new customPropertyType("key", EdmPrimitiveTypeKind.Int32, "key", () -> ++partitionKey, "Integer" ) );
+
 		try {
-			GenerateCSV(100000, "src/test/resources/stressTest.csv");
+			GenerateCSV(20000, "src/test/resources/stressTest.csv");
 		} catch (Exception e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}		
-		//Start Cassandra and get beans
-        ds.sprout("cassandra");
+
+		ds.sprout("cassandra");
         dms = ds.getContext().getBean( EdmManager.class );
         odsc = ds.getContext().getBean( ODataStorageService.class );
+        dataService = ds.getContext().getBean( DataService.class );
 		
-        //DONE: Create PropertyType in database
+        //Create PropertyType, Entity Types, Entity Sets in database
 		CreatePropertyTypes();
-		//DONE: Create EntityType, and EntitySet for this test in database
-		CreateEntityTypes(5, 3);
-		//DONE: Create Schema
+		//Create 3 EntityTypes, each with 2 EntitySets for this test in database
+		CreateEntityTypes(3, 2);
 		CreateSchema();
 		
-		//Write CSV into database
 		WriteCSVtoDB( "src/test/resources/stressTest.csv" );
 		
-		//Time getAllEntitiesOfType, with random Entity Type
-		TimeJoin(50);
-		//End Cassandra
-        ds.plowUnder();
+		System.out.println("TEST STARTS");
+		//Time getAllEntitiesOfType 10 times
+		TimeGetAllEntitiesOfType(10);
+		//Go to src/test/resources/{allResult.text, averageResult.txt} for test results.
+		
+        ds.plowUnder();        
+        System.out.println("TEST DONE");
         
-		//At this point, write shell script to make curl requests to server, and time.
-
 	}
 }

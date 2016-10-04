@@ -38,6 +38,8 @@ import org.apache.olingo.commons.api.data.Property;
 import org.apache.olingo.commons.api.data.ValueType;
 import org.apache.olingo.commons.api.edm.EdmPrimitiveTypeKind;
 import org.apache.olingo.commons.api.edm.FullQualifiedName;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -399,8 +401,9 @@ public class CustomCSVPopulation {
 		bwAll.close();
 		bwAverage.close();
 	}
-	@Test
-	public void main(String args[]) throws Exception{
+	
+	@BeforeClass
+	public static void PopulateWithData() throws Exception{
 		//Perhaps drop keyspace to make things cleaner
 		LoadDefaultPropertyTypes();
 		GeneratePropertyTypes(20);
@@ -427,12 +430,18 @@ public class CustomCSVPopulation {
 		WriteCSVtoDB( "src/test/resources/stressTest.csv" );
 		
 		System.out.println("TEST STARTS");
+	}
+	
+	@Test
+	public void TestGetAllEntitiesOfType() throws IOException{
 		//Time getAllEntitiesOfType 10 times
 		TimeGetAllEntitiesOfType(10);
 		//Go to src/test/resources/{allResult.text, averageResult.txt} for test results.
-		
+	}
+	
+	@AfterClass
+	public static void PlowingUnder(){
         ds.plowUnder();        
-        System.out.println("TEST DONE");
-        
+        System.out.println("TEST DONE");	
 	}
 }

@@ -400,7 +400,7 @@ public class CustomCSVPopulation {
 		bwAverage.close();
 	}
 	@Test
-	public static void main(String args[]) throws Exception{
+	public void main(String args[]) throws Exception{
 		//Perhaps drop keyspace to make things cleaner
 		LoadDefaultPropertyTypes();
 		GeneratePropertyTypes(20);

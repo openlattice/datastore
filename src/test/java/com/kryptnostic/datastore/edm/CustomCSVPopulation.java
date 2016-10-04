@@ -77,16 +77,16 @@ public class CustomCSVPopulation {
     static DataService dataService;
     
 	public static int defaultTypeSize = 0;
-	public static List<customPropertyType> defaultTypeList = new ArrayList<customPropertyType>();
+	public static List<CustomPropertyType> defaultTypeList = new ArrayList<>();
 	
-	public static List<customPropertyType> propertyTypesList = new ArrayList<customPropertyType>();
+	public static List<CustomPropertyType> propertyTypesList = new ArrayList<>();
 	public static CsvSchema csvSchema;
 	public static List<String> EntityTypesList = new ArrayList<String>();
 	public static List<String> EntitySetsList = new ArrayList<String>();
-	public static Map<String, String> EntitySetToType = new HashMap<String, String>();	
+	public static Map<String, String> EntitySetToType = new HashMap<>();	
 	
 	//Random
-	public static Map<String, Supplier> RandomGenerator = new HashMap<String, Supplier>();
+	public static Map<String, Supplier> RandomGenerator = new HashMap<>();
 	
 	//Partition Key Count
 	public static int partitionKey = 0;
@@ -98,14 +98,14 @@ public class CustomCSVPopulation {
 	 * @author soarer
 	 *
 	 */
-	private static class customPropertyType{
+	private static class CustomPropertyType{
 		private String name;
 		private EdmPrimitiveTypeKind dataType;
 		private String keyword;
 		private Callable randomGenCallable;
 		private String javaTypeName;
 		
-		public customPropertyType(String name, EdmPrimitiveTypeKind dataType, String keyword, Callable randomGenCallable, String javaTypeName) {
+		public CustomPropertyType(String name, EdmPrimitiveTypeKind dataType, String keyword, Callable randomGenCallable, String javaTypeName) {
 			this.name = name;
 			this.dataType = dataType;
 			this.keyword = keyword;
@@ -137,26 +137,26 @@ public class CustomCSVPopulation {
 		}
 	}
 	
-	public static void LoadDefaultPropertyTypes(){
-		defaultTypeList.add( new customPropertyType("age", EdmPrimitiveTypeKind.Int32, "age", () -> (new Random()).nextInt(120), "Integer") );
+	public static void loadDefaultPropertyTypes(){
+		defaultTypeList.add( new CustomPropertyType("age", EdmPrimitiveTypeKind.Int32, "age", () -> (new Random()).nextInt(120), "Integer") );
 		
-		defaultTypeList.add( new customPropertyType("alpha", EdmPrimitiveTypeKind.String, "alpha", () -> RandomStringUtils.randomAlphabetic(8), "String" ) );
+		defaultTypeList.add( new CustomPropertyType("alpha", EdmPrimitiveTypeKind.String, "alpha", () -> RandomStringUtils.randomAlphabetic(8), "String" ) );
 /**			
-		defaultTypeList.add( new customPropertyType("bool", EdmPrimitiveTypeKind.Boolean, "bool", () -> (new Random()).nextBoolean(), "Boolean" ) );
+		defaultTypeList.add( new CustomPropertyType("bool", EdmPrimitiveTypeKind.Boolean, "bool", () -> (new Random()).nextBoolean(), "Boolean" ) );
 		multiplicityOfDefaultType.add(0);
 */	
-		defaultTypeList.add( new customPropertyType("char", EdmPrimitiveTypeKind.String, "char", () -> RandomStringUtils.randomAlphabetic(1), "String" ) );
+		defaultTypeList.add( new CustomPropertyType("char", EdmPrimitiveTypeKind.String, "char", () -> RandomStringUtils.randomAlphabetic(1), "String" ) );
 /**		
-		defaultTypeList.add( new customPropertyType("digit", EdmPrimitiveTypeKind.Int32, "digit", () -> (new Random()).nextInt(9), "Integer" ) );
+		defaultTypeList.add( new CustomPropertyType("digit", EdmPrimitiveTypeKind.Int32, "digit", () -> (new Random()).nextInt(9), "Integer" ) );
 		multiplicityOfDefaultType.add(0);
 */	
-		defaultTypeList.add( new customPropertyType("float", EdmPrimitiveTypeKind.Double, "float", () -> (new Random()).nextFloat(), "Double" ) );
+		defaultTypeList.add( new CustomPropertyType("float", EdmPrimitiveTypeKind.Double, "float", () -> (new Random()).nextFloat(), "Double" ) );
 		
-		defaultTypeList.add( new customPropertyType("guid", EdmPrimitiveTypeKind.Guid, "guid", () -> UUID.randomUUID(), "UUID" ) );
+		defaultTypeList.add( new CustomPropertyType("guid", EdmPrimitiveTypeKind.Guid, "guid", () -> UUID.randomUUID(), "UUID" ) );
 		
-		defaultTypeList.add( new customPropertyType("integer", EdmPrimitiveTypeKind.Int32, "integer", () -> (new Random()).nextInt(123456), "Integer" ) );
+		defaultTypeList.add( new CustomPropertyType("integer", EdmPrimitiveTypeKind.Int32, "integer", () -> (new Random()).nextInt(123456), "Integer" ) );
 		
-		defaultTypeList.add( new customPropertyType("string", EdmPrimitiveTypeKind.String, "string", () -> RandomStringUtils.randomAscii(10), "String" ) );
+		defaultTypeList.add( new CustomPropertyType("string", EdmPrimitiveTypeKind.String, "string", () -> RandomStringUtils.randomAscii(10), "String" ) );
 				
 		defaultTypeSize = defaultTypeList.size();				
 	}
@@ -168,30 +168,30 @@ public class CustomCSVPopulation {
 	 * Multiplicities of default Types generated would be recorded, and append to the name of generated property type
  	 * @return
 	 */
-	public static List<customPropertyType> GeneratePropertyTypes(int n){
+	public static List<CustomPropertyType> generatePropertyTypes(int n){
 		numPropertyTypes = n;
 		
 		Random rand = new Random();
 		for (int i = 0; i < n; i++){
 			int index = rand.nextInt(defaultTypeSize);
 			
-			customPropertyType propertyType = defaultTypeList.get(index);
+			CustomPropertyType propertyType = defaultTypeList.get(index);
 			String newName = propertyType.getName() + "-" + rand.nextLong();
 			EdmPrimitiveTypeKind dataType = propertyType.getDataType();
 			String keyword = propertyType.getKeyword();
 			Callable randomGenCallable = propertyType.getRandomGenCallable();
 			String javaTypeName = propertyType.getJavaTypeName();
 			
-			propertyTypesList.add( new customPropertyType(newName,dataType,keyword,randomGenCallable,javaTypeName) );			
+			propertyTypesList.add( new CustomPropertyType(newName,dataType,keyword,randomGenCallable,javaTypeName) );			
 		}
 		return propertyTypesList;
 	}
 	
-	public static void GenerateCSV(int n, String location) throws Exception{
+	public static void generateCSV(int n, String location) throws Exception{
 		numRows = n;
 		//Build CSV Schema
 		CsvSchema.Builder schemaBuilder = CsvSchema.builder();
-		for (customPropertyType type: propertyTypesList){
+		for (CustomPropertyType type: propertyTypesList){
 			schemaBuilder.addColumn(type.getName());
 		}
 		csvSchema = schemaBuilder.build();
@@ -213,7 +213,7 @@ public class CustomCSVPopulation {
         List<List<Object>> values = new ArrayList<List<Object>>();
         for(int i = 0; i < numRows; i++){
         	List<Object> rowValues = new ArrayList<Object>();
-        	for( customPropertyType type : propertyTypesList){
+        	for( CustomPropertyType type : propertyTypesList){
         		rowValues.add( type.getRandom() );
         	}
         	values.add(rowValues);
@@ -222,22 +222,22 @@ public class CustomCSVPopulation {
 		System.out.println("CSV generated \n");
 	}
 	
-	public static void CreatePropertyTypes(){
-		for(customPropertyType type : propertyTypesList){
+	public static void createPropertyTypes(){
+		for(CustomPropertyType type : propertyTypesList){
 			dms.createPropertyType( new PropertyType().setNamespace( NAMESPACE ).setName( type.getName() )
 					.setDatatype( type.getDataType() ).setMultiplicity( 0 ) );
 		}
 	}
 	
 	/**
-	 * @param list List of customPropertyType
+	 * @param list List of CustomPropertyType
 	 * @param n Create n Entity Types, each with all the existing property types.
 	 * @param m Create m Entity Sets for each Entity Type
 	 * Default setting:
 	 * * Entity Type has 10-character names
 	 * * Each Entity Type has 
 	 */
-	public static void CreateEntityTypes(int n, int m){
+	public static void createEntityTypes(int n, int m){
 		numEntityTypes = n;
 		numEntitySets = m;
 		for(int i = 0; i < numEntityTypes; i++){
@@ -250,7 +250,7 @@ public class CustomCSVPopulation {
 	        //Add property types to entity type
 	        
 	        Set<FullQualifiedName> setPropertyTypesFQN = new HashSet<FullQualifiedName>();
-	        for(customPropertyType propertyType: propertyTypesList){
+	        for(CustomPropertyType propertyType: propertyTypesList){
 	        	setPropertyTypesFQN.add( new FullQualifiedName(NAMESPACE, propertyType.getName()) );
 	        }
             entityType.setProperties( setPropertyTypesFQN );
@@ -278,7 +278,7 @@ public class CustomCSVPopulation {
 		}
 	}
 	
-	public static void CreateSchema(){
+	public static void createSchema(){
 		Set<FullQualifiedName> setOfEntityTypes = new HashSet();
 		
 		for(String entityTypeName : EntityTypesList){
@@ -292,25 +292,26 @@ public class CustomCSVPopulation {
 	}
 	
 	private static Object TypeConversion(String str, String type){
-		//Convert string to the corresponding type, guaranteed that the string can be converted to that cype.
-		if(type.equals("Integer")){
-			return Integer.parseInt(str);
-		}else if(type.equals("Boolean")){
-			return Boolean.parseBoolean(str);			
-		}else if(type.equals("Byte")){
-			return Byte.parseByte(str);
-		}else if(type.equals("Double")){
-			return Double.parseDouble(str);
-		}else if(type.equals("UUID")){
-			return UUID.fromString(str);
-		}else if(type.equals("Long")){
-			return Long.parseLong(str);
-		}else{
-			return str;
-		}		
+		//Convert string to the corresponding type, guaranteed that the string can be converted to that type.
+		switch (type) {
+			case "Integer": 
+				return Integer.parseInt(str);
+			case "Boolean":
+				return Boolean.parseBoolean(str);	
+			case "Byte":
+				return Byte.parseByte(str);
+			case "Double":
+				return Double.parseDouble(str);
+			case "UUID":
+				return UUID.fromString(str);
+			case "Long":
+				return Long.parseLong(str);
+			default:
+				return str;
+		}	
 	}
 	
-	public static void WriteCSVtoDB(String location) throws JsonProcessingException, IOException{
+	public static void writeCSVToDB(String location) throws JsonProcessingException, IOException{
 		int numOfEntitySets = EntitySetsList.size();
 		Random rand = new Random();
 		
@@ -329,7 +330,7 @@ public class CustomCSVPopulation {
           entity.setType( entityTypeFQN.getFullQualifiedNameAsString() );
           Map<String, String> map = it.next();
           
-		  for(customPropertyType propertyType : propertyTypesList){
+		  for(CustomPropertyType propertyType : propertyTypesList){
               Property property = new Property();
               String propertyName = propertyType.getName();
               
@@ -351,7 +352,7 @@ public class CustomCSVPopulation {
 	 * @param numTest
 	 * @throws IOException 
 	 */
-	public static void TimeGetAllEntitiesOfType(int numTest) throws IOException{
+	public static void timeGetAllEntitiesOfType(int numTest) throws IOException{
 		//Initialize file writers
 		File fileAll = new File(individualResultLoc);
 		FileWriter fwAll = new FileWriter(fileAll.getAbsoluteFile());
@@ -405,13 +406,13 @@ public class CustomCSVPopulation {
 	@BeforeClass
 	public static void PopulateWithData() throws Exception{
 		//Perhaps drop keyspace to make things cleaner
-		LoadDefaultPropertyTypes();
-		GeneratePropertyTypes(20);
+		loadDefaultPropertyTypes();
+		generatePropertyTypes(20);
 		//Add in a key column that will be used as partition key
-		propertyTypesList.add( new customPropertyType("key", EdmPrimitiveTypeKind.Int32, "key", () -> ++partitionKey, "Integer" ) );
+		propertyTypesList.add( new CustomPropertyType("key", EdmPrimitiveTypeKind.Int32, "key", () -> ++partitionKey, "Integer" ) );
 
 		try {
-			GenerateCSV(20000, "src/test/resources/stressTest.csv");
+			generateCSV(20000, "src/test/resources/stressTest.csv");
 		} catch (Exception e) {
 			e.printStackTrace();
 		}		
@@ -422,12 +423,12 @@ public class CustomCSVPopulation {
         dataService = ds.getContext().getBean( DataService.class );
 		
         //Create PropertyType, Entity Types, Entity Sets in database
-		CreatePropertyTypes();
+		createPropertyTypes();
 		//Create 3 EntityTypes, each with 2 EntitySets for this test in database
-		CreateEntityTypes(3, 2);
-		CreateSchema();
+		createEntityTypes(3, 2);
+		createSchema();
 		
-		WriteCSVtoDB( "src/test/resources/stressTest.csv" );
+		writeCSVToDB( "src/test/resources/stressTest.csv" );
 		
 		System.out.println("TEST STARTS");
 	}
@@ -435,7 +436,7 @@ public class CustomCSVPopulation {
 	@Test
 	public void TestGetAllEntitiesOfType() throws IOException{
 		//Time getAllEntitiesOfType 10 times
-		TimeGetAllEntitiesOfType(10);
+		timeGetAllEntitiesOfType(10);
 		//Go to src/test/resources/{allResult.text, averageResult.txt} for test results.
 	}
 	

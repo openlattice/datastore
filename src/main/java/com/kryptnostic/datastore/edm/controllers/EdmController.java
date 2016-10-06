@@ -22,6 +22,7 @@ import com.kryptnostic.datastore.ServerUtil;
 import com.kryptnostic.datastore.services.GetSchemasRequest.TypeDetails;
 
 import retrofit.client.Response;
+import retrofit.http.Body;
 import retrofit.http.Path;
 
 @RestController
@@ -290,5 +291,19 @@ public class EdmController implements EdmApi {
     public Iterable<PropertyType> getPropertyTypesInNamespace( @PathVariable( NAMESPACE ) String namespace ) {
         return modelService.getPropertyTypesInNamespace( namespace );
     }
-
+    
+    @Override
+    @RequestMapping(
+    		path = ENTITY_TYPE_BASE_PATH + NAMESPACE_PATH + NAME_PATH + ADD_PROPERTY_PATH,
+    		method = RequestMethod.PUT,
+    		consumes = MediaType.APPLICATION_JSON_VALUE)
+    @ResponseStatus( HttpStatus.OK )
+    public Response addPropertyTypeToEntityType (    		
+    		@PathVariable( NAMESPACE ) String namespace,
+    		@PathVariable( NAME ) String name,
+    		@RequestBody Set<FullQualifiedName> properties){
+    	EntityType entityType = modelService.getEntityType( namespace, name );
+    	modelService.addPropertyTypeToEntityType(entityType, properties);
+    	return null;
+    }
 }

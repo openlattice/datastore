@@ -3,6 +3,7 @@ package com.kryptnostic.datastore.edm;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
+import java.util.HashSet;
 import java.util.Set;
 import java.io.OutputStream;
 import java.util.UUID;
@@ -15,6 +16,7 @@ import org.apache.olingo.commons.api.edm.Edm;
 import org.apache.olingo.commons.api.edm.EdmEntityContainer;
 import org.apache.olingo.commons.api.edm.EdmEntitySet;
 import org.apache.olingo.commons.api.edm.EdmEntityType;
+import org.apache.olingo.commons.api.edm.EdmPrimitiveTypeKind;
 import org.apache.olingo.commons.api.edm.FullQualifiedName;
 import org.apache.olingo.commons.api.edm.provider.CsdlEntityContainerInfo;
 import org.apache.olingo.commons.api.edm.provider.CsdlEntitySet;
@@ -38,6 +40,7 @@ import com.kryptnostic.conductor.rpc.UUIDs.ACLs;
 import com.kryptnostic.conductor.rpc.UUIDs.Syncs;
 import com.kryptnostic.conductor.rpc.odata.EntitySet;
 import com.kryptnostic.conductor.rpc.odata.EntityType;
+import com.kryptnostic.conductor.rpc.odata.PropertyType;
 import com.kryptnostic.datastore.odata.KryptnosticEdmProvider;
 import com.kryptnostic.datastore.odata.Transformers;
 import com.kryptnostic.datastore.odata.Transformers.EntityTypeTransformer;
@@ -217,5 +220,55 @@ public class DatastoreTests extends BootstrapDatastoreWithCassandra {
 		} catch (ODataApplicationException e) {
 			e.printStackTrace();
 		}
+    }
+    
+    @Test
+    public void testAddPropertyTypeToEntityType() {
+    	//Desired result: Properties EMPLOYEE_COUNTRY, EMPLOYEE_WEIGHT are added to ENTITY_TYPE (Employees)
+        final String EMPLOYEE_COUNTRY= "employee-country";
+        final String EMPLOYEE_WEIGHT= "employee-weight";
+        
+        EdmManager dms = ds.getContext().getBean( EdmManager.class );
+
+        dms.createPropertyType( new PropertyType().setNamespace( NAMESPACE ).setName( EMPLOYEE_COUNTRY )
+                .setDatatype( EdmPrimitiveTypeKind.String ).setMultiplicity( 0 ) );
+
+        dms.createPropertyType( new PropertyType().setNamespace( NAMESPACE ).setName( EMPLOYEE_WEIGHT )
+                .setDatatype( EdmPrimitiveTypeKind.Int32 ).setMultiplicity( 0 ) );
+        
+        Set<FullQualifiedName> properties = new HashSet<>();
+        properties.add( new FullQualifiedName(NAMESPACE, EMPLOYEE_COUNTRY) );
+        properties.add( new FullQualifiedName(NAMESPACE, EMPLOYEE_WEIGHT) );
+        
+        EntityType entityType = dms.getEntityType( ENTITY_TYPE );
+        dms.addPropertyTypeToEntityType(entityType, properties);
+    }
+
+    @Test
+    public void testAddExistingPropertyTypeToEntityType() {
+    	//Action: Property EMPLOYEE_ID is added to ENTITY_TYPE (Employees)
+    	//Desired result: Since property is already part of ENTITY_TYPE, nothing should happen
+        EdmManager dms = ds.getContext().getBean( EdmManager.class );
+
+        Set<FullQualifiedName> properties = new HashSet<>();
+        properties.add( new FullQualifiedName(NAMESPACE, EMPLOYEE_ID) );
+        
+        EntityType entityType = dms.getEntityType( ENTITY_TYPE );
+        dms.addPropertyTypeToEntityType(entityType, properties);
+    }
+    
+    @Test
+    public void testAddPhantomPropertyTypeToEntityType() {
+    	//Action: Add Property EMPLOYEE_HEIGHT to ENTITY_TYPE (Employees)
+    	//Desired result: Since property does ot exist, nothing should happen
+        final String EMPLOYEE_HEIGHT = "employee-height";
+        
+        EdmManager dms = ds.getContext().getBean( EdmManager.class );
+        
+        Set<FullQualifiedName> properties = new HashSet<>();
+        properties.add( new FullQualifiedName(NAMESPACE, EMPLOYEE_HEIGHT) );
+        
+        EntityType entityType = dms.getEntityType( ENTITY_TYPE );
+        dms.addPropertyTypeToEntityType(entityType, properties);
     }
 }

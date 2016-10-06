@@ -306,4 +306,18 @@ public class EdmController implements EdmApi {
     	modelService.addPropertyTypeToEntityType(entityType, properties);
     	return null;
     }
+    
+    @Override
+    @RequestMapping(
+    		path = SCHEMA_BASE_PATH + NAMESPACE_PATH + NAME_PATH + ADD_PROPERTY_PATH,
+    		method = RequestMethod.PUT,
+    		consumes = MediaType.APPLICATION_JSON_VALUE)
+    @ResponseStatus( HttpStatus.OK )
+    public Response addPropertyTypesToSchema(
+    		@PathVariable( NAMESPACE ) String namespace,
+    		@PathVariable( NAME ) String name,
+    		@RequestBody Set<FullQualifiedName> properties){
+        modelService.addPropertyTypesToSchema( namespace, name, properties );
+        return null;    	
+    }
 }

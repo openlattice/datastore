@@ -7,6 +7,7 @@ import java.util.Set;
 import javax.inject.Inject;
 
 import com.kryptnostic.datastore.services.*;
+import com.kryptnostic.kodex.v1.exceptions.types.ResourceNotFoundException;
 import org.apache.olingo.commons.api.edm.FullQualifiedName;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -22,7 +23,6 @@ import com.kryptnostic.datastore.ServerUtil;
 import com.kryptnostic.datastore.services.GetSchemasRequest.TypeDetails;
 
 import retrofit.client.Response;
-import retrofit.http.Path;
 
 @RestController
 public class EdmController implements EdmApi {
@@ -185,10 +185,13 @@ public class EdmController implements EdmApi {
     public Response addEntityTypeToSchema(
             @PathVariable( NAMESPACE ) String namespace,
             @PathVariable( NAME ) String name,
-            @RequestBody Set<FullQualifiedName> objectTypes ) {
+            @RequestBody Set<FullQualifiedName> objectTypes ) throws ResourceNotFoundException {
+
+        if( modelService.getEntityType( namespace, name ) == null ) {
+            throw new ResourceNotFoundException( "Entity type does not exist!" );
+        }
         modelService.addEntityTypesToSchema( namespace, name, objectTypes );
         return null;
-
     }
 
     @Override

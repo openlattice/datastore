@@ -298,12 +298,12 @@ public class EdmController implements EdmApi {
     		method = RequestMethod.PUT,
     		consumes = MediaType.APPLICATION_JSON_VALUE)
     @ResponseStatus( HttpStatus.OK )
-    public Response addPropertyTypeToEntityType (    		
+    public Response addPropertyTypesToEntityType (    		
     		@PathVariable( NAMESPACE ) String namespace,
     		@PathVariable( NAME ) String name,
     		@RequestBody Set<FullQualifiedName> properties){
     	EntityType entityType = modelService.getEntityType( namespace, name );
-    	modelService.addPropertyTypeToEntityType(entityType, properties);
+    	modelService.addPropertyTypesToEntityType(entityType, properties);
     	return null;
     }
 }

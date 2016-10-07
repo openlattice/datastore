@@ -240,15 +240,6 @@ public class EdmController implements EdmApi {
         return null;
     }
 
-    //TODO: temp fix the build, probably HO need to fix the conflicts for his branch
-    @Override
-    public Response addPropertyTypesToEntityType(
-            @Path( NAMESPACE ) String namespace,
-            @Path( NAME ) String entityTypeName,
-            @Body Set<FullQualifiedName> properties ) {
-        return null;
-    }
-
     @Override
     @RequestMapping(
             path = PROPERTY_TYPE_BASE_PATH,
@@ -306,6 +297,21 @@ public class EdmController implements EdmApi {
     @ResponseStatus( HttpStatus.OK )
     public Iterable<PropertyType> getPropertyTypesInNamespace( @PathVariable( NAMESPACE ) String namespace ) {
         return modelService.getPropertyTypesInNamespace( namespace );
+    }
+    
+    @Override
+    @RequestMapping(
+    		path = ENTITY_TYPE_BASE_PATH + NAMESPACE_PATH + NAME_PATH + ADD_PROPERTY_PATH,
+    		method = RequestMethod.PUT,
+    		consumes = MediaType.APPLICATION_JSON_VALUE)
+    @ResponseStatus( HttpStatus.OK )
+    public Response addPropertyTypesToEntityType (    		
+    		@PathVariable( NAMESPACE ) String namespace,
+    		@PathVariable( NAME ) String name,
+    		@RequestBody Set<FullQualifiedName> properties){
+    	EntityType entityType = modelService.getEntityType( namespace, name );
+    	modelService.addPropertyTypesToEntityType(entityType, properties);
+    	return null;
     }
 
     @Override

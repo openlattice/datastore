@@ -6,6 +6,7 @@ import java.util.Set;
 
 import javax.inject.Inject;
 
+import com.kryptnostic.datastore.exceptions.ResourceNotFoundException;
 import com.kryptnostic.datastore.services.*;
 import org.apache.olingo.commons.api.edm.FullQualifiedName;
 import org.springframework.http.HttpStatus;
@@ -177,34 +178,23 @@ public class EdmController implements EdmApi {
         return modelService.getEntityTypes();
     }
 
-    /*
-     * (non-Javadoc)
-     * @see com.kryptnostic.datastore.edm.controllers.EdmAPI#createPropertyType(java.lang.String, java.lang.String,
-     * java.lang.String, com.kryptnostic.types.ObjectType)
-     */
-    @Override
-    @RequestMapping(
-            path = PROPERTY_TYPE_BASE_PATH,
-            method = RequestMethod.PUT )
-    @ResponseStatus( HttpStatus.OK )
-    public Response putPropertyType( @RequestBody PropertyType propertyType ) {
-        modelService.upsertPropertyType( propertyType );
-        return null;
-    }
-
     @Override
     @RequestMapping(
             path = SCHEMA_BASE_PATH + NAMESPACE_PATH + NAME_PATH,
             method = RequestMethod.PUT,
             consumes = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
-    public Response addEntityTypeToSchema(
+    public Response addEntityTypesToSchema(
             @PathVariable( NAMESPACE ) String namespace,
             @PathVariable( NAME ) String name,
-            @RequestBody Set<FullQualifiedName> objectTypes ) {
-        modelService.addEntityTypesToSchema( namespace, name, objectTypes );
+            @RequestBody Set<FullQualifiedName> entityTypes ) {
+        for( FullQualifiedName fqn : entityTypes ){
+            if( modelService.getEntityType( fqn ) == null ){
+                throw new ResourceNotFoundException( "Entity type: " + fqn.getFullQualifiedNameAsString() + " doesn't exist!" );
+            }
+        }
+        modelService.addEntityTypesToSchema( namespace, name, entityTypes );
         return null;
-
     }
 
     @Override
@@ -256,8 +246,23 @@ public class EdmController implements EdmApi {
             method = RequestMethod.POST,
             consumes = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
-    public boolean postPropertyType( @RequestBody PropertyType propertyType ) {
+    public boolean createPropertyType( @RequestBody PropertyType propertyType ) {
         return modelService.createPropertyType( propertyType );
+    }
+
+    /*
+     * (non-Javadoc)
+     * @see com.kryptnostic.datastore.edm.controllers.EdmAPI#createPropertyType(java.lang.String, java.lang.String,
+     * java.lang.String, com.kryptnostic.types.ObjectType)
+    */
+    @Override
+    @RequestMapping(
+            path = PROPERTY_TYPE_BASE_PATH,
+            method = RequestMethod.PUT )
+    @ResponseStatus( HttpStatus.OK )
+    public Response putPropertyType( @RequestBody PropertyType propertyType ) {
+        modelService.upsertPropertyType( propertyType );
+        return null;
     }
 
     @Override
@@ -278,7 +283,9 @@ public class EdmController implements EdmApi {
             method = RequestMethod.GET,
             produces = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
-    public PropertyType getPropertyType( @PathVariable( NAMESPACE ) String namespace, @PathVariable( NAME ) String name ) {
+    public PropertyType getPropertyType(
+            @PathVariable( NAMESPACE ) String namespace,
+            @PathVariable( NAME ) String name ) {
         return modelService.getPropertyType( new FullQualifiedName( namespace, name ) );
     }
 
@@ -306,4 +313,15 @@ public class EdmController implements EdmApi {
     	modelService.addPropertyTypesToEntityType(entityType, properties);
     	return null;
     }
+
+    @Override
+    @RequestMapping(
+            path = PROPERTY_TYPE_BASE_PATH,
+            method = RequestMethod.GET,
+            produces = MediaType.APPLICATION_JSON_VALUE )
+    @ResponseStatus( HttpStatus.OK )
+    public Iterable<PropertyType> getPropertyTypes() {
+        return modelService.getPropertyTypes();
+    }
+
 }

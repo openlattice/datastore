@@ -6,8 +6,8 @@ import java.util.Set;
 
 import javax.inject.Inject;
 
+import com.kryptnostic.datastore.exceptions.ResourceNotFoundException;
 import com.kryptnostic.datastore.services.*;
-import com.kryptnostic.kodex.v1.exceptions.types.ResourceNotFoundException;
 import org.apache.olingo.commons.api.edm.FullQualifiedName;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -182,15 +182,16 @@ public class EdmController implements EdmApi {
             method = RequestMethod.PUT,
             consumes = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
-    public Response addEntityTypeToSchema(
+    public Response addEntityTypesToSchema(
             @PathVariable( NAMESPACE ) String namespace,
             @PathVariable( NAME ) String name,
-            @RequestBody Set<FullQualifiedName> objectTypes ) throws ResourceNotFoundException {
-
-        if( modelService.getEntityType( namespace, name ) == null ) {
-            throw new ResourceNotFoundException( "Entity type does not exist!" );
+            @RequestBody Set<FullQualifiedName> entityTypes ) {
+        for( FullQualifiedName fqn : entityTypes ){
+            if( modelService.getEntityType( fqn ) == null ){
+                throw new ResourceNotFoundException( "Entity type: " + fqn.getFullQualifiedNameAsString() + " doesn't exist!" );
+            }
         }
-        modelService.addEntityTypesToSchema( namespace, name, objectTypes );
+        modelService.addEntityTypesToSchema( namespace, name, entityTypes );
         return null;
     }
 

@@ -23,6 +23,8 @@ import com.kryptnostic.datastore.ServerUtil;
 import com.kryptnostic.datastore.services.GetSchemasRequest.TypeDetails;
 
 import retrofit.client.Response;
+import retrofit.http.Body;
+import retrofit.http.Path;
 
 @RestController
 public class EdmController implements EdmApi {
@@ -235,6 +237,15 @@ public class EdmController implements EdmApi {
     @ResponseStatus( HttpStatus.OK )
     public Response deleteEntityType( @PathVariable( NAMESPACE ) String namespace, @PathVariable( NAME ) String name ) {
         modelService.deleteEntityType( new FullQualifiedName( namespace, name ) );
+        return null;
+    }
+
+    //TODO: temp fix the build, probably HO need to fix the conflicts for his branch
+    @Override
+    public Response addPropertyTypesToEntityType(
+            @Path( NAMESPACE ) String namespace,
+            @Path( NAME ) String entityTypeName,
+            @Body Set<FullQualifiedName> properties ) {
         return null;
     }
 

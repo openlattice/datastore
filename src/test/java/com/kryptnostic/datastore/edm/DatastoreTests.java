@@ -241,7 +241,7 @@ public class DatastoreTests extends BootstrapDatastoreWithCassandra {
         properties.add( new FullQualifiedName(NAMESPACE, EMPLOYEE_WEIGHT) );
         
         EntityType entityType = dms.getEntityType( ENTITY_TYPE );
-        dms.addPropertyTypeToEntityType(entityType, properties);
+        dms.addPropertyTypesToEntityType(entityType, properties);
     }
 
     @Test
@@ -254,7 +254,7 @@ public class DatastoreTests extends BootstrapDatastoreWithCassandra {
         properties.add( new FullQualifiedName(NAMESPACE, EMPLOYEE_ID) );
         
         EntityType entityType = dms.getEntityType( ENTITY_TYPE );
-        dms.addPropertyTypeToEntityType(entityType, properties);
+        dms.addPropertyTypesToEntityType(entityType, properties);
     }
     
     @Test
@@ -269,6 +269,6 @@ public class DatastoreTests extends BootstrapDatastoreWithCassandra {
         properties.add( new FullQualifiedName(NAMESPACE, EMPLOYEE_HEIGHT) );
         
         EntityType entityType = dms.getEntityType( ENTITY_TYPE );
-        dms.addPropertyTypeToEntityType(entityType, properties);
+        dms.addPropertyTypesToEntityType(entityType, properties);
     }
 }

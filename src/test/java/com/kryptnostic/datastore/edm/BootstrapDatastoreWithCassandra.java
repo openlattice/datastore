@@ -25,6 +25,7 @@ public class BootstrapDatastoreWithCassandra {
     //created by Ho Chung to populate two more entity Types
     protected static final FullQualifiedName ENTITY_TYPE_MARS= new FullQualifiedName( NAMESPACE, "employeeMars" );
     protected static final FullQualifiedName ENTITY_TYPE_SATURN= new FullQualifiedName( NAMESPACE, "employeeSaturn" );
+    protected static final String            SCHEMA_NAME     = "csv";
 
     @BeforeClass
     public static void init() {
@@ -81,7 +82,7 @@ public class BootstrapDatastoreWithCassandra {
                 "The entity set title" );
         
         dms.createSchema( NAMESPACE,
-                "csv",
+                SCHEMA_NAME,
                 ACLs.EVERYONE_ACL,
                 ImmutableSet.of( ENTITY_TYPE, ENTITY_TYPE_MARS, ENTITY_TYPE_SATURN ) );
 

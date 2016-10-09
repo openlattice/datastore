@@ -8,6 +8,8 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 import javax.inject.Inject;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -83,7 +85,15 @@ public class DataController implements DataApi {
     @ResponseStatus( HttpStatus.OK )
     public Iterable<Multimap<FullQualifiedName, Object>> getAllEntitiesOfEntitySet(
             @PathVariable( NAME ) String entitySetName,
-            @PathVariable( TYPE_NAME ) String entityTypeName ) {
+            @PathVariable( TYPE_NAME ) String entityTypeName,
+            HttpServletRequest request,
+            HttpServletResponse response ) {
+        String[] acceptType = request.getHeader( "Accept" ).split( "/" );
+        String fileExtension = ".json";
+        if( acceptType[1] == "csv"){
+            fileExtension = ".csv";
+        }
+        response.setHeader("Content-Disposition", "attachment; filename=" + entitySetName + fileExtension );
         return dataService.getAllEntitiesOfEntitySet( entitySetName, entityTypeName );
     }
 
@@ -94,7 +104,16 @@ public class DataController implements DataApi {
             consumes = MediaType.APPLICATION_JSON_VALUE,
             produces = { MediaType.APPLICATION_JSON_VALUE, MEDIA_TYPE_CSV } )
     @ResponseStatus( HttpStatus.OK )
-    public Iterable<Multimap<FullQualifiedName, Object>> getAllEntitiesOfType( @RequestBody FullQualifiedName fqn ) {
+    public Iterable<Multimap<FullQualifiedName, Object>> getAllEntitiesOfType(
+            @RequestBody FullQualifiedName fqn,
+            HttpServletRequest request,
+            HttpServletResponse response ) {
+        String[] acceptType = request.getHeader( "Accept" ).split( "/" );
+        String fileExtension = ".json";
+        if( acceptType[1] == "csv"){
+            fileExtension = ".csv";
+        }
+        response.setHeader("Content-Disposition", "attachment; filename=" + fqn.getNamespace() + "_" + fqn.getName() + fileExtension );
         return dataService.readAllEntitiesOfType( fqn );
     }
 
@@ -106,8 +125,12 @@ public class DataController implements DataApi {
             produces = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
     public Iterable<Iterable<Multimap<FullQualifiedName, Object>>> getAllEntitiesOfTypes(
-            @RequestBody
-                    List<FullQualifiedName> fqns ) {
+            @RequestBody List<FullQualifiedName> fqns,
+            HttpServletRequest request,
+            HttpServletResponse response ) {
+        String[] acceptType = request.getHeader( "Accept" ).split( "/" );
+        String fileExtension = ".json";
+        response.setHeader("Content-Disposition", "attachment; filename=entities_data" + fileExtension );
         return dataService.readAllEntitiesOfSchema( fqns );
     }
 
@@ -118,8 +141,17 @@ public class DataController implements DataApi {
             produces = { MediaType.APPLICATION_JSON_VALUE, MEDIA_TYPE_CSV } )
     @ResponseStatus( HttpStatus.OK )
     public Iterable<Multimap<FullQualifiedName, Object>> getAllEntitiesOfType(
-            @PathVariable( FULLQUALIFIEDNAME ) String fanAsString ) {
-        return dataService.readAllEntitiesOfType( new FullQualifiedName( fanAsString ) );
+            @PathVariable( FULLQUALIFIEDNAME ) String fqnAsString,
+            HttpServletRequest request,
+            HttpServletResponse response ) {
+        String[] acceptType = request.getHeader( "Accept" ).split( "/" );
+        String fileExtension = ".json";
+        if( acceptType[1] == "csv"){
+            fileExtension = ".csv";
+        }
+        FullQualifiedName fqn = new FullQualifiedName( fqnAsString );
+        response.setHeader("Content-Disposition", "attachment; filename=" + fqn.getNamespace() + "_" + fqn.getName() + fileExtension );
+        return dataService.readAllEntitiesOfType( fqn);
     }
 
     @Override
@@ -129,7 +161,16 @@ public class DataController implements DataApi {
             produces = { MediaType.APPLICATION_JSON_VALUE, MEDIA_TYPE_CSV } )
     @ResponseStatus( HttpStatus.OK )
     public Iterable<Multimap<FullQualifiedName, Object>> getAllEntitiesOfType(
-            @PathVariable( NAME_SPACE ) String namespace, @PathVariable( NAME ) String name ) {
+            @PathVariable( NAME_SPACE ) String namespace,
+            @PathVariable( NAME ) String name,
+            HttpServletRequest request,
+            HttpServletResponse response ) {
+        String[] acceptType = request.getHeader( "Accept" ).split( "/" );
+        String fileExtension = ".json";
+        if( acceptType[1] == "csv"){
+            fileExtension = ".csv";
+        }
+        response.setHeader("Content-Disposition", "attachment; filename=" + namespace + "_" + name + fileExtension );
         return dataService.readAllEntitiesOfType( new FullQualifiedName( namespace, name ) );
     }
     

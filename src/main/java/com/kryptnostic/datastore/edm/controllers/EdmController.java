@@ -19,8 +19,8 @@ import com.kryptnostic.conductor.rpc.odata.EntityType;
 import com.kryptnostic.conductor.rpc.odata.PropertyType;
 import com.kryptnostic.conductor.rpc.odata.Schema;
 import com.kryptnostic.datastore.ServerUtil;
+import com.kryptnostic.datastore.exceptions.ResourceNotFoundException;
 import com.kryptnostic.datastore.services.GetSchemasRequest.TypeDetails;
-import com.kryptnostic.instrumentation.v1.exceptions.types.ResourceNotFoundException;
 
 import jersey.repackaged.com.google.common.base.Preconditions;
 import retrofit.client.Response;

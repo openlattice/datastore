@@ -303,4 +303,25 @@ public class DatastoreTests extends BootstrapDatastoreWithCassandra {
         assertNotNull(caught);
         assertSame(BadRequestException.class, caught.getClass());
     }
+    
+    @Test
+    public void removePropertyTypes(){
+    	//Action: Add Property EMPLOYEE_HAIRLENGTH to ENTITY_TYPE (Employees), and EMPLOYEE_EYEBROW_LENGTH to Schema, then remove them
+    	//Desired result: Schemas and Entity_Types tables should look the same as before, without any trace of EMPLOYEE_HAIRLENGTH and EMPLOYEE_EYEBROW_LENGTH
+    	//                Property_Types and lookup table should be updated.
+    	final String EMPLOYEE_HAIR_LENGTH = "employee-hair-length";
+    	final String EMPLOYEE_EYEBROW_LENGTH = "employee-eyebrow-length";
+    	
+    	EdmManager dms = ds.getContext().getBean( EdmManager.class );
+        dms.createPropertyType( new PropertyType().setNamespace( NAMESPACE ).setName( EMPLOYEE_HAIR_LENGTH )
+                .setDatatype( EdmPrimitiveTypeKind.Int32 ).setMultiplicity( 0 ) );    
+        dms.createPropertyType( new PropertyType().setNamespace( NAMESPACE ).setName( EMPLOYEE_EYEBROW_LENGTH )
+                .setDatatype( EdmPrimitiveTypeKind.Int32 ).setMultiplicity( 0 ) );    
+        
+        dms.addPropertyTypesToEntityType(ENTITY_TYPE.getNamespace(), ENTITY_TYPE.getName(), ImmutableSet.of( new FullQualifiedName(NAMESPACE, EMPLOYEE_HAIR_LENGTH) ) );
+        dms.addPropertyTypesToSchema(NAMESPACE, SCHEMA_NAME, ImmutableSet.of( new FullQualifiedName(NAMESPACE, EMPLOYEE_EYEBROW_LENGTH) ) );
+        
+        dms.removePropertyTypesFromEntityType(ENTITY_TYPE.getNamespace(),  ENTITY_TYPE.getName(), ImmutableSet.of( new FullQualifiedName(NAMESPACE, EMPLOYEE_HAIR_LENGTH) ));
+        dms.removePropertyTypesFromSchema(NAMESPACE, SCHEMA_NAME, ImmutableSet.of( new FullQualifiedName(NAMESPACE, EMPLOYEE_EYEBROW_LENGTH) ));   
+    }
 }

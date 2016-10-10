@@ -309,6 +309,20 @@ public class EdmController implements EdmApi {
     
     @Override
     @RequestMapping(
+    		path = ENTITY_TYPE_BASE_PATH + NAMESPACE_PATH + NAME_PATH + DELETE_PROPERTY_TYPES_PATH,
+    		method = RequestMethod.DELETE,
+    		consumes = MediaType.APPLICATION_JSON_VALUE)
+    @ResponseStatus( HttpStatus.OK )
+    public Response removePropertyTypesFromEntityType (    		
+    		@PathVariable( NAMESPACE ) String namespace,
+    		@PathVariable( NAME ) String name,
+    		@RequestBody Set<FullQualifiedName> properties){
+    	modelService.removePropertyTypesFromEntityType(namespace, name, properties);
+    	return null;
+    }
+    
+    @Override
+    @RequestMapping(
     		path = SCHEMA_BASE_PATH + NAMESPACE_PATH + NAME_PATH + ADD_PROPERTY_TYPES_PATH,
     		method = RequestMethod.PUT,
     		consumes = MediaType.APPLICATION_JSON_VALUE)
@@ -318,6 +332,20 @@ public class EdmController implements EdmApi {
     		@PathVariable( NAME ) String name,
     		@RequestBody Set<FullQualifiedName> properties){
         modelService.addPropertyTypesToSchema( namespace, name, properties );
+        return null;    	
+    }
+    
+    @Override
+    @RequestMapping(
+    		path = SCHEMA_BASE_PATH + NAMESPACE_PATH + NAME_PATH + ADD_PROPERTY_TYPES_PATH,
+    		method = RequestMethod.DELETE,
+    		consumes = MediaType.APPLICATION_JSON_VALUE)
+    @ResponseStatus( HttpStatus.OK )
+    public Response removePropertyTypesFromSchema(
+    		@PathVariable( NAMESPACE ) String namespace,
+    		@PathVariable( NAME ) String name,
+    		@RequestBody Set<FullQualifiedName> properties){
+        modelService.removePropertyTypesFromSchema( namespace, name, properties );
         return null;    	
     }
 }

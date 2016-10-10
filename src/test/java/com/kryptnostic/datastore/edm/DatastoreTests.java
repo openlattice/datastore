@@ -113,7 +113,7 @@ public class DatastoreTests extends BootstrapDatastoreWithCassandra {
         // esc.readEntityData( edmEntitySet, keyParams );
     }
 
-    @Test
+    //@Test
     public void polulateEmployeeCsv() throws IOException {
         ODataStorageService esc = ds.getContext().getBean( ODataStorageService.class );
         Property employeeId;

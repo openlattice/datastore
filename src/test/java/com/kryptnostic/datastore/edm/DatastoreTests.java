@@ -113,7 +113,7 @@ public class DatastoreTests extends BootstrapDatastoreWithCassandra {
         // esc.readEntityData( edmEntitySet, keyParams );
     }
 
-    //@Test
+    @Test
     public void polulateEmployeeCsv() throws IOException {
         ODataStorageService esc = ds.getContext().getBean( ODataStorageService.class );
         Property employeeId;
@@ -266,7 +266,7 @@ public class DatastoreTests extends BootstrapDatastoreWithCassandra {
     @Test(expected=BadRequestException.class)
     public void testAddPhantomPropertyTypeToEntityType() {
     	//Action: Add Property EMPLOYEE_HEIGHT to ENTITY_TYPE (Employees)
-    	//Desired result: Since property does not exist, nothing should happen
+    	//Desired result: Since property does not exist, Bad Request Exception should be thrown
         final String EMPLOYEE_HEIGHT = "employee-height";
         
         EdmManager dms = ds.getContext().getBean( EdmManager.class );

@@ -21,6 +21,7 @@ import com.kryptnostic.conductor.rpc.odata.Schema;
 import com.kryptnostic.datastore.ServerUtil;
 import com.kryptnostic.datastore.services.GetSchemasRequest.TypeDetails;
 
+import jersey.repackaged.com.google.common.base.Preconditions;
 import retrofit.client.Response;
 import retrofit.http.Body;
 import retrofit.http.Path;
@@ -294,7 +295,7 @@ public class EdmController implements EdmApi {
     
     @Override
     @RequestMapping(
-    		path = ENTITY_TYPE_BASE_PATH + NAMESPACE_PATH + NAME_PATH + ADD_PROPERTY_PATH,
+    		path = ENTITY_TYPE_BASE_PATH + NAMESPACE_PATH + NAME_PATH + ADD_PROPERTY_TYPES_PATH,
     		method = RequestMethod.PUT,
     		consumes = MediaType.APPLICATION_JSON_VALUE)
     @ResponseStatus( HttpStatus.OK )
@@ -302,14 +303,13 @@ public class EdmController implements EdmApi {
     		@PathVariable( NAMESPACE ) String namespace,
     		@PathVariable( NAME ) String name,
     		@RequestBody Set<FullQualifiedName> properties){
-    	EntityType entityType = modelService.getEntityType( namespace, name );
-    	modelService.addPropertyTypesToEntityType(entityType, properties);
+    	modelService.addPropertyTypesToEntityType(namespace, name, properties);
     	return null;
     }
     
     @Override
     @RequestMapping(
-    		path = SCHEMA_BASE_PATH + NAMESPACE_PATH + NAME_PATH + ADD_PROPERTY_PATH,
+    		path = SCHEMA_BASE_PATH + NAMESPACE_PATH + NAME_PATH + ADD_PROPERTY_TYPES_PATH,
     		method = RequestMethod.PUT,
     		consumes = MediaType.APPLICATION_JSON_VALUE)
     @ResponseStatus( HttpStatus.OK )

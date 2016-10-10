@@ -244,9 +244,7 @@ public class DatastoreTests extends BootstrapDatastoreWithCassandra {
         properties.add( new FullQualifiedName(NAMESPACE, EMPLOYEE_COUNTRY) );
         properties.add( new FullQualifiedName(NAMESPACE, EMPLOYEE_WEIGHT) );
         
-        EntityType entityType = dms.getEntityType( ENTITY_TYPE );
-        
-        dms.addPropertyTypesToEntityType(entityType, properties);
+        dms.addPropertyTypesToEntityType(ENTITY_TYPE.getNamespace(), ENTITY_TYPE.getName(), properties);
     }
 
     @Test
@@ -258,9 +256,7 @@ public class DatastoreTests extends BootstrapDatastoreWithCassandra {
         Set<FullQualifiedName> properties = new HashSet<>();
         properties.add( new FullQualifiedName(NAMESPACE, EMPLOYEE_ID) );
         
-        EntityType entityType = dms.getEntityType( ENTITY_TYPE );
-        
-        dms.addPropertyTypesToEntityType(entityType, properties);
+        dms.addPropertyTypesToEntityType(ENTITY_TYPE.getNamespace(), ENTITY_TYPE.getName(), properties);
     }
     
     @Test(expected=BadRequestException.class)
@@ -274,9 +270,7 @@ public class DatastoreTests extends BootstrapDatastoreWithCassandra {
         Set<FullQualifiedName> properties = new HashSet<>();
         properties.add( new FullQualifiedName(NAMESPACE, EMPLOYEE_HEIGHT) );
         
-        EntityType entityType = dms.getEntityType( ENTITY_TYPE );
-        
-        dms.addPropertyTypesToEntityType(entityType, properties);
+        dms.addPropertyTypesToEntityType(ENTITY_TYPE.getNamespace(), ENTITY_TYPE.getName(), properties);
     }
     
     @Test

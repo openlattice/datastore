@@ -20,6 +20,7 @@ import com.kryptnostic.conductor.rpc.odata.PropertyType;
 import com.kryptnostic.conductor.rpc.odata.Schema;
 import com.kryptnostic.datastore.ServerUtil;
 import com.kryptnostic.datastore.services.GetSchemasRequest.TypeDetails;
+import com.kryptnostic.instrumentation.v1.exceptions.types.ResourceNotFoundException;
 
 import jersey.repackaged.com.google.common.base.Preconditions;
 import retrofit.client.Response;
@@ -178,34 +179,23 @@ public class EdmController implements EdmApi {
         return modelService.getEntityTypes();
     }
 
-    /*
-     * (non-Javadoc)
-     * @see com.kryptnostic.datastore.edm.controllers.EdmAPI#createPropertyType(java.lang.String, java.lang.String,
-     * java.lang.String, com.kryptnostic.types.ObjectType)
-     */
-    @Override
-    @RequestMapping(
-            path = PROPERTY_TYPE_BASE_PATH,
-            method = RequestMethod.PUT )
-    @ResponseStatus( HttpStatus.OK )
-    public Response putPropertyType( @RequestBody PropertyType propertyType ) {
-        modelService.upsertPropertyType( propertyType );
-        return null;
-    }
-
     @Override
     @RequestMapping(
             path = SCHEMA_BASE_PATH + NAMESPACE_PATH + NAME_PATH,
             method = RequestMethod.PUT,
             consumes = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
-    public Response addEntityTypeToSchema(
+    public Response addEntityTypesToSchema(
             @PathVariable( NAMESPACE ) String namespace,
             @PathVariable( NAME ) String name,
-            @RequestBody Set<FullQualifiedName> objectTypes ) {
-        modelService.addEntityTypesToSchema( namespace, name, objectTypes );
+            @RequestBody Set<FullQualifiedName> entityTypes ) {
+        for( FullQualifiedName fqn : entityTypes ){
+            if( modelService.getEntityType( fqn ) == null ){
+                throw new ResourceNotFoundException( "Entity type: " + fqn.getFullQualifiedNameAsString() + " doesn't exist!" );
+            }
+        }
+        modelService.addEntityTypesToSchema( namespace, name, entityTypes );
         return null;
-
     }
 
     @Override
@@ -257,8 +247,23 @@ public class EdmController implements EdmApi {
             method = RequestMethod.POST,
             consumes = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
-    public boolean postPropertyType( @RequestBody PropertyType propertyType ) {
+    public boolean createPropertyType( @RequestBody PropertyType propertyType ) {
         return modelService.createPropertyType( propertyType );
+    }
+
+    /*
+     * (non-Javadoc)
+     * @see com.kryptnostic.datastore.edm.controllers.EdmAPI#createPropertyType(java.lang.String, java.lang.String,
+     * java.lang.String, com.kryptnostic.types.ObjectType)
+    */
+    @Override
+    @RequestMapping(
+            path = PROPERTY_TYPE_BASE_PATH,
+            method = RequestMethod.PUT )
+    @ResponseStatus( HttpStatus.OK )
+    public Response putPropertyType( @RequestBody PropertyType propertyType ) {
+        modelService.upsertPropertyType( propertyType );
+        return null;
     }
 
     @Override
@@ -279,7 +284,9 @@ public class EdmController implements EdmApi {
             method = RequestMethod.GET,
             produces = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
-    public PropertyType getPropertyType( @PathVariable( NAMESPACE ) String namespace, @PathVariable( NAME ) String name ) {
+    public PropertyType getPropertyType(
+            @PathVariable( NAMESPACE ) String namespace,
+            @PathVariable( NAME ) String name ) {
         return modelService.getPropertyType( new FullQualifiedName( namespace, name ) );
     }
 
@@ -348,4 +355,15 @@ public class EdmController implements EdmApi {
         modelService.removePropertyTypesFromSchema( namespace, name, properties );
         return null;    	
     }
+
+    @Override
+    @RequestMapping(
+            path = PROPERTY_TYPE_BASE_PATH,
+            method = RequestMethod.GET,
+            produces = MediaType.APPLICATION_JSON_VALUE )
+    @ResponseStatus( HttpStatus.OK )
+    public Iterable<PropertyType> getPropertyTypes() {
+        return modelService.getPropertyTypes();
+    }
+
 }

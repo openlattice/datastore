@@ -13,7 +13,7 @@ cassandra:
         - "cassandra"
 
 hazelcast:
-    server: true
+    server: false
     group: "local"
     password: "trumpisboss"
     seed-nodes: 

@@ -11,6 +11,7 @@ rethinkdb:
     port: 28015
     
 cassandra:
+    keyspace: "sparks"
     replication-factor: 1
     seed-nodes:
         - "127.0.0.1"

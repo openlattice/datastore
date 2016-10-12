@@ -6,7 +6,6 @@ import java.util.Set;
 
 import javax.inject.Inject;
 
-import com.kryptnostic.datastore.exceptions.ResourceNotFoundException;
 import com.kryptnostic.datastore.services.*;
 import org.apache.olingo.commons.api.edm.FullQualifiedName;
 import org.springframework.http.HttpStatus;
@@ -20,8 +19,10 @@ import com.kryptnostic.conductor.rpc.odata.EntityType;
 import com.kryptnostic.conductor.rpc.odata.PropertyType;
 import com.kryptnostic.conductor.rpc.odata.Schema;
 import com.kryptnostic.datastore.ServerUtil;
+import com.kryptnostic.datastore.exceptions.ResourceNotFoundException;
 import com.kryptnostic.datastore.services.GetSchemasRequest.TypeDetails;
 
+import jersey.repackaged.com.google.common.base.Preconditions;
 import retrofit.client.Response;
 import retrofit.http.Body;
 import retrofit.http.Path;
@@ -301,7 +302,7 @@ public class EdmController implements EdmApi {
     
     @Override
     @RequestMapping(
-    		path = ENTITY_TYPE_BASE_PATH + NAMESPACE_PATH + NAME_PATH + ADD_PROPERTY_PATH,
+    		path = ENTITY_TYPE_BASE_PATH + NAMESPACE_PATH + NAME_PATH + ADD_PROPERTY_TYPES_PATH,
     		method = RequestMethod.PUT,
     		consumes = MediaType.APPLICATION_JSON_VALUE)
     @ResponseStatus( HttpStatus.OK )
@@ -309,9 +310,50 @@ public class EdmController implements EdmApi {
     		@PathVariable( NAMESPACE ) String namespace,
     		@PathVariable( NAME ) String name,
     		@RequestBody Set<FullQualifiedName> properties){
-    	EntityType entityType = modelService.getEntityType( namespace, name );
-    	modelService.addPropertyTypesToEntityType(entityType, properties);
+    	modelService.addPropertyTypesToEntityType(namespace, name, properties);
     	return null;
+    }
+    
+    @Override
+    @RequestMapping(
+    		path = ENTITY_TYPE_BASE_PATH + NAMESPACE_PATH + NAME_PATH + DELETE_PROPERTY_TYPES_PATH,
+    		method = RequestMethod.DELETE,
+    		consumes = MediaType.APPLICATION_JSON_VALUE)
+    @ResponseStatus( HttpStatus.OK )
+    public Response removePropertyTypesFromEntityType (    		
+    		@PathVariable( NAMESPACE ) String namespace,
+    		@PathVariable( NAME ) String name,
+    		@RequestBody Set<FullQualifiedName> properties){
+    	modelService.removePropertyTypesFromEntityType(namespace, name, properties);
+    	return null;
+    }
+    
+    @Override
+    @RequestMapping(
+    		path = SCHEMA_BASE_PATH + NAMESPACE_PATH + NAME_PATH + ADD_PROPERTY_TYPES_PATH,
+    		method = RequestMethod.PUT,
+    		consumes = MediaType.APPLICATION_JSON_VALUE)
+    @ResponseStatus( HttpStatus.OK )
+    public Response addPropertyTypesToSchema(
+    		@PathVariable( NAMESPACE ) String namespace,
+    		@PathVariable( NAME ) String name,
+    		@RequestBody Set<FullQualifiedName> properties){
+        modelService.addPropertyTypesToSchema( namespace, name, properties );
+        return null;    	
+    }
+    
+    @Override
+    @RequestMapping(
+    		path = SCHEMA_BASE_PATH + NAMESPACE_PATH + NAME_PATH + ADD_PROPERTY_TYPES_PATH,
+    		method = RequestMethod.DELETE,
+    		consumes = MediaType.APPLICATION_JSON_VALUE)
+    @ResponseStatus( HttpStatus.OK )
+    public Response removePropertyTypesFromSchema(
+    		@PathVariable( NAMESPACE ) String namespace,
+    		@PathVariable( NAME ) String name,
+    		@RequestBody Set<FullQualifiedName> properties){
+        modelService.removePropertyTypesFromSchema( namespace, name, properties );
+        return null;    	
     }
 
     @Override

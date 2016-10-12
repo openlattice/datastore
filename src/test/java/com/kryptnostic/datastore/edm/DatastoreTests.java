@@ -1,5 +1,8 @@
 package com.kryptnostic.datastore.edm;
 
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertSame;
+
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
@@ -46,6 +49,7 @@ import com.kryptnostic.datastore.odata.Transformers;
 import com.kryptnostic.datastore.odata.Transformers.EntityTypeTransformer;
 import com.kryptnostic.datastore.services.EdmManager;
 import com.kryptnostic.datastore.services.ODataStorageService;
+import com.kryptnostic.instrumentation.v1.exceptions.types.BadRequestException;
 import com.kryptnostic.datastore.converters.IterableCsvHttpMessageConverter;
 import com.kryptnostic.datastore.services.EdmService;
 
@@ -240,8 +244,7 @@ public class DatastoreTests extends BootstrapDatastoreWithCassandra {
         properties.add( new FullQualifiedName(NAMESPACE, EMPLOYEE_COUNTRY) );
         properties.add( new FullQualifiedName(NAMESPACE, EMPLOYEE_WEIGHT) );
         
-        EntityType entityType = dms.getEntityType( ENTITY_TYPE );
-        dms.addPropertyTypesToEntityType(entityType, properties);
+        dms.addPropertyTypesToEntityType(ENTITY_TYPE.getNamespace(), ENTITY_TYPE.getName(), properties);
     }
 
     @Test
@@ -253,14 +256,13 @@ public class DatastoreTests extends BootstrapDatastoreWithCassandra {
         Set<FullQualifiedName> properties = new HashSet<>();
         properties.add( new FullQualifiedName(NAMESPACE, EMPLOYEE_ID) );
         
-        EntityType entityType = dms.getEntityType( ENTITY_TYPE );
-        dms.addPropertyTypesToEntityType(entityType, properties);
+        dms.addPropertyTypesToEntityType(ENTITY_TYPE.getNamespace(), ENTITY_TYPE.getName(), properties);
     }
     
-    @Test
+    @Test(expected=BadRequestException.class)
     public void testAddPhantomPropertyTypeToEntityType() {
     	//Action: Add Property EMPLOYEE_HEIGHT to ENTITY_TYPE (Employees)
-    	//Desired result: Since property does ot exist, nothing should happen
+    	//Desired result: Since property does not exist, Bad Request Exception should be thrown
         final String EMPLOYEE_HEIGHT = "employee-height";
         
         EdmManager dms = ds.getContext().getBean( EdmManager.class );
@@ -268,7 +270,58 @@ public class DatastoreTests extends BootstrapDatastoreWithCassandra {
         Set<FullQualifiedName> properties = new HashSet<>();
         properties.add( new FullQualifiedName(NAMESPACE, EMPLOYEE_HEIGHT) );
         
-        EntityType entityType = dms.getEntityType( ENTITY_TYPE );
-        dms.addPropertyTypesToEntityType(entityType, properties);
+        dms.addPropertyTypesToEntityType(ENTITY_TYPE.getNamespace(), ENTITY_TYPE.getName(), properties);
+    }
+    
+    @Test
+    public void testAddPropertyToSchema(){
+    	final String EMPLOYEE_TOENAIL_LENGTH = "employee-toenail-length";
+    	final String EMPLOYEE_FINGERNAIL_LENGTH = "employee-fingernail-length";
+
+    	EdmManager dms = ds.getContext().getBean( EdmManager.class );
+        dms.createPropertyType( new PropertyType().setNamespace( NAMESPACE ).setName( EMPLOYEE_TOENAIL_LENGTH )
+                .setDatatype( EdmPrimitiveTypeKind.Int32 ).setMultiplicity( 0 ) );    	
+        dms.createPropertyType( new PropertyType().setNamespace( NAMESPACE ).setName( EMPLOYEE_FINGERNAIL_LENGTH )
+                .setDatatype( EdmPrimitiveTypeKind.Int32 ).setMultiplicity( 0 ) );    	
+        
+        //Add new property to Schema
+        Set<FullQualifiedName> newProperties = new HashSet<>();
+        newProperties.add( new FullQualifiedName(NAMESPACE, EMPLOYEE_TOENAIL_LENGTH) );
+        newProperties.add( new FullQualifiedName(NAMESPACE, EMPLOYEE_FINGERNAIL_LENGTH) );
+        dms.addPropertyTypesToSchema(NAMESPACE, SCHEMA_NAME, newProperties);
+        
+        //Add existing property to Schema
+        dms.addPropertyTypesToSchema(NAMESPACE, SCHEMA_NAME, ImmutableSet.of( new FullQualifiedName( NAMESPACE, EMPLOYEE_TITLE ) ) );
+        
+        //Add non-existing property to Schema
+        Throwable caught = null;
+        try{
+        	dms.addPropertyTypesToSchema(NAMESPACE, SCHEMA_NAME, ImmutableSet.of( new FullQualifiedName( NAMESPACE, "employee-facebook-url" ) ) );
+        } catch (Throwable t){
+        	caught = t;
+        }
+        assertNotNull(caught);
+        assertSame(BadRequestException.class, caught.getClass());
+    }
+    
+    @Test
+    public void removePropertyTypes(){
+    	//Action: Add Property EMPLOYEE_HAIRLENGTH to ENTITY_TYPE (Employees), and EMPLOYEE_EYEBROW_LENGTH to Schema, then remove them
+    	//Desired result: Schemas and Entity_Types tables should look the same as before, without any trace of EMPLOYEE_HAIRLENGTH and EMPLOYEE_EYEBROW_LENGTH
+    	//                Property_Types and lookup table should be updated.
+    	final String EMPLOYEE_HAIR_LENGTH = "employee-hair-length";
+    	final String EMPLOYEE_EYEBROW_LENGTH = "employee-eyebrow-length";
+    	
+    	EdmManager dms = ds.getContext().getBean( EdmManager.class );
+        dms.createPropertyType( new PropertyType().setNamespace( NAMESPACE ).setName( EMPLOYEE_HAIR_LENGTH )
+                .setDatatype( EdmPrimitiveTypeKind.Int32 ).setMultiplicity( 0 ) );    
+        dms.createPropertyType( new PropertyType().setNamespace( NAMESPACE ).setName( EMPLOYEE_EYEBROW_LENGTH )
+                .setDatatype( EdmPrimitiveTypeKind.Int32 ).setMultiplicity( 0 ) );    
+        
+        dms.addPropertyTypesToEntityType(ENTITY_TYPE.getNamespace(), ENTITY_TYPE.getName(), ImmutableSet.of( new FullQualifiedName(NAMESPACE, EMPLOYEE_HAIR_LENGTH) ) );
+        dms.addPropertyTypesToSchema(NAMESPACE, SCHEMA_NAME, ImmutableSet.of( new FullQualifiedName(NAMESPACE, EMPLOYEE_EYEBROW_LENGTH) ) );
+        
+        dms.removePropertyTypesFromEntityType(ENTITY_TYPE.getNamespace(),  ENTITY_TYPE.getName(), ImmutableSet.of( new FullQualifiedName(NAMESPACE, EMPLOYEE_HAIR_LENGTH) ));
+        dms.removePropertyTypesFromSchema(NAMESPACE, SCHEMA_NAME, ImmutableSet.of( new FullQualifiedName(NAMESPACE, EMPLOYEE_EYEBROW_LENGTH) ));   
     }
 }

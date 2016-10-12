@@ -344,7 +344,7 @@ public class EdmController implements EdmApi {
     
     @Override
     @RequestMapping(
-    		path = SCHEMA_BASE_PATH + NAMESPACE_PATH + NAME_PATH + ADD_PROPERTY_TYPES_PATH,
+    		path = SCHEMA_BASE_PATH + NAMESPACE_PATH + NAME_PATH + DELETE_PROPERTY_TYPES_PATH,
     		method = RequestMethod.DELETE,
     		consumes = MediaType.APPLICATION_JSON_VALUE)
     @ResponseStatus( HttpStatus.OK )

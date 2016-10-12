@@ -46,7 +46,7 @@ public class AclTests extends BootstrapDatastoreWithCassandra {
 	protected static final FullQualifiedName      ADDRESS                = new FullQualifiedName( NATION_NAMESPACE, "address" ); //property type
 	protected static final FullQualifiedName      POSITION               = new FullQualifiedName( NATION_NAMESPACE, "position" ); //property type
 	
-	protected static final FullQualifiedName      ALIEN_ARMY             = new FullQualifiedName( NATION_NAMESPACE, "alien-army" ); //property type
+	protected static final FullQualifiedName      SPIED_ON               = new FullQualifiedName( NATION_NAMESPACE, "spied-on" ); //property type
 	
 	/**
 	 * Start of JUnit Tests
@@ -69,8 +69,13 @@ public class AclTests extends BootstrapDatastoreWithCassandra {
 
 	@Test
 	public void modifyTypes(){
-		modifyValues();
-		modifyPermissions();
+		//TODO: Function for updating values in database not implemented
+//		modifyValues();
+		godGivesRights();
+		//President adds property type SPIED_ON, that not even God can access 
+		presidentIsWatchingYou();
+		//God removes President's permissions after President lets God know about SPIED_ON
+		godRemovesRights();
 	}
 	
 	// Delete created property types/entity types/entity sets/schemas - Acl tables should update correspondingly.
@@ -164,11 +169,15 @@ public class AclTests extends BootstrapDatastoreWithCassandra {
 	
 	/**
 	 * God grant rights to President and citizens.
-	 * God: can do all actions in all types.
+	 * God: can do all actions in all types, except the property type SPIED_ON that President creates.
 	 * President: 
-	 * - Can read, write, modify property types ADDRESS and POSITION, but not LIFE_EXPECTANCY
+	 * - Can read, write, modify property types ADDRESS and POSITION, cannot do anything about LIFE_EXPECTANCY
 	 * - Can do all actions to entity Type and entity Set
-	 * 
+	 * - Can read Schema
+	 * Citizen:
+	 * - Can read, write ADDRESS, read POSITION, cannot do anything about LIFE_EXPECTANCY
+	 * - Can read, write entity Type NATION_CITIZENS, cannot do anything about NATION_SECRET_SERVICE
+	 * - Can read Schema
 	 */
 	private static void grantRights(){
 		//Property Types
@@ -260,31 +269,74 @@ public class AclTests extends BootstrapDatastoreWithCassandra {
 		Iterable<Multimap<FullQualifiedName, Object>> resultGod = aclDs.getAllEntitiesOfType( GOD_UUID, NATION_CITIZENS);
 		Iterable<Multimap<FullQualifiedName, Object>> resultPresident = aclDs.getAllEntitiesOfType( PRESIDENT_UUID, NATION_CITIZENS);
 		Iterable<Multimap<FullQualifiedName, Object>> resultCitizen = aclDs.getAllEntitiesOfType( CITIZEN_UUID, NATION_CITIZENS);
+
+		//write AssertEquals later
+		for( Multimap<FullQualifiedName, Object> result: resultGod ){
+			System.out.println( result );
+		}
+		for( Multimap<FullQualifiedName, Object> result: resultPresident ){
+			System.out.println( result );
+		}
+		for( Multimap<FullQualifiedName, Object> result: resultCitizen ){
+			System.out.println( result );
+		}
 	}
 
 	private void modifyValues(){
+		//These two tests are for testing Acl + modifying values in database
+		//TODO: These two tests are empty for now, since there is no function to change values in database as of now.
 		changeAddress();
+		changePosition();
 	}
 	
-	private void modifyPermissions(){
+	private void godGivesRights(){
+		//God allows Citizen to read LIFE_EXPECTANCY.
+		yourFateIsKnown();
+		//God allows President to write LIFE_EXPECTANCY.
 		longLivePresident();
-		godRevealsEarthquake();
-		presidentsSecretArmy();
 	}
 	
-	private void changeAddress(){
+	private void godRemovesRights(){
+		//President lets God access property type SPIED_ON
 		
 	}
+	
+	private void changeAddress(){}
+	
+	private void changePosition(){}
 
-	private void presidentsSecretArmy(){
+	private void yourFateIsKnown(){
+        aclEdm.RightsOf( LIFE_EXPECTANCY ).from( GOD_UUID ).to( CITIZEN_UUID )
+            .allow( ImmutableSet.of("READ") )
+            .give();
+        
+		Iterable<Multimap<FullQualifiedName, Object>> resultPresident = aclDs.getAllEntitiesOfType( PRESIDENT_UUID, NATION_CITIZENS);
+		Iterable<Multimap<FullQualifiedName, Object>> resultCitizen = aclDs.getAllEntitiesOfType( CITIZEN_UUID, NATION_CITIZENS);
 		
+		//write AssertEquals later
+		for( Multimap<FullQualifiedName, Object> result: resultPresident ){
+			System.out.println( result );
+		}
+		for( Multimap<FullQualifiedName, Object> result: resultCitizen ){
+			System.out.println( result );
+		}
+
 	}
 	
 	private void longLivePresident(){
+	    aclEdm.RightsOf( LIFE_EXPECTANCY ).from( GOD_UUID ).to( CITIZEN_UUID )
+	    .allow( ImmutableSet.of("WRITE") )
+        .give();
+	    
+		Iterable<Multimap<FullQualifiedName, Object>> resultPresident = aclDs.getAllEntitiesOfType( PRESIDENT_UUID, NATION_CITIZENS);
 		
+		//write AssertEquals later
+		for( Multimap<FullQualifiedName, Object> result: resultPresident ){
+			System.out.println( result );
+		}
 	}
-	
-	private void godRevealsEarthquake(){
+		
+	private void presidentIsWatchingYou(){
 		
 	}
 	

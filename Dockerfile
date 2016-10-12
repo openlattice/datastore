@@ -20,6 +20,6 @@ RUN cd /opt/$NAME-$VERSION/lib \
   && jar vfu $NAME-$VERSION.jar rhizome.yaml \
   && rm /opt/rhizome.yaml*
 
-CMD dockerize -wait tcp://conductor:5701 -timeout 300s; /opt/$NAME-$VERSION/bin/$NAME cassandra
+EXPOSE 8080
 
-EXPOSE 5701
+CMD dockerize -wait tcp://conductor:5701 -timeout 300s; /opt/$NAME-$VERSION/bin/$NAME cassandra

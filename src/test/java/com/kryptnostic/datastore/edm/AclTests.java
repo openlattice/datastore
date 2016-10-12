@@ -296,11 +296,6 @@ public class AclTests extends BootstrapDatastoreWithCassandra {
 		longLivePresident();
 	}
 	
-	private void godRemovesRights(){
-		//President lets God access property type SPIED_ON
-		
-	}
-	
 	private void changeAddress(){}
 	
 	private void changePosition(){}
@@ -337,6 +332,15 @@ public class AclTests extends BootstrapDatastoreWithCassandra {
 	}
 		
 	private void presidentIsWatchingYou(){
+		//President adds SPIED_ON property
+		PropertyType spiedON = new PropertyType().setNamespace( NATION_NAMESPACE ).setName( SPIED_ON.getName() )
+				.setDatatype( EdmPrimitiveTypeKind.Boolean).setMultiplicity( 0 );
+		
+		acl
+	}
+	
+	private void godRemovesRights(){
+		//President lets God access property type SPIED_ON
 		
 	}
 	

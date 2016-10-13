@@ -77,14 +77,15 @@ public class DataController implements DataApi {
 
     @Override
     @RequestMapping(
-            path = DataApi.ENTITYSET + DataApi.NAME_PATH + DataApi.TYPE_NAME_PATH + DataApi.ENTITY_DATA,
+            path = DataApi.ENTITYSET + DataApi.NAME_SPACE_PATH + DataApi.TYPE_NAME_PATH + DataApi.NAME_PATH,
             method = RequestMethod.GET,
             produces = { MediaType.APPLICATION_JSON_VALUE, MEDIA_TYPE_CSV } )
     @ResponseStatus( HttpStatus.OK )
     public Iterable<Multimap<FullQualifiedName, Object>> getAllEntitiesOfEntitySet(
             @PathVariable( NAME ) String entitySetName,
-            @PathVariable( TYPE_NAME ) String entityTypeName ) {
-        return dataService.getAllEntitiesOfEntitySet( entitySetName, entityTypeName );
+            @PathVariable( NAME_SPACE ) String entityTypeNamespace,
+            @PathVariable( TYPE_NAME ) String entityTypeName) {
+        return dataService.getAllEntitiesOfEntitySet( entitySetName, entityTypeNamespace, entityTypeName );
     }
 
     @Override

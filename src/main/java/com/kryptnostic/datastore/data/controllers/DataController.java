@@ -66,7 +66,6 @@ public class DataController implements DataApi {
     @RequestMapping(
             path = DataApi.ENTITYSET + DataApi.NAME_SPACE_PATH + DataApi.NAME_PATH,
             method = RequestMethod.GET,
-            consumes = MediaType.APPLICATION_JSON_VALUE,
             produces = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
     public Iterable<UUID> getEntitySetOfType(
@@ -132,7 +131,7 @@ public class DataController implements DataApi {
             @PathVariable( NAME_SPACE ) String namespace, @PathVariable( NAME ) String name ) {
         return dataService.readAllEntitiesOfType( new FullQualifiedName( namespace, name ) );
     }
-    
+
     @Override
     @RequestMapping(
             path = DataApi.ENTITY_DATA + DataApi.FILTERED,
@@ -141,9 +140,9 @@ public class DataController implements DataApi {
             produces = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
     public Iterable<UUID> getFilteredEntities( @RequestBody LookupEntitiesRequest lookupEntitiesRequest ) {
-	        return dataService.getFilteredEntities( lookupEntitiesRequest );  	
+        return dataService.getFilteredEntities( lookupEntitiesRequest );
     }
-        
+
     @Override
     @RequestMapping(
             path = DataApi.ENTITY_DATA,

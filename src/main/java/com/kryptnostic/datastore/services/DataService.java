@@ -101,19 +101,6 @@ public class DataService {
         return results;
     }
 
-    public Iterable<UUID> loadEntitySetOfType( FullQualifiedName fqn ) {
-        try {
-            Iterable<UUID> result = executor
-                    .submit( ConductorCall
-                            .wrap( Lambdas.getEntitySetOfType( fqn ) ) )
-                    .get();
-            return result;
-        } catch ( InterruptedException | ExecutionException e ) {
-            e.printStackTrace();
-        }
-        return null;
-    }
-
     public Map<String, String> getAllIntegrationScripts() {
         return urlToIntegrationScripts;
     }

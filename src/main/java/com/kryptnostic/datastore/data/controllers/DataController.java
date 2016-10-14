@@ -22,6 +22,7 @@ import org.apache.olingo.commons.api.edm.FullQualifiedName;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
+import retrofit.http.Path;
 
 @RestController
 @RequestMapping( DataApi.CONTROLLER )
@@ -154,6 +155,5 @@ public class DataController implements DataApi {
         dataService.createIntegrationScript( integrationScripts );
         return null;
     }
-
 
 }

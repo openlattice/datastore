@@ -66,8 +66,7 @@ public class DataController implements DataApi {
             @PathVariable( TYPE_NAME ) String entityTypeName,
             @RequestParam( FILE_TYPE ) FileType fileType,
             HttpServletResponse response ) {
-        response.setHeader( "Content-Disposition",
-                "attachment; filename=" + entitySetName + "." + fileType.toString() );
+        setResponseHeader( response, entitySetName + "." + fileType.toString() );
         setDownloadContentType( response, fileType );
         return getAllEntitiesOfEntitySet( entitySetName, entityTypeNamespace, entityTypeName );
     }
@@ -90,6 +89,11 @@ public class DataController implements DataApi {
         }
     }
 
+    private static void setResponseHeader( HttpServletResponse response, String fileName ){
+        response.setHeader( "Content-Disposition",
+                "attachment; filename=" + fileName );
+    }
+
     @RequestMapping(
             path = DataApi.ENTITY_DATA,
             method = RequestMethod.PUT,
@@ -100,8 +104,7 @@ public class DataController implements DataApi {
             @RequestBody FullQualifiedName fqn,
             @RequestParam( FILE_TYPE ) FileType fileType,
             HttpServletResponse response ) {
-        response.setHeader( "Content-Disposition",
-                "attachment; filename=" + fqn.getNamespace() + "_" + fqn.getName() + "." + fileType.toString() );
+        setResponseHeader( response, fqn.getNamespace() + "_" + fqn.getName() + "." + fileType.toString() );
         setDownloadContentType( response, fileType );
         return getAllEntitiesOfType( fqn );
     }
@@ -123,8 +126,7 @@ public class DataController implements DataApi {
             HttpServletResponse response ) {
 
         FullQualifiedName fqn = new FullQualifiedName( fqnAsString );
-        response.setHeader( "Content-Disposition",
-                "attachment; filename=" + fqn.getNamespace() + "_" + fqn.getName() + "." + fileType.toString() );
+        setResponseHeader( response, fqn.getNamespace() + "_" + fqn.getName() + "." + fileType.toString() );
         setDownloadContentType( response, fileType );
         return getAllEntitiesOfType( fqn );
     }
@@ -144,8 +146,7 @@ public class DataController implements DataApi {
             @PathVariable( NAME ) String name,
             @RequestParam( FILE_TYPE ) FileType fileType,
             HttpServletResponse response ) {
-        response.setHeader( "Content-Disposition",
-                "attachment; filename=" + namespace + "_" + name + "." + fileType.toString() );
+        setResponseHeader( response, namespace + "_" + name + "." + fileType.toString() );
         setDownloadContentType( response, fileType );
         return getAllEntitiesOfType( new FullQualifiedName( namespace, name ) );
     }
@@ -164,7 +165,7 @@ public class DataController implements DataApi {
     public Iterable<Iterable<Multimap<FullQualifiedName, Object>>> getAllEntitiesOfTypes(
             @RequestBody List<FullQualifiedName> fqns,
             HttpServletResponse response ) {
-        response.setHeader( "Content-Disposition", "attachment; filename=entities_data" + ".json" );
+        setResponseHeader( response, "entities_data.json" );
         return getAllEntitiesOfTypes( fqns );
     }
 

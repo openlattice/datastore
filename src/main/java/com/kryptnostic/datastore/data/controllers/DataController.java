@@ -43,7 +43,7 @@ public class DataController implements DataApi {
 
     @Override
     @RequestMapping(
-            path = DataApi.ENTITYSET + DataApi.NAME_SPACE_PATH + DataApi.TYPE_NAME_PATH + DataApi.NAME_PATH,
+            path = DataApi.ENTITY_DATA + DataApi.NAME_SPACE_PATH + DataApi.TYPE_NAME_PATH + DataApi.NAME_PATH,
             method = RequestMethod.GET,
             produces = { MediaType.APPLICATION_JSON_VALUE, MEDIA_TYPE_CSV } )
     @ResponseStatus( HttpStatus.OK )

@@ -65,7 +65,7 @@ public class DataController implements DataApi {
             @PathVariable( TYPE_NAME ) String entityTypeName,
             @RequestParam( FILE_TYPE ) FileType fileType,
             HttpServletResponse response ) {
-        if ( fileType.equals( FileType.json ) || fileType.equals( FileType.csv ) ) {
+        if ( fileType == FileType.json || fileType == FileType.csv ) {
             setContentDisposition( response, entitySetName + "." + fileType.toString() );
         }
         setDownloadContentType( response, fileType );
@@ -82,9 +82,6 @@ public class DataController implements DataApi {
 
     private static void setDownloadContentType( HttpServletResponse response, FileType fileType ) {
         switch ( fileType ) {
-            case json:
-                response.setContentType( MediaType.APPLICATION_JSON_VALUE );
-                break;
             case csv:
                 response.setContentType( MEDIA_TYPE_CSV );
                 break;
@@ -109,7 +106,7 @@ public class DataController implements DataApi {
             @RequestBody FullQualifiedName fqn,
             @RequestParam( FILE_TYPE ) FileType fileType,
             HttpServletResponse response ) {
-        if ( fileType.equals( FileType.json ) || fileType.equals( FileType.csv ) ) {
+        if ( fileType == FileType.json || fileType == FileType.csv ) {
             setContentDisposition( response, fqn.getNamespace() + "_" + fqn.getName() + "." + fileType.toString() );
         }
         setDownloadContentType( response, fileType );
@@ -132,7 +129,7 @@ public class DataController implements DataApi {
             @RequestParam( FILE_TYPE ) FileType fileType,
             HttpServletResponse response ) {
         FullQualifiedName fqn = new FullQualifiedName( fqnAsString );
-        if ( fileType.equals( FileType.json ) || fileType.equals( FileType.csv ) ) {
+        if ( fileType == FileType.json || fileType == FileType.csv ) {
             setContentDisposition( response, fqn.getNamespace() + "_" + fqn.getName() + "." + fileType.toString() );
         }
         setDownloadContentType( response, fileType );
@@ -154,7 +151,7 @@ public class DataController implements DataApi {
             @PathVariable( NAME ) String name,
             @RequestParam( FILE_TYPE ) FileType fileType,
             HttpServletResponse response ) {
-        if ( fileType.equals( FileType.json ) || fileType.equals( FileType.csv ) ) {
+        if ( fileType == FileType.json || fileType == FileType.csv ) {
             setContentDisposition( response, namespace + "_" + name + "." + fileType.toString() );
         }
         setDownloadContentType( response, fileType );
@@ -176,7 +173,7 @@ public class DataController implements DataApi {
             @RequestBody List<FullQualifiedName> fqns,
             @RequestParam( FILE_TYPE ) FileType fileType,
             HttpServletResponse response ) {
-        if ( fileType.equals( FileType.json ) ) {
+        if ( fileType == FileType.json ) {
             setContentDisposition( response, "entities_data.json" );
         }
         return getAllEntitiesOfTypes( fqns );

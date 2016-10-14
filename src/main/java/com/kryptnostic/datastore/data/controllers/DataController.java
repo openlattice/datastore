@@ -83,8 +83,6 @@ public class DataController implements DataApi {
 
     private static void setDownloadContentType( HttpServletResponse response, FileType fileType ) {
         switch ( fileType ) {
-            case json:
-                response.setContentType( MediaType.APPLICATION_JSON_VALUE );
             case csv:
                 response.setContentType( MEDIA_TYPE_CSV );
             default:

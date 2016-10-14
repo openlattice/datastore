@@ -2,6 +2,7 @@ package com.kryptnostic.datastore.edm;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.UUID;
@@ -30,7 +31,8 @@ public class AclTests extends BootstrapDatastoreWithCassandra {
 
 	protected static final AclEdmManager          aclEdm                 = ds.getContext().getBean( AclEdmManager.class );
 	protected static final AclDataService         aclDs                  = ds.getContext().getBean( AclDataService.class );
-	protected static final AclODataStorageService aclODsc                = ds.getContext().getBean( AclODataStorageService.class ); 
+	protected static final AclODataStorageService aclODsc                = ds.getContext().getBean( AclODataStorageService.class );
+	protected static final PermissionService      ps                     = ds.getContext().getBean( PermissionService.class );
 	
 	protected static final UUID                   GOD_UUID               = UUID.randomUUID();
 	protected static final UUID                   PRESIDENT_UUID         = UUID.randomUUID();
@@ -169,7 +171,7 @@ public class AclTests extends BootstrapDatastoreWithCassandra {
 	
 	/**
 	 * God grant rights to President and citizens.
-	 * God: can do all actions in all types, except the property type SPIED_ON that President creates.
+	 * God: can do all actions in all types, except the property type SPIED_ON that President will create in later test.
 	 * President: 
 	 * - Can read, write, modify property types ADDRESS and POSITION, cannot do anything about LIFE_EXPECTANCY
 	 * - Can do all actions to entity Type and entity Set
@@ -181,29 +183,17 @@ public class AclTests extends BootstrapDatastoreWithCassandra {
 	 */
 	private static void grantRights(){
 		//Property Types
-        aclEdm.RightsOf( ImmutableSet.of(ADDRESS, POSITION) ).from( GOD_UUID ).to( PRESIDENT_UUID )
-            .allow( ImmutableSet.of("READ", "WRITE", "MODIFY") )
-            .give();
-        aclEdm.RightsOf( ADDRESS ).from( GOD_UUID ).to( CITIZEN_UUID )
-            .allow( ImmutableSet.of("READ", "WRITE") )
-            .give();
-        aclEdm.RightsOf( POSITION ).from( GOD_UUID ).to( CITIZEN_UUID )
-            .allow( ImmutableSet.of("READ") )
-            .give();
+		ps.addPermission( PRESIDENT_UUID, ImmutableSet.of(ADDRESS, POSITION), ImmutableSet.of("READ", "WRITE", "MODIFY") );
+		ps.addPermission( CITIZEN_UUID, ADDRESS, ImmutableSet.of("READ", "WRITE") );
+		ps.addPermission( CITIZEN_UUID, POSITION, ImmutableSet.of("READ") );
         //Entity types, entity set   
-        aclEdm.RightsOf( ImmutableSet.of( NATION_CITIZENS, NATION_SECRET_SERVICE ) ).from( GOD_UUID ).to( PRESIDENT_UUID )
-            .allow( ImmutableSet.of("READ", "WRITE", "MODIFY", "GRANT_ACCESS") )
-            .give();        
-        aclEdm.RightsOf( NATION_CITIZENS ).from( GOD_UUID ).to( CITIZEN_UUID )
-            .allow( ImmutableSet.of("READ", "WRITE") )
-            .give();
+		ps.addPermission( PRESIDENT_UUID, ImmutableSet.of( NATION_CITIZENS, NATION_SECRET_SERVICE ), ImmutableSet.of("READ", "WRITE", "MODIFY", "GRANT_ACCESS") );
+		ps.addPermission( CITIZEN_UUID, NATION_CITIZENS, ImmutableSet.of("READ", "WRITE") );
         //Schema
-        aclEdm.RightsOf( NATION_SCHEMA ).from( GOD_UUID ).to( CITIZEN_UUID )
-            .allow( ImmutableSet.of("READ") )
-            .give();
+		ps.addPermission( CITIZEN_UUID, NATION_SCHEMA, ImmutableSet.of("READ") );
 	}
 	
-	// Look up individual types given acl
+	// Look up individual types given Acl
 	private void typeLookup(){
 		//God, President, Citizen make get requests for property types/entity types/entity sets/schemas
 		propertyTypeMetadataLookup();
@@ -293,7 +283,8 @@ public class AclTests extends BootstrapDatastoreWithCassandra {
 		//God allows Citizen to read LIFE_EXPECTANCY.
 		yourFateIsKnown();
 		//God allows President to write LIFE_EXPECTANCY.
-		longLivePresident();
+		//TODO: skipped for now, since modifying values is not implemented in backend yet
+//		longLivePresident();
 	}
 	
 	private void changeAddress(){}
@@ -301,9 +292,7 @@ public class AclTests extends BootstrapDatastoreWithCassandra {
 	private void changePosition(){}
 
 	private void yourFateIsKnown(){
-        aclEdm.RightsOf( LIFE_EXPECTANCY ).from( GOD_UUID ).to( CITIZEN_UUID )
-            .allow( ImmutableSet.of("READ") )
-            .give();
+		ps.addPermission( CITIZEN_UUID, LIFE_EXPECTANCY, ImmutableSet.of("READ") );
         
 		Iterable<Multimap<FullQualifiedName, Object>> resultPresident = aclDs.getAllEntitiesOfType( PRESIDENT_UUID, NATION_CITIZENS);
 		Iterable<Multimap<FullQualifiedName, Object>> resultCitizen = aclDs.getAllEntitiesOfType( CITIZEN_UUID, NATION_CITIZENS);
@@ -319,10 +308,10 @@ public class AclTests extends BootstrapDatastoreWithCassandra {
 	}
 	
 	private void longLivePresident(){
-	    aclEdm.RightsOf( LIFE_EXPECTANCY ).from( GOD_UUID ).to( CITIZEN_UUID )
-	    .allow( ImmutableSet.of("WRITE") )
-        .give();
+		ps.addPermission( PRESIDENT_UUID, LIFE_EXPECTANCY, ImmutableSet.of("WRITE") );
 	    
+		//TODO: President modifies his life expectancy
+		
 		Iterable<Multimap<FullQualifiedName, Object>> resultPresident = aclDs.getAllEntitiesOfType( PRESIDENT_UUID, NATION_CITIZENS);
 		
 		//write AssertEquals later
@@ -336,12 +325,27 @@ public class AclTests extends BootstrapDatastoreWithCassandra {
 		PropertyType spiedON = new PropertyType().setNamespace( NATION_NAMESPACE ).setName( SPIED_ON.getName() )
 				.setDatatype( EdmPrimitiveTypeKind.Boolean).setMultiplicity( 0 );
 		
-		acl
+		aclEdm.createPropertyType( PRESIDENT_UUID, spiedON );
+		aclEdm.addPropertyTypesToEntityType(PRESIDENT_UUID, NATION_CITIZENS.getNamespace(), NATION_CITIZENS.getName(), ImmutableSet.of( SPIED_ON ) );
+		
+		//Make sure that no one can see them except President
+		typeLookup();
 	}
 	
 	private void godRemovesRights(){
 		//President lets God access property type SPIED_ON
+		//TODO: How does backend know it's president setting rights this time?
+		ps.addPermission( GOD_UUID, SPIED_ON, ImmutableSet.of("READ") );		
+
+		//Check what everyone can see again.
+		typeLookup();
 		
+		//God removes all of President's rights except reading Schema. In particular, he should not be able to read/write any types.
+		//TODO: if one cannot access an entity type, he shouldn't be able to access the entity sets under it either.
+		ps.setPermission( PRESIDENT_UUID, ImmutableSet.of(ADDRESS, POSITION, LIFE_EXPECTANCY, SPIED_ON, NATION_CITIZENS), Collections.emptySet() );
+		
+		//Check what everyone can see again.
+		typeLookup();		
 	}
 	
 }

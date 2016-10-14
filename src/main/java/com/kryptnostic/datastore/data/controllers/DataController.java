@@ -27,7 +27,6 @@ import com.kryptnostic.datastore.services.DataApi;
 import com.kryptnostic.datastore.services.DataService;
 import com.squareup.okhttp.Response;
 
-
 @RestController
 @RequestMapping( DataApi.CONTROLLER )
 public class DataController implements DataApi {
@@ -38,18 +37,18 @@ public class DataController implements DataApi {
         csv;
     }
 
-    public static final String FILE_TYPE      = "fileType";
+    public static final String FILE_TYPE = "fileType";
 
     @Inject
-    private DataService        dataService;
+    private DataService dataService;
 
     // TODO: Move this somewhere better
     public static final String MEDIA_TYPE_CSV = "text/csv";
 
     @RequestMapping(
-        path = { "/object/{id}" },
-        method = RequestMethod.GET,
-        produces = MediaType.APPLICATION_JSON_VALUE )
+            path = { "/object/{id}" },
+            method = RequestMethod.GET,
+            produces = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
     public Map<String, Object> getObject( @PathVariable( "id" ) UUID objectId ) {
         return dataService.getObject( objectId );
@@ -77,7 +76,7 @@ public class DataController implements DataApi {
     public Iterable<Multimap<FullQualifiedName, Object>> getAllEntitiesOfEntitySet(
             String entitySetName,
             String entityTypeNamespace,
-            String entityTypeName) {
+            String entityTypeName ) {
         return dataService.getAllEntitiesOfEntitySet( entitySetName, entityTypeNamespace, entityTypeName );
     }
 
@@ -92,10 +91,10 @@ public class DataController implements DataApi {
     }
 
     @RequestMapping(
-        path = DataApi.ENTITY_DATA,
-        method = RequestMethod.PUT,
-        consumes = MediaType.APPLICATION_JSON_VALUE,
-        produces = { MediaType.APPLICATION_JSON_VALUE, MEDIA_TYPE_CSV } )
+            path = DataApi.ENTITY_DATA,
+            method = RequestMethod.PUT,
+            consumes = MediaType.APPLICATION_JSON_VALUE,
+            produces = { MediaType.APPLICATION_JSON_VALUE, MEDIA_TYPE_CSV } )
     @ResponseStatus( HttpStatus.OK )
     public Iterable<Multimap<FullQualifiedName, Object>> getAllEntitiesOfType(
             @RequestBody FullQualifiedName fqn,
@@ -157,10 +156,10 @@ public class DataController implements DataApi {
     }
 
     @RequestMapping(
-        path = DataApi.ENTITY_DATA + DataApi.MULTIPLE,
-        method = RequestMethod.PUT,
-        consumes = MediaType.APPLICATION_JSON_VALUE,
-        produces = MediaType.APPLICATION_JSON_VALUE )
+            path = DataApi.ENTITY_DATA + DataApi.MULTIPLE,
+            method = RequestMethod.PUT,
+            consumes = MediaType.APPLICATION_JSON_VALUE,
+            produces = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
     public Iterable<Iterable<Multimap<FullQualifiedName, Object>>> getAllEntitiesOfTypes(
             @RequestBody List<FullQualifiedName> fqns,
@@ -177,10 +176,10 @@ public class DataController implements DataApi {
 
     @Override
     @RequestMapping(
-        path = DataApi.ENTITY_DATA + DataApi.FILTERED,
-        method = RequestMethod.PUT,
-        consumes = MediaType.APPLICATION_JSON_VALUE,
-        produces = MediaType.APPLICATION_JSON_VALUE )
+            path = DataApi.ENTITY_DATA + DataApi.FILTERED,
+            method = RequestMethod.PUT,
+            consumes = MediaType.APPLICATION_JSON_VALUE,
+            produces = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
     public Iterable<UUID> getFilteredEntities( @RequestBody LookupEntitiesRequest lookupEntitiesRequest ) {
         return dataService.getFilteredEntities( lookupEntitiesRequest );
@@ -188,10 +187,10 @@ public class DataController implements DataApi {
 
     @Override
     @RequestMapping(
-        path = DataApi.ENTITY_DATA,
-        method = RequestMethod.POST,
-        consumes = MediaType.APPLICATION_JSON_VALUE,
-        produces = MediaType.APPLICATION_JSON_VALUE )
+            path = DataApi.ENTITY_DATA,
+            method = RequestMethod.POST,
+            consumes = MediaType.APPLICATION_JSON_VALUE,
+            produces = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
     public Response createEntityData( @RequestBody CreateEntityRequest createEntityRequest ) {
         dataService.createEntityData( createEntityRequest );
@@ -200,9 +199,9 @@ public class DataController implements DataApi {
 
     @Override
     @RequestMapping(
-        path = DataApi.INTEGRATION,
-        method = RequestMethod.GET,
-        produces = MediaType.APPLICATION_JSON_VALUE )
+            path = DataApi.INTEGRATION,
+            method = RequestMethod.GET,
+            produces = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
     public Map<String, String> getAllIntegrationScripts() {
         return dataService.getAllIntegrationScripts();
@@ -210,10 +209,10 @@ public class DataController implements DataApi {
 
     @Override
     @RequestMapping(
-        path = DataApi.INTEGRATION,
-        method = RequestMethod.PUT,
-        consumes = MediaType.APPLICATION_JSON_VALUE,
-        produces = MediaType.APPLICATION_JSON_VALUE )
+            path = DataApi.INTEGRATION,
+            method = RequestMethod.PUT,
+            consumes = MediaType.APPLICATION_JSON_VALUE,
+            produces = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
     public Map<String, String> getIntegrationScript( @RequestBody Set<String> urls ) {
         return dataService.getIntegrationScriptForUrl( urls );
@@ -221,9 +220,9 @@ public class DataController implements DataApi {
 
     @Override
     @RequestMapping(
-        path = DataApi.INTEGRATION,
-        method = RequestMethod.POST,
-        consumes = MediaType.APPLICATION_JSON_VALUE )
+            path = DataApi.INTEGRATION,
+            method = RequestMethod.POST,
+            consumes = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
     public Response createIntegrationScript( @RequestBody Map<String, String> integrationScripts ) {
         dataService.createIntegrationScript( integrationScripts );

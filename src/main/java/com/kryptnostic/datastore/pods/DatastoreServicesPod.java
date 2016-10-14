@@ -39,7 +39,6 @@ public class DatastoreServicesPod {
     @Bean
     public CassandraTableManager tableManager() {
         return new CassandraTableManager(
-                hazelcastInstance,
                 DatastoreConstants.KEYSPACE,
                 session,
                 mappingManager() );

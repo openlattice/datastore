@@ -101,19 +101,6 @@ public class DataService {
         return results;
     }
 
-    public Iterable<UUID> loadEntitySetOfType( FullQualifiedName fqn ) {
-        try {
-            Iterable<UUID> result = executor
-                    .submit( ConductorCall
-                            .wrap( Lambdas.getEntitySetOfType( fqn ) ) )
-                    .get();
-            return result;
-        } catch ( InterruptedException | ExecutionException e ) {
-            e.printStackTrace();
-        }
-        return null;
-    }
-
     public Map<String, String> getAllIntegrationScripts() {
         return urlToIntegrationScripts;
     }
@@ -193,9 +180,9 @@ public class DataService {
         return null;
 	}
 
-    public Iterable<Multimap<FullQualifiedName,Object>> getAllEntitiesOfEntitySet( String entitySetName, String entityTypeName ) {
+    public Iterable<Multimap<FullQualifiedName,Object>> getAllEntitiesOfEntitySet( String entitySetName, String entityTypeNamespace, String entityTypeName ) {
         Iterable<Multimap<FullQualifiedName, Object>> result = Lists.newArrayList();
-        FullQualifiedName fqn = tableManager.getEntityTypeForTypename( entityTypeName );
+        FullQualifiedName fqn = new FullQualifiedName( entityTypeNamespace, entityTypeName );
         try{
             QueryResult qr = executor
                     .submit( ConductorCall.wrap( Lambdas.getAllEntitiesOfEntitySet( fqn, entitySetName ) ) ).get();

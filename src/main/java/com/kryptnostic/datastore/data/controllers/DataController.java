@@ -43,48 +43,15 @@ public class DataController implements DataApi {
 
     @Override
     @RequestMapping(
-            path = DataApi.ENTITYSET,
-            method = RequestMethod.PUT,
-            consumes = MediaType.APPLICATION_JSON_VALUE,
-            produces = MediaType.APPLICATION_JSON_VALUE )
-    @ResponseStatus( HttpStatus.OK )
-    public Iterable<UUID> getEntitySetOfType( @RequestBody FullQualifiedName fqn ) {
-        return dataService.loadEntitySetOfType( fqn );
-    }
-
-    @Override
-    @RequestMapping(
-            path = DataApi.ENTITYSET + DataApi.FULLQUALIFIEDNAME_PATH_WITH_DOT,
-            method = RequestMethod.GET,
-            produces = MediaType.APPLICATION_JSON_VALUE )
-    @ResponseStatus( HttpStatus.OK )
-    public Iterable<UUID> getEntitySetOfType( @PathVariable( FULLQUALIFIEDNAME ) String fqnString ) {
-        return dataService.loadEntitySetOfType( new FullQualifiedName( fqnString ) );
-    }
-
-    @Override
-    @RequestMapping(
-            path = DataApi.ENTITYSET + DataApi.NAME_SPACE_PATH + DataApi.NAME_PATH,
-            method = RequestMethod.GET,
-            consumes = MediaType.APPLICATION_JSON_VALUE,
-            produces = MediaType.APPLICATION_JSON_VALUE )
-    @ResponseStatus( HttpStatus.OK )
-    public Iterable<UUID> getEntitySetOfType(
-            @PathVariable( NAME_SPACE ) String namespace,
-            @PathVariable( NAME ) String name ) {
-        return dataService.loadEntitySetOfType( new FullQualifiedName( namespace, name ) );
-    }
-
-    @Override
-    @RequestMapping(
-            path = DataApi.ENTITYSET + DataApi.NAME_PATH + DataApi.TYPE_NAME_PATH + DataApi.ENTITY_DATA,
+            path = DataApi.ENTITYSET + DataApi.NAME_SPACE_PATH + DataApi.TYPE_NAME_PATH + DataApi.NAME_PATH,
             method = RequestMethod.GET,
             produces = { MediaType.APPLICATION_JSON_VALUE, MEDIA_TYPE_CSV } )
     @ResponseStatus( HttpStatus.OK )
     public Iterable<Multimap<FullQualifiedName, Object>> getAllEntitiesOfEntitySet(
             @PathVariable( NAME ) String entitySetName,
-            @PathVariable( TYPE_NAME ) String entityTypeName ) {
-        return dataService.getAllEntitiesOfEntitySet( entitySetName, entityTypeName );
+            @PathVariable( NAME_SPACE ) String entityTypeNamespace,
+            @PathVariable( TYPE_NAME ) String entityTypeName) {
+        return dataService.getAllEntitiesOfEntitySet( entitySetName, entityTypeNamespace, entityTypeName );
     }
 
     @Override
@@ -132,7 +99,7 @@ public class DataController implements DataApi {
             @PathVariable( NAME_SPACE ) String namespace, @PathVariable( NAME ) String name ) {
         return dataService.readAllEntitiesOfType( new FullQualifiedName( namespace, name ) );
     }
-    
+
     @Override
     @RequestMapping(
             path = DataApi.ENTITY_DATA + DataApi.FILTERED,
@@ -141,9 +108,9 @@ public class DataController implements DataApi {
             produces = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
     public Iterable<UUID> getFilteredEntities( @RequestBody LookupEntitiesRequest lookupEntitiesRequest ) {
-	        return dataService.getFilteredEntities( lookupEntitiesRequest );  	
+        return dataService.getFilteredEntities( lookupEntitiesRequest );
     }
-        
+
     @Override
     @RequestMapping(
             path = DataApi.ENTITY_DATA,

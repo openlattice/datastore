@@ -15,7 +15,7 @@ apply from: "https://raw.githubusercontent.com/kryptnostic/gradles/master/kryptn
 apply from: "https://raw.githubusercontent.com/kryptnostic/gradles/master/docker.gradle"
 
 mainClassName = "com.kryptnostic.datastore.Datastore"
-applicationDefaultJvmArgs = ["-Xmx5G","-Xms5G","-server"]
+applicationDefaultJvmArgs = ["-Xmx5G", "-server"]
 sourceCompatibility=JavaVersion.VERSION_1_8
 targetCompatibility=JavaVersion.VERSION_1_8
 

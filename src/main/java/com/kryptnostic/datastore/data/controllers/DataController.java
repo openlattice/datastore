@@ -53,61 +53,29 @@ public class DataController implements DataApi {
         return dataService.getObject( objectId );
     }
 
-    @Override
     @RequestMapping(
-        path = DataApi.ENTITYSET,
-        method = RequestMethod.PUT,
-        consumes = MediaType.APPLICATION_JSON_VALUE,
-        produces = MediaType.APPLICATION_JSON_VALUE )
-    @ResponseStatus( HttpStatus.OK )
-    public Iterable<UUID> getEntitySetOfType( @RequestBody FullQualifiedName fqn ) {
-        return dataService.loadEntitySetOfType( fqn );
-    }
-
-    @Override
-    @RequestMapping(
-        path = DataApi.ENTITYSET + DataApi.FULLQUALIFIEDNAME_PATH_WITH_DOT,
-        method = RequestMethod.GET,
-        produces = MediaType.APPLICATION_JSON_VALUE )
-    @ResponseStatus( HttpStatus.OK )
-    public Iterable<UUID> getEntitySetOfType( @PathVariable( FULLQUALIFIEDNAME ) String fqnString ) {
-        return dataService.loadEntitySetOfType( new FullQualifiedName( fqnString ) );
-    }
-
-    @Override
-    @RequestMapping(
-        path = DataApi.ENTITYSET + DataApi.NAME_SPACE_PATH + DataApi.NAME_PATH,
-        method = RequestMethod.GET,
-        consumes = MediaType.APPLICATION_JSON_VALUE,
-        produces = MediaType.APPLICATION_JSON_VALUE )
-    @ResponseStatus( HttpStatus.OK )
-    public Iterable<UUID> getEntitySetOfType(
-            @PathVariable( NAME_SPACE ) String namespace,
-            @PathVariable( NAME ) String name ) {
-        return dataService.loadEntitySetOfType( new FullQualifiedName( namespace, name ) );
-    }
-
-    @Override
-    public Iterable<Multimap<FullQualifiedName, Object>> getAllEntitiesOfEntitySet(
-            String entitySetName,
-            String entityTypeName ) {
-        return dataService.getAllEntitiesOfEntitySet( entitySetName, entityTypeName );
-    }
-
-    @RequestMapping(
-        path = DataApi.ENTITYSET + DataApi.NAME_PATH + DataApi.TYPE_NAME_PATH + DataApi.ENTITY_DATA,
+        path = DataApi.ENTITYSET + DataApi.NAME_SPACE + DataApi.TYPE_NAME_PATH + DataApi.NAME_PATH,
         method = RequestMethod.GET,
         produces = { MediaType.APPLICATION_JSON_VALUE, MEDIA_TYPE_CSV } )
     @ResponseStatus( HttpStatus.OK )
     public Iterable<Multimap<FullQualifiedName, Object>> getAllEntitiesOfEntitySet(
             @PathVariable( NAME ) String entitySetName,
+            @PathVariable( NAME_SPACE ) String entityTypeNamespace,
             @PathVariable( TYPE_NAME ) String entityTypeName,
             @RequestParam( FILE_TYPE ) FileType fileType,
             HttpServletResponse response ) {
         response.setHeader( "Content-Disposition",
                 "attachment; filename=" + entitySetName + "." + fileType.toString() );
         setDownloadContentType( response, fileType );
-        return getAllEntitiesOfEntitySet( entitySetName, entityTypeName );
+        return getAllEntitiesOfEntitySet( entitySetName, entityTypeNamespace, entityTypeName );
+    }
+
+    @Override
+    public Iterable<Multimap<FullQualifiedName, Object>> getAllEntitiesOfEntitySet(
+            String entitySetName,
+            String entityTypeNamespace,
+            String entityTypeName) {
+        return dataService.getAllEntitiesOfEntitySet( entitySetName, entityTypeName );
     }
 
     private static void setDownloadContentType( HttpServletResponse response, FileType fileType ) {
@@ -120,11 +88,6 @@ public class DataController implements DataApi {
                 response.setContentType( MediaType.APPLICATION_JSON_VALUE );
 
         }
-    }
-
-    public Iterable<Multimap<FullQualifiedName, Object>> getAllEntitiesOfType(
-            FullQualifiedName fqn ) {
-        return dataService.readAllEntitiesOfType( fqn );
     }
 
     @RequestMapping(
@@ -144,9 +107,52 @@ public class DataController implements DataApi {
     }
 
     @Override
-    public Iterable<Iterable<Multimap<FullQualifiedName, Object>>> getAllEntitiesOfTypes(
-            List<FullQualifiedName> fqns ) {
-        return dataService.readAllEntitiesOfSchema( fqns );
+    public Iterable<Multimap<FullQualifiedName, Object>> getAllEntitiesOfType(
+            FullQualifiedName fqn ) {
+        return dataService.readAllEntitiesOfType( fqn );
+    }
+
+    @RequestMapping(
+            path = DataApi.ENTITY_DATA + DataApi.FULLQUALIFIEDNAME_PATH_WITH_DOT,
+            method = RequestMethod.GET,
+            produces = { MediaType.APPLICATION_JSON_VALUE, MEDIA_TYPE_CSV } )
+    @ResponseStatus( HttpStatus.OK )
+    public Iterable<Multimap<FullQualifiedName, Object>> getAllEntitiesOfType(
+            @PathVariable( FULLQUALIFIEDNAME ) String fqnAsString,
+            @RequestParam( FILE_TYPE ) FileType fileType,
+            HttpServletResponse response ) {
+
+        FullQualifiedName fqn = new FullQualifiedName( fqnAsString );
+        response.setHeader( "Content-Disposition",
+                "attachment; filename=" + fqn.getNamespace() + "_" + fqn.getName() + "." + fileType.toString() );
+        setDownloadContentType( response, fileType );
+        return getAllEntitiesOfType( fqn );
+    }
+
+    @Override
+    public Iterable<Multimap<FullQualifiedName, Object>> getAllEntitiesOfType( String fqnAsString ) {
+        return getAllEntitiesOfType( new FullQualifiedName( fqnAsString ) );
+    }
+
+    @RequestMapping(
+            path = DataApi.ENTITY_DATA + DataApi.NAME_SPACE_PATH + DataApi.NAME_PATH,
+            method = RequestMethod.GET,
+            produces = { MediaType.APPLICATION_JSON_VALUE, MEDIA_TYPE_CSV } )
+    @ResponseStatus( HttpStatus.OK )
+    public Iterable<Multimap<FullQualifiedName, Object>> getAllEntitiesOfType(
+            @PathVariable( NAME_SPACE ) String namespace,
+            @PathVariable( NAME ) String name,
+            @RequestParam( FILE_TYPE ) FileType fileType,
+            HttpServletResponse response ) {
+        response.setHeader( "Content-Disposition",
+                "attachment; filename=" + namespace + "_" + name + "." + fileType.toString() );
+        setDownloadContentType( response, fileType );
+        return getAllEntitiesOfType( new FullQualifiedName( namespace, name ) );
+    }
+
+    @Override
+    public Iterable<Multimap<FullQualifiedName, Object>> getAllEntitiesOfType( String namespace, String name ) {
+        return getAllEntitiesOfType( new FullQualifiedName( namespace, name ) );
     }
 
     @RequestMapping(
@@ -162,37 +168,10 @@ public class DataController implements DataApi {
         return getAllEntitiesOfTypes( fqns );
     }
 
-    @RequestMapping(
-        path = DataApi.ENTITY_DATA + DataApi.FULLQUALIFIEDNAME_PATH_WITH_DOT,
-        method = RequestMethod.GET,
-        produces = { MediaType.APPLICATION_JSON_VALUE, MEDIA_TYPE_CSV } )
-    @ResponseStatus( HttpStatus.OK )
-    public Iterable<Multimap<FullQualifiedName, Object>> getAllEntitiesOfType(
-            @PathVariable( FULLQUALIFIEDNAME ) String fqnAsString,
-            @RequestParam( FILE_TYPE ) FileType fileType,
-            HttpServletResponse response ) {
-
-        FullQualifiedName fqn = new FullQualifiedName( fqnAsString );
-        response.setHeader( "Content-Disposition",
-                "attachment; filename=" + fqn.getNamespace() + "_" + fqn.getName() + "." + fileType.toString() );
-        setDownloadContentType( response, fileType );
-        return getAllEntitiesOfType( fqn );
-    }
-
-    @RequestMapping(
-        path = DataApi.ENTITY_DATA + DataApi.NAME_SPACE_PATH + DataApi.NAME_PATH,
-        method = RequestMethod.GET,
-        produces = { MediaType.APPLICATION_JSON_VALUE, MEDIA_TYPE_CSV } )
-    @ResponseStatus( HttpStatus.OK )
-    public Iterable<Multimap<FullQualifiedName, Object>> getAllEntitiesOfType(
-            @PathVariable( NAME_SPACE ) String namespace,
-            @PathVariable( NAME ) String name,
-            @RequestParam( FILE_TYPE ) FileType fileType,
-            HttpServletResponse response ) {
-        response.setHeader( "Content-Disposition",
-                "attachment; filename=" + namespace + "_" + name + "." + fileType.toString() );
-        setDownloadContentType( response, fileType );
-        return getAllEntitiesOfType( new FullQualifiedName( namespace, name ) );
+    @Override
+    public Iterable<Iterable<Multimap<FullQualifiedName, Object>>> getAllEntitiesOfTypes(
+            List<FullQualifiedName> fqns ) {
+        return dataService.readAllEntitiesOfSchema( fqns );
     }
 
     @Override
@@ -248,16 +227,6 @@ public class DataController implements DataApi {
     public Response createIntegrationScript( @RequestBody Map<String, String> integrationScripts ) {
         dataService.createIntegrationScript( integrationScripts );
         return null;
-    }
-
-    @Override
-    public Iterable<Multimap<FullQualifiedName, Object>> getAllEntitiesOfType( String fqnAsString ) {
-        return getAllEntitiesOfType( new FullQualifiedName( fqnAsString ) );
-    }
-
-    @Override
-    public Iterable<Multimap<FullQualifiedName, Object>> getAllEntitiesOfType( String namespace, String name ) {
-        return getAllEntitiesOfType( new FullQualifiedName( namespace, name ) );
     }
 
 }

@@ -7,6 +7,7 @@ import java.util.UUID;
 
 import javax.inject.Inject;
 import javax.servlet.http.HttpServletResponse;
+import javax.ws.rs.BadRequestException;
 
 import org.apache.olingo.commons.api.edm.FullQualifiedName;
 import org.springframework.http.HttpStatus;
@@ -65,9 +66,8 @@ public class DataController implements DataApi {
             @PathVariable( TYPE_NAME ) String entityTypeName,
             @RequestParam( FILE_TYPE ) FileType fileType,
             HttpServletResponse response ) {
-        if ( fileType == FileType.json || fileType == FileType.csv ) {
-            setContentDisposition( response, entitySetName + "." + fileType.toString() );
-        }
+        String fileName = entitySetName;
+        setContentDisposition( response, fileName, fileType );
         setDownloadContentType( response, fileType );
         return getAllEntitiesOfEntitySet( entitySetName, entityTypeNamespace, entityTypeName );
     }
@@ -91,9 +91,14 @@ public class DataController implements DataApi {
         }
     }
 
-    private static void setContentDisposition( HttpServletResponse response, String fileName ) {
-        response.setHeader( "Content-Disposition",
-                "attachment; filename=" + fileName );
+    private static void setContentDisposition(
+            HttpServletResponse response,
+            String fileName,
+            FileType fileType ) {
+        if ( fileType == FileType.csv || fileType == FileType.json ) {
+            response.setHeader( "Content-Disposition",
+                    "attachment; filename=" + fileName + "." + fileType.toString() );
+        }
     }
 
     @RequestMapping(
@@ -106,9 +111,8 @@ public class DataController implements DataApi {
             @RequestBody FullQualifiedName fqn,
             @RequestParam( FILE_TYPE ) FileType fileType,
             HttpServletResponse response ) {
-        if ( fileType == FileType.json || fileType == FileType.csv ) {
-            setContentDisposition( response, fqn.getNamespace() + "_" + fqn.getName() + "." + fileType.toString() );
-        }
+        String fileName = fqn.getNamespace() + "_" + fqn.getName();
+        setContentDisposition( response, fileName, fileType );
         setDownloadContentType( response, fileType );
         return getAllEntitiesOfType( fqn );
     }
@@ -129,9 +133,8 @@ public class DataController implements DataApi {
             @RequestParam( FILE_TYPE ) FileType fileType,
             HttpServletResponse response ) {
         FullQualifiedName fqn = new FullQualifiedName( fqnAsString );
-        if ( fileType == FileType.json || fileType == FileType.csv ) {
-            setContentDisposition( response, fqn.getNamespace() + "_" + fqn.getName() + "." + fileType.toString() );
-        }
+        String fileName = fqn.getNamespace() + "_" + fqn.getName();
+        setContentDisposition( response, fileName, fileType );
         setDownloadContentType( response, fileType );
         return getAllEntitiesOfType( fqn );
     }
@@ -151,9 +154,8 @@ public class DataController implements DataApi {
             @PathVariable( NAME ) String name,
             @RequestParam( FILE_TYPE ) FileType fileType,
             HttpServletResponse response ) {
-        if ( fileType == FileType.json || fileType == FileType.csv ) {
-            setContentDisposition( response, namespace + "_" + name + "." + fileType.toString() );
-        }
+        String fileName = namespace + "_" + name;
+        setContentDisposition( response, fileName, fileType );
         setDownloadContentType( response, fileType );
         return getAllEntitiesOfType( new FullQualifiedName( namespace, name ) );
     }
@@ -173,9 +175,10 @@ public class DataController implements DataApi {
             @RequestBody List<FullQualifiedName> fqns,
             @RequestParam( FILE_TYPE ) FileType fileType,
             HttpServletResponse response ) {
-        if ( fileType == FileType.json ) {
-            setContentDisposition( response, "entities_data.json" );
+        if ( fileType == FileType.csv ) {
+            throw new BadRequestException( "csv format file is supported for this endpoint." );
         }
+        setContentDisposition( response, "entities_data", fileType );
         return getAllEntitiesOfTypes( fqns );
     }
 

@@ -135,7 +135,6 @@ public class DataController implements DataApi {
         FullQualifiedName fqn = new FullQualifiedName( fqnAsString );
         String fileName = fqn.getNamespace() + "_" + fqn.getName();
         setContentDisposition( response, fileName, fileType );
-
         setDownloadContentType( response, fileType );
         return getAllEntitiesOfType( fqn );
     }
@@ -157,7 +156,6 @@ public class DataController implements DataApi {
             HttpServletResponse response ) {
         String fileName = namespace + "_" + name;
         setContentDisposition( response, fileName, fileType );
-
         setDownloadContentType( response, fileType );
         return getAllEntitiesOfType( new FullQualifiedName( namespace, name ) );
     }

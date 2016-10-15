@@ -112,7 +112,7 @@ public class DataController implements DataApi {
             @RequestParam( FILE_TYPE ) FileType fileType,
             HttpServletResponse response ) {
         String fileName = fqn.getNamespace() + "_" + fqn.getName();
-        setContentDisposition( response, fileName, fileType);
+        setContentDisposition( response, fileName, fileType );
         setDownloadContentType( response, fileType );
         return getAllEntitiesOfType( fqn );
     }
@@ -134,7 +134,7 @@ public class DataController implements DataApi {
             HttpServletResponse response ) {
         FullQualifiedName fqn = new FullQualifiedName( fqnAsString );
         String fileName = fqn.getNamespace() + "_" + fqn.getName();
-            setContentDisposition( response,  fileName, fileType);
+        setContentDisposition( response, fileName, fileType );
 
         setDownloadContentType( response, fileType );
         return getAllEntitiesOfType( fqn );
@@ -156,7 +156,7 @@ public class DataController implements DataApi {
             @RequestParam( FILE_TYPE ) FileType fileType,
             HttpServletResponse response ) {
         String fileName = namespace + "_" + name;
-        setContentDisposition( response,  fileName, fileType);
+        setContentDisposition( response, fileName, fileType );
 
         setDownloadContentType( response, fileType );
         return getAllEntitiesOfType( new FullQualifiedName( namespace, name ) );
@@ -180,7 +180,7 @@ public class DataController implements DataApi {
         if ( fileType == FileType.csv ) {
             throw new BadRequestException( "Only json format file is supported for this endpoint." );
         }
-        setContentDisposition( response, "entities_data", fileType);
+        setContentDisposition( response, "entities_data", fileType );
         return getAllEntitiesOfTypes( fqns );
     }
 

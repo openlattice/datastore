@@ -176,7 +176,7 @@ public class DataController implements DataApi {
             @RequestParam( FILE_TYPE ) FileType fileType,
             HttpServletResponse response ) {
         if ( fileType == FileType.csv ) {
-            throw new BadRequestException( "Only json format file is supported for this endpoint." );
+            throw new BadRequestException( "csv format file is supported for this endpoint." );
         }
         setContentDisposition( response, "entities_data", fileType );
         return getAllEntitiesOfTypes( fqns );

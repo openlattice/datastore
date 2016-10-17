@@ -4,6 +4,7 @@ import java.util.UUID;
 
 import org.apache.olingo.commons.api.edm.EdmPrimitiveTypeKind;
 import org.apache.olingo.commons.api.edm.FullQualifiedName;
+import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -16,13 +17,10 @@ import com.kryptnostic.datastore.Permission;
 import com.kryptnostic.datastore.services.EdmManager;
 import com.kryptnostic.datastore.services.EdmService;
 import com.kryptnostic.datastore.services.PermissionsService;
+import com.kryptnostic.instrumentation.v1.exceptions.types.UnauthorizedException;
 
 public class BabyAclTest extends BootstrapDatastoreWithCassandra {
-
-    static EdmManager                             edm                    = ds.getContext().getBean( EdmManager.class );
-	protected static final PermissionsService      ps                    = ds.getContext().getBean( PermissionsService.class );
 	
-	protected static final UUID                   GOD_UUID               = new UUID(1, 2);
 	protected static final UUID                   PRESIDENT_UUID         = UUID.randomUUID();
 	protected static final UUID                   CITIZEN_UUID           = UUID.randomUUID();	
 
@@ -54,27 +52,36 @@ public class BabyAclTest extends BootstrapDatastoreWithCassandra {
 		typeLookup();
 	};
 	
+	// Delete created property types/entity types/entity sets/schemas - Acl tables should update correspondingly.
+	@AfterClass
+	public static void resetAcl(){
+		//God deletes the nation
+		//Property Types
+		dms.deletePropertyType( LIFE_EXPECTANCY );
+		dms.deletePropertyType( ADDRESS );
+		dms.deletePropertyType( POSITION );
+	}
+	
 	private static void createTypes() {
 		//You are God right now
 		setIdentity( GOD_UUID );
 		//God create property types Life expectancy, Address
 		PropertyType lifeExpectancy = new PropertyType().setNamespace( NATION_NAMESPACE ).setName( LIFE_EXPECTANCY.getName() )
-				.setDatatype( EdmPrimitiveTypeKind.Int32).setMultiplicity( 0 );
+				.setDatatype( EdmPrimitiveTypeKind.Int32).setMultiplicity( 0 ).setSchemas( ImmutableSet.of() );
 		PropertyType address = new PropertyType().setNamespace( NATION_NAMESPACE ).setName( ADDRESS.getName() )
-				.setDatatype( EdmPrimitiveTypeKind.String).setMultiplicity( 0 );
+				.setDatatype( EdmPrimitiveTypeKind.String).setMultiplicity( 0 ).setSchemas( ImmutableSet.of() );
 		PropertyType position = new PropertyType().setNamespace( NATION_NAMESPACE ).setName( POSITION.getName() )
-				.setDatatype( EdmPrimitiveTypeKind.String).setMultiplicity( 0 );
-		edm.createPropertyType( lifeExpectancy );
-		edm.createPropertyType( address );
-		edm.createPropertyType( position );
+				.setDatatype( EdmPrimitiveTypeKind.String).setMultiplicity( 0 ).setSchemas( ImmutableSet.of() );
+		dms.createPropertyType( lifeExpectancy );
+		dms.createPropertyType( address );
+		dms.createPropertyType( position );
 	}
 	
 	private static void grantRights(){
 		//God grants rights to others
 		//Property Types
-		ps.addPermissionsForPropertyTypes( PRESIDENT_UUID, ADDRESS, ImmutableSet.of(Permission.READ, Permission.WRITE, Permission.ALTER) );
-		ps.addPermissionsForPropertyTypes( PRESIDENT_UUID, POSITION, ImmutableSet.of(Permission.READ, Permission.WRITE, Permission.ALTER) );
-		ps.addPermissionsForPropertyTypes( CITIZEN_UUID, ADDRESS, ImmutableSet.of(Permission.READ, Permission.WRITE) );
+		ps.addPermissionsForPropertyTypes( PRESIDENT_UUID, ADDRESS, ImmutableSet.of(Permission.READ, Permission.WRITE) );
+		ps.addPermissionsForPropertyTypes( PRESIDENT_UUID, POSITION, ImmutableSet.of(Permission.READ, Permission.WRITE) );
 	}
 
 	// Look up individual types given Acl
@@ -83,36 +90,42 @@ public class BabyAclTest extends BootstrapDatastoreWithCassandra {
 		propertyTypeMetadataLookup();	
 	};
 	
-	private void propertyTypeMetadataLookup() {
-		PropertyType lifeExpectancy = new PropertyType().setNamespace( NATION_NAMESPACE ).setName( LIFE_EXPECTANCY.getName() )
-				.setDatatype( EdmPrimitiveTypeKind.Int32).setMultiplicity( 0 );
-		PropertyType address = new PropertyType().setNamespace( NATION_NAMESPACE ).setName( ADDRESS.getName() )
-				.setDatatype( EdmPrimitiveTypeKind.String).setMultiplicity( 0 );
-		
+	private void propertyTypeMetadataLookup() {		
 		//You are God
 		setIdentity( GOD_UUID );
-		PropertyType resultAddressForGod = edm.getPropertyType( ADDRESS );
-		PropertyType resultLifeExpectancyForGod = edm.getPropertyType( LIFE_EXPECTANCY );
-		Assert.assertEquals( address, resultAddressForGod );
-		Assert.assertEquals( lifeExpectancy, resultLifeExpectancyForGod );
+		PropertyType resultAddressForGod = dms.getPropertyType( ADDRESS );
+		PropertyType resultLifeExpectancyForGod = dms.getPropertyType( LIFE_EXPECTANCY );
+		System.out.println( resultAddressForGod );
+		System.out.println( resultLifeExpectancyForGod );
 		
 		//You are President
 		setIdentity( PRESIDENT_UUID );
-		PropertyType resultAddressForPresident = edm.getPropertyType( ADDRESS );
-		PropertyType resultLifeExpectancyForPresident = edm.getPropertyType( LIFE_EXPECTANCY );
-		Assert.assertEquals( address, resultAddressForPresident );
-		Assert.assertNull( resultLifeExpectancyForGod );
-		
+		PropertyType resultAddressForPresident = dms.getPropertyType( ADDRESS );
+		//President got read access for Address, should have same view as God
+		Assert.assertEquals( resultAddressForGod, resultAddressForPresident );
+		//President has no read access for Life expectancy
+		try{
+			PropertyType resultLifeExpectancyForPresident = dms.getPropertyType( LIFE_EXPECTANCY );
+			Assert.fail("Unauthorized Exception should have been thrown.");
+		} catch ( UnauthorizedException e){
+			Assert.assertTrue( e instanceof UnauthorizedException  );
+		}
+
 		//You are Citizen
 		setIdentity( CITIZEN_UUID );
-		PropertyType resultAddressForCitizen = edm.getPropertyType( ADDRESS );
-		PropertyType resultLifeExpectancyForCitizen = edm.getPropertyType( LIFE_EXPECTANCY );
-		Assert.assertNull( resultAddressForCitizen );
-		Assert.assertNull( resultLifeExpectancyForCitizen );
+		//Citizens has no read access
+		try{
+			PropertyType resultAddressForCitizen = dms.getPropertyType( ADDRESS );
+			Assert.fail("Unauthorized Exception should have been thrown.");
+		} catch ( UnauthorizedException e){
+			Assert.assertTrue( e instanceof UnauthorizedException  );
+		}
+		try{
+			PropertyType resultLifeExpectancyForCitizen = dms.getPropertyType( LIFE_EXPECTANCY );
+			Assert.fail("Unauthorized Exception should have been thrown.");
+		} catch ( UnauthorizedException e){
+			Assert.assertTrue( e instanceof UnauthorizedException  );
+		}
 	}
 	
-	private static void setIdentity( UUID userId ){
-		EdmService.setCurrentUserIdForDebug( userId );
-		PermissionsService.setCurrentUserIdForDebug( userId );
-	}
 }

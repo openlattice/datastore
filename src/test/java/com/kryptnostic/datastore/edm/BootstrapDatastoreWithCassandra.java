@@ -1,5 +1,7 @@
 package com.kryptnostic.datastore.edm;
 
+import java.util.UUID;
+
 import org.apache.olingo.commons.api.edm.EdmPrimitiveTypeKind;
 import org.apache.olingo.commons.api.edm.FullQualifiedName;
 import org.junit.AfterClass;
@@ -11,10 +13,13 @@ import com.kryptnostic.conductor.rpc.UUIDs.ACLs;
 import com.kryptnostic.conductor.rpc.odata.EntityType;
 import com.kryptnostic.conductor.rpc.odata.PropertyType;
 import com.kryptnostic.datastore.services.EdmManager;
+import com.kryptnostic.datastore.services.PermissionsService;
 
 public class BootstrapDatastoreWithCassandra {
     public static final String               NAMESPACE       = "testcsv";
     protected static final DatastoreServices ds              = new DatastoreServices();
+    protected static EdmManager              dms;
+    protected static PermissionsService      ps;
     protected static final String            SALARY          = "salary";
     protected static final String            EMPLOYEE_NAME   = "employee-name";
     protected static final String            EMPLOYEE_TITLE  = "employee-title";
@@ -27,15 +32,19 @@ public class BootstrapDatastoreWithCassandra {
     protected static final FullQualifiedName ENTITY_TYPE_SATURN= new FullQualifiedName( NAMESPACE, "employeeSaturn" );
     protected static final String            SCHEMA_NAME     = "csv";
 
+	protected static final UUID                   GOD_UUID               = new UUID(1, 2);
+	
     @BeforeClass
     public static void init() {
         ds.sprout("cassandra");
+        dms = ds.getContext().getBean( EdmManager.class );
+        ps = ds.getContext().getBean( PermissionsService.class );
+		//You are God right now - this would be the superUser that has rights to do everything to the types created
+		setIdentity( GOD_UUID );
         setupDatamodel();
     }
 
     private static void setupDatamodel() {
-        EdmManager dms = ds.getContext().getBean( EdmManager.class );
-
         dms.createPropertyType( new PropertyType().setNamespace( NAMESPACE ).setName( EMPLOYEE_ID )
                 .setDatatype( EdmPrimitiveTypeKind.Guid ).setMultiplicity( 0 ) );
         dms.createPropertyType( new PropertyType().setNamespace( NAMESPACE ).setName( EMPLOYEE_TITLE )
@@ -95,4 +104,9 @@ public class BootstrapDatastoreWithCassandra {
     public static void shutdown() {
         ds.plowUnder();
     }
+    
+	protected static void setIdentity( UUID userId ){
+		dms.setCurrentUserIdForDebug( userId );
+		ps.setCurrentUserIdForDebug( userId );
+	}
 }

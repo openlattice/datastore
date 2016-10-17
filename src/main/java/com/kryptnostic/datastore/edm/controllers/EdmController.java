@@ -32,9 +32,6 @@ import retrofit.http.Path;
 public class EdmController implements EdmApi {
     @Inject
     private EdmManager modelService;
-    
-    @Inject
-    private PermissionsService permissionsService;
 
     @Override
     @RequestMapping(
@@ -291,11 +288,7 @@ public class EdmController implements EdmApi {
     public PropertyType getPropertyType(
             @PathVariable( NAMESPACE ) String namespace,
             @PathVariable( NAME ) String name ) {
-    	FullQualifiedName fqn = new FullQualifiedName( namespace, name );
-    	if( permissionsService.checkUserHasPermissionsOnPropertyType( fqn, Permission.READ ) ){
-            return modelService.getPropertyType( fqn );
-    	}
-    	return null;
+            return modelService.getPropertyType( new FullQualifiedName( namespace, name) );
     }
 
     @Override

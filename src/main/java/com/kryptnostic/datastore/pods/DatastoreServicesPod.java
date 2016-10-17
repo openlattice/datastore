@@ -45,8 +45,13 @@ public class DatastoreServicesPod {
     }
 
     @Bean
+    public PermissionsService permissionsService() {
+        return new PermissionsService( session, tableManager() );
+    }
+    
+    @Bean
     public EdmManager dataModelService() {
-        return new EdmService( session, mappingManager(), tableManager() );
+        return new EdmService( session, mappingManager(), tableManager(), permissionsService() );
     }
 
     @Bean
@@ -82,11 +87,6 @@ public class DatastoreServicesPod {
     @Bean
     public DatasourceManager datasourceManager() {
         return new DatasourceManager();
-    }
-    
-    @Bean
-    public PermissionsService PermissionsService() {
-        return new PermissionsService( session, tableManager() );
     }
 
 }

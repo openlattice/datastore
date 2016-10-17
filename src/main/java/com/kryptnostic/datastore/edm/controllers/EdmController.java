@@ -22,10 +22,7 @@ import com.kryptnostic.datastore.ServerUtil;
 import com.kryptnostic.datastore.exceptions.ResourceNotFoundException;
 import com.kryptnostic.datastore.services.GetSchemasRequest.TypeDetails;
 
-import jersey.repackaged.com.google.common.base.Preconditions;
 import retrofit.client.Response;
-import retrofit.http.Body;
-import retrofit.http.Path;
 
 @RestController
 public class EdmController implements EdmApi {
@@ -34,7 +31,6 @@ public class EdmController implements EdmApi {
 
     @Override
     @RequestMapping(
-            path = { "", "/" },
             method = RequestMethod.GET,
             produces = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )

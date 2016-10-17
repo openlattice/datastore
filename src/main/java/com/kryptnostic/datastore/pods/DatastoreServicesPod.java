@@ -83,5 +83,10 @@ public class DatastoreServicesPod {
     public DatasourceManager datasourceManager() {
         return new DatasourceManager();
     }
+    
+    @Bean
+    public PermissionsService PermissionsService() {
+        return new PermissionsService( session, tableManager() );
+    }
 
 }

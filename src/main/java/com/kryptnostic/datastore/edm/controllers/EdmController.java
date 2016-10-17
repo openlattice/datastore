@@ -18,6 +18,7 @@ import com.kryptnostic.conductor.rpc.odata.EntitySet;
 import com.kryptnostic.conductor.rpc.odata.EntityType;
 import com.kryptnostic.conductor.rpc.odata.PropertyType;
 import com.kryptnostic.conductor.rpc.odata.Schema;
+import com.kryptnostic.datastore.Permission;
 import com.kryptnostic.datastore.ServerUtil;
 import com.kryptnostic.datastore.exceptions.ResourceNotFoundException;
 import com.kryptnostic.datastore.services.GetSchemasRequest.TypeDetails;
@@ -31,6 +32,9 @@ import retrofit.http.Path;
 public class EdmController implements EdmApi {
     @Inject
     private EdmManager modelService;
+    
+    @Inject
+    private PermissionsService permissionsService;
 
     @Override
     @RequestMapping(
@@ -287,7 +291,11 @@ public class EdmController implements EdmApi {
     public PropertyType getPropertyType(
             @PathVariable( NAMESPACE ) String namespace,
             @PathVariable( NAME ) String name ) {
-        return modelService.getPropertyType( new FullQualifiedName( namespace, name ) );
+    	FullQualifiedName fqn = new FullQualifiedName( namespace, name );
+    	if( permissionsService.checkUserHasPermissionsOnPropertyType( fqn, Permission.READ ) ){
+            return modelService.getPropertyType( fqn );
+    	}
+    	return null;
     }
 
     @Override

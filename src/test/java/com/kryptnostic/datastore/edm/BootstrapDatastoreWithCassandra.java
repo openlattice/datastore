@@ -32,13 +32,19 @@ public class BootstrapDatastoreWithCassandra {
     protected static final FullQualifiedName ENTITY_TYPE_SATURN= new FullQualifiedName( NAMESPACE, "employeeSaturn" );
     protected static final String            SCHEMA_NAME     = "csv";
 
-	protected static final UUID                   GOD_UUID               = new UUID(1, 2);
+    /**
+     * WARNING By Ho Chung
+     * GOD_UUID is a super user in the system: it would have OWNER rights in all the types created here
+     * For debug purpose.
+     */
+	protected static final UUID              GOD_UUID        = new UUID(1, 2);
 	
     @BeforeClass
     public static void init() {
         ds.sprout("cassandra");
         dms = ds.getContext().getBean( EdmManager.class );
         ps = ds.getContext().getBean( PermissionsService.class );
+        
 		//You are God right now - this would be the superUser that has rights to do everything to the types created
 		setIdentity( GOD_UUID );
         setupDatamodel();

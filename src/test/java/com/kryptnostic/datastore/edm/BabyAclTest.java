@@ -65,7 +65,7 @@ public class BabyAclTest extends BootstrapDatastoreWithCassandra {
 	private static void createTypes() {
 		//You are God right now
 		setIdentity( GOD_UUID );
-		//God create property types Life expectancy, Address
+		//God creates property types Life expectancy, Address
 		PropertyType lifeExpectancy = new PropertyType().setNamespace( NATION_NAMESPACE ).setName( LIFE_EXPECTANCY.getName() )
 				.setDatatype( EdmPrimitiveTypeKind.Int32).setMultiplicity( 0 ).setSchemas( ImmutableSet.of() );
 		PropertyType address = new PropertyType().setNamespace( NATION_NAMESPACE ).setName( ADDRESS.getName() )
@@ -75,19 +75,32 @@ public class BabyAclTest extends BootstrapDatastoreWithCassandra {
 		dms.createPropertyType( lifeExpectancy );
 		dms.createPropertyType( address );
 		dms.createPropertyType( position );
+		
+		//God creates entity type Citizen, creates entity set President, schema
+        EntityType citizens = new EntityType().setNamespace( NATION_NAMESPACE ).setName( NATION_CITIZENS.getName() )
+                .setKey( ImmutableSet.of( new FullQualifiedName( NAMESPACE, EMPLOYEE_ID ) ) )
+                .setProperties( ImmutableSet.of( new FullQualifiedName( NAMESPACE, EMPLOYEE_ID ),
+                        new FullQualifiedName( NATION_NAMESPACE, LIFE_EXPECTANCY.getName() ),
+                        new FullQualifiedName( NATION_NAMESPACE, ADDRESS.getName() ),
+                        new FullQualifiedName( NATION_NAMESPACE, POSITION.getName() ) ) );
+        dms.createEntityType( citizens );	
 	}
 	
 	private static void grantRights(){
 		//God grants rights to others
 		//Property Types
-		ps.addPermissionsForPropertyTypes( PRESIDENT_UUID, ADDRESS, ImmutableSet.of(Permission.READ, Permission.WRITE) );
-		ps.addPermissionsForPropertyTypes( PRESIDENT_UUID, POSITION, ImmutableSet.of(Permission.READ, Permission.WRITE) );
+		ps.addPermissionsForPropertyType( PRESIDENT_UUID, ADDRESS, ImmutableSet.of(Permission.READ, Permission.WRITE) );
+		ps.addPermissionsForPropertyType( PRESIDENT_UUID, POSITION, ImmutableSet.of(Permission.READ, Permission.WRITE) );
+		//Entity Types
+		ps.addPermissionsForEntityType( PRESIDENT_UUID, NATION_CITIZENS, ImmutableSet.of(Permission.OWNER) );
+		ps.addPermissionsForEntityType( CITIZEN_UUID, NATION_CITIZENS, ImmutableSet.of(Permission.READ, Permission.WRITE) );
 	}
 
 	// Look up individual types given Acl
 	private void typeLookup(){
 		//God, President, Citizen make get requests for property types/entity types/entity sets/schemas
-		propertyTypeMetadataLookup();	
+		propertyTypeMetadataLookup();
+		entityTypeMetadataLookup();
 	};
 	
 	private void propertyTypeMetadataLookup() {		
@@ -95,6 +108,7 @@ public class BabyAclTest extends BootstrapDatastoreWithCassandra {
 		setIdentity( GOD_UUID );
 		PropertyType resultAddressForGod = dms.getPropertyType( ADDRESS );
 		PropertyType resultLifeExpectancyForGod = dms.getPropertyType( LIFE_EXPECTANCY );
+		System.out.println( "God getting Property Types metadata:");
 		System.out.println( resultAddressForGod );
 		System.out.println( resultLifeExpectancyForGod );
 		
@@ -126,6 +140,26 @@ public class BabyAclTest extends BootstrapDatastoreWithCassandra {
 		} catch ( UnauthorizedException e){
 			Assert.assertTrue( e instanceof UnauthorizedException  );
 		}
+	}
+	
+	private void entityTypeMetadataLookup() {
+		//You are God
+		setIdentity( GOD_UUID );
+		EntityType resultForGod = dms.getEntityType( NATION_CITIZENS );
+		System.out.println( "God getting Entity Type metadata:");
+		System.out.println( resultForGod );
+
+		//You are President
+		setIdentity( PRESIDENT_UUID );
+		EntityType resultForPresident = dms.getEntityType( NATION_CITIZENS );
+		System.out.println( "President getting Entity Type metadata:");
+		System.out.println( resultForPresident );
+
+		//You are Citizen
+		setIdentity( CITIZEN_UUID );
+		EntityType resultForCitizen = dms.getEntityType( NATION_CITIZENS );
+		System.out.println( "Citizen getting Entity Type metadata:");
+		System.out.println( resultForCitizen );
 	}
 	
 }

@@ -1,25 +1,28 @@
 FROM openjdk:8u102-jdk
 
-RUN apt-get install wget \
+RUN apt-get install wget curl bash \
+#    && curl -s https://get.sdkman.io | bash \
+#    && source "/root/.sdkman/bin/sdkman-init.sh" \
+#    && sdk install gradle 2.14 \
     && wget https://github.com/jwilder/dockerize/releases/download/v0.2.0/dockerize-linux-amd64-v0.2.0.tar.gz \
     && tar -C /usr/local/bin -xzvf dockerize-linux-amd64-v0.2.0.tar.gz
 
-COPY rhizome.yaml /opt
-COPY rhizome.yaml.prod /opt
+WORKDIR /datastoreBuild
 
-ARG IMAGE_NAME
-ARG IMG_VER
-ARG ENV
+COPY . ./
+RUN ls -la
+RUN git describe --tags --dirty --long
 
-ENV VERSION=${IMG_VER:-v1.0.0} NAME=${IMAGE_NAME:-derpName} TARGET=${ENV}
+RUN ./gradlew tasks
+RUN ./gradlew distTar; cp src/main/resources/rhizome.yaml.prod /opt/rhizome.yaml
 
-ADD $NAME-$VERSION.tgz /opt
+ADD datastore-$VERSION.tgz /opt
 
-RUN cd /opt/$NAME-$VERSION/lib \
-  && mv /opt/rhizome.yaml$TARGET ./rhizome.yaml \
-  && jar vfu $NAME-$VERSION.jar rhizome.yaml \
+RUN cd /opt/datastore-$VERSION/lib \
+  && mv /opt/rhizome.yaml ./rhizome.yaml \
+  && jar vfu datastore-$VERSION.jar rhizome.yaml \
   && rm /opt/rhizome.yaml*
 
 EXPOSE 8080
 
-CMD dockerize -wait tcp://conductor:5701 -timeout 300s; /opt/$NAME-$VERSION/bin/$NAME cassandra
+CMD dockerize -wait tcp://conductor:5701 -timeout 300s; /opt/datastore-$VERSION/bin/datastore cassandra

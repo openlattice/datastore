@@ -2,8 +2,7 @@ FROM openjdk:8u102-jdk
 
 EXPOSE 8080
 
-RUN apt-get install wget curl bash \
-    && wget https://github.com/jwilder/dockerize/releases/download/v0.2.0/dockerize-linux-amd64-v0.2.0.tar.gz \
+RUN wget https://github.com/jwilder/dockerize/releases/download/v0.2.0/dockerize-linux-amd64-v0.2.0.tar.gz \
     && tar -C /usr/local/bin -xzvf dockerize-linux-amd64-v0.2.0.tar.gz
 
 WORKDIR /datastoreBuild

@@ -9,6 +9,8 @@ WORKDIR /datastoreBuild
 
 COPY . ./
 
+RUN git fetch --depth=10000
+
 RUN ./gradlew distTar; cp src/main/resources/rhizome.yaml.prod /opt/rhizome.yaml; mv build/distributions/datastore.tgz /opt
 
 RUN tar -xzvf /opt/datastore.tgz -C /opt \

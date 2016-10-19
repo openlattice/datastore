@@ -1,5 +1,4 @@
 #!/bin/sh
-git fetch --depth=10000 --tags
 git describe --tags 
 git describe --tags --dirty 
 git describe --tags --dirty --long

@@ -1,5 +1,7 @@
 package com.kryptnostic.datastore.edm;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.UUID;
 
 import org.apache.olingo.commons.api.edm.EdmPrimitiveTypeKind;
@@ -34,10 +36,11 @@ public class BootstrapDatastoreWithCassandra {
 
     /**
      * WARNING By Ho Chung
-     * GOD_UUID is a super user in the system: it would have OWNER rights in all the types created here
+     * GOD is a super user in the system: it would have OWNER rights in all the types created here
      * For debug purpose.
      */
-	protected static final UUID              GOD_UUID        = new UUID(1, 2);
+	protected static Map<String, UUID>       uuidForUser  = new HashMap<>();
+	protected static final String            USER_GOD        = "God";
 	
     @BeforeClass
     public static void init() {
@@ -45,8 +48,9 @@ public class BootstrapDatastoreWithCassandra {
         dms = ds.getContext().getBean( EdmManager.class );
         ps = ds.getContext().getBean( PermissionsService.class );
         
+    	uuidForUser.put( USER_GOD, new UUID(1, 2) );
 		//You are God right now - this would be the superUser that has rights to do everything to the types created
-		setIdentity( GOD_UUID );
+		setIdentity( USER_GOD );
         setupDatamodel();
     }
 
@@ -111,8 +115,11 @@ public class BootstrapDatastoreWithCassandra {
         ds.plowUnder();
     }
     
-	protected static void setIdentity( UUID userId ){
-		dms.setCurrentUserIdForDebug( userId );
-		ps.setCurrentUserIdForDebug( userId );
+	protected static void setIdentity( String name ){
+		UUID userId = uuidForUser.get(name);
+		if ( userId != null ){
+		    dms.setCurrentUserIdForDebug( userId );
+		    ps.setCurrentUserIdForDebug( userId );
+		}
 	}
 }

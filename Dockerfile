@@ -22,4 +22,4 @@ RUN cd /opt/$NAME/lib \
 
 EXPOSE 8080
 
-CMD dockerize -wait tcp://conductor:5701 -timeout 300s; sleep 10; /opt/$NAME/bin/$NAME cassandra
+CMD dockerize -wait tcp://conductor:5701 -timeout 300s; /opt/$NAME/bin/$NAME cassandra

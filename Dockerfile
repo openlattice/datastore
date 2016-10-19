@@ -5,7 +5,7 @@ EXPOSE 8080
 RUN wget https://github.com/jwilder/dockerize/releases/download/v0.2.0/dockerize-linux-amd64-v0.2.0.tar.gz \
     && tar -C /usr/local/bin -xzvf dockerize-linux-amd64-v0.2.0.tar.gz
 
-WORKDIR /datastoreBuild
+WORKDIR /codeBuild
 
 COPY . ./
 
@@ -19,6 +19,6 @@ RUN tar -xzvf /opt/datastore.tgz -C /opt \
   && DSVER=`ls | grep datastore` \
   && jar vfu $DSVER rhizome.yaml \
   && rm /opt/rhizome.yaml \
-  && rm -rf /datastoreBuild
+  && rm -rf /codeBuild
 
 CMD dockerize -wait tcp://conductor:5701 -timeout 300s; /opt/datastore/bin/datastore cassandra

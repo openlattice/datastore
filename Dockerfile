@@ -9,14 +9,14 @@ WORKDIR /datastoreBuild
 
 COPY . ./
 
-RUN ./gradlew distTar; cp src/main/resources/rhizome.yaml.prod /opt/rhizome.yaml
+RUN ./gradlew distTar; cp src/main/resources/rhizome.yaml.prod /opt/rhizome.yaml; mv build/distributions/datastore.tgz /opt
 
-ADD build/distributions/datastore.tgz /opt
-
-RUN cd /opt/datastore/lib \
+RUN tar -xzvf /opt/datastore.tgz -C /opt \
+  && cd /opt/datastore/lib \
   && mv /opt/rhizome.yaml ./rhizome.yaml \
-  && jar vfu datastore.jar rhizome.yaml \
-  && rm /opt/rhizome.yaml* \
+  && DSVER=`ls | grep datastore` \
+  && jar vfu $DSVER rhizome.yaml \
+  && rm /opt/rhizome.yaml \
   && rm -rf /datastoreBuild
 
 CMD dockerize -wait tcp://conductor:5701 -timeout 300s; /opt/datastore/bin/datastore cassandra

@@ -214,8 +214,9 @@ public class EdmController implements EdmApi {
             method = RequestMethod.POST,
             consumes = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
-    public boolean postEntityType( @RequestBody EntityType objectType ) {
-        return modelService.createEntityType( objectType );
+    public Response postEntityType( @RequestBody EntityType objectType ) {
+        modelService.createEntityType( objectType );
+        return null;
     }
 
     @Override
@@ -243,8 +244,9 @@ public class EdmController implements EdmApi {
             method = RequestMethod.POST,
             consumes = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
-    public boolean createPropertyType( @RequestBody PropertyType propertyType ) {
-        return modelService.createPropertyType( propertyType );
+    public Response createPropertyType( @RequestBody PropertyType propertyType ) {
+        modelService.createPropertyType( propertyType );
+        return null;
     }
 
     /*

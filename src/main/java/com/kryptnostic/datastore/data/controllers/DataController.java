@@ -45,24 +45,26 @@ public class DataController implements DataApi {
     private DataService dataService;
 
     @RequestMapping(
-            path = { "/object/{id}" },
-            method = RequestMethod.GET,
-            produces = MediaType.APPLICATION_JSON_VALUE )
+        path = { "/object/{id}" },
+        method = RequestMethod.GET,
+        produces = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
     public Map<String, Object> getObject( @PathVariable( "id" ) UUID objectId ) {
         return dataService.getObject( objectId );
     }
 
     @RequestMapping(
-            path = DataApi.ENTITY_DATA + DataApi.NAME_SPACE_PATH + DataApi.TYPE_NAME_PATH + DataApi.NAME_PATH,
-            method = RequestMethod.GET,
-            produces = { MediaType.APPLICATION_JSON_VALUE, CustomMediaType.TEXT_CSV_VALUE } )
+        path = DataApi.ENTITY_DATA + DataApi.NAME_SPACE_PATH + DataApi.TYPE_NAME_PATH + DataApi.NAME_PATH,
+        method = RequestMethod.GET,
+        produces = { MediaType.APPLICATION_JSON_VALUE, CustomMediaType.TEXT_CSV_VALUE } )
     @ResponseStatus( HttpStatus.OK )
     public Iterable<Multimap<FullQualifiedName, Object>> getAllEntitiesOfEntitySet(
             @PathVariable( NAME ) String entitySetName,
             @PathVariable( NAME_SPACE ) String entityTypeNamespace,
             @PathVariable( TYPE_NAME ) String entityTypeName,
-            @RequestParam( value = DatastoreConstants.FILE_TYPE, required = false ) FileType fileType,
+            @RequestParam(
+                value = DatastoreConstants.FILE_TYPE,
+                required = false ) FileType fileType,
             HttpServletResponse response ) {
         String fileName = entitySetName;
         setContentDisposition( response, fileName, fileType );
@@ -79,10 +81,12 @@ public class DataController implements DataApi {
     }
 
     private static void setDownloadContentType( HttpServletResponse response, FileType fileType ) {
-        if ( fileType == FileType.csv ) {
-            response.setContentType( CustomMediaType.TEXT_CSV_VALUE );
-        } else {
-            response.setContentType( MediaType.APPLICATION_JSON_VALUE );
+        switch ( fileType ) {
+            case csv:
+                response.setContentType( CustomMediaType.TEXT_CSV_VALUE );
+                break;
+            default:
+                response.setContentType( MediaType.APPLICATION_JSON_VALUE );
         }
     }
 
@@ -97,14 +101,16 @@ public class DataController implements DataApi {
     }
 
     @RequestMapping(
-            path = DataApi.ENTITY_DATA,
-            method = RequestMethod.PUT,
-            consumes = MediaType.APPLICATION_JSON_VALUE,
-            produces = { MediaType.APPLICATION_JSON_VALUE, CustomMediaType.TEXT_CSV_VALUE } )
+        path = DataApi.ENTITY_DATA,
+        method = RequestMethod.PUT,
+        consumes = MediaType.APPLICATION_JSON_VALUE,
+        produces = { MediaType.APPLICATION_JSON_VALUE, CustomMediaType.TEXT_CSV_VALUE } )
     @ResponseStatus( HttpStatus.OK )
     public Iterable<Multimap<FullQualifiedName, Object>> getAllEntitiesOfType(
             @RequestBody FullQualifiedName fqn,
-            @RequestParam( value = DatastoreConstants.FILE_TYPE, required = false ) FileType fileType,
+            @RequestParam(
+                value = DatastoreConstants.FILE_TYPE,
+                required = false ) FileType fileType,
             HttpServletResponse response ) {
         String fileName = fqn.getNamespace() + "_" + fqn.getName();
         setContentDisposition( response, fileName, fileType );
@@ -119,13 +125,15 @@ public class DataController implements DataApi {
     }
 
     @RequestMapping(
-            path = DataApi.ENTITY_DATA + DataApi.FULLQUALIFIEDNAME_PATH_WITH_DOT,
-            method = RequestMethod.GET,
-            produces = { MediaType.APPLICATION_JSON_VALUE, CustomMediaType.TEXT_CSV_VALUE } )
+        path = DataApi.ENTITY_DATA + DataApi.FULLQUALIFIEDNAME_PATH_WITH_DOT,
+        method = RequestMethod.GET,
+        produces = { MediaType.APPLICATION_JSON_VALUE, CustomMediaType.TEXT_CSV_VALUE } )
     @ResponseStatus( HttpStatus.OK )
     public Iterable<Multimap<FullQualifiedName, Object>> getAllEntitiesOfType(
             @PathVariable( FULLQUALIFIEDNAME ) String fqnAsString,
-            @RequestParam( value = DatastoreConstants.FILE_TYPE, required = false ) FileType fileType,
+            @RequestParam(
+                value = DatastoreConstants.FILE_TYPE,
+                required = false ) FileType fileType,
             HttpServletResponse response ) {
         FullQualifiedName fqn = new FullQualifiedName( fqnAsString );
         String fileName = fqn.getNamespace() + "_" + fqn.getName();
@@ -140,14 +148,16 @@ public class DataController implements DataApi {
     }
 
     @RequestMapping(
-            path = DataApi.ENTITY_DATA + DataApi.NAME_SPACE_PATH + DataApi.NAME_PATH,
-            method = RequestMethod.GET,
-            produces = { MediaType.APPLICATION_JSON_VALUE, CustomMediaType.TEXT_CSV_VALUE } )
+        path = DataApi.ENTITY_DATA + DataApi.NAME_SPACE_PATH + DataApi.NAME_PATH,
+        method = RequestMethod.GET,
+        produces = { MediaType.APPLICATION_JSON_VALUE, CustomMediaType.TEXT_CSV_VALUE } )
     @ResponseStatus( HttpStatus.OK )
     public Iterable<Multimap<FullQualifiedName, Object>> getAllEntitiesOfType(
             @PathVariable( NAME_SPACE ) String namespace,
             @PathVariable( NAME ) String name,
-            @RequestParam( value = DatastoreConstants.FILE_TYPE, required = false ) FileType fileType,
+            @RequestParam(
+                value = DatastoreConstants.FILE_TYPE,
+                required = false ) FileType fileType,
             HttpServletResponse response ) {
         String fileName = namespace + "_" + name;
         setContentDisposition( response, fileName, fileType );
@@ -161,14 +171,16 @@ public class DataController implements DataApi {
     }
 
     @RequestMapping(
-            path = DataApi.ENTITY_DATA + DataApi.MULTIPLE,
-            method = RequestMethod.PUT,
-            consumes = MediaType.APPLICATION_JSON_VALUE,
-            produces = MediaType.APPLICATION_JSON_VALUE )
+        path = DataApi.ENTITY_DATA + DataApi.MULTIPLE,
+        method = RequestMethod.PUT,
+        consumes = MediaType.APPLICATION_JSON_VALUE,
+        produces = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
     public Iterable<Iterable<Multimap<FullQualifiedName, Object>>> getAllEntitiesOfTypes(
             @RequestBody List<FullQualifiedName> fqns,
-            @RequestParam( value = DatastoreConstants.FILE_TYPE, required = false ) FileType fileType,
+            @RequestParam(
+                value = DatastoreConstants.FILE_TYPE,
+                required = false ) FileType fileType,
             HttpServletResponse response ) {
         if ( fileType == FileType.csv ) {
             throw new BadRequestException( "csv format file is supported for this endpoint." );
@@ -185,10 +197,10 @@ public class DataController implements DataApi {
 
     @Override
     @RequestMapping(
-            path = DataApi.ENTITY_DATA + DataApi.FILTERED,
-            method = RequestMethod.PUT,
-            consumes = MediaType.APPLICATION_JSON_VALUE,
-            produces = MediaType.APPLICATION_JSON_VALUE )
+        path = DataApi.ENTITY_DATA + DataApi.FILTERED,
+        method = RequestMethod.PUT,
+        consumes = MediaType.APPLICATION_JSON_VALUE,
+        produces = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
     public Iterable<UUID> getFilteredEntities( @RequestBody LookupEntitiesRequest lookupEntitiesRequest ) {
         return dataService.getFilteredEntities( lookupEntitiesRequest );
@@ -196,10 +208,10 @@ public class DataController implements DataApi {
 
     @Override
     @RequestMapping(
-            path = DataApi.ENTITY_DATA,
-            method = RequestMethod.POST,
-            consumes = MediaType.APPLICATION_JSON_VALUE,
-            produces = MediaType.APPLICATION_JSON_VALUE )
+        path = DataApi.ENTITY_DATA,
+        method = RequestMethod.POST,
+        consumes = MediaType.APPLICATION_JSON_VALUE,
+        produces = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
     public Response createEntityData( @RequestBody CreateEntityRequest createEntityRequest ) {
         dataService.createEntityData( createEntityRequest );
@@ -208,9 +220,9 @@ public class DataController implements DataApi {
 
     @Override
     @RequestMapping(
-            path = DataApi.INTEGRATION,
-            method = RequestMethod.GET,
-            produces = MediaType.APPLICATION_JSON_VALUE )
+        path = DataApi.INTEGRATION,
+        method = RequestMethod.GET,
+        produces = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
     public Map<String, String> getAllIntegrationScripts() {
         return dataService.getAllIntegrationScripts();
@@ -218,10 +230,10 @@ public class DataController implements DataApi {
 
     @Override
     @RequestMapping(
-            path = DataApi.INTEGRATION,
-            method = RequestMethod.PUT,
-            consumes = MediaType.APPLICATION_JSON_VALUE,
-            produces = MediaType.APPLICATION_JSON_VALUE )
+        path = DataApi.INTEGRATION,
+        method = RequestMethod.PUT,
+        consumes = MediaType.APPLICATION_JSON_VALUE,
+        produces = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
     public Map<String, String> getIntegrationScript( @RequestBody Set<String> urls ) {
         return dataService.getIntegrationScriptForUrl( urls );
@@ -229,9 +241,9 @@ public class DataController implements DataApi {
 
     @Override
     @RequestMapping(
-            path = DataApi.INTEGRATION,
-            method = RequestMethod.POST,
-            consumes = MediaType.APPLICATION_JSON_VALUE )
+        path = DataApi.INTEGRATION,
+        method = RequestMethod.POST,
+        consumes = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
     public Response createIntegrationScript( @RequestBody Map<String, String> integrationScripts ) {
         dataService.createIntegrationScript( integrationScripts );

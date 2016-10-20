@@ -1,14 +1,18 @@
 package com.kryptnostic.datastore.pods;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.kryptnostic.datastore.constants.CustomMediaType;
+import com.kryptnostic.datastore.constants.DatastoreConstants;
 import com.kryptnostic.datastore.converters.CsvHttpMessageConverter;
 import com.ryantenney.metrics.spring.config.annotation.EnableMetrics;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.FilterType;
+import org.springframework.http.MediaType;
 import org.springframework.http.converter.HttpMessageConverter;
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
 import org.springframework.scheduling.annotation.EnableAsync;
+import org.springframework.web.servlet.config.annotation.ContentNegotiationConfigurer;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurationSupport;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -21,15 +25,15 @@ import java.util.List;
  */
 @Configuration
 @ComponentScan(
-        basePackages = { "com.kryptnostic.datastore.data.controllers", "com.kryptnostic.datastore.edm.controllers",
-                "com.kryptnostic.datastore.util" },
-        includeFilters = @ComponentScan.Filter(
-                value = { org.springframework.stereotype.Controller.class, org.springframework.stereotype.Service.class,
-                        org.springframework.web.bind.annotation.ControllerAdvice.class },
-                type = FilterType.ANNOTATION ) )
+    basePackages = { "com.kryptnostic.datastore.data.controllers", "com.kryptnostic.datastore.edm.controllers",
+            "com.kryptnostic.datastore.util" },
+    includeFilters = @ComponentScan.Filter(
+        value = { org.springframework.stereotype.Controller.class, org.springframework.stereotype.Service.class,
+                org.springframework.web.bind.annotation.ControllerAdvice.class },
+        type = FilterType.ANNOTATION ) )
 @EnableAsync
 @EnableMetrics(
-        proxyTargetClass = true )
+    proxyTargetClass = true )
 public class DataStoreMvcPod extends WebMvcConfigurationSupport {
 
     @Inject
@@ -44,7 +48,15 @@ public class DataStoreMvcPod extends WebMvcConfigurationSupport {
                 jackson2HttpMessageConverter.setObjectMapper( defaultObjectMapper );
             }
         }
-        //Ho Chung: Register CSV MessageConverter; should I do it here?
-        converters.add(new CsvHttpMessageConverter());
+        converters.add( new CsvHttpMessageConverter() );
+    }
+
+    @Override
+    protected void configureContentNegotiation( ContentNegotiationConfigurer configurer ) {
+        configurer.parameterName( DatastoreConstants.FILE_TYPE )
+                .favorParameter( true )
+                .mediaType( "csv", CustomMediaType.TEXT_CSV )
+                .mediaType( "json", MediaType.APPLICATION_JSON )
+                .defaultContentType( MediaType.APPLICATION_JSON );
     }
 }

@@ -53,7 +53,7 @@ public class BabyAclTest extends BootstrapDatastoreWithCassandra {
 	
 	@Test	
 	public void Test(){
-		System.out.println("Test starts");
+		System.out.println("Test starts!");
 		accessTypes();
 		modifyTypes();
 	}
@@ -69,6 +69,8 @@ public class BabyAclTest extends BootstrapDatastoreWithCassandra {
 		dms.deletePropertyType( SPIED_ON );
 		
 		dms.deleteEntityType( NATION_CITIZENS );
+		System.out.println("*****And the nation fell out of sight..*****");
+		System.out.println("*****Test ends!*****");
 	}
 	
 	private static void addUsers(){
@@ -109,12 +111,12 @@ public class BabyAclTest extends BootstrapDatastoreWithCassandra {
 	}
 
 	private void accessTypes(){
-		System.out.println("Testing access for various types");
+		System.out.println("*****Testing access for various types*****");
 		typeLookup();
 	};
 
 	private void modifyTypes(){
-		System.out.println("Tesing modification for various types");
+		System.out.println("*****Testing modification for various types*****");
 		//God allows citizens/president to read Life Expectancy, and allows president to write Life Expectancy
 		godGivesRights();
 		//President adds property type SPIED_ON, that not even God can access 
@@ -125,10 +127,8 @@ public class BabyAclTest extends BootstrapDatastoreWithCassandra {
 	
 	// Look up individual types given Acl
 	private void typeLookup(){
-		System.out.println("Testing access for property types");
 		//God, President, Citizen make get requests for property types/entity types/entity sets/schemas
 		propertyTypeMetadataLookup();
-		System.out.println("Testing access for entity types");
 		entityTypeMetadataLookup();
 	};
 	
@@ -151,12 +151,15 @@ public class BabyAclTest extends BootstrapDatastoreWithCassandra {
 	}
 	
 	private void propertyTypeMetadataLookup() {		
+		System.out.println("***Testing access for property types***");
+		// President has read access for address; Citizens don't.
 		PropertyType resultAddressForGod = propertyTypeMetadataLookup( USER_GOD, ADDRESS );
 		propertyTypeMetadataLookup( USER_PRESIDENT, ADDRESS, resultAddressForGod );
 		propertyTypeMetadataLookup( USER_CITIZEN, ADDRESS, null );
 
+		// President/Citizens don't know about life expectancy
 		PropertyType resultLifeExpectancyForGod = propertyTypeMetadataLookup( USER_GOD, LIFE_EXPECTANCY );
-		propertyTypeMetadataLookup( USER_PRESIDENT, LIFE_EXPECTANCY, resultLifeExpectancyForGod );
+		propertyTypeMetadataLookup( USER_PRESIDENT, LIFE_EXPECTANCY, null );
 		propertyTypeMetadataLookup( USER_CITIZEN, LIFE_EXPECTANCY, null );
 	}
 	
@@ -179,13 +182,14 @@ public class BabyAclTest extends BootstrapDatastoreWithCassandra {
 	}
 	
 	private void entityTypeMetadataLookup() {
+		System.out.println("***Testing access for entity types***");
 		entityTypeMetadataLookup( USER_GOD, NATION_CITIZENS );
 		entityTypeMetadataLookup( USER_PRESIDENT, NATION_CITIZENS );
 		entityTypeMetadataLookup( USER_CITIZEN, NATION_CITIZENS );
 	}
 	
 	private void godGivesRights(){
-		System.out.println("God Gives Rights test starts");
+		System.out.println("***God Gives Rights test starts***");
 		//God allows Citizen to read LIFE_EXPECTANCY.
 		yourFateIsKnown();
 		//God allows President to write LIFE_EXPECTANCY.
@@ -194,10 +198,10 @@ public class BabyAclTest extends BootstrapDatastoreWithCassandra {
 	}
 	
 	private void yourFateIsKnown(){
-		System.out.println("Your Fate Is Known test starts");
+		System.out.println("***Your Fate Is Known test starts***");
 		setIdentity( USER_GOD );
-		ps.addPermissionsForPropertyTypeInEntityType( uuidForUser.get(USER_PRESIDENT), LIFE_EXPECTANCY, NATION_CITIZENS, ImmutableSet.of(Permission.READ) );
-		ps.addPermissionsForPropertyTypeInEntityType( uuidForUser.get(USER_CITIZEN), LIFE_EXPECTANCY, NATION_CITIZENS, ImmutableSet.of(Permission.READ) );
+		ps.addPermissionsForPropertyTypeInEntityType( uuidForUser.get(USER_PRESIDENT), NATION_CITIZENS, LIFE_EXPECTANCY, ImmutableSet.of(Permission.READ) );
+		ps.addPermissionsForPropertyTypeInEntityType( uuidForUser.get(USER_CITIZEN), NATION_CITIZENS, LIFE_EXPECTANCY, ImmutableSet.of(Permission.READ) );
 
 		entityTypeMetadataLookup( USER_GOD, NATION_CITIZENS);
 		entityTypeMetadataLookup( USER_PRESIDENT, NATION_CITIZENS);
@@ -217,7 +221,7 @@ public class BabyAclTest extends BootstrapDatastoreWithCassandra {
 	}
 	
 	private void presidentIsWatchingYou(){
-		System.out.println("President is watching you test starts");
+		System.out.println("***President is watching you test starts***");
 		//President adds SPIED_ON property
 		setIdentity( USER_PRESIDENT );
 		PropertyType spiedOn = new PropertyType().setNamespace( NATION_NAMESPACE ).setName( SPIED_ON.getName() )
@@ -233,7 +237,14 @@ public class BabyAclTest extends BootstrapDatastoreWithCassandra {
 	}
 	
 	private void godRemovesRights(){	
-		System.out.println("God removes rights test starts");
+		System.out.println("***God removes rights test starts***");
+		
+		//President lets God access property type SPIED_ON
+		setIdentity( USER_PRESIDENT);
+		ps.addPermissionsForPropertyType( uuidForUser.get(USER_GOD), SPIED_ON, ImmutableSet.of(Permission.READ) );
+		//God found that out
+		propertyTypeMetadataLookup( USER_GOD, SPIED_ON );
+		entityTypeMetadataLookup( USER_GOD, NATION_CITIZENS );
 		//God removes all of President's rights except reading Schema. In particular, he should not be able to read/write any types.
 		//TODO: if one cannot access an entity type, he shouldn't be able to access the entity sets under it either.
 		setIdentity( USER_GOD );
@@ -250,7 +261,6 @@ public class BabyAclTest extends BootstrapDatastoreWithCassandra {
 		entityTypeMetadataLookup( USER_PRESIDENT, NATION_CITIZENS);
 		
 		//God does NOT own the SPIED_ON type, so President should still get access
-		//TODO BUG: someone God cannot discover SPIED_ON
 		propertyTypeMetadataLookup( USER_PRESIDENT, SPIED_ON );
 		
 		//President surrenders: gives rights of SPIED_ON to God
@@ -261,5 +271,6 @@ public class BabyAclTest extends BootstrapDatastoreWithCassandra {
 		ps.setPermissionsForPropertyType( uuidForUser.get(USER_PRESIDENT), SPIED_ON, Collections.emptySet() );
 	    //Double check to make sure
 		propertyTypeMetadataLookup( USER_PRESIDENT, SPIED_ON, null);
+
 	}	
 }

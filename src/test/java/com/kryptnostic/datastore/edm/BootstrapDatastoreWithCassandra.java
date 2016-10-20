@@ -14,6 +14,7 @@ import com.google.common.collect.ImmutableSet;
 import com.kryptnostic.conductor.rpc.UUIDs.ACLs;
 import com.kryptnostic.conductor.rpc.odata.EntityType;
 import com.kryptnostic.conductor.rpc.odata.PropertyType;
+import com.kryptnostic.datastore.services.EdmDetailsAdapter;
 import com.kryptnostic.datastore.services.EdmManager;
 import com.kryptnostic.datastore.services.PermissionsService;
 
@@ -119,7 +120,7 @@ public class BootstrapDatastoreWithCassandra {
 		UUID userId = uuidForUser.get(name);
 		if ( userId != null ){
 		    dms.setCurrentUserIdForDebug( userId );
-		    ps.setCurrentUserIdForDebug( userId );
+		    EdmDetailsAdapter.setCurrentUserIdForDebug( userId );
 		}
 	}
 }

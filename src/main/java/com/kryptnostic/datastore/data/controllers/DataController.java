@@ -1,5 +1,7 @@
 package com.kryptnostic.datastore.data.controllers;
 
+import com.kryptnostic.datastore.constants.DatastoreConstants;
+
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -39,8 +41,6 @@ public class DataController implements DataApi {
         csv;
     }
 
-    public static final String FILE_TYPE = "fileType";
-
     @Inject
     private DataService dataService;
 
@@ -62,7 +62,7 @@ public class DataController implements DataApi {
             @PathVariable( NAME ) String entitySetName,
             @PathVariable( NAME_SPACE ) String entityTypeNamespace,
             @PathVariable( TYPE_NAME ) String entityTypeName,
-            @RequestParam( FILE_TYPE ) FileType fileType,
+            @RequestParam( value = DatastoreConstants.FILE_TYPE, required = false ) FileType fileType,
             HttpServletResponse response ) {
         String fileName = entitySetName;
         setContentDisposition( response, fileName, fileType );
@@ -104,7 +104,7 @@ public class DataController implements DataApi {
     @ResponseStatus( HttpStatus.OK )
     public Iterable<Multimap<FullQualifiedName, Object>> getAllEntitiesOfType(
             @RequestBody FullQualifiedName fqn,
-            @RequestParam( FILE_TYPE ) FileType fileType,
+            @RequestParam( value = DatastoreConstants.FILE_TYPE, required = false ) FileType fileType,
             HttpServletResponse response ) {
         String fileName = fqn.getNamespace() + "_" + fqn.getName();
         setContentDisposition( response, fileName, fileType );
@@ -125,7 +125,7 @@ public class DataController implements DataApi {
     @ResponseStatus( HttpStatus.OK )
     public Iterable<Multimap<FullQualifiedName, Object>> getAllEntitiesOfType(
             @PathVariable( FULLQUALIFIEDNAME ) String fqnAsString,
-            @RequestParam( FILE_TYPE ) FileType fileType,
+            @RequestParam( value = DatastoreConstants.FILE_TYPE, required = false ) FileType fileType,
             HttpServletResponse response ) {
         FullQualifiedName fqn = new FullQualifiedName( fqnAsString );
         String fileName = fqn.getNamespace() + "_" + fqn.getName();
@@ -147,7 +147,7 @@ public class DataController implements DataApi {
     public Iterable<Multimap<FullQualifiedName, Object>> getAllEntitiesOfType(
             @PathVariable( NAME_SPACE ) String namespace,
             @PathVariable( NAME ) String name,
-            @RequestParam( value = FILE_TYPE, required = false ) FileType fileType,
+            @RequestParam( value = DatastoreConstants.FILE_TYPE, required = false ) FileType fileType,
             HttpServletResponse response ) {
         String fileName = namespace + "_" + name;
         setContentDisposition( response, fileName, fileType );
@@ -168,7 +168,7 @@ public class DataController implements DataApi {
     @ResponseStatus( HttpStatus.OK )
     public Iterable<Iterable<Multimap<FullQualifiedName, Object>>> getAllEntitiesOfTypes(
             @RequestBody List<FullQualifiedName> fqns,
-            @RequestParam( FILE_TYPE ) FileType fileType,
+            @RequestParam( value = DatastoreConstants.FILE_TYPE, required = false ) FileType fileType,
             HttpServletResponse response ) {
         if ( fileType == FileType.csv ) {
             throw new BadRequestException( "csv format file is supported for this endpoint." );

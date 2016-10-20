@@ -2,6 +2,7 @@ package com.kryptnostic.datastore.pods;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.kryptnostic.datastore.constants.CustomMediaType;
+import com.kryptnostic.datastore.constants.DatastoreConstants;
 import com.kryptnostic.datastore.converters.CsvHttpMessageConverter;
 import com.ryantenney.metrics.spring.config.annotation.EnableMetrics;
 import org.springframework.context.annotation.ComponentScan;
@@ -52,7 +53,7 @@ public class DataStoreMvcPod extends WebMvcConfigurationSupport {
     
     @Override
     protected void configureContentNegotiation( ContentNegotiationConfigurer configurer){
-    	configurer.parameterName("fileType")
+    	configurer.parameterName(DatastoreConstants.FILE_TYPE)
             .favorParameter( true )
     	    .mediaType("csv", CustomMediaType.TEXT_CSV)
     	    .mediaType("json", MediaType.APPLICATION_JSON)

@@ -20,13 +20,14 @@ import com.fasterxml.jackson.datatype.guava.GuavaModule;
 import com.fasterxml.jackson.datatype.joda.JodaModule;
 import com.fasterxml.jackson.module.afterburner.AfterburnerModule;
 import com.google.common.collect.Multimap;
+import com.kryptnostic.datastore.constants.CustomMediaType;
 
 public class CsvHttpMessageConverter extends AbstractGenericHttpMessageConverter<Iterable<Multimap<FullQualifiedName, ?>>>{
 
     private final CsvMapper                      csvMapper    = new CsvMapper();
     
     public CsvHttpMessageConverter(){
-    	super(new MediaType("text", "csv", Charset.forName("UTF-8")));
+    	super(CustomMediaType.TEXT_CSV);
         csvMapper.registerModule( new AfterburnerModule() );
         csvMapper.registerModule( new GuavaModule() );
         csvMapper.registerModule( new JodaModule() );

@@ -1,5 +1,6 @@
 package com.kryptnostic.datastore.edm;
 
+import com.kryptnostic.datastore.exceptions.BadRequestException;
 import org.apache.olingo.commons.api.edm.EdmPrimitiveTypeKind;
 import org.apache.olingo.commons.api.edm.FullQualifiedName;
 import org.junit.AfterClass;

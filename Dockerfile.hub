@@ -18,7 +18,6 @@ RUN tar -xzvf /opt/datastore.tgz -C /opt \
   && mv /opt/rhizome.yaml ./rhizome.yaml \
   && DSVER=`ls | grep datastore` \
   && jar vfu $DSVER rhizome.yaml \
-  && rm /opt/rhizome.yaml \
   && rm -rf /codeBuild
 
 CMD dockerize -wait tcp://conductor:5701 -timeout 300s; /opt/datastore/bin/datastore cassandra

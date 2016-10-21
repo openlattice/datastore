@@ -24,11 +24,11 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.google.common.collect.Multimap;
-import com.kryptnostic.conductor.rpc.CreateEntityRequest;
 import com.kryptnostic.conductor.rpc.LookupEntitiesRequest;
 import com.kryptnostic.datastore.constants.CustomMediaType;
 import com.kryptnostic.datastore.services.DataApi;
 import com.kryptnostic.datastore.services.DataService;
+import com.kryptnostic.datastore.services.requests.CreateEntityRequest;
 import com.squareup.okhttp.Response;
 
 @RestController

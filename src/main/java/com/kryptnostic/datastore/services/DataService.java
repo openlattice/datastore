@@ -24,6 +24,7 @@ import com.hazelcast.durableexecutor.DurableExecutorService;
 import com.kryptnostic.conductor.rpc.odata.EntityType;
 import com.kryptnostic.conductor.rpc.odata.PropertyType;
 import com.kryptnostic.datastore.cassandra.CassandraStorage;
+import com.kryptnostic.datastore.services.requests.CreateEntityRequest;
 
 public class DataService {
     private static final Logger logger = LoggerFactory

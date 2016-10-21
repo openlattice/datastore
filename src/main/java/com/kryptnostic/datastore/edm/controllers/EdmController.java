@@ -7,6 +7,10 @@ import java.util.Set;
 import javax.inject.Inject;
 
 import com.kryptnostic.datastore.services.*;
+import com.kryptnostic.datastore.services.requests.GetSchemasRequest;
+import com.kryptnostic.datastore.services.requests.PutSchemaRequest;
+import com.kryptnostic.datastore.services.requests.GetSchemasRequest.TypeDetails;
+
 import org.apache.olingo.commons.api.edm.FullQualifiedName;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -21,7 +25,6 @@ import com.kryptnostic.conductor.rpc.odata.Schema;
 import com.kryptnostic.datastore.Permission;
 import com.kryptnostic.datastore.ServerUtil;
 import com.kryptnostic.datastore.exceptions.ResourceNotFoundException;
-import com.kryptnostic.datastore.services.GetSchemasRequest.TypeDetails;
 
 import retrofit.client.Response;
 

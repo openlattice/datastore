@@ -1,2 +1,2 @@
 #!/bin/sh
-docker build -f Dockerfile.hub -t $IMAGE_NAME .
+docker build --rm --force-rm --no-cache -f Dockerfile.hub -t $IMAGE_NAME .

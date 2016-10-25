@@ -2,6 +2,7 @@ package com.kryptnostic.datastore.edm;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 import org.apache.olingo.commons.api.edm.EdmPrimitiveTypeKind;
@@ -11,9 +12,11 @@ import org.junit.Assert;
 import org.junit.BeforeClass;
 
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
 import com.kryptnostic.conductor.rpc.UUIDs.ACLs;
 import com.kryptnostic.conductor.rpc.odata.EntityType;
 import com.kryptnostic.conductor.rpc.odata.PropertyType;
+import com.kryptnostic.datastore.Constants;
 import com.kryptnostic.datastore.services.EdmDetailsAdapter;
 import com.kryptnostic.datastore.services.EdmManager;
 import com.kryptnostic.datastore.services.PermissionsService;
@@ -37,11 +40,37 @@ public class BootstrapDatastoreWithCassandra {
 
     /**
      * WARNING By Ho Chung
-     * GOD is a super user in the system: it would have OWNER rights in all the types created here
-     * For debug purpose.
+     * The God role is the super user that can manage all access rights
      */
-	protected static Map<String, UUID>       uuidForUser  = new HashMap<>();
-	protected static final String            USER_GOD        = "God";
+    protected static final User              USER_GOD = new User( "God", Sets.newHashSet(Constants.ROLE_ADMIN) );
+	
+	protected static class User{
+	    private String name;
+	    private Set<String> roles;
+        
+	    public User( String name, Set<String> roles ){
+	        this.name = name;
+	        this.roles = roles;
+	    } 
+	    
+	    public Set<String> getRoles() {
+            return roles;
+        }
+        public void setRoles( Set<String> roles ) {
+            this.roles = roles;
+        }
+        public String getName() {
+            return name;
+        }
+	    
+        public void addRoles( Set<String> rolesToAdd ){
+            this.roles.addAll( rolesToAdd );
+        }
+
+        public void removeRoles( Set<String> rolesToRemove ){
+            this.roles.removeAll( rolesToRemove );
+        }
+	}
 	
     @BeforeClass
     public static void init() {
@@ -49,13 +78,13 @@ public class BootstrapDatastoreWithCassandra {
         dms = ds.getContext().getBean( EdmManager.class );
         ps = ds.getContext().getBean( PermissionsService.class );
         
-    	uuidForUser.put( USER_GOD, new UUID(1, 2) );
-		//You are God right now - this would be the superUser that has rights to do everything to the types created
-		setIdentity( USER_GOD );
+        //You are God right now - this would be the superUser that has rights to do everything to the types created
+		setUser( USER_GOD );
         setupDatamodel();
     }
 
     private static void setupDatamodel() {
+
         dms.createPropertyType( new PropertyType().setNamespace( NAMESPACE ).setName( EMPLOYEE_ID )
                 .setDatatype( EdmPrimitiveTypeKind.Guid ).setMultiplicity( 0 ) );
         dms.createPropertyType( new PropertyType().setNamespace( NAMESPACE ).setName( EMPLOYEE_TITLE )
@@ -108,7 +137,6 @@ public class BootstrapDatastoreWithCassandra {
 
         Assert.assertTrue(
                 dms.isExistingEntitySet( ENTITY_TYPE, ENTITY_SET_NAME ) );
-
     }
 
     @AfterClass
@@ -116,11 +144,10 @@ public class BootstrapDatastoreWithCassandra {
         ds.plowUnder();
     }
     
-	protected static void setIdentity( String name ){
-		UUID userId = uuidForUser.get(name);
-		if ( userId != null ){
-		    dms.setCurrentUserIdForDebug( userId );
-		    EdmDetailsAdapter.setCurrentUserIdForDebug( userId );
+	protected static void setUser( User user ){
+		if ( user != null ){
+		    dms.setCurrentUserForDebug( user.getName(), user.getRoles() );
+		    EdmDetailsAdapter.setCurrentUserForDebug( user.getName(), user.getRoles() );
 		}
 	}
 }

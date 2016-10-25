@@ -12,268 +12,399 @@ import org.junit.Ignore;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
 import com.kryptnostic.conductor.rpc.odata.EntitySet;
 import com.kryptnostic.conductor.rpc.odata.EntityType;
 import com.kryptnostic.conductor.rpc.odata.PropertyType;
+import com.kryptnostic.datastore.Constants;
 import com.kryptnostic.datastore.Permission;
 import com.kryptnostic.datastore.services.EdmManager;
 import com.kryptnostic.datastore.services.EdmService;
 import com.kryptnostic.datastore.services.PermissionsService;
 import com.kryptnostic.instrumentation.v1.exceptions.types.UnauthorizedException;
 
-public class BabyAclTest extends BootstrapDatastoreWithCassandra {	
-	protected static final String                 USER_PRESIDENT         = "President";
-	protected static final String                 USER_CITIZEN           = "Citizen";
-	
-	protected static final String                 NATION_NAMESPACE       = "us";
-	protected static final FullQualifiedName      NATION_SCHEMA          = new FullQualifiedName( NATION_NAMESPACE, "schema" ); //schema
-	
-	protected static final FullQualifiedName      NATION_CITIZENS        = new FullQualifiedName( NATION_NAMESPACE, "citizens" ); // entity type
-	protected static final String                 NATION_SECRET_SERVICE  = "secret-service"; //entity set name
-	
-	protected static final FullQualifiedName      LIFE_EXPECTANCY        = new FullQualifiedName( NATION_NAMESPACE, "life-expectancy" ); //property type
-	protected static final FullQualifiedName      ADDRESS                = new FullQualifiedName( NATION_NAMESPACE, "address" ); //property type
-	protected static final FullQualifiedName      POSITION               = new FullQualifiedName( NATION_NAMESPACE, "position" ); //property type
-	
-	protected static final FullQualifiedName      SPIED_ON               = new FullQualifiedName( NATION_NAMESPACE, "spied-on" ); //property type
+public class BabyAclTest extends BootstrapDatastoreWithCassandra {
 
-	/**
-	 * Start of JUnit Tests
-	 */
-	// Create property types/entity types/entity sets/schemas with different acl's, and modify existing types to change acl's
-	// Schema should only show those the user has rights to see.
-	@BeforeClass
-	public static void initializeAcl(){
-		//You are God right now
-		setIdentity( USER_GOD );
-		addUsers();
-		createTypes();
-		grantRights();
-	}
-	
-	@Test	
-	public void Test(){
-		System.out.println("Test starts!");
-		accessTypes();
-		modifyTypes();
-	}
-	
-	// Delete created property types/entity types/entity sets/schemas - Acl tables should update correspondingly.
-	@AfterClass
-	public static void resetAcl(){
-		//God deletes the nation
-		//Property Types
-		dms.deletePropertyType( LIFE_EXPECTANCY );
-		dms.deletePropertyType( ADDRESS );
-		dms.deletePropertyType( POSITION );
-		dms.deletePropertyType( SPIED_ON );
-		
-		dms.deleteEntityType( NATION_CITIZENS );
-		System.out.println("*****And the nation fell out of sight..*****");
-		System.out.println("*****Test ends!*****");
-	}
-	
-	private static void addUsers(){
-		uuidForUser.put( USER_PRESIDENT, UUID.randomUUID() );
-		uuidForUser.put( USER_CITIZEN, UUID.randomUUID() );
-	}
-	
-	private static void createTypes() {
-		//God creates property types Life expectancy, Address
-		PropertyType lifeExpectancy = new PropertyType().setNamespace( NATION_NAMESPACE ).setName( LIFE_EXPECTANCY.getName() )
-				.setDatatype( EdmPrimitiveTypeKind.Int32).setMultiplicity( 0 );
-		PropertyType address = new PropertyType().setNamespace( NATION_NAMESPACE ).setName( ADDRESS.getName() )
-				.setDatatype( EdmPrimitiveTypeKind.String).setMultiplicity( 0 );
-		PropertyType position = new PropertyType().setNamespace( NATION_NAMESPACE ).setName( POSITION.getName() )
-				.setDatatype( EdmPrimitiveTypeKind.String).setMultiplicity( 0 );
-		dms.createPropertyType( lifeExpectancy );
-		dms.createPropertyType( address );
-		dms.createPropertyType( position );
-		
-		//God creates entity type Citizen, creates entity set President, schema
+    protected static final String            ROLE_READER           = "reader";
+    protected static final String            ROLE_WRITER           = "writer";
+    protected static final String            ROLE_GOVERNOR         = "governor";
+    protected static final String            ROLE_CITIZEN          = "citizen";
+    protected static final User              USER_RANDOMGUY          = new User(
+            "RANDOM_GUY",
+            Sets.newHashSet( ROLE_CITIZEN ) );
+
+    protected static final String            NATION_NAMESPACE      = "us";
+    protected static final FullQualifiedName NATION_SCHEMA         = new FullQualifiedName(
+            NATION_NAMESPACE,
+            "schema" );                                                                    // schema
+
+    protected static final FullQualifiedName NATION_CITIZENS       = new FullQualifiedName(
+            NATION_NAMESPACE,
+            "citizens" );                                                                  // entity type
+    protected static final String            NATION_SECRET_SERVICE = "secret-service";     // entity set name
+
+    protected static final FullQualifiedName LIFE_EXPECTANCY       = new FullQualifiedName(
+            NATION_NAMESPACE,
+            "life-expectancy" );                                                           // property type
+    protected static final FullQualifiedName ADDRESS               = new FullQualifiedName(
+            NATION_NAMESPACE,
+            "address" );                                                                   // property type
+    protected static final FullQualifiedName POSITION              = new FullQualifiedName(
+            NATION_NAMESPACE,
+            "position" );                                                                  // property type
+
+    protected static final FullQualifiedName SPIED_ON              = new FullQualifiedName(
+            NATION_NAMESPACE,
+            "spied-on" );                                                                  // property type
+
+    /**
+     * Start of JUnit Tests
+     */
+    // Create property types/entity types/entity sets/schemas with different acl's, and modify existing types to change
+    // acl's
+    // Schema should only show those the user has rights to see.
+    @BeforeClass
+    public static void initializeAcl() {
+        createTypes();
+        grantRights();
+    }
+
+    @Test
+    public void Test() {
+        System.out.println( "Test starts!" );
+        propertyTypeTest();
+        entityTypeTest();
+        entitySetTest();
+        propertyTypeInEntityTypeTest();
+        propertyTypeInEntitySetTest();
+    }
+
+    // Delete created property types/entity types/entity sets/schemas - Acl tables should update correspondingly.
+    @AfterClass
+    public static void resetAcl() {
+        setUser( USER_GOD );
+        // Property Types
+        dms.deletePropertyType( LIFE_EXPECTANCY );
+        dms.deletePropertyType( ADDRESS );
+        dms.deletePropertyType( POSITION );
+        dms.deletePropertyType( SPIED_ON );
+
+        dms.deleteEntitySet( NATION_CITIZENS, NATION_SECRET_SERVICE );
+        
+        dms.deleteEntityType( NATION_CITIZENS );
+
+        System.out.println( "*****And the nation fell out of sight..*****" );
+        System.out.println( "*****Test ends!*****" );
+    }
+
+    private static void createTypes() {
+        // God creates property types Address, Position
+        PropertyType lifeExpectancy = new PropertyType().setNamespace( NATION_NAMESPACE )
+                .setName( LIFE_EXPECTANCY.getName() )
+                .setDatatype( EdmPrimitiveTypeKind.Int32 ).setMultiplicity( 0 );
+        PropertyType address = new PropertyType().setNamespace( NATION_NAMESPACE ).setName( ADDRESS.getName() )
+                .setDatatype( EdmPrimitiveTypeKind.String ).setMultiplicity( 0 );
+        PropertyType position = new PropertyType().setNamespace( NATION_NAMESPACE ).setName( POSITION.getName() )
+                .setDatatype( EdmPrimitiveTypeKind.String ).setMultiplicity( 0 );
+        dms.createPropertyType( lifeExpectancy );
+        dms.createPropertyType( address );
+        dms.createPropertyType( position );
+
+        // God creates entity type Citizen
         EntityType citizens = new EntityType().setNamespace( NATION_NAMESPACE ).setName( NATION_CITIZENS.getName() )
                 .setKey( ImmutableSet.of( new FullQualifiedName( NAMESPACE, EMPLOYEE_ID ) ) )
                 .setProperties( ImmutableSet.of( new FullQualifiedName( NAMESPACE, EMPLOYEE_ID ),
                         new FullQualifiedName( NATION_NAMESPACE, LIFE_EXPECTANCY.getName() ),
                         new FullQualifiedName( NATION_NAMESPACE, ADDRESS.getName() ),
+                        new FullQualifiedName( NATION_NAMESPACE, POSITION.getName() ) ) )
+                .setViewableProperties( ImmutableSet.of( new FullQualifiedName( NAMESPACE, EMPLOYEE_ID ),
+                        new FullQualifiedName( NATION_NAMESPACE, LIFE_EXPECTANCY.getName() ),
+                        new FullQualifiedName( NATION_NAMESPACE, ADDRESS.getName() ),
                         new FullQualifiedName( NATION_NAMESPACE, POSITION.getName() ) ) );
-        dms.createEntityType( citizens );	
-	}
-	
-	private static void grantRights(){
-		//God grants rights to others
-		//Property Types
-		ps.addPermissionsForPropertyType( uuidForUser.get(USER_PRESIDENT), ADDRESS, ImmutableSet.of(Permission.READ, Permission.WRITE) );
-		ps.addPermissionsForPropertyType( uuidForUser.get(USER_PRESIDENT), POSITION, ImmutableSet.of(Permission.READ, Permission.WRITE) );
-		//Entity Types
-		ps.addPermissionsForEntityType( uuidForUser.get(USER_PRESIDENT), NATION_CITIZENS, ImmutableSet.of(Permission.OWNER) );
-		ps.addPermissionsForEntityType( uuidForUser.get(USER_CITIZEN), NATION_CITIZENS, ImmutableSet.of(Permission.READ, Permission.WRITE) );
-	}
+        dms.createEntityType( citizens );
 
-	private void accessTypes(){
-		System.out.println("*****Testing access for various types*****");
-		typeLookup();
-	};
+        // God creates entity set Secret Service
+        EntitySet secretService = new EntitySet().setType( NATION_CITIZENS )
+                .setName( NATION_SECRET_SERVICE )
+                .setTitle( "Every nation would have one");
+        dms.createEntitySet( secretService );
+    }
 
-	private void modifyTypes(){
-		System.out.println("*****Testing modification for various types*****");
-		//God allows citizens/president to read Life Expectancy, and allows president to write Life Expectancy
-		godGivesRights();
-		//President adds property type SPIED_ON, that not even God can access 
-		presidentIsWatchingYou();
-		//God removes President's permissions after President lets God know about SPIED_ON
-		godRemovesRights();
-	}
-	
-	// Look up individual types given Acl
-	private void typeLookup(){
-		//God, President, Citizen make get requests for property types/entity types/entity sets/schemas
-		propertyTypeMetadataLookup();
-		entityTypeMetadataLookup();
-	};
-	
-	private PropertyType propertyTypeMetadataLookup( String username, FullQualifiedName propertyTypeFqn){
-	    setIdentity( username );
-	    PropertyType result = dms.getPropertyType( propertyTypeFqn);
-		System.out.println( username + " getting Property Types metadata for " + propertyTypeFqn + ":");
-		System.out.println( result );
-		return result;
-	}
-	
-	private PropertyType propertyTypeMetadataLookup( String username, FullQualifiedName propertyTypeFqn, PropertyType expectedResult){
-		PropertyType result = propertyTypeMetadataLookup( username, propertyTypeFqn );
-		if( expectedResult != null){
-			Assert.assertEquals( expectedResult, result);
-		} else {
-			Assert.assertNull( result );
-		}
-		return result;
-	}
-	
-	private void propertyTypeMetadataLookup() {		
-		System.out.println("***Testing access for property types***");
-		// President has read access for address; Citizens don't.
-		PropertyType resultAddressForGod = propertyTypeMetadataLookup( USER_GOD, ADDRESS );
-		propertyTypeMetadataLookup( USER_PRESIDENT, ADDRESS, resultAddressForGod );
-		propertyTypeMetadataLookup( USER_CITIZEN, ADDRESS, null );
+    private static void grantRights() {
+        // God grants rights to roles
+        setUser( USER_GOD );
+        // Property Types        
+        ps.addPermissionsForPropertyType( ROLE_READER, ADDRESS, ImmutableSet.of( Permission.READ ) );
+        ps.addPermissionsForPropertyType( ROLE_READER, POSITION, ImmutableSet.of( Permission.READ ) );
 
-		// President/Citizens don't know about life expectancy
-		PropertyType resultLifeExpectancyForGod = propertyTypeMetadataLookup( USER_GOD, LIFE_EXPECTANCY );
-		propertyTypeMetadataLookup( USER_PRESIDENT, LIFE_EXPECTANCY, null );
-		propertyTypeMetadataLookup( USER_CITIZEN, LIFE_EXPECTANCY, null );
-	}
-	
-	private EntityType entityTypeMetadataLookup( String username, FullQualifiedName entityTypeFqn){
-	    setIdentity( username );
-	    EntityType result = dms.getEntityType( entityTypeFqn);
-		System.out.println( username + " getting Entity Types metadata for " + entityTypeFqn + ":");
-		System.out.println( result );
-		return result;
-	}
-	
-	private EntityType entityTypeMetadataLookup( String username, FullQualifiedName entityTypeFqn, PropertyType expectedResult){
-		EntityType result = entityTypeMetadataLookup( username, entityTypeFqn );
-		if( expectedResult != null){
-			Assert.assertEquals( expectedResult, result);
-		} else {
-			Assert.assertNull( result );
-		}
-		return result;
-	}
-	
-	private void entityTypeMetadataLookup() {
-		System.out.println("***Testing access for entity types***");
-		entityTypeMetadataLookup( USER_GOD, NATION_CITIZENS );
-		entityTypeMetadataLookup( USER_PRESIDENT, NATION_CITIZENS );
-		entityTypeMetadataLookup( USER_CITIZEN, NATION_CITIZENS );
-	}
-	
-	private void godGivesRights(){
-		System.out.println("***God Gives Rights test starts***");
-		//God allows Citizen to read LIFE_EXPECTANCY.
-		yourFateIsKnown();
-		//God allows President to write LIFE_EXPECTANCY.
-		//TODO: skipped for now, since modifying values is not implemented in backend yet
-//		longLivePresident();
-	}
-	
-	private void yourFateIsKnown(){
-		System.out.println("***Your Fate Is Known test starts***");
-		setIdentity( USER_GOD );
-		ps.addPermissionsForPropertyTypeInEntityType( uuidForUser.get(USER_PRESIDENT), NATION_CITIZENS, LIFE_EXPECTANCY, ImmutableSet.of(Permission.READ) );
-		ps.addPermissionsForPropertyTypeInEntityType( uuidForUser.get(USER_CITIZEN), NATION_CITIZENS, LIFE_EXPECTANCY, ImmutableSet.of(Permission.READ) );
+        ps.addPermissionsForPropertyType( ROLE_WRITER, ADDRESS, ImmutableSet.of( Permission.WRITE ) );
+        ps.addPermissionsForPropertyType( ROLE_WRITER, POSITION, ImmutableSet.of( Permission.WRITE ) );
+        
+        //Entity Types 
+        ps.addPermissionsForEntityType( ROLE_GOVERNOR, NATION_CITIZENS,
+                ImmutableSet.of(Permission.OWNER) );
+        ps.addPermissionsForEntityType( ROLE_READER, NATION_CITIZENS,
+                ImmutableSet.of(Permission.READ) );
+        ps.addPermissionsForEntityType( ROLE_WRITER, NATION_CITIZENS,
+                ImmutableSet.of(Permission.WRITE) );
+        
+        //Entity Set
+        ps.addPermissionsForEntitySet( ROLE_GOVERNOR, NATION_CITIZENS, NATION_SECRET_SERVICE,
+                ImmutableSet.of(Permission.OWNER) );
+        ps.addPermissionsForEntitySet( ROLE_READER, NATION_CITIZENS, NATION_SECRET_SERVICE,
+                ImmutableSet.of(Permission.READ) );
+        ps.addPermissionsForEntitySet( ROLE_WRITER, NATION_CITIZENS, NATION_SECRET_SERVICE,
+                ImmutableSet.of(Permission.WRITE) );        
+    }
 
-		entityTypeMetadataLookup( USER_GOD, NATION_CITIZENS);
-		entityTypeMetadataLookup( USER_PRESIDENT, NATION_CITIZENS);
-		entityTypeMetadataLookup( USER_CITIZEN, NATION_CITIZENS);
-		/**
-		Iterable<Multimap<FullQualifiedName, Object>> resultPresident = aclDs.getAllEntitiesOfType( uuidForUser.get(USER_PRESIDENT), NATION_CITIZENS);
-		Iterable<Multimap<FullQualifiedName, Object>> resultCitizen = aclDs.getAllEntitiesOfType( uuidForUser.get(USER_CITIZEN), NATION_CITIZENS);
-		
-		//write AssertEquals later
-		for( Multimap<FullQualifiedName, Object> result: resultPresident ){
-			System.out.println( result );
-		}
-		for( Multimap<FullQualifiedName, Object> result: resultCitizen ){
-			System.out.println( result );
-		}
-		*/
-	}
-	
-	private void presidentIsWatchingYou(){
-		System.out.println("***President is watching you test starts***");
-		//President adds SPIED_ON property
-		setIdentity( USER_PRESIDENT );
-		PropertyType spiedOn = new PropertyType().setNamespace( NATION_NAMESPACE ).setName( SPIED_ON.getName() )
-				.setDatatype( EdmPrimitiveTypeKind.Boolean).setMultiplicity( 0 );
-		
-		dms.createPropertyType( spiedOn );
-		dms.addPropertyTypesToEntityType(NATION_CITIZENS.getNamespace(), NATION_CITIZENS.getName(), ImmutableSet.of( SPIED_ON ) );
-		
-		//See if everyone can discover
-		propertyTypeMetadataLookup( USER_GOD, SPIED_ON );
-		propertyTypeMetadataLookup( USER_PRESIDENT, SPIED_ON );
-		propertyTypeMetadataLookup( USER_CITIZEN, SPIED_ON );
-	}
-	
-	private void godRemovesRights(){	
-		System.out.println("***God removes rights test starts***");
-		
-		//President lets God access property type SPIED_ON
-		setIdentity( USER_PRESIDENT);
-		ps.addPermissionsForPropertyType( uuidForUser.get(USER_GOD), SPIED_ON, ImmutableSet.of(Permission.READ) );
-		//God found that out
-		propertyTypeMetadataLookup( USER_GOD, SPIED_ON );
-		entityTypeMetadataLookup( USER_GOD, NATION_CITIZENS );
-		//God removes all of President's rights except reading Schema. In particular, he should not be able to read/write any types.
-		//TODO: if one cannot access an entity type, he shouldn't be able to access the entity sets under it either.
-		setIdentity( USER_GOD );
-		ps.setPermissionsForPropertyType( uuidForUser.get(USER_PRESIDENT), ADDRESS, Collections.emptySet() );
-		ps.setPermissionsForPropertyType( uuidForUser.get(USER_PRESIDENT), POSITION, Collections.emptySet() );
-		ps.setPermissionsForPropertyType( uuidForUser.get(USER_PRESIDENT), LIFE_EXPECTANCY, Collections.emptySet() );
-		ps.setPermissionsForEntityType( uuidForUser.get(USER_PRESIDENT), NATION_CITIZENS, Collections.emptySet() );
-		
-		//Check what president can see
-		propertyTypeMetadataLookup( USER_PRESIDENT, ADDRESS, null );
-		propertyTypeMetadataLookup( USER_PRESIDENT, POSITION, null );
-		propertyTypeMetadataLookup( USER_PRESIDENT, LIFE_EXPECTANCY, null );
-		entityTypeMetadataLookup( USER_PRESIDENT, NATION_CITIZENS);
+    private PropertyType propertyTypeMetadataLookup( User user, FullQualifiedName propertyTypeFqn ) {
+        setUser( user );
+        PropertyType result = dms.getPropertyType( propertyTypeFqn );
+        System.out.println( user.getName() + " getting Property Types metadata for " + propertyTypeFqn + ": " + result );
+        return result;
+    }
 
-		/**
-		//God does NOT own the SPIED_ON type, so President should still get access
-		//TODO Not true right now - supposedly setPermissions should be done at PermissionApi/PermissionController, which doesn't exist yet.
-		ps.setPermissionsForPropertyType( uuidForUser.get(USER_PRESIDENT), SPIED_ON, Collections.emptySet() );
-		propertyTypeMetadataLookup( USER_PRESIDENT, SPIED_ON );
-		*/
-		
-		//President surrenders: gives rights of SPIED_ON to God
-		setIdentity( USER_PRESIDENT );
-		ps.setPermissionsForPropertyType( uuidForUser.get(USER_GOD), SPIED_ON, ImmutableSet.of(Permission.OWNER) );
-		//God finishes him off
-		setIdentity( USER_GOD );
-		ps.setPermissionsForPropertyType( uuidForUser.get(USER_PRESIDENT), SPIED_ON, Collections.emptySet() );
-	    //Double check to make sure
-		propertyTypeMetadataLookup( USER_PRESIDENT, SPIED_ON, null);
+    private PropertyType propertyTypeMetadataLookup(
+            User user,
+            FullQualifiedName propertyTypeFqn,
+            PropertyType expectedResult ) {
+        PropertyType result = propertyTypeMetadataLookup( user, propertyTypeFqn );
+        if ( expectedResult != null ) {
+            Assert.assertEquals( expectedResult, result );
+        } else {
+            Assert.assertNull( result );
+        }
+        return result;
+    }
 
-	}	
+    private void propertyTypeTest() {
+        System.out.println( "***Property Type Test starts***" );
+        // Test 1: Citizen does not have the DISCOVER permission for Address
+        // Expected: RandomGuy cannot see the metadata for address
+        propertyTypeMetadataLookup( USER_RANDOMGUY, ADDRESS, null );
+
+        // Test 2: Citizen is given the DISCOVER permission for Address; and the right got removed after.
+        // Expected: RandomGuy can see the metadata for address; and cannot after.
+        PropertyType answer2 = propertyTypeMetadataLookup( USER_GOD, ADDRESS );
+        ps.addPermissionsForPropertyType( ROLE_CITIZEN, ADDRESS, ImmutableSet.of(Permission.DISCOVER) );
+        propertyTypeMetadataLookup( USER_RANDOMGUY, ADDRESS, answer2 );
+
+        ps.removePermissionsForPropertyType( ROLE_CITIZEN, ADDRESS, ImmutableSet.of(Permission.DISCOVER) );
+        propertyTypeMetadataLookup( USER_RANDOMGUY, ADDRESS, null );
+        
+        // Test 3: Citizen is given the DISCOVER permission for Address. RandomGuy also got added to the role Reader.
+        // The Discover permission of Citizen is removed after.
+        // Expected: RandomGuy can still see the metadata for address.
+        PropertyType answer3 = propertyTypeMetadataLookup( USER_GOD, ADDRESS );
+        ps.addPermissionsForPropertyType( ROLE_CITIZEN, ADDRESS, ImmutableSet.of(Permission.DISCOVER) );
+        USER_RANDOMGUY.addRoles( ImmutableSet.of(ROLE_READER) );
+        propertyTypeMetadataLookup( USER_RANDOMGUY, ADDRESS, answer3 );
+        
+        ps.removePermissionsForPropertyType( ROLE_CITIZEN, ADDRESS, ImmutableSet.of(Permission.DISCOVER) );
+        propertyTypeMetadataLookup( USER_RANDOMGUY, ADDRESS, answer3 );
+        USER_RANDOMGUY.removeRoles( ImmutableSet.of(ROLE_READER) );
+        
+        // Test 4: RandomGuy creates property SPIED_ON. Current setting is everyone can create type. 
+        // Expected: RandomGuy CANNOT access the property he just created; this is intended, access rights should come from Admin
+        // Test: Citizens receive the right to Discover SPIED_ON
+        // Expected: Now RandomGuy can discover SPIED_ON
+        setUser( USER_RANDOMGUY );
+        PropertyType spiedOn = new PropertyType().setNamespace( NATION_NAMESPACE ).setName( SPIED_ON.getName() )
+                .setDatatype( EdmPrimitiveTypeKind.Boolean ).setMultiplicity( 0 );
+        dms.createPropertyType( spiedOn );
+        propertyTypeMetadataLookup( USER_RANDOMGUY, SPIED_ON, null);
+        ps.addPermissionsForPropertyType( ROLE_CITIZEN, SPIED_ON, ImmutableSet.of(Permission.DISCOVER) );
+        
+        propertyTypeMetadataLookup( USER_RANDOMGUY, SPIED_ON, spiedOn);
+        ps.removePermissionsForPropertyType( ROLE_CITIZEN, SPIED_ON, ImmutableSet.of(Permission.DISCOVER) );
+    }
+
+    private EntityType entityTypeMetadataLookup( User user, FullQualifiedName entityTypeFqn ) {
+        setUser( user );
+        EntityType result = dms.getEntityType( entityTypeFqn );
+        System.out.println( user.getName() + " getting Entity Types metadata for " + entityTypeFqn + ": " + result );
+        return result;
+    }
+    
+    private EntityType entityTypeMetadataLookup(
+            User user,
+            FullQualifiedName entityTypeFqn,
+            EntityType expectedResult ) {
+        EntityType result = entityTypeMetadataLookup( user, entityTypeFqn );
+        if ( expectedResult != null ) {
+            Assert.assertEquals( expectedResult, result );
+        } else {
+            Assert.assertNull( result );
+        }
+        return result;
+    }
+
+    private void entityTypeTest() {
+        System.out.println( "***Entity Type Test starts***" );
+        // Test 1: Citizen does not have the DISCOVER permission for NATION_CITIZENS
+        // Expected: RandomGuy cannot see the metadata for NATION_CITIZENS
+        entityTypeMetadataLookup( USER_RANDOMGUY, NATION_CITIZENS, null );
+
+        // Test 2: Citizen is given the DISCOVER permission for NATION_CITIZENS; and the right got removed after.
+        // Expected: RandomGuy can see the metadata for NATION_CITIZENS; and cannot after.
+        EntityType answer2 = entityTypeMetadataLookup( USER_GOD, NATION_CITIZENS );
+        ps.addPermissionsForEntityType( ROLE_CITIZEN, NATION_CITIZENS, ImmutableSet.of(Permission.DISCOVER) );
+        entityTypeMetadataLookup( USER_RANDOMGUY, NATION_CITIZENS, answer2 );
+
+        ps.removePermissionsForEntityType( ROLE_CITIZEN, NATION_CITIZENS, ImmutableSet.of(Permission.DISCOVER) );
+        entityTypeMetadataLookup( USER_RANDOMGUY, NATION_CITIZENS, null );
+        
+        // Test 3: Citizen is given the DISCOVER permission for NATION_CITIZENS. RandomGuy also got added to the role Reader.
+        // The Discover permission of Citizen is removed after.
+        // Expected: RandomGuy can still see the metadata for NATION_CITIZENS.
+        EntityType answer3 = entityTypeMetadataLookup( USER_GOD, NATION_CITIZENS );
+        ps.addPermissionsForEntityType( ROLE_CITIZEN, NATION_CITIZENS, ImmutableSet.of(Permission.DISCOVER) );
+        USER_RANDOMGUY.addRoles( ImmutableSet.of(ROLE_READER) );
+        entityTypeMetadataLookup( USER_RANDOMGUY, NATION_CITIZENS, answer3 );
+        
+        ps.removePermissionsForEntityType( ROLE_CITIZEN, NATION_CITIZENS, ImmutableSet.of(Permission.DISCOVER) );
+        entityTypeMetadataLookup( USER_RANDOMGUY, NATION_CITIZENS, answer3 );
+        USER_RANDOMGUY.removeRoles( ImmutableSet.of(ROLE_READER) );
+    }
+
+    private EntitySet entitySetMetadataLookup( User user, FullQualifiedName entityTypeFqn, String entitySetName ) {
+        setUser( user );
+        EntitySet result = dms.getEntitySet( entityTypeFqn, entitySetName );
+        System.out.println( user.getName() + " getting Entity Set metadata for " + entitySetName + " of type " + entityTypeFqn + ": " + result );
+        return result;
+    }
+    
+    private EntitySet entitySetMetadataLookup(
+            User user,
+            FullQualifiedName entityTypeFqn,
+            String entitySetName,
+            EntitySet expectedResult ) {
+        EntitySet result = entitySetMetadataLookup( user, entityTypeFqn, entitySetName );
+        if ( expectedResult != null ) {
+            Assert.assertEquals( expectedResult, result );
+        } else {
+            Assert.assertNull( result );
+        }
+        return result;
+    }
+    
+    private void entitySetTest() {
+        System.out.println( "***Entity Set Test starts***" );
+        // Test 1: Citizen does not have the DISCOVER permission for NATION_CITIZENS
+        // Expected: RandomGuy cannot see the metadata for any entity sets in NATION_CITIZENS
+        entitySetMetadataLookup( USER_RANDOMGUY, NATION_CITIZENS, NATION_SECRET_SERVICE, null );
+        
+        // Test 2: Citizen is given the DISCOVER permission for NATION_CITIZENS, but does not have the DISCOVER permission for Secret Service in NATION_CITIZENS
+        // Expected: RandomGuy cannot see the metadata for Secret Service in NATION_CITIZENS
+        ps.addPermissionsForEntityType( ROLE_CITIZEN, NATION_CITIZENS, ImmutableSet.of(Permission.DISCOVER) );
+        entitySetMetadataLookup( USER_RANDOMGUY, NATION_CITIZENS, NATION_SECRET_SERVICE, null );
+        ps.removePermissionsForEntityType( ROLE_CITIZEN, NATION_CITIZENS, ImmutableSet.of(Permission.DISCOVER) );
+
+        // Test 3: Citizen is given the DISCOVER permission for Secret Service; and the right got removed after.
+        // Expected: RandomGuy can see the metadata for Secret Service; and cannot after.
+        EntitySet answer3 = entitySetMetadataLookup( USER_GOD, NATION_CITIZENS, NATION_SECRET_SERVICE );
+        ps.addPermissionsForEntityType( ROLE_CITIZEN, NATION_CITIZENS, ImmutableSet.of(Permission.DISCOVER) );
+        ps.addPermissionsForEntitySet( ROLE_CITIZEN, NATION_CITIZENS, NATION_SECRET_SERVICE, ImmutableSet.of(Permission.DISCOVER) );
+        entitySetMetadataLookup( USER_RANDOMGUY, NATION_CITIZENS, NATION_SECRET_SERVICE, answer3 );
+        
+        ps.removePermissionsForEntitySet( ROLE_CITIZEN, NATION_CITIZENS, NATION_SECRET_SERVICE, ImmutableSet.of(Permission.DISCOVER) );
+        entitySetMetadataLookup( USER_RANDOMGUY, NATION_CITIZENS, NATION_SECRET_SERVICE, null );
+        
+        ps.removePermissionsForEntityType( ROLE_CITIZEN, NATION_CITIZENS, ImmutableSet.of(Permission.DISCOVER) );
+
+        // Test 4: Citizen is given the DISCOVER permission for NATION_CITIZENS. RandomGuy also got added to the role Reader.
+        // The Discover permission of Citizen is removed after.
+        // Expected: RandomGuy can still see the metadata for NATION_CITIZENS.
+        EntitySet answer4 = entitySetMetadataLookup( USER_GOD, NATION_CITIZENS, NATION_SECRET_SERVICE );
+        ps.addPermissionsForEntityType( ROLE_CITIZEN, NATION_CITIZENS, ImmutableSet.of(Permission.DISCOVER) );
+        ps.addPermissionsForEntitySet( ROLE_CITIZEN, NATION_CITIZENS, NATION_SECRET_SERVICE, ImmutableSet.of(Permission.DISCOVER) );        ps.addPermissionsForEntityType( ROLE_CITIZEN, NATION_CITIZENS, ImmutableSet.of(Permission.DISCOVER) );
+        USER_RANDOMGUY.addRoles( ImmutableSet.of(ROLE_READER) );
+        entitySetMetadataLookup( USER_RANDOMGUY, NATION_CITIZENS, NATION_SECRET_SERVICE, answer4 );
+        
+        ps.removePermissionsForEntitySet( ROLE_CITIZEN, NATION_CITIZENS, NATION_SECRET_SERVICE, ImmutableSet.of(Permission.DISCOVER) );
+        ps.removePermissionsForEntityType( ROLE_CITIZEN, NATION_CITIZENS, ImmutableSet.of(Permission.DISCOVER) );
+        entitySetMetadataLookup( USER_RANDOMGUY, NATION_CITIZENS, NATION_SECRET_SERVICE, answer4 );
+        USER_RANDOMGUY.removeRoles( ImmutableSet.of(ROLE_READER) );
+    }
+    
+    private void propertyTypeInEntityTypeTest() {
+        System.out.println( "***Property Type In Entity Type Test Starts***" );
+        setUser(USER_GOD);
+        dms.addPropertyTypesToEntityType( NATION_CITIZENS.getNamespace(),
+                NATION_CITIZENS.getName(),
+                ImmutableSet.of( SPIED_ON ) );
+        
+        // Test 1: Citizen has Discover permission to both SPIED_ON (property type) and NATION_CITIZENS (entity type), but not the pair
+        // Expected: RandomGuy does not see SPIED_ON in NATION_CITIZENS
+        ps.addPermissionsForPropertyType( ROLE_CITIZEN, SPIED_ON, ImmutableSet.of(Permission.DISCOVER) );
+        ps.addPermissionsForEntityType( ROLE_CITIZEN, NATION_CITIZENS, ImmutableSet.of(Permission.DISCOVER) );
+        
+        propertyTypeMetadataLookup( USER_RANDOMGUY, SPIED_ON );
+        entityTypeMetadataLookup( USER_RANDOMGUY, NATION_CITIZENS );
+        
+        ps.removePermissionsForPropertyType( ROLE_CITIZEN, SPIED_ON, ImmutableSet.of(Permission.DISCOVER) );
+        ps.removePermissionsForEntityType( ROLE_CITIZEN, NATION_CITIZENS, ImmutableSet.of(Permission.DISCOVER) );
+        
+        
+        // Test 2: Citizen is given the Discover permission to the pair (SPIED_ON, NATION_CITIZENS)
+        // Expected: RandomGuy can see SPIED_ON in NATION_CITIZENS
+        ps.addPermissionsForPropertyType( ROLE_CITIZEN, SPIED_ON, ImmutableSet.of(Permission.DISCOVER) );
+        ps.addPermissionsForEntityType( ROLE_CITIZEN, NATION_CITIZENS, ImmutableSet.of(Permission.DISCOVER) );
+        ps.addPermissionsForPropertyTypeInEntityType( ROLE_CITIZEN, NATION_CITIZENS, SPIED_ON, ImmutableSet.of(Permission.DISCOVER) );
+
+        entityTypeMetadataLookup( USER_RANDOMGUY, NATION_CITIZENS );
+        
+        ps.removePermissionsForPropertyType( ROLE_CITIZEN, SPIED_ON, ImmutableSet.of(Permission.DISCOVER) );
+        ps.removePermissionsForEntityType( ROLE_CITIZEN, NATION_CITIZENS, ImmutableSet.of(Permission.DISCOVER) );
+        ps.removePermissionsForPropertyTypeInEntityType( ROLE_CITIZEN, NATION_CITIZENS, SPIED_ON, ImmutableSet.of(Permission.DISCOVER) );
+        
+        // SEPARATE INHERITED RIGHTS TEST
+        // Test 3: Citizen has Read permission for NATION_CITIZENS and SPIED_ON; his read right for (NATION_CITIZENS,SPIED_ON) got removed after.
+        // Expected: RandomGuy can see SPIED_ON when he does getEntitiesOfAllType (inherited rights for the pair); and cannot read after removal.
+        
+        // Test 4: Citizen got all permissions removed. Citizen was then given the READ permission for (NATION_CITIZENS, SPIED_ON)
+        // Expected: RandomGuy can see SPIED_ON when he does getEntitiesOfAllType (inherited rights)
+        
+        // Test 5: Citizen got all permissions removed. Citizen has Read permission for SPIED_ON, and Discover permission for NATION_CITIZENS
+        // Expected: RandomGuy cannot perform getEntitiesOfAllType. But he can see SPIED_ON when he asks for metadata for NATION_CITIZENS
+        
+        // Test 6: Citizen has OWNER permission for NATION_CITIZENS
+        // Expected: RandomGuy can add/remove property types from NATION_CITIZENS. He can also delete the Entity Type.
+        
+        // Test 7: Citizen has Write permission for NATION_CITIZENS and all its associated property types
+        // Expected: RandomGuy can do createEntityData with all property types
+        
+        // Test 8: Citizen has Write permission for NATION_CITIZENS and ADDRESS only.
+        // Expected: RandomGuy can do createEntityData, but only the property types NATION_CITIZENS and ADDRESS
+        
+    }
+
+    private void propertyTypeInEntitySetTest() {
+        System.out.println( "***Property Type In Entity Set Test Starts***" );        
+        // Setup: Citizen has Discover permission to ADDRESS (property type), NATION_CITIZENS (entity type), but not the pair
+        ps.addPermissionsForPropertyType( ROLE_CITIZEN, ADDRESS, ImmutableSet.of(Permission.DISCOVER) );
+        ps.addPermissionsForEntityType( ROLE_CITIZEN, NATION_CITIZENS, ImmutableSet.of(Permission.DISCOVER) );
+
+        propertyTypeMetadataLookup( USER_RANDOMGUY, SPIED_ON );
+        entityTypeMetadataLookup( USER_RANDOMGUY, NATION_CITIZENS );
+        // Test 1: Citizen has Discover permission to NATION_SECRET_SERVICE (entity set), but not the pair (ADDRESS, NATION_SECRET_SEVICE)
+        // Expected: RandomGuy does not see ADDRESS in NATION_SECRET_SERVICE
+        ps.addPermissionsForEntitySet( ROLE_CITIZEN, NATION_CITIZENS, NATION_SECRET_SERVICE, ImmutableSet.of(Permission.DISCOVER) );
+        
+        entitySetMetadataLookup( USER_RANDOMGUY, NATION_CITIZENS, NATION_SECRET_SERVICE );
+
+        ps.removePermissionsForEntitySet( ROLE_CITIZEN, NATION_CITIZENS, NATION_SECRET_SERVICE, ImmutableSet.of(Permission.DISCOVER) );
+
+        // Test 2: Citizen is given the Discover permission to the pair (ADDRESS, NATION_SECRET_SERVICE)
+        // Expected: RandomGuy can see ADDRESS in NATION_SECRET_SERVICE
+        ps.addPermissionsForEntitySet( ROLE_CITIZEN, NATION_CITIZENS, NATION_SECRET_SERVICE, ImmutableSet.of(Permission.DISCOVER) );
+        ps.addPermissionsForPropertyTypeInEntitySet( ROLE_CITIZEN, NATION_CITIZENS, NATION_SECRET_SERVICE, ADDRESS, ImmutableSet.of(Permission.DISCOVER) );
+        
+        entitySetMetadataLookup( USER_RANDOMGUY, NATION_CITIZENS, NATION_SECRET_SERVICE );
+
+        ps.removePermissionsForPropertyTypeInEntitySet( ROLE_CITIZEN, NATION_CITIZENS, NATION_SECRET_SERVICE, ADDRESS, ImmutableSet.of(Permission.DISCOVER) );
+        ps.removePermissionsForEntitySet( ROLE_CITIZEN, NATION_CITIZENS, NATION_SECRET_SERVICE, ImmutableSet.of(Permission.DISCOVER) );
+        
+        // Write inherited rights test
+    }
 }

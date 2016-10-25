@@ -121,7 +121,9 @@ public class DataService {
         Set<Multimap<FullQualifiedName, Object>> propertyValues = createEntityRequest.getPropertyValues();
         UUID aclId = createEntityRequest.getAclId().or( UUIDs.ACLs.EVERYONE_ACL );
         UUID syncId = createEntityRequest.getSyncId().or( UUIDs.Syncs.BASE.getSyncId() );
-
+        String typename = tableManager.getTypenameForEntityType( entityFqn );
+        String entitySetName = createEntityRequest.getEntitySetName().or( CassandraTableManager.getNameForDefaultEntitySet( typename ) );
+        
         propertyValues.stream().forEach( obj -> {
             PreparedStatement createQuery = Preconditions.checkNotNull(
                     tableManager.getInsertEntityPreparedStatement( entityFqn ),
@@ -132,10 +134,9 @@ public class DataService {
                     "Entity ID typename lookup query cannot be null." );
 
             UUID entityId = UUID.randomUUID();
-            String typename = tableManager.getTypenameForEntityType( entityFqn );
             BoundStatement boundQuery = createQuery.bind( entityId,
                     typename,
-                    ImmutableSet.of( createEntityRequest.getEntitySetName() ),
+                    ImmutableSet.of( entitySetName ),
                     ImmutableList.of( syncId ) );
             logger.info( "Attempting to create entity : {}", boundQuery.toString() );
             session.execute( boundQuery );

@@ -115,12 +115,10 @@ public class BabyAclTest extends BootstrapDatastoreWithCassandra {
                 .setKey( ImmutableSet.of( new FullQualifiedName( NAMESPACE, EMPLOYEE_ID ) ) )
                 .setProperties( ImmutableSet.of( new FullQualifiedName( NAMESPACE, EMPLOYEE_ID ),
                         new FullQualifiedName( NATION_NAMESPACE, LIFE_EXPECTANCY.getName() ),
-                        new FullQualifiedName( NATION_NAMESPACE, ADDRESS.getName() ),
-                        new FullQualifiedName( NATION_NAMESPACE, POSITION.getName() ) ) )
+                        new FullQualifiedName( NATION_NAMESPACE, ADDRESS.getName() ) ) )
                 .setViewableProperties( ImmutableSet.of( new FullQualifiedName( NAMESPACE, EMPLOYEE_ID ),
                         new FullQualifiedName( NATION_NAMESPACE, LIFE_EXPECTANCY.getName() ),
-                        new FullQualifiedName( NATION_NAMESPACE, ADDRESS.getName() ),
-                        new FullQualifiedName( NATION_NAMESPACE, POSITION.getName() ) ) );
+                        new FullQualifiedName( NATION_NAMESPACE, ADDRESS.getName() ) ) );
         dms.createEntityType( citizens );
 
         // God creates entity set Secret Service
@@ -142,7 +140,7 @@ public class BabyAclTest extends BootstrapDatastoreWithCassandra {
         
         //Entity Types 
         ps.addPermissionsForEntityType( ROLE_GOVERNOR, NATION_CITIZENS,
-                ImmutableSet.of(Permission.OWNER) );
+                ImmutableSet.of(Permission.ALTER) );
         ps.addPermissionsForEntityType( ROLE_READER, NATION_CITIZENS,
                 ImmutableSet.of(Permission.READ) );
         ps.addPermissionsForEntityType( ROLE_WRITER, NATION_CITIZENS,
@@ -150,7 +148,7 @@ public class BabyAclTest extends BootstrapDatastoreWithCassandra {
         
         //Entity Set
         ps.addPermissionsForEntitySet( ROLE_GOVERNOR, NATION_CITIZENS, NATION_SECRET_SERVICE,
-                ImmutableSet.of(Permission.OWNER) );
+                ImmutableSet.of(Permission.ALTER) );
         ps.addPermissionsForEntitySet( ROLE_READER, NATION_CITIZENS, NATION_SECRET_SERVICE,
                 ImmutableSet.of(Permission.READ) );
         ps.addPermissionsForEntitySet( ROLE_WRITER, NATION_CITIZENS, NATION_SECRET_SERVICE,
@@ -265,6 +263,35 @@ public class BabyAclTest extends BootstrapDatastoreWithCassandra {
         ps.removePermissionsForEntityType( ROLE_CITIZEN, NATION_CITIZENS, ImmutableSet.of(Permission.DISCOVER) );
         entityTypeMetadataLookup( USER_RANDOMGUY, NATION_CITIZENS, answer3 );
         USER_RANDOMGUY.removeRoles( ImmutableSet.of(ROLE_READER) );
+        
+        // Test 4: Citizen has ALTER permission for NATION_CITIZENS
+        // Expected: RandomGuy can add/remove property types from NATION_CITIZENS.
+        ps.addPermissionsForEntityType( ROLE_CITIZEN, NATION_CITIZENS, ImmutableSet.of(Permission.ALTER) );
+        setUser( USER_RANDOMGUY );
+        dms.addPropertyTypesToEntityType( NATION_CITIZENS.getNamespace(),
+                NATION_CITIZENS.getName(),
+                ImmutableSet.of( SPIED_ON ) );
+        dms.removePropertyTypesFromEntityType( NATION_CITIZENS.getNamespace(),
+                NATION_CITIZENS.getName(),
+                ImmutableSet.of( SPIED_ON ) );
+        ps.removePermissionsForEntityType( ROLE_CITIZEN, NATION_CITIZENS, ImmutableSet.of(Permission.ALTER) );
+
+        // Test 5: Citizen has ALTER permission for NATION_CITIZENS
+        // Expected: RandomGuy can delete the entity type NATION_CITIZENS.
+        ps.addPermissionsForEntityType( ROLE_CITIZEN, NATION_CITIZENS, ImmutableSet.of(Permission.ALTER) );
+        setUser( USER_RANDOMGUY );
+        dms.deleteEntityType( NATION_CITIZENS );
+        
+        EntityType citizens = new EntityType().setNamespace( NATION_NAMESPACE ).setName( NATION_CITIZENS.getName() )
+                .setKey( ImmutableSet.of( new FullQualifiedName( NAMESPACE, EMPLOYEE_ID ) ) )
+                .setProperties( ImmutableSet.of( new FullQualifiedName( NAMESPACE, EMPLOYEE_ID ),
+                        new FullQualifiedName( NATION_NAMESPACE, LIFE_EXPECTANCY.getName() ),
+                        new FullQualifiedName( NATION_NAMESPACE, ADDRESS.getName() ) ) )
+                .setViewableProperties( ImmutableSet.of( new FullQualifiedName( NAMESPACE, EMPLOYEE_ID ),
+                        new FullQualifiedName( NATION_NAMESPACE, LIFE_EXPECTANCY.getName() ),
+                        new FullQualifiedName( NATION_NAMESPACE, ADDRESS.getName() ) ) );
+        dms.createEntityType( citizens );
+        ps.removePermissionsForEntityType( ROLE_CITIZEN, NATION_CITIZENS, ImmutableSet.of(Permission.ALTER) );
     }
 
     private EntitySet entitySetMetadataLookup( User user, FullQualifiedName entityTypeFqn, String entitySetName ) {
@@ -329,6 +356,9 @@ public class BabyAclTest extends BootstrapDatastoreWithCassandra {
     
     private void propertyTypeInEntityTypeTest() {
         System.out.println( "***Property Type In Entity Type Test Starts***" );
+        //Setup: 
+        //SPIED_ON (property type) is added to NATION_CITIZENS (entity type)
+        //Citizen has no rights to anything
         setUser(USER_GOD);
         dms.addPropertyTypesToEntityType( NATION_CITIZENS.getNamespace(),
                 NATION_CITIZENS.getName(),
@@ -343,8 +373,7 @@ public class BabyAclTest extends BootstrapDatastoreWithCassandra {
         entityTypeMetadataLookup( USER_RANDOMGUY, NATION_CITIZENS );
         
         ps.removePermissionsForPropertyType( ROLE_CITIZEN, SPIED_ON, ImmutableSet.of(Permission.DISCOVER) );
-        ps.removePermissionsForEntityType( ROLE_CITIZEN, NATION_CITIZENS, ImmutableSet.of(Permission.DISCOVER) );
-        
+        ps.removePermissionsForEntityType( ROLE_CITIZEN, NATION_CITIZENS, ImmutableSet.of(Permission.DISCOVER) );     
         
         // Test 2: Citizen is given the Discover permission to the pair (SPIED_ON, NATION_CITIZENS)
         // Expected: RandomGuy can see SPIED_ON in NATION_CITIZENS
@@ -357,20 +386,81 @@ public class BabyAclTest extends BootstrapDatastoreWithCassandra {
         ps.removePermissionsForPropertyType( ROLE_CITIZEN, SPIED_ON, ImmutableSet.of(Permission.DISCOVER) );
         ps.removePermissionsForEntityType( ROLE_CITIZEN, NATION_CITIZENS, ImmutableSet.of(Permission.DISCOVER) );
         ps.removePermissionsForPropertyTypeInEntityType( ROLE_CITIZEN, NATION_CITIZENS, SPIED_ON, ImmutableSet.of(Permission.DISCOVER) );
+     
+        // INHERITED RIGHTS TEST
+        // Test 3: Citizen has Read permission for NATION_CITIZENS and SPIED_ON; Inheritance from Both Rights
+        // Expected: RandomGuy has Read permission for the pair (NATION_CITIZENS, SPIED_ON)
+        ps.addPermissionsForPropertyType( ROLE_CITIZEN, SPIED_ON, ImmutableSet.of(Permission.READ) );
+        ps.addPermissionsForEntityType( ROLE_CITIZEN, NATION_CITIZENS, ImmutableSet.of(Permission.READ) );
         
-        // SEPARATE INHERITED RIGHTS TEST
-        // Test 3: Citizen has Read permission for NATION_CITIZENS and SPIED_ON; his read right for (NATION_CITIZENS,SPIED_ON) got removed after.
-        // Expected: RandomGuy can see SPIED_ON when he does getEntitiesOfAllType (inherited rights for the pair); and cannot read after removal.
+        ps.inheritPermissionsFromBothTypes( ROLE_CITIZEN, NATION_CITIZENS, ImmutableSet.of(SPIED_ON) );
+        Assert.assertTrue( ps.checkUserHasPermissionsOnPropertyTypeInEntityType( ImmutableSet.of(ROLE_CITIZEN), NATION_CITIZENS, SPIED_ON, Permission.READ ) );
         
-        // Test 4: Citizen got all permissions removed. Citizen was then given the READ permission for (NATION_CITIZENS, SPIED_ON)
-        // Expected: RandomGuy can see SPIED_ON when he does getEntitiesOfAllType (inherited rights)
+        ps.removePermissionsForPropertyType( ROLE_CITIZEN, SPIED_ON, ImmutableSet.of(Permission.READ) );
+        ps.removePermissionsForEntityType( ROLE_CITIZEN, NATION_CITIZENS, ImmutableSet.of(Permission.READ) );
+        ps.removePermissionsForPropertyTypeInEntityType( ROLE_CITIZEN, NATION_CITIZENS, SPIED_ON, ImmutableSet.of(Permission.READ) );
+
+        // Test 4: Citizen has Read permission NATION_CITIZENS and DISCOVER permission for SPIED_ON; Inheritance from Both Rights
+        // Expected: RandomGuy has Discover permission for the pair (NATION_CITIZENS, SPIED_ON)
+        ps.addPermissionsForPropertyType( ROLE_CITIZEN, SPIED_ON, ImmutableSet.of(Permission.DISCOVER) );
+        ps.addPermissionsForEntityType( ROLE_CITIZEN, NATION_CITIZENS, ImmutableSet.of(Permission.READ) );
         
+        ps.inheritPermissionsFromBothTypes( ROLE_CITIZEN, NATION_CITIZENS, ImmutableSet.of(SPIED_ON) );
+        Assert.assertFalse( ps.checkUserHasPermissionsOnPropertyTypeInEntityType( ImmutableSet.of(ROLE_CITIZEN), NATION_CITIZENS, SPIED_ON, Permission.READ ) );
+        Assert.assertTrue( ps.checkUserHasPermissionsOnPropertyTypeInEntityType( ImmutableSet.of(ROLE_CITIZEN), NATION_CITIZENS, SPIED_ON, Permission.DISCOVER ) );
+        
+        ps.removePermissionsForPropertyType( ROLE_CITIZEN, SPIED_ON, ImmutableSet.of(Permission.DISCOVER) );
+        ps.removePermissionsForEntityType( ROLE_CITIZEN, NATION_CITIZENS, ImmutableSet.of(Permission.READ) );
+        ps.removePermissionsForPropertyTypeInEntityType( ROLE_CITIZEN, NATION_CITIZENS, SPIED_ON, ImmutableSet.of(Permission.DISCOVER) );
+
+        // Test 5: Citizen has DISCOVER permission NATION_CITIZENS and READ permission for SPIED_ON; Inheritance from Both Rights
+        // Expected: RandomGuy has Discover permission for the pair (NATION_CITIZENS, SPIED_ON)
+        ps.addPermissionsForPropertyType( ROLE_CITIZEN, SPIED_ON, ImmutableSet.of(Permission.READ) );
+        ps.addPermissionsForEntityType( ROLE_CITIZEN, NATION_CITIZENS, ImmutableSet.of(Permission.DISCOVER) );
+        
+        ps.inheritPermissionsFromBothTypes( ROLE_CITIZEN, NATION_CITIZENS, ImmutableSet.of(SPIED_ON) );
+        Assert.assertFalse( ps.checkUserHasPermissionsOnPropertyTypeInEntityType( ImmutableSet.of(ROLE_CITIZEN), NATION_CITIZENS, SPIED_ON, Permission.READ ) );
+        Assert.assertTrue( ps.checkUserHasPermissionsOnPropertyTypeInEntityType( ImmutableSet.of(ROLE_CITIZEN), NATION_CITIZENS, SPIED_ON, Permission.DISCOVER ) );
+        
+        ps.removePermissionsForPropertyType( ROLE_CITIZEN, SPIED_ON, ImmutableSet.of(Permission.READ) );
+        ps.removePermissionsForEntityType( ROLE_CITIZEN, NATION_CITIZENS, ImmutableSet.of(Permission.DISCOVER) );
+        ps.removePermissionsForPropertyTypeInEntityType( ROLE_CITIZEN, NATION_CITIZENS, SPIED_ON, ImmutableSet.of(Permission.DISCOVER) );
+
+        /**
+         * Citizen has WRITE Permission for Property Type POSITION.
+         * POSITION gets added to NATION_CITIZENS
+         */
+        ps.addPermissionsForPropertyType( ROLE_CITIZEN, POSITION, ImmutableSet.of(Permission.WRITE) );
+        dms.addPropertyTypesToEntityType( NATION_CITIZENS.getNamespace(),
+                NATION_CITIZENS.getName(),
+                ImmutableSet.of( POSITION ) );
+        // Test 6: Inheritance from Property Rights.
+        // Expected: RandomGuy has WRITE permission on NATION_CITIZENS, and (NATION_CITIZENS, POSITION)        
+        ps.inheritPermissionsFromPropertyType( ROLE_CITIZEN, NATION_CITIZENS, ImmutableSet.of(POSITION) );
+
+        Assert.assertTrue( ps.checkUserHasPermissionsOnEntityType( ImmutableSet.of(ROLE_CITIZEN), NATION_CITIZENS, Permission.WRITE ) );
+        Assert.assertTrue( ps.checkUserHasPermissionsOnPropertyTypeInEntityType( ImmutableSet.of(ROLE_CITIZEN), NATION_CITIZENS, POSITION, Permission.WRITE ) );
+        
+        ps.removePermissionsForEntityType( ROLE_CITIZEN, NATION_CITIZENS, ImmutableSet.of(Permission.WRITE) );
+        ps.removePermissionsForPropertyTypeInEntityType( ROLE_CITIZEN, NATION_CITIZENS, POSITION, ImmutableSet.of(Permission.WRITE) );
+
+        // Test 7: Citizen being given READ right for Property Type for LIFE_EXPECTANCY. Inheritance from Property Rights.
+        // Expected: RandomGuy has READ permission on NATION_CITIZENS, and (NATION_CITIZENS, LIFE_EXPECTANCY)
+        ps.addPermissionsForPropertyType( ROLE_CITIZEN, LIFE_EXPECTANCY, ImmutableSet.of(Permission.READ) );
+        ps.inheritPermissionsFromPropertyType( ROLE_CITIZEN, NATION_CITIZENS, ImmutableSet.of(LIFE_EXPECTANCY) );
+
+        Assert.assertTrue( ps.checkUserHasPermissionsOnEntityType( ImmutableSet.of(ROLE_CITIZEN), NATION_CITIZENS, Permission.READ ) );
+        Assert.assertTrue( ps.checkUserHasPermissionsOnPropertyTypeInEntityType( ImmutableSet.of(ROLE_CITIZEN), NATION_CITIZENS, LIFE_EXPECTANCY, Permission.READ ) );
+        
+        ps.removePermissionsForEntityType( ROLE_CITIZEN, NATION_CITIZENS, ImmutableSet.of(Permission.READ) );
+        ps.removePermissionsForPropertyTypeInEntityType( ROLE_CITIZEN, NATION_CITIZENS, LIFE_EXPECTANCY, ImmutableSet.of(Permission.READ) );
+        
+        /** 
+         * READ and WRITE Test once DataApi is done
+         */
         // Test 5: Citizen got all permissions removed. Citizen has Read permission for SPIED_ON, and Discover permission for NATION_CITIZENS
         // Expected: RandomGuy cannot perform getEntitiesOfAllType. But he can see SPIED_ON when he asks for metadata for NATION_CITIZENS
-        
-        // Test 6: Citizen has OWNER permission for NATION_CITIZENS
-        // Expected: RandomGuy can add/remove property types from NATION_CITIZENS. He can also delete the Entity Type.
-        
+                
         // Test 7: Citizen has Write permission for NATION_CITIZENS and all its associated property types
         // Expected: RandomGuy can do createEntityData with all property types
         

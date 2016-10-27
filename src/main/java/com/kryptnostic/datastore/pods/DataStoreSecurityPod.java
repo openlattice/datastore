@@ -9,14 +9,15 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 @Configuration
 @EnableGlobalMethodSecurity(
         prePostEnabled = true )
-@EnableWebSecurity
+@EnableWebSecurity(
+        debug = false
+)
 public class DataStoreSecurityPod extends Auth0SecurityPod {
 
     @Override
     protected void authorizeRequests( HttpSecurity http ) throws Exception {
         http.authorizeRequests()
-                .antMatchers( "/odata/**").hasAnyRole( "user","USER" )
-                .antMatchers( "/ontology/**").hasAnyRole( "user","USER" );
+                .antMatchers( "/odata/**").hasAnyAuthority( "user","USER" )
+                .antMatchers( "/ontology/**").hasAnyAuthority( "user","USER" );
     }
-
 }

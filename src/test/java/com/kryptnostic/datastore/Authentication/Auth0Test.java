@@ -7,20 +7,20 @@ import com.auth0.authentication.result.Credentials;
 import com.auth0.authentication.result.UserProfile;
 import com.auth0.jwt.JWTVerifier;
 import com.auth0.jwt.internal.org.apache.commons.codec.binary.Base64;
-import com.auth0.jwt.internal.org.apache.commons.lang3.tuple.Pair;
-import com.auth0.request.AuthenticationRequest;
 import com.auth0.spring.security.api.Auth0AuthorityStrategy;
 import com.auth0.spring.security.api.Auth0JWTToken;
 import com.auth0.spring.security.api.Auth0UserDetails;
+import com.geekbeast.rhizome.tests.bootstrap.DefaultErrorHandler;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Multimap;
 import com.kryptnostic.datastore.Datastore;
-import com.kryptnostic.datastore.edm.DatastoreServices;
 import com.kryptnostic.datastore.services.DataApi;
-import com.kryptnostic.kodex.v1.exceptions.DefaultErrorHandler;
-import com.squareup.okhttp.Headers;
-import com.squareup.okhttp.OkHttpClient;
+import com.kryptnostic.rhizome.converters.RhizomeConverter;
+import digital.loom.rhizome.authentication.AuthenticationTest;
 import digital.loom.rhizome.configuration.auth0.Auth0Configuration;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.tuple.Pair;
+import org.apache.olingo.commons.api.edm.FullQualifiedName;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
@@ -31,11 +31,9 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import retrofit.RequestInterceptor;
 import retrofit.RestAdapter;
-import retrofit.client.OkClient;
 
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 
 public class Auth0Test {
     private static final Logger    logger = LoggerFactory.getLogger( Auth0Test.class );
@@ -43,7 +41,8 @@ public class Auth0Test {
     private static Auth0Configuration      configuration;
     private static Auth0                   auth0;
     private static AuthenticationAPIClient client;
-    private static DataApi  dataApi;
+    private static DataApi                 dataApi;
+    private static RestAdapter             dataServiceRestAdapter;
 
     @BeforeClass
     public static void init() throws Exception {
@@ -51,47 +50,27 @@ public class Auth0Test {
         configuration = ds.getContext().getBean( Auth0Configuration.class );
         auth0 = new Auth0( configuration.getClientId(), configuration.getDomain() );
         client = auth0.newAuthenticationAPIClient();
-
-        // TODO: figure out this
-        RestAdapter dataServiceRestAdapter = createRestAdapter( DataApi.CONTROLLER, new RequestInterceptor() {
-            @Override public void intercept( RequestFacade request ) {
-                request.addHeader( "access_token", "" );
-                request.addHeader( "id_token", "" );
-            }
-        } );
-        dataApi = dataServiceRestAdapter.create( DataApi.class );
-    }
-
-    protected static RestAdapter createRestAdapter( String urlSuffix, RequestInterceptor requestInterceptor ) {
-        return createDefaultRestAdapterBuilder( urlSuffix ).setRequestInterceptor( requestInterceptor ).build();
-    }
-
-    protected static RestAdapter.Builder createDefaultRestAdapterBuilder( String urlSuffix ) {
-        OkHttpClient client = createOkHttpClient();
-        String url = "http://localhost:8080/ontology" + urlSuffix;
-        return new RestAdapter.Builder()
-                .setEndpoint( url )
-                .setClient( new OkClient( client ) )
+        String jwtToken = AuthenticationTest.authenticate().getLeft().getIdToken();
+        dataServiceRestAdapter = new RestAdapter.Builder()
+                .setEndpoint( "http://localhost:8080/ontology" )
+                .setRequestInterceptor(
+                        (RequestInterceptor) facade -> facade.addHeader( "Authorization", "Bearer " + jwtToken ) )
+                .setConverter( new RhizomeConverter() )
                 .setErrorHandler( new DefaultErrorHandler() )
                 .setLogLevel( RestAdapter.LogLevel.FULL )
                 .setLog( new RestAdapter.Log() {
                     @Override
                     public void log( String msg ) {
-                        logger.debug( msg );
+                        logger.debug( msg.replaceAll( "%", "[percent]" ) );
                     }
-                } );
-    }
-
-    protected static OkHttpClient createOkHttpClient() {
-        OkHttpClient client = new OkHttpClient();
-        client.setReadTimeout( 0, TimeUnit.MILLISECONDS );
-        client.setConnectTimeout( 0, TimeUnit.MILLISECONDS );
-        return client;
+                } )
+                .build();
+        dataApi = dataServiceRestAdapter.create( DataApi.class );
     }
 
     @Test
     public void testRoles() throws Exception {
-        Pair<Credentials, Authentication> auth = authenticate();
+        Pair<Credentials, Authentication> auth = AuthenticationTest.authenticate();
         JWTVerifier jwtVerifier = new JWTVerifier( new Base64( true ).decodeBase64( configuration.getClientSecret() ),
                 configuration.getClientId(),
                 configuration.getIssuer() );
@@ -102,13 +81,13 @@ public class Auth0Test {
                 d2,
                 Auth0AuthorityStrategy.valueOf( configuration.getAuthorityStrategy() ).getStrategy() );
         Assert.assertTrue( "Return roles must contain user",
-                userDetails.getAuthorities().contains( new SimpleGrantedAuthority( "user" ) ));
+                userDetails.getAuthorities().contains( new SimpleGrantedAuthority( "user" ) ) );
         logger.info( "Roles: {}", userDetails.getAuthorities() );
     }
 
     @Test
     public void testLogin() {
-        Credentials credentials = authenticate().getLeft();
+        Credentials credentials = AuthenticationTest.authenticate().getLeft();
         UserProfile profile = client.tokenInfo( credentials.getIdToken() ).execute();
 
         List<String> roles = (List<String>) profile.getAppMetadata().getOrDefault( "roles", ImmutableList.of() );
@@ -116,22 +95,31 @@ public class Auth0Test {
         Assert.assertTrue( StringUtils.isNotBlank( credentials.getIdToken() ) );
     }
 
-    // TODO: implement this
-    @Test(expected = AccessDeniedException.class)
-    public void testUnauthenticatedAPICall(){
-        throw new AccessDeniedException( "Please Login." );
+    @Test( expected = AccessDeniedException.class )
+    public void testUnauthenticatedAPICall() {
+        RestAdapter unauthorizedAdapter = new RestAdapter.Builder()
+                .setEndpoint( "http://localhost:8080/ontology" )
+                .setRequestInterceptor(
+                        (RequestInterceptor) facade -> facade
+                                .addHeader( "Authorization", "Bearer " + "I am wrong token" ) )
+                .setConverter( new RhizomeConverter() )
+                .setErrorHandler( new DefaultErrorHandler() )
+                .setLogLevel( RestAdapter.LogLevel.FULL )
+                .setLog( new RestAdapter.Log() {
+                    @Override
+                    public void log( String msg ) {
+                        logger.debug( msg.replaceAll( "%", "[percent]" ) );
+                    }
+                } )
+                .build();
+        DataApi unauthorizedApi = unauthorizedAdapter.create( DataApi.class );
+        unauthorizedApi.getAllEntitiesOfType( "testcsv", "employee" );
     }
 
-    // TODO: implement this
     @Test
-    public void testAuthenticatedAPICall(){
-
-    }
-
-    private static Pair<Credentials, Authentication> authenticate() {
-        AuthenticationRequest request = client.login( "support@kryptnostic.com", "abracadabra" )
-                .setConnection( "Tests" );
-        return Pair.of( request.execute(), client.getProfileAfter( request ).execute() );
+    public void testAuthenticatedAPICall() {
+        Iterable<Multimap<FullQualifiedName, Object>> result = dataApi.getAllEntitiesOfType( "testcsv", "employee" );
+        Assert.assertNull( result );
     }
 
     @AfterClass

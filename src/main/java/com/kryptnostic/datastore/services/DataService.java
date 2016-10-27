@@ -27,6 +27,20 @@ import com.kryptnostic.datastore.cassandra.CassandraStorage;
 import com.kryptnostic.datastore.services.requests.CreateEntityRequest;
 
 public class DataService {
+    
+    /** 
+     * Being of debug
+     */
+    private String username;
+    private Set<String> currentRoles;
+    public void setCurrentUserForDebug( String username, Set<String> roles ){
+        this.username = username;
+        this.currentRoles = roles;
+    }
+    /**
+     * End of debug
+     */
+    
     private static final Logger logger = LoggerFactory
             .getLogger( DataService.class );
     // private final IMap<String, FullQualifiedName> entitySets;
@@ -37,6 +51,7 @@ public class DataService {
     private final String                 keyspace;
     private final DurableExecutorService executor;
     private final IMap<String, String>   urlToIntegrationScripts;
+    private final ActionAuthorizationService authzService;
 
     public DataService(
             String keyspace,
@@ -45,7 +60,8 @@ public class DataService {
             Session session,
             CassandraTableManager tableManager,
             CassandraStorage storage,
-            MappingManager mm ) {
+            MappingManager mm,
+            ActionAuthorizationService authzService) {
         this.dms = dms;
         this.tableManager = tableManager;
         this.session = session;
@@ -53,6 +69,7 @@ public class DataService {
         // TODO: Configure executor service.
         this.executor = hazelcast.getDurableExecutorService( "default" );
         this.urlToIntegrationScripts = hazelcast.getMap( "url_to_scripts" );
+        this.authzService = authzService;
     }
 
     public Map<String, Object> getObject( UUID objectId ) {
@@ -61,42 +78,33 @@ public class DataService {
     }
 
     public Iterable<Multimap<FullQualifiedName, Object>> readAllEntitiesOfType( FullQualifiedName fqn ) {
-        try {
-            QueryResult result = executor
-                    .submit( ConductorCall
-                            .wrap( Lambdas.getAllEntitiesOfType( fqn ) ) )
-                    .get();
-            //Get properties of the entityType
-            EntityType entityType = dms.getEntityType( fqn );
-            Set<PropertyType> properties = new HashSet<PropertyType>();
-            entityType.getProperties().forEach(
-                    property -> properties.add( dms.getPropertyType( property ) )
-            );
-
-            return Iterables.transform( result, row -> ResultSetAdapterFactory.mapRowToObject( row, properties ) );
-
-        } catch ( InterruptedException | ExecutionException e ) {
-            e.printStackTrace();
+        if( authzService.readAllEntitiesOfType( currentRoles, fqn ) ){
+            try {
+                QueryResult result = executor
+                        .submit( ConductorCall
+                                .wrap( Lambdas.getAllEntitiesOfType( fqn ) ) )
+                        .get();
+                //Get properties of the entityType
+                EntityType entityType = dms.getEntityType( fqn );
+                Set<PropertyType> properties = entityType.getProperties().stream()
+                    .filter( propertyTypeFqn -> authzService.readPropertyTypeInEntityType( currentRoles, fqn, propertyTypeFqn ) )
+                    .map( propertyTypeFqn -> dms.getPropertyType( propertyTypeFqn ) )
+                    .collect( Collectors.toSet() );
+    
+                return Iterables.transform( result, row -> ResultSetAdapterFactory.mapRowToObject( row, properties ) );
+    
+            } catch ( InterruptedException | ExecutionException e ) {
+                e.printStackTrace();
+            }
         }
         return null;
     }
 
     public Iterable<Iterable<Multimap<FullQualifiedName, Object>>> readAllEntitiesOfSchema( List<FullQualifiedName> fqns ){
-
+        // TODO This name is uber confusing...
         List<Iterable<Multimap<FullQualifiedName, Object>>> results = Lists.newArrayList();
         fqns.forEach( fqn -> {
-            try {
-                QueryResult result = executor.submit( ConductorCall
-                .wrap( Lambdas.getAllEntitiesOfType( fqn ) )).get();
-
-                EntityType entityType = dms.getEntityType( fqn );
-                Set<PropertyType> properties = entityType.getProperties().stream().map(
-                        property ->  dms.getPropertyType( property ) ).collect( Collectors.toSet());
-
-                results.add( Iterables.transform( result, row -> ResultSetAdapterFactory.mapRowToObject( row, properties ) ) );
-            } catch ( InterruptedException | ExecutionException e ) {
-                e.printStackTrace();
-            }
+            results.add( readAllEntitiesOfType(fqn) );
         } );
 
         return results;
@@ -116,57 +124,98 @@ public class DataService {
 
     public void createEntityData( CreateEntityRequest createEntityRequest ) {
 
-        FullQualifiedName entityFqn = createEntityRequest.getEntityType();
-        Set<FullQualifiedName> propertyFqns = dms.getEntityType( entityFqn ).getProperties();
-        Set<Multimap<FullQualifiedName, Object>> propertyValues = createEntityRequest.getPropertyValues();
-        UUID aclId = createEntityRequest.getAclId().or( UUIDs.ACLs.EVERYONE_ACL );
-        UUID syncId = createEntityRequest.getSyncId().or( UUIDs.Syncs.BASE.getSyncId() );
-        String typename = tableManager.getTypenameForEntityType( entityFqn );
-        String entitySetName = createEntityRequest.getEntitySetName().or( CassandraTableManager.getNameForDefaultEntitySet( typename ) );
+        boolean authorizedToWrite = false;
         
-        propertyValues.stream().forEach( obj -> {
-            PreparedStatement createQuery = Preconditions.checkNotNull(
-                    tableManager.getInsertEntityPreparedStatement( entityFqn ),
-                    "Insert data prepared statement does not exist." );
-
-            PreparedStatement entityIdTypenameLookupQuery = Preconditions.checkNotNull(
-                    tableManager.getUpdateEntityIdTypenamePreparedStatement( entityFqn ),
-                    "Entity ID typename lookup query cannot be null." );
-
-            UUID entityId = UUID.randomUUID();
-            BoundStatement boundQuery = createQuery.bind( entityId,
-                    typename,
-                    ImmutableSet.of( entitySetName ),
-                    ImmutableList.of( syncId ) );
-            logger.info( "Attempting to create entity : {}", boundQuery.toString() );
-            session.execute( boundQuery );
-            session.execute( entityIdTypenameLookupQuery.bind( typename, entityId ) );
-
-            EntityType entityType = dms.getEntityType( entityFqn );
-            Map<FullQualifiedName, DataType> propertyDataTypeMap = propertyFqns.stream().collect( Collectors.toMap(
-                    fqn -> fqn,
-                    fqn -> CassandraEdmMapping.getCassandraType( dms.getPropertyType( fqn ).getDatatype() ) ) );
-
-            Set<FullQualifiedName> key = entityType.getKey();
-            obj.entries().stream().forEach( e -> {
-                PreparedStatement pps = tableManager.getUpdatePropertyPreparedStatement( e.getKey() );
-
-                logger.info( "Attempting to write property value: {}", e.getValue() );
-                DataType dt = propertyDataTypeMap.get( e.getKey() );
-                Object propertyValue = e.getValue();
-                if ( dt.equals( DataType.bigint() ) ) {
-                    propertyValue = Long.valueOf( propertyValue.toString() );
-                }
-                session.executeAsync( pps.bind( ImmutableList.of( syncId ), entityId, propertyValue ) );
-                if ( key.contains( e.getKey() ) ) {
-                    PreparedStatement pipps = tableManager.getUpdatePropertyIndexPreparedStatement( e.getKey() );
-                    logger.info( "Attempting to write property Index: {}", e.getValue() );
-                    session.executeAsync( pipps.bind( ImmutableList.of( syncId ), propertyValue, entityId ) );
-                }
+        FullQualifiedName entityFqn = createEntityRequest.getEntityType();
+        if( createEntityRequest.getEntitySetName().isPresent() ){
+            authorizedToWrite = authzService.createEntityOfEntitySet( currentRoles, entityFqn, createEntityRequest.getEntitySetName().get() );
+        } else {
+            authorizedToWrite = authzService.createEntityOfEntityType( currentRoles, entityFqn );
+        }
+        
+        if( authorizedToWrite ){    
+            Set<FullQualifiedName> propertyFqns = dms.getEntityType( entityFqn ).getProperties();
+            
+            // Check properties that user has permissions to write on.
+            // Unauthorized properties will be skipped
+            Map<FullQualifiedName, Boolean> authorizationForPropertyWrite; 
+            Map<FullQualifiedName, DataType> propertyDataTypeMap;
+            if( createEntityRequest.getEntitySetName().isPresent() ){
+                authorizationForPropertyWrite = propertyFqns.stream().collect( Collectors.toMap(
+                        propertyTypeFqn -> propertyTypeFqn, 
+                        propertyTypeFqn -> authzService.writePropertyTypeInEntitySet( currentRoles, entityFqn, createEntityRequest.getEntitySetName().get(), propertyTypeFqn )
+                        ) );
+                
+                propertyDataTypeMap = propertyFqns.stream()
+                        .filter( propertyTypeFqn -> authzService.getPropertyTypeInEntitySet( currentRoles, entityFqn, createEntityRequest.getEntitySetName().get(), propertyTypeFqn ) )
+                        .collect( Collectors.toMap(
+                        fqn -> fqn,
+                        fqn -> CassandraEdmMapping.getCassandraType( dms.getPropertyType( fqn ).getDatatype() ) ) );
+            } else {
+                authorizationForPropertyWrite = propertyFqns.stream().collect( Collectors.toMap(
+                        propertyTypeFqn -> propertyTypeFqn, 
+                        propertyTypeFqn -> authzService.writePropertyTypeInEntityType( currentRoles, entityFqn, propertyTypeFqn )
+                        ) );                
+                
+                propertyDataTypeMap = propertyFqns.stream()
+                        .filter( propertyTypeFqn -> authzService.getPropertyTypeInEntityType( currentRoles, entityFqn, propertyTypeFqn ) )
+                        .collect( Collectors.toMap(
+                        fqn -> fqn,
+                        fqn -> CassandraEdmMapping.getCassandraType( dms.getPropertyType( fqn ).getDatatype() ) ) );
+            }
+            
+            Set<Multimap<FullQualifiedName, Object>> propertyValues = createEntityRequest.getPropertyValues();
+            UUID aclId = createEntityRequest.getAclId().or( UUIDs.ACLs.EVERYONE_ACL );
+            UUID syncId = createEntityRequest.getSyncId().or( UUIDs.Syncs.BASE.getSyncId() );
+            String typename = tableManager.getTypenameForEntityType( entityFqn );
+            String entitySetName = createEntityRequest.getEntitySetName().or( CassandraTableManager.getNameForDefaultEntitySet( typename ) );
+            
+            propertyValues.stream().forEach( obj -> {
+                PreparedStatement createQuery = Preconditions.checkNotNull(
+                        tableManager.getInsertEntityPreparedStatement( entityFqn ),
+                        "Insert data prepared statement does not exist." );
+    
+                PreparedStatement entityIdTypenameLookupQuery = Preconditions.checkNotNull(
+                        tableManager.getUpdateEntityIdTypenamePreparedStatement( entityFqn ),
+                        "Entity ID typename lookup query cannot be null." );
+    
+                UUID entityId = UUID.randomUUID();
+                BoundStatement boundQuery = createQuery.bind( entityId,
+                        typename,
+                        ImmutableSet.of( entitySetName ),
+                        ImmutableList.of( syncId ) );
+                logger.info( "Attempting to create entity : {}", boundQuery.toString() );
+                session.execute( boundQuery );
+                session.execute( entityIdTypenameLookupQuery.bind( typename, entityId ) );
+    
+                EntityType entityType = dms.getEntityType( entityFqn );
+    
+                Set<FullQualifiedName> key = entityType.getKey();
+                //debug
+                obj.entries().stream().forEach( e -> System.err.println( "Property Type " + e.getKey() + " with authorization to write " + authorizationForPropertyWrite.get(e.getKey() ) ) );
+                obj.entries().stream()
+                    .filter( e -> authorizationForPropertyWrite.get( e.getKey() ) )
+                    .forEach( e -> {
+                    PreparedStatement pps = tableManager.getUpdatePropertyPreparedStatement( e.getKey() );
+    
+                    logger.info( "Attempting to write property value: {}", e.getValue() );
+                    DataType dt = propertyDataTypeMap.get( e.getKey() );
+                    Object propertyValue = e.getValue();
+                    if ( dt.equals( DataType.bigint() ) ) {
+                        propertyValue = Long.valueOf( propertyValue.toString() );
+                    }
+                    session.executeAsync( pps.bind( ImmutableList.of( syncId ), entityId, propertyValue ) );
+                    if ( key.contains( e.getKey() ) ) {
+                        PreparedStatement pipps = tableManager.getUpdatePropertyIndexPreparedStatement( e.getKey() );
+                        logger.info( "Attempting to write property Index: {}", e.getValue() );
+                        session.executeAsync( pipps.bind( ImmutableList.of( syncId ), propertyValue, entityId ) );
+                    }
+                } );
             } );
-        } );
+        }
     }
 
+    //TODO Permissions stuff not added yet - would need to modify a bit. Don't think frontend has been using it, so am skipping it for now.
 	public Iterable<UUID> getFilteredEntities(
 			LookupEntitiesRequest lookupEntitiesRequest) {
         try {
@@ -184,18 +233,24 @@ public class DataService {
 
     public Iterable<Multimap<FullQualifiedName,Object>> getAllEntitiesOfEntitySet( String entitySetName, String entityTypeNamespace, String entityTypeName ) {
         Iterable<Multimap<FullQualifiedName, Object>> result = Lists.newArrayList();
-        FullQualifiedName fqn = new FullQualifiedName( entityTypeNamespace, entityTypeName );
-        try{
-            QueryResult qr = executor
-                    .submit( ConductorCall.wrap( Lambdas.getAllEntitiesOfEntitySet( fqn, entitySetName ) ) ).get();
-            EntityType entityType = dms.getEntityType( fqn );
-            Set<PropertyType> properties = entityType.getProperties().stream().map(
-                    property ->  dms.getPropertyType( property ) ).collect( Collectors.toSet());
-
-            result = Iterables.transform( qr, row -> ResultSetAdapterFactory.mapRowToObject( row, properties ) );
-        } catch ( InterruptedException | ExecutionException e ) {
-            logger.error( e.getMessage() );
+        FullQualifiedName entityTypeFqn = new FullQualifiedName( entityTypeNamespace, entityTypeName );
+        if( authzService.getAllEntitiesOfEntitySet( currentRoles, entityTypeFqn, entitySetName ) ){
+            try{
+                QueryResult qr = executor
+                        .submit( ConductorCall.wrap( Lambdas.getAllEntitiesOfEntitySet( entityTypeFqn, entitySetName ) ) ).get();
+                EntityType entityType = dms.getEntityType( entityTypeFqn );
+                //Need to edit this to viewable properties
+                Set<PropertyType> properties = entityType.getProperties().stream()
+                        .filter( propertyTypeFqn -> authzService.readPropertyTypeInEntitySet( currentRoles, entityTypeFqn, entitySetName, propertyTypeFqn ) )
+                        .map( propertyTypeFqn ->  dms.getPropertyType( propertyTypeFqn ) )
+                        .collect( Collectors.toSet());
+    
+                result = Iterables.transform( qr, row -> ResultSetAdapterFactory.mapRowToObject( row, properties ) );
+            } catch ( InterruptedException | ExecutionException e ) {
+                logger.error( e.getMessage() );
+            }
+            return result;
         }
-        return result;
+        return null;
     }
 }

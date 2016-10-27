@@ -17,6 +17,7 @@ import com.kryptnostic.conductor.rpc.UUIDs.ACLs;
 import com.kryptnostic.conductor.rpc.odata.EntityType;
 import com.kryptnostic.conductor.rpc.odata.PropertyType;
 import com.kryptnostic.datastore.Constants;
+import com.kryptnostic.datastore.services.DataService;
 import com.kryptnostic.datastore.services.EdmDetailsAdapter;
 import com.kryptnostic.datastore.services.EdmManager;
 import com.kryptnostic.datastore.services.PermissionsService;
@@ -26,6 +27,7 @@ public class BootstrapDatastoreWithCassandra {
     protected static final DatastoreServices ds              = new DatastoreServices();
     protected static EdmManager              dms;
     protected static PermissionsService      ps;
+    protected static DataService             dataService;
     protected static final String            SALARY          = "salary";
     protected static final String            EMPLOYEE_NAME   = "employee-name";
     protected static final String            EMPLOYEE_TITLE  = "employee-title";
@@ -77,6 +79,7 @@ public class BootstrapDatastoreWithCassandra {
         ds.sprout("cassandra");
         dms = ds.getContext().getBean( EdmManager.class );
         ps = ds.getContext().getBean( PermissionsService.class );
+        dataService = ds.getContext().getBean( DataService.class );
         
         //You are God right now - this would be the superUser that has rights to do everything to the types created
 		setUser( USER_GOD );
@@ -148,6 +151,7 @@ public class BootstrapDatastoreWithCassandra {
 		if ( user != null ){
 		    dms.setCurrentUserForDebug( user.getName(), user.getRoles() );
 		    EdmDetailsAdapter.setCurrentUserForDebug( user.getName(), user.getRoles() );
+		    dataService.setCurrentUserForDebug( user.getName(), user.getRoles() );
 		}
 	}
 }

@@ -85,7 +85,8 @@ public class DatastoreServicesPod {
                 session,
                 tableManager(),
                 storage(),
-                mappingManager()
+                mappingManager(),
+                authzService()
         );
     }
 

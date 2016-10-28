@@ -645,14 +645,19 @@ public class BabyAclTest extends BootstrapDatastoreWithCassandra {
         
         // Test 1.33: Actually write data to entity set
         createData( 10, NATION_CITIZENS, Optional.of( NATION_SECRET_SERVICE ), ImmutableSet.of(new FullQualifiedName(NAMESPACE, EMPLOYEE_ID), ADDRESS, POSITION, LIFE_EXPECTANCY) );
-        /**
+ 
         // Test 1.67: Read data from entity set - should be able to read all data.
+        Assert.assertTrue( ps.checkUserHasPermissionsOnPropertyTypeInEntitySet( USER_RANDOMGUY.getRoles(), NATION_CITIZENS, NATION_SECRET_SERVICE, new FullQualifiedName(NAMESPACE, EMPLOYEE_ID), Permission.READ ) );
+        Assert.assertTrue( ps.checkUserHasPermissionsOnPropertyTypeInEntitySet( USER_RANDOMGUY.getRoles(), NATION_CITIZENS, NATION_SECRET_SERVICE, ADDRESS, Permission.READ ) );
+        Assert.assertTrue( ps.checkUserHasPermissionsOnPropertyTypeInEntitySet( USER_RANDOMGUY.getRoles(), NATION_CITIZENS, NATION_SECRET_SERVICE, POSITION, Permission.READ ) );
+        Assert.assertTrue( ps.checkUserHasPermissionsOnPropertyTypeInEntitySet( USER_RANDOMGUY.getRoles(), NATION_CITIZENS, NATION_SECRET_SERVICE, LIFE_EXPECTANCY, Permission.READ ) );        
+
         System.out.println( " -- READ TEST 1 --" );
         Iterable<Multimap<FullQualifiedName, Object>> result1 = dataService.getAllEntitiesOfEntitySet( NATION_SECRET_SERVICE, NATION_CITIZENS.getNamespace(), NATION_CITIZENS.getName() );
         for( Multimap<FullQualifiedName, Object> entity : result1 ){
             System.out.println( entity );
         }
-        */
+        
         // Cleanup: remove WRITE rights for Writer.
         ps.removePermissionsForPropertyType( ROLE_WRITER, new FullQualifiedName(NAMESPACE, EMPLOYEE_ID), ImmutableSet.of(Permission.WRITE) );
         ps.removePermissionsForPropertyType( ROLE_WRITER, ADDRESS, ImmutableSet.of(Permission.WRITE) );

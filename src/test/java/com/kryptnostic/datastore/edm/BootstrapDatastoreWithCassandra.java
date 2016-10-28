@@ -4,6 +4,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ExecutionException;
 
 import org.apache.olingo.commons.api.edm.EdmPrimitiveTypeKind;
 import org.apache.olingo.commons.api.edm.FullQualifiedName;
@@ -151,7 +152,15 @@ public class BootstrapDatastoreWithCassandra {
 		if ( user != null ){
 		    dms.setCurrentUserForDebug( user.getName(), user.getRoles() );
 		    EdmDetailsAdapter.setCurrentUserForDebug( user.getName(), user.getRoles() );
-		    dataService.setCurrentUserForDebug( user.getName(), user.getRoles() );
+		    try {
+                dataService.setCurrentUserForDebug( user.getName(), user.getRoles() );
+            } catch ( InterruptedException e ) {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+            } catch ( ExecutionException e ) {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+            }
 		}
 	}
 }

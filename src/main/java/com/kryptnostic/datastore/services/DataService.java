@@ -1,5 +1,8 @@
 package com.kryptnostic.datastore.services;
 
+//Debug
+import com.kryptnostic.conductor.rpc.GetAllEntitiesOfEntitySetLambda;
+
 import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Function;
@@ -29,16 +32,19 @@ import com.kryptnostic.datastore.services.requests.CreateEntityRequest;
 public class DataService {
     
     /** 
-     * Being of debug
+     * Being of debug for Ho Chung
      */
     private String username;
     private Set<String> currentRoles;
-    public void setCurrentUserForDebug( String username, Set<String> roles ){
+    public void setCurrentUserForDebug( String username, Set<String> roles ) throws InterruptedException, ExecutionException{
         this.username = username;
         this.currentRoles = roles;
+        executor.submit( ConductorCall
+                .wrap( Lambdas.setUser( username, currentRoles ) ) )
+        .get();
     }
     /**
-     * End of debug
+     * End of debug for Ho Chung
      */
     
     private static final Logger logger = LoggerFactory
@@ -236,6 +242,9 @@ public class DataService {
             try{
                 QueryResult qr = executor
                         .submit( ConductorCall.wrap( Lambdas.getAllEntitiesOfEntitySet( entityTypeFqn, entitySetName ) ) ).get();
+                //Debug
+                System.err.println( "Result" );
+                System.err.println( qr );
                 EntityType entityType = dms.getEntityType( entityTypeFqn );
                 //Need to edit this to viewable properties
                 Set<PropertyType> properties = entityType.getProperties().stream()

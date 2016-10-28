@@ -35,24 +35,6 @@ public class PermissionsController implements PermissionsApi {
  */
     
     @Override
-    public Response updatePropertyTypesAcls( Set<AclRequest> requests) {
-        for (AclRequest request : requests){
-            switch ( request.getAction() ){
-                case ADD:
-                    ps.addPermissionsForPropertyType( request.getRole(), request.getFqn(), request.getPermissions() );
-                    break;
-                case SET:
-                    ps.setPermissionsForPropertyType( request.getRole(), request.getFqn(), request.getPermissions() );
-                    break;
-                case REMOVE:
-                    ps.removePermissionsForPropertyType( request.getRole(), request.getFqn(), request.getPermissions() );
-                    break;
-            }
-        }
-        return null;
-    }
-    
-    @Override
     public Response updateEntityTypesAcls( Set<AclRequest> requests) {
         for (AclRequest request : requests){
             switch ( request.getAction() ){
@@ -105,31 +87,7 @@ public class PermissionsController implements PermissionsApi {
         }
         return null;
     }
-    
-    @Override
-    public Response derivePropertyTypeInEntityTypeAcls( Set<DerivePropertyTypeInEntityTypeAclRequest> requests, String derivedOption) {
-        for (DerivePropertyTypeInEntityTypeAclRequest request : requests){
-            ps.derivePermissions( request.getType(), request.getProperties(), derivedOption );
-        }
-        return null;
-    }
-    
-    @Override
-    public Response derivePropertyTypeInEntitySetAcls( Set<DerivePropertyTypeInEntitySetAclRequest> requests, String derivedOption) {
-        for (DerivePropertyTypeInEntitySetAclRequest request : requests){
-            ps.derivePermissions( request.getType(), request.getName(), request.getProperties(), derivedOption );
-        }
-        return null;
-    }
-    
-    @Override
-    public Response deriveEntitySetAcls( Set<DeriveEntitySetAclRequest> requests, String derivedOption) {
-        for (DeriveEntitySetAclRequest request : requests){
-            ps.derivePermissions( request.getType(), request.getName(), derivedOption );
-        }
-        return null;
-    }
-    
+
     @Override
     public Response updatePropertyTypeInEntitySetAcls( Set<PropertyTypeInEntitySetAclRequest> requests) {
         for (PropertyTypeInEntitySetAclRequest request : requests){
@@ -144,14 +102,6 @@ public class PermissionsController implements PermissionsApi {
                     ps.removePermissionsForPropertyTypeInEntitySet( request.getRole(), request.getFqn(), request.getName(), request.getPropertyType(), request.getPermissions() );
                     break;
             }
-        }
-        return null;
-    }
-    
-    @Override
-    public Response removePropertyTypeAcls( Set<FullQualifiedName> propertyTypeFqns) {
-        for (FullQualifiedName propertyTypeFqn : propertyTypeFqns){
-            ps.removePermissionsForPropertyType( propertyTypeFqn );
         }
         return null;
     }

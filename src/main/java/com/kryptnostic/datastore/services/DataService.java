@@ -1,8 +1,5 @@
 package com.kryptnostic.datastore.services;
 
-//Debug
-import com.kryptnostic.conductor.rpc.GetAllEntitiesOfEntitySetLambda;
-
 import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Function;
@@ -153,7 +150,6 @@ public class DataService {
                         ) );
                 
                 propertyDataTypeMap = propertyFqns.stream()
-                        .filter( propertyTypeFqn -> authzService.getPropertyTypeInEntitySet( currentRoles, entityFqn, createEntityRequest.getEntitySetName().get(), propertyTypeFqn ) )
                         .collect( Collectors.toMap(
                         fqn -> fqn,
                         fqn -> CassandraEdmMapping.getCassandraType( dms.getPropertyType( fqn ).getDatatype() ) ) );
@@ -164,7 +160,6 @@ public class DataService {
                         ) );                
                 
                 propertyDataTypeMap = propertyFqns.stream()
-                        .filter( propertyTypeFqn -> authzService.getPropertyTypeInEntityType( currentRoles, entityFqn, propertyTypeFqn ) )
                         .collect( Collectors.toMap(
                         fqn -> fqn,
                         fqn -> CassandraEdmMapping.getCassandraType( dms.getPropertyType( fqn ).getDatatype() ) ) );
@@ -242,7 +237,7 @@ public class DataService {
             try{
                 QueryResult qr = executor
                         .submit( ConductorCall.wrap( Lambdas.getAllEntitiesOfEntitySet( entityTypeFqn, entitySetName ) ) ).get();
-                //Debug
+                //Debug for Ho Chung
                 System.err.println( "Result" );
                 System.err.println( qr );
                 EntityType entityType = dms.getEntityType( entityTypeFqn );

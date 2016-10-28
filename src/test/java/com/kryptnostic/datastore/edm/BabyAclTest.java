@@ -92,7 +92,7 @@ public class BabyAclTest extends BootstrapDatastoreWithCassandra {
     }
 
     // Delete created property types/entity types/entity sets/schemas - Acl tables should update correspondingly.
-    @Ignore
+    @AfterClass
     public static void resetAcl() {
         setUser( USER_GOD );
         // Property Types
@@ -171,6 +171,11 @@ public class BabyAclTest extends BootstrapDatastoreWithCassandra {
         ps.addPermissionsForEntityType( ROLE_CITIZEN, NATION_CITIZENS, ImmutableSet.of(Permission.ALTER) );
 
         setUser( USER_RANDOMGUY );
+        // Current setting is everyone can create types
+        PropertyType spiedOn = new PropertyType().setNamespace( NATION_NAMESPACE ).setName( SPIED_ON.getName() )
+                .setDatatype( EdmPrimitiveTypeKind.Boolean ).setMultiplicity( 0 );
+        dms.createPropertyType( spiedOn );
+        
         dms.addPropertyTypesToEntityType( NATION_CITIZENS.getNamespace(),
                 NATION_CITIZENS.getName(),
                 ImmutableSet.of( SPIED_ON ) );

@@ -191,8 +191,6 @@ public class DataService {
                 EntityType entityType = dms.getEntityType( entityFqn );
     
                 Set<FullQualifiedName> key = entityType.getKey();
-                //debug
-                obj.entries().stream().forEach( e -> System.err.println( "Property Type " + e.getKey() + " with authorization to write " + authorizationForPropertyWrite.get(e.getKey() ) ) );
                 obj.entries().stream()
                     .filter( e -> authorizationForPropertyWrite.get( e.getKey() ) )
                     .forEach( e -> {

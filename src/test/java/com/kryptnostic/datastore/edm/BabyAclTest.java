@@ -94,7 +94,7 @@ public class BabyAclTest extends BootstrapDatastoreWithCassandra {
     }
 
     // Delete created property types/entity types/entity sets/schemas - Acl tables should update correspondingly.
-    @AfterClass
+    @Ignore
     public static void resetAcl() {
         setUser( USER_GOD );
         // Property Types
@@ -479,9 +479,11 @@ public class BabyAclTest extends BootstrapDatastoreWithCassandra {
          * Citizen gets WRITE Permission for Property Type POSITION. Afterwards, POSITION gets added to NATION_CITIZENS
          */
         ps.addPermissionsForPropertyType( ROLE_CITIZEN, POSITION, ImmutableSet.of(Permission.WRITE) );
+        setUser(USER_GOD);
         dms.addPropertyTypesToEntityType( NATION_CITIZENS.getNamespace(),
                 NATION_CITIZENS.getName(),
                 ImmutableSet.of( POSITION ) );
+        setUser(USER_RANDOMGUY);
         // Test 6: Inheritance from Property Rights.
         // Expected: RandomGuy has WRITE permission on NATION_CITIZENS, and (NATION_CITIZENS, POSITION)        
         ps.inheritPermissionsFromPropertyType( ROLE_CITIZEN, NATION_CITIZENS, ImmutableSet.of(POSITION) );
@@ -503,7 +505,9 @@ public class BabyAclTest extends BootstrapDatastoreWithCassandra {
         
         ps.removePermissionsForPropertyType( ROLE_CITIZEN, LIFE_EXPECTANCY, ImmutableSet.of(Permission.READ) );
         ps.removePermissionsForEntityType( ROLE_CITIZEN, NATION_CITIZENS, ImmutableSet.of(Permission.READ) );
-        ps.removePermissionsForPropertyTypeInEntityType( ROLE_CITIZEN, NATION_CITIZENS, LIFE_EXPECTANCY, ImmutableSet.of(Permission.READ) );               
+        ps.removePermissionsForPropertyTypeInEntityType( ROLE_CITIZEN, NATION_CITIZENS, LIFE_EXPECTANCY, ImmutableSet.of(Permission.READ) );
+        
+        // Aftermath: POSITION is added to NATION_CITIZENS
     }
 
     private void propertyTypeInEntitySetTest() {
@@ -641,12 +645,14 @@ public class BabyAclTest extends BootstrapDatastoreWithCassandra {
         
         // Test 1.33: Actually write data to entity set
         createData( 10, NATION_CITIZENS, Optional.of( NATION_SECRET_SERVICE ), ImmutableSet.of(new FullQualifiedName(NAMESPACE, EMPLOYEE_ID), ADDRESS, POSITION, LIFE_EXPECTANCY) );
+        /**
         // Test 1.67: Read data from entity set - should be able to read all data.
         System.out.println( " -- READ TEST 1 --" );
         Iterable<Multimap<FullQualifiedName, Object>> result1 = dataService.getAllEntitiesOfEntitySet( NATION_SECRET_SERVICE, NATION_CITIZENS.getNamespace(), NATION_CITIZENS.getName() );
         for( Multimap<FullQualifiedName, Object> entity : result1 ){
             System.out.println( entity );
         }
+        */
         // Cleanup: remove WRITE rights for Writer.
         ps.removePermissionsForPropertyType( ROLE_WRITER, new FullQualifiedName(NAMESPACE, EMPLOYEE_ID), ImmutableSet.of(Permission.WRITE) );
         ps.removePermissionsForPropertyType( ROLE_WRITER, ADDRESS, ImmutableSet.of(Permission.WRITE) );
@@ -673,6 +679,7 @@ public class BabyAclTest extends BootstrapDatastoreWithCassandra {
         
         // Test 2.33: Actually write data to entity type
         createData( 10, NATION_CITIZENS, Optional.absent(), ImmutableSet.of(new FullQualifiedName(NAMESPACE, EMPLOYEE_ID), ADDRESS, POSITION, LIFE_EXPECTANCY) );
+        /**
         // Test 2.67: Read data from entity type - should be able to read all data.
         System.out.println( " -- READ TEST 2.1 --" );
         Iterable<Multimap<FullQualifiedName, Object>> result2dot1 = dataService.readAllEntitiesOfType( NATION_CITIZENS );
@@ -684,7 +691,8 @@ public class BabyAclTest extends BootstrapDatastoreWithCassandra {
         Iterable<Multimap<FullQualifiedName, Object>> result2dot2 = dataService.readAllEntitiesOfType( NATION_CITIZENS );
         for( Multimap<FullQualifiedName, Object> entity : result2dot2 ){
             System.out.println( entity );
-        }         
+        }    
+        */     
         // Cleanup: remove WRITE rights for Citizen. Restore ROLE_READER Read rights for NATION_SECRET_SERVICE
         ps.removePermissionsForPropertyType( ROLE_WRITER, new FullQualifiedName(NAMESPACE, EMPLOYEE_ID), ImmutableSet.of(Permission.WRITE) );
         ps.removePermissionsForPropertyType( ROLE_WRITER, ADDRESS, ImmutableSet.of(Permission.WRITE) );
@@ -708,14 +716,14 @@ public class BabyAclTest extends BootstrapDatastoreWithCassandra {
         
         // Test 3.33: Actually write data - only the columns EMPLOYEE_ID, ADDRESS would be non-empty
         createData( 10, NATION_CITIZENS, Optional.of( NATION_SECRET_SERVICE ), ImmutableSet.of(new FullQualifiedName(NAMESPACE, EMPLOYEE_ID), ADDRESS, POSITION, LIFE_EXPECTANCY) );
-        
+        /**
         // Test 3.67: Read data - should be able to read all data, but only EMPLOYEE_ID and ADDRESS are non-null.
         System.out.println( " -- READ TEST 3 --" );
         Iterable<Multimap<FullQualifiedName, Object>> result3 = dataService.getAllEntitiesOfEntitySet( NATION_SECRET_SERVICE, NATION_CITIZENS.getNamespace(), NATION_CITIZENS.getName() );
         for( Multimap<FullQualifiedName, Object> entity : result3 ){
             System.out.println( entity );
         }
-        
+        */
         // Cleanup: remove WRITE rights for Writer.
         ps.removePermissionsForPropertyType( ROLE_WRITER, new FullQualifiedName(NAMESPACE, EMPLOYEE_ID), ImmutableSet.of(Permission.WRITE) );
         ps.removePermissionsForPropertyType( ROLE_WRITER, ADDRESS, ImmutableSet.of(Permission.WRITE) );
@@ -760,12 +768,14 @@ public class BabyAclTest extends BootstrapDatastoreWithCassandra {
         Assert.assertTrue( ps.checkUserHasPermissionsOnPropertyTypeInEntitySet( USER_RANDOMGUY.getRoles(), NATION_CITIZENS, NATION_SECRET_SERVICE, LIFE_EXPECTANCY, Permission.WRITE ) );                
         // Test 4.33: Actually write data - all columns should be written.
         createData( 10, NATION_CITIZENS, Optional.of( NATION_SECRET_SERVICE ), ImmutableSet.of(new FullQualifiedName(NAMESPACE, EMPLOYEE_ID), ADDRESS, POSITION, LIFE_EXPECTANCY) );        
+        /**
         // Test 4.67: Read data - should be unable to read LIFE_EXPECTANCY.
         System.out.println( " -- READ TEST 4 --" );
         Iterable<Multimap<FullQualifiedName, Object>> result4 = dataService.getAllEntitiesOfEntitySet( NATION_SECRET_SERVICE, NATION_CITIZENS.getNamespace(), NATION_CITIZENS.getName() );
         for( Multimap<FullQualifiedName, Object> entity : result4 ){
             System.out.println( entity );
-        }        
+        }  
+        */      
         // Cleanup: remove WRITE rights for Writer.
         ps.removePermissionsForPropertyType( ROLE_WRITER, new FullQualifiedName(NAMESPACE, EMPLOYEE_ID), ImmutableSet.of(Permission.WRITE) );
         ps.removePermissionsForPropertyType( ROLE_WRITER, ADDRESS, ImmutableSet.of(Permission.WRITE) );
@@ -790,12 +800,14 @@ public class BabyAclTest extends BootstrapDatastoreWithCassandra {
         // Test 5.33: Actually write data - only the columns EMPLOYEE_ID, ADDRESS would be non-empty
         createData( 10, NATION_CITIZENS, Optional.of( NATION_SECRET_SERVICE ), ImmutableSet.of(new FullQualifiedName(NAMESPACE, EMPLOYEE_ID), ADDRESS, POSITION, LIFE_EXPECTANCY) );
         
+        /**
         // Test 5.67: Read data - should be able to read (EMPLOYEE_ID, ADDRESS, POSITION), but only EMPLOYEE_ID and ADDRESS are non-null.
         System.out.println( " -- READ TEST 5 --" );
         Iterable<Multimap<FullQualifiedName, Object>> result5 = dataService.getAllEntitiesOfEntitySet( NATION_SECRET_SERVICE, NATION_CITIZENS.getNamespace(), NATION_CITIZENS.getName() );
         for( Multimap<FullQualifiedName, Object> entity : result5 ){
             System.out.println( entity );
-        }        
+        }  
+        */      
         // Cleanup: remove WRITE rights for Citizen.
         ps.removePermissionsForPropertyType( ROLE_WRITER, new FullQualifiedName(NAMESPACE, EMPLOYEE_ID), ImmutableSet.of(Permission.WRITE) );
         ps.removePermissionsForPropertyType( ROLE_WRITER, ADDRESS, ImmutableSet.of(Permission.WRITE) );

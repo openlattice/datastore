@@ -6,6 +6,13 @@ import java.util.UUID;
 import javax.inject.Inject;
 
 import org.apache.olingo.commons.api.edm.FullQualifiedName;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.web.bind.annotation.RestController;
 
 import com.kryptnostic.datastore.services.ActionAuthorizationService;
 import com.kryptnostic.datastore.services.DataService;
@@ -16,13 +23,17 @@ import com.kryptnostic.datastore.services.requests.DeriveEntitySetAclRequest;
 import com.kryptnostic.datastore.services.requests.DerivePropertyTypeInEntitySetAclRequest;
 import com.kryptnostic.datastore.services.requests.DerivePropertyTypeInEntityTypeAclRequest;
 import com.kryptnostic.datastore.services.requests.EntitySetAclRequest;
-import com.kryptnostic.datastore.services.requests.EntitySetRemoveAclRequest;
+import com.kryptnostic.datastore.services.requests.PropertyTypeInEntitySetAclRemovalRequest;
+import com.kryptnostic.datastore.services.requests.EntitySetAclRemovalRequest;
 import com.kryptnostic.datastore.services.requests.PropertyTypeInEntitySetAclRequest;
+import com.kryptnostic.datastore.services.requests.PropertyTypeInEntityTypeAclRemovalRequest;
 import com.kryptnostic.datastore.services.requests.PropertyTypeInEntityTypeAclRequest;
 import com.kryptnostic.datastore.services.requests.AclRequest;
 
 import retrofit.client.Response;
+import retrofit.http.POST;
 
+@RestController
 public class PermissionsController implements PermissionsApi {
     
     @Inject
@@ -35,7 +46,12 @@ public class PermissionsController implements PermissionsApi {
  */
     
     @Override
-    public Response updateEntityTypesAcls( Set<AclRequest> requests) {
+    @RequestMapping( 
+            path = CONTROLLER + ENTITY_TYPE_BASE_PATH,
+            method = RequestMethod.POST,
+            consumes = MediaType.APPLICATION_JSON_VALUE )
+    @ResponseStatus( HttpStatus.OK )
+    public Response updateEntityTypesAcls( @RequestBody Set<AclRequest> requests) {
         for (AclRequest request : requests){
             switch ( request.getAction() ){
                 case ADD:
@@ -53,7 +69,12 @@ public class PermissionsController implements PermissionsApi {
     }
     
     @Override
-    public Response updateEntitySetsAcls( Set<EntitySetAclRequest> requests) {
+    @RequestMapping( 
+            path = CONTROLLER + ENTITY_SETS_BASE_PATH,
+            method = RequestMethod.POST,
+            consumes = MediaType.APPLICATION_JSON_VALUE )
+    @ResponseStatus( HttpStatus.OK )
+    public Response updateEntitySetsAcls( @RequestBody Set<EntitySetAclRequest> requests) {
         for (EntitySetAclRequest request : requests){
             switch ( request.getAction() ){
                 case ADD:
@@ -71,7 +92,12 @@ public class PermissionsController implements PermissionsApi {
     }
 
     @Override
-    public Response updatePropertyTypeInEntityTypeAcls( Set<PropertyTypeInEntityTypeAclRequest> requests) {
+    @RequestMapping( 
+            path = CONTROLLER + ENTITY_TYPE_BASE_PATH + PROPERTY_TYPE_BASE_PATH,
+            method = RequestMethod.POST,
+            consumes = MediaType.APPLICATION_JSON_VALUE )
+    @ResponseStatus( HttpStatus.OK )
+    public Response updatePropertyTypeInEntityTypeAcls( @RequestBody  Set<PropertyTypeInEntityTypeAclRequest> requests) {
         for (PropertyTypeInEntityTypeAclRequest request : requests){
             switch ( request.getAction() ){
                 case ADD:
@@ -89,7 +115,12 @@ public class PermissionsController implements PermissionsApi {
     }
 
     @Override
-    public Response updatePropertyTypeInEntitySetAcls( Set<PropertyTypeInEntitySetAclRequest> requests) {
+    @RequestMapping( 
+            path = CONTROLLER + ENTITY_SETS_BASE_PATH + PROPERTY_TYPE_BASE_PATH,
+            method = RequestMethod.POST,
+            consumes = MediaType.APPLICATION_JSON_VALUE )
+    @ResponseStatus( HttpStatus.OK )
+    public Response updatePropertyTypeInEntitySetAcls(@RequestBody  Set<PropertyTypeInEntitySetAclRequest> requests) {
         for (PropertyTypeInEntitySetAclRequest request : requests){
             switch ( request.getAction() ){
                 case ADD:
@@ -107,7 +138,12 @@ public class PermissionsController implements PermissionsApi {
     }
 
     @Override
-    public Response removeEntityTypeAcls( Set<FullQualifiedName> entityTypeFqns) {
+    @RequestMapping( 
+            path = CONTROLLER + ENTITY_TYPE_BASE_PATH,
+            method = RequestMethod.DELETE,
+            consumes = MediaType.APPLICATION_JSON_VALUE )
+    @ResponseStatus( HttpStatus.OK )
+    public Response removeEntityTypeAcls( @RequestBody  Set<FullQualifiedName> entityTypeFqns) {
         for (FullQualifiedName entityTypeFqn : entityTypeFqns){
             ps.removePermissionsForEntityType( entityTypeFqn );
         }
@@ -115,10 +151,71 @@ public class PermissionsController implements PermissionsApi {
     }
     
     @Override
-    public Response removeEntitySetAcls( Set<EntitySetRemoveAclRequest> requests) {
-        for (EntitySetRemoveAclRequest request : requests){
+    @RequestMapping( 
+            path = CONTROLLER + ENTITY_SETS_BASE_PATH,
+            method = RequestMethod.DELETE,
+            consumes = MediaType.APPLICATION_JSON_VALUE )
+    @ResponseStatus( HttpStatus.OK )
+    public Response removeEntitySetAcls( @RequestBody  Set<EntitySetAclRemovalRequest> requests) {
+        for (EntitySetAclRemovalRequest request : requests){
             ps.removePermissionsForEntitySet( request.getType(), request.getName() );
         }
         return null;
     }
+    
+    @Override
+    @RequestMapping( 
+            path = CONTROLLER + ENTITY_TYPE_BASE_PATH + PROPERTY_TYPE_BASE_PATH,
+            method = RequestMethod.DELETE,
+            consumes = MediaType.APPLICATION_JSON_VALUE )
+    @ResponseStatus( HttpStatus.OK )
+    public Response removePropertyTypeInEntityTypeAcls( @RequestBody  Set<PropertyTypeInEntityTypeAclRemovalRequest> requests) {
+        for (PropertyTypeInEntityTypeAclRemovalRequest request : requests){
+            for( FullQualifiedName propertyTypeFqn : request.getProperties() ){
+                ps.removePermissionsForPropertyTypeInEntityType( request.getType(), propertyTypeFqn );
+            }
+        }
+        return null;
+    }
+    
+    @Override
+    @RequestMapping( 
+            path = CONTROLLER + ENTITY_TYPE_BASE_PATH + PROPERTY_TYPE_BASE_PATH + ALL_PATH,
+            method = RequestMethod.DELETE,
+            consumes = MediaType.APPLICATION_JSON_VALUE )
+    @ResponseStatus( HttpStatus.OK )
+    public Response removeAllPropertyTypesInEntityTypeAcls( @RequestBody Set<FullQualifiedName> entityTypeFqns) {
+        for ( FullQualifiedName entityTypeFqn : entityTypeFqns ){
+            ps.removePermissionsForPropertyTypeInEntityType( entityTypeFqn );
+        }
+        return null;
+    }
+    
+    @Override
+    @RequestMapping( 
+            path = CONTROLLER + ENTITY_SETS_BASE_PATH + PROPERTY_TYPE_BASE_PATH,
+            method = RequestMethod.DELETE,
+            consumes = MediaType.APPLICATION_JSON_VALUE )
+    @ResponseStatus( HttpStatus.OK )
+    public Response removePropertyTypeInEntitySetAcls( @RequestBody  Set<PropertyTypeInEntitySetAclRemovalRequest> requests) {
+        for (PropertyTypeInEntitySetAclRemovalRequest request : requests){
+            for( FullQualifiedName propertyTypeFqn : request.getProperties() ){
+                ps.removePermissionsForPropertyTypeInEntitySet( request.getType(), request.getName(), propertyTypeFqn );
+            }
+        }
+        return null;
+    }
+    
+    @Override
+    @RequestMapping( 
+            path = CONTROLLER + ENTITY_SETS_BASE_PATH + PROPERTY_TYPE_BASE_PATH + ALL_PATH,
+            method = RequestMethod.DELETE,
+            consumes = MediaType.APPLICATION_JSON_VALUE )
+    @ResponseStatus( HttpStatus.OK )
+    public Response removeAllPropertyTypesInEntitySetAcls( @RequestBody Set<EntitySetAclRemovalRequest> requests) {
+        for ( EntitySetAclRemovalRequest request : requests ){
+            ps.removePermissionsForPropertyTypeInEntitySet( request.getType(), request.getName() );
+        }
+        return null;
+    }    
 }

@@ -11,6 +11,7 @@ import java.util.Set;
 import java.io.OutputStream;
 import java.util.UUID;
 
+import com.kryptnostic.datastore.exceptions.BadRequestException;
 import org.apache.olingo.commons.api.data.Entity;
 import org.apache.olingo.commons.api.data.EntityCollection;
 import org.apache.olingo.commons.api.data.Property;
@@ -49,7 +50,6 @@ import com.kryptnostic.datastore.odata.Transformers;
 import com.kryptnostic.datastore.odata.Transformers.EntityTypeTransformer;
 import com.kryptnostic.datastore.services.EdmManager;
 import com.kryptnostic.datastore.services.ODataStorageService;
-import com.kryptnostic.instrumentation.v1.exceptions.types.BadRequestException;
 import com.kryptnostic.datastore.converters.IterableCsvHttpMessageConverter;
 import com.kryptnostic.datastore.services.EdmService;
 

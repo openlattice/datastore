@@ -11,6 +11,10 @@ description = "Kryptnostic Datastore"
 group = "com.kryptnostic"
 ext.projectName = "datastore"
 
+distTar {
+  archiveName "$baseName" + ".tgz"
+}
+
 apply from: "https://raw.githubusercontent.com/kryptnostic/gradles/master/kryptnostic.gradle"
 apply from: "https://raw.githubusercontent.com/kryptnostic/gradles/master/docker.gradle"
 

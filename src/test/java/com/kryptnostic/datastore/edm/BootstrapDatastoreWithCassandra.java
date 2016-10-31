@@ -3,7 +3,6 @@ package com.kryptnostic.datastore.edm;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
-
 import javax.inject.Inject;
 
 import org.apache.olingo.commons.api.edm.EdmPrimitiveTypeKind;

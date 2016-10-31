@@ -28,13 +28,16 @@ import com.kryptnostic.rhizome.registries.ObjectMapperRegistry;
 public class Datastore extends BaseRhizomeServer {
     @Deprecated
     public static final String ES_PRODUCTS_NAME = "Products";
-    public static final Class<?>[] webPods       = new Class<?>[] { DatastoreServletsPod.class,
-            DataStoreSecurityPod.class, };
+//    public static final Class<?>[] webPods       = new Class<?>[] { DatastoreServletsPod.class,
+//            DataStoreSecurityPod.class, };
+    public static final Class<?>[] webPods       = new Class<?>[] { DatastoreServletsPod.class };
     public static final Class<?>[] rhizomePods   = new Class<?>[] {
             CassandraPod.class,
             BaseSerializersPod.class,
-            RegistryBasedHazelcastInstanceConfigurationPod.class,
-            Auth0Pod.class};
+//            RegistryBasedHazelcastInstanceConfigurationPod.class,
+//            Auth0Pod.class};
+            RegistryBasedHazelcastInstanceConfigurationPod.class};
+            
     public static final Class<?>[] datastorePods = new Class<?>[] {
             DatastoreServicesPod.class,
             DatastoreTypeCodecsPod.class, DatastoreStreamSerializersPod.class

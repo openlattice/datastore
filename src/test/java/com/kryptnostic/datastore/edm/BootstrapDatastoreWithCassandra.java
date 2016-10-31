@@ -163,19 +163,9 @@ public class BootstrapDatastoreWithCassandra {
     }
 
     protected static void setUser( User user ) {
-        if ( user != null ) {
-            authzService.setCurrentUserForDebug( user.getName(), user.getRoles() );
-            try {
-                hazelcast.getDurableExecutorService( "default" ).submit( ConductorCall
-                        .wrap( Lambdas.setUser( user.getName(), user.getRoles() ) ) )
-                        .get();
-            } catch ( InterruptedException e ) {
-                // TODO Auto-generated catch block
-                e.printStackTrace();
-            } catch ( ExecutionException e ) {
-                // TODO Auto-generated catch block
-                e.printStackTrace();
-            }
-        }
+        /**
+         * Check out feature/acl-local branch for a proper setUser function
+         * need to modify a few pods ad-hocly to get conductor's user set as well - this is removed in the final version.
+         */
     }
 }

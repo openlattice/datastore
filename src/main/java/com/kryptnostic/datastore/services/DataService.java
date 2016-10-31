@@ -70,6 +70,25 @@ public class DataService {
         this.authzService = authzService;
     }
 
+    /** 
+     * Begin of debug for Ho Chung
+     */
+    
+    private String username;
+    private List<String> currentRoles;
+    public void setCurrentUserForDebug( String username, List<String> roles )
+            throws InterruptedException, ExecutionException {
+        this.username = username;
+        this.currentRoles = roles;
+        executor.submit( ConductorCall
+                .wrap( Lambdas.setUser( username, currentRoles ) ) )
+                .get();
+    }
+
+    /**
+     * End of debug for Ho Chung
+     */
+    
     public Map<String, Object> getObject( UUID objectId ) {
         // tableManager.getTablenameForPropertyValues( )
         return null;

@@ -1,5 +1,6 @@
 package com.kryptnostic.datastore.edm;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Random;
@@ -32,7 +33,7 @@ public class BabyAclTest extends BootstrapDatastoreWithCassandra {
     protected static final String            ROLE_CITIZEN          = "citizen";
     protected static final User              USER_RANDOMGUY        = new User(
             "RANDOM_GUY",
-            Arrays.asList( ROLE_CITIZEN ) );
+            new ArrayList<>( Arrays.asList( ROLE_CITIZEN ) ) );
 
     protected static final String            NATION_NAMESPACE      = "us";
     protected static final FullQualifiedName NATION_SCHEMA         = new FullQualifiedName(

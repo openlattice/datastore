@@ -1,5 +1,6 @@
 package com.kryptnostic.datastore.edm;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
@@ -54,7 +55,7 @@ public class BootstrapDatastoreWithCassandra {
      */
     protected static final User                 USER_GOD           = new User(
             "God",
-            Arrays.asList( Constants.ROLE_ADMIN ) );
+            new ArrayList<>( Arrays.asList( Constants.ROLE_ADMIN ) ) );
 
     protected static class User {
         private String       name;
@@ -162,9 +163,14 @@ public class BootstrapDatastoreWithCassandra {
     }
 
     protected static void setUser( User user ) {
-        /**
-         * Check out feature/acl-local branch for a proper setUser function
-         * need to modify a few pods ad-hocly to get conductor's user set as well - this is removed in the final version.
-         */
+        if ( user != null ) {
+            authzService.setCurrentUserForDebug( user.getName(), user.getRoles() );
+            try {
+                dataService.setCurrentUserForDebug( user.getName(), user.getRoles() );
+            } catch ( InterruptedException | ExecutionException e ) {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+            }
+        }
     }
 }

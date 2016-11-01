@@ -15,6 +15,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Multimap;
 import com.kryptnostic.datastore.Datastore;
 import com.kryptnostic.datastore.services.DataApi;
+import com.kryptnostic.datastore.services.EdmApi;
 import com.kryptnostic.rhizome.converters.RhizomeConverter;
 import digital.loom.rhizome.authentication.AuthenticationTest;
 import digital.loom.rhizome.configuration.auth0.Auth0Configuration;
@@ -37,12 +38,13 @@ import java.util.Map;
 
 public class Auth0Test {
     private static final Logger    logger = LoggerFactory.getLogger( Auth0Test.class );
-    private static final Datastore ds     = new Datastore();
-    private static Auth0Configuration      configuration;
-    private static Auth0                   auth0;
-    private static AuthenticationAPIClient client;
-    private static DataApi                 dataApi;
-    private static RestAdapter             dataServiceRestAdapter;
+    protected static final Datastore ds     = new Datastore();
+    protected static Auth0Configuration      configuration;
+    protected static Auth0                   auth0;
+    protected static AuthenticationAPIClient client;
+    protected static DataApi                 dataApi;
+    protected static EdmApi edmApi;
+    protected static RestAdapter             dataServiceRestAdapter;
 
     @BeforeClass
     public static void init() throws Exception {
@@ -66,6 +68,7 @@ public class Auth0Test {
                 } )
                 .build();
         dataApi = dataServiceRestAdapter.create( DataApi.class );
+        edmApi = dataServiceRestAdapter.create( EdmApi.class );
     }
 
     @Test
@@ -121,7 +124,7 @@ public class Auth0Test {
         Iterable<Multimap<FullQualifiedName, Object>> result = dataApi.getAllEntitiesOfType( "testcsv", "employee" );
         Assert.assertNull( result );
     }
-
+    
     @AfterClass
     public static void shutdown() throws Exception {
         ds.stop();

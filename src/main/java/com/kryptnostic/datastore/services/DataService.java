@@ -199,9 +199,13 @@ public class DataService {
 
                             logger.info( "Attempting to write property value: {}", e.getValue() );
                             DataType dt = propertyDataTypeMap.get( e.getKey() );
+                            
                             Object propertyValue = e.getValue();
                             if ( dt.equals( DataType.bigint() ) ) {
                                 propertyValue = Long.valueOf( propertyValue.toString() );
+                            } else if (dt.equals(  DataType.uuid() ) ){
+                                //TODO Ho Chung: Added conversion back to UUID; haven't checked other types
+                                propertyValue = UUID.fromString( propertyValue.toString() );
                             }
                             session.executeAsync( pps.bind( ImmutableList.of( syncId ), entityId, propertyValue ) );
                             if ( key.contains( e.getKey() ) ) {

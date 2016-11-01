@@ -3,9 +3,13 @@ package com.kryptnostic.datastore.edm.controllers;
 import java.util.EnumSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 import javax.inject.Inject;
 
+import com.google.common.base.Optional;
+import com.kryptnostic.conductor.rpc.odata.*;
 import com.kryptnostic.datastore.services.*;
 import org.apache.olingo.commons.api.edm.FullQualifiedName;
 import org.springframework.http.HttpStatus;
@@ -14,10 +18,6 @@ import org.springframework.web.bind.annotation.*;
 
 import com.google.common.collect.Maps;
 import com.kryptnostic.conductor.rpc.UUIDs.ACLs;
-import com.kryptnostic.conductor.rpc.odata.EntitySet;
-import com.kryptnostic.conductor.rpc.odata.EntityType;
-import com.kryptnostic.conductor.rpc.odata.PropertyType;
-import com.kryptnostic.conductor.rpc.odata.Schema;
 import com.kryptnostic.datastore.ServerUtil;
 import com.kryptnostic.datastore.exceptions.ResourceNotFoundException;
 import com.kryptnostic.datastore.services.GetSchemasRequest.TypeDetails;
@@ -171,8 +171,17 @@ public class EdmController implements EdmApi {
             method = RequestMethod.GET,
             produces = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
-    public Iterable<EntityType> getEntityTypes() {
-        return modelService.getEntityTypes();
+    public Iterable<DetailedEntityType> getEntityTypes() {
+        return StreamSupport.stream( modelService.getEntityTypes().spliterator(), false )
+                .map( entityType -> new DetailedEntityType(
+                        entityType.getNamespace(),
+                        entityType.getName(),
+                        entityType.getKey(),
+                        entityType.getProperties().stream()
+                                .map( fqn -> modelService.getPropertyType( fqn ) )
+                                .collect( Collectors.toSet() ),
+                        Optional.of( entityType.getSchemas() )
+                ) ).collect( Collectors.toList() );
     }
 
     @Override

@@ -1,7 +1,5 @@
 package com.kryptnostic.datastore.Authentication;
 
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Random;
 import java.util.Set;
@@ -13,6 +11,7 @@ import org.apache.olingo.commons.api.edm.FullQualifiedName;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,11 +32,11 @@ import com.kryptnostic.datastore.Permission;
 import com.kryptnostic.datastore.services.DataApi;
 import com.kryptnostic.datastore.services.EdmApi;
 import com.kryptnostic.datastore.services.PermissionsApi;
-import com.kryptnostic.datastore.services.requests.EntityTypeAclRequest;
 import com.kryptnostic.datastore.services.requests.Action;
 import com.kryptnostic.datastore.services.requests.CreateEntityRequest;
 import com.kryptnostic.datastore.services.requests.EntitySetAclRemovalRequest;
 import com.kryptnostic.datastore.services.requests.EntitySetAclRequest;
+import com.kryptnostic.datastore.services.requests.EntityTypeAclRequest;
 import com.kryptnostic.datastore.services.requests.PropertyTypeInEntitySetAclRequest;
 import com.kryptnostic.datastore.services.requests.PropertyTypeInEntityTypeAclRequest;
 import com.kryptnostic.rhizome.converters.RhizomeConverter;
@@ -225,7 +224,6 @@ public class PermissionsServiceTest {
         }
         System.out.println(  "Printing finished." );
 
-        ps.updateEntityTypesAcls( ImmutableSet.of( new EntityTypeAclRequest().setRole( ROLE_USER ).setAction( Action.REMOVE ).setType( NATION_CITIZENS ).setPermissions( ImmutableSet.of(Permission.ALTER) )) );
         entityTypeTestCleanup();
     }
     
@@ -588,11 +586,9 @@ public class PermissionsServiceTest {
                 new PropertyTypeInEntitySetAclRequest().setRole( ROLE_USER ).setAction( Action.REMOVE ).setType( NATION_CITIZENS ).setName(NATION_SECRET_SERVICE).setPropertyType( EMPLOYEE_ID ).setPermissions( ImmutableSet.of(Permission.WRITE) ),
                 new PropertyTypeInEntitySetAclRequest().setRole( ROLE_USER ).setAction( Action.REMOVE ).setType( NATION_CITIZENS ).setName(NATION_SECRET_SERVICE).setPropertyType( ADDRESS ).setPermissions( ImmutableSet.of(Permission.WRITE) )
                 ) );
-
         // Cleanup: remove Reader/Writer Role, and all current Read rights.
         ps.updateEntitySetsAcls( ImmutableSet.of( new EntitySetAclRequest().setRole( ROLE_USER ).setAction( Action.REMOVE ).setType( NATION_CITIZENS ).setEntitySetName(NATION_SECRET_SERVICE).setPermissions( ImmutableSet.of(Permission.READ, Permission.WRITE) )) );
         ps.removeAllPropertyTypesInEntitySetAcls( ImmutableSet.of(new EntitySetAclRemovalRequest().setType( NATION_CITIZENS ).setName( NATION_SECRET_SERVICE) ) );
-
     }    
 
     private void createData(

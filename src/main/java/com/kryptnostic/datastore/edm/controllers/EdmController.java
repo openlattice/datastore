@@ -6,15 +6,15 @@ import java.util.Set;
 
 import javax.inject.Inject;
 
-import com.kryptnostic.datastore.services.*;
-import com.kryptnostic.datastore.services.requests.GetSchemasRequest;
-import com.kryptnostic.datastore.services.requests.PutSchemaRequest;
-import com.kryptnostic.datastore.services.requests.GetSchemasRequest.TypeDetails;
-
 import org.apache.olingo.commons.api.edm.FullQualifiedName;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.web.bind.annotation.RestController;
 
 import com.google.common.collect.Maps;
 import com.kryptnostic.conductor.rpc.UUIDs.ACLs;
@@ -22,9 +22,14 @@ import com.kryptnostic.conductor.rpc.odata.EntitySet;
 import com.kryptnostic.conductor.rpc.odata.EntityType;
 import com.kryptnostic.conductor.rpc.odata.PropertyType;
 import com.kryptnostic.conductor.rpc.odata.Schema;
-import com.kryptnostic.datastore.Permission;
 import com.kryptnostic.datastore.ServerUtil;
 import com.kryptnostic.datastore.exceptions.ResourceNotFoundException;
+import com.kryptnostic.datastore.services.EdmApi;
+import com.kryptnostic.datastore.services.EdmManager;
+import com.kryptnostic.datastore.services.EntityDataModel;
+import com.kryptnostic.datastore.services.requests.GetSchemasRequest;
+import com.kryptnostic.datastore.services.requests.GetSchemasRequest.TypeDetails;
+import com.kryptnostic.datastore.services.requests.PutSchemaRequest;
 
 import retrofit.client.Response;
 
@@ -320,6 +325,8 @@ public class EdmController implements EdmApi {
     @Override
     @RequestMapping(
             path = ENTITY_TYPE_BASE_PATH + NAMESPACE_PATH + NAME_PATH + DELETE_PROPERTY_TYPES_PATH,
+// Debug by Ho Chung
+//            method = RequestMethod.DELETE,
             method = RequestMethod.POST,
             consumes = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )

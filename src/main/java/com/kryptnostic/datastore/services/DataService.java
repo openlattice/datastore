@@ -251,7 +251,6 @@ public class DataService {
                         .get();
 
                 EntityType entityType = dms.getEntityType( entityTypeFqn );
-                // Need to edit this to viewable properties
                 Set<PropertyType> properties = entityType.getProperties().stream()
                         .filter( propertyTypeFqn -> authzService.readPropertyTypeInEntitySet( entityTypeFqn,
                                 entitySetName,

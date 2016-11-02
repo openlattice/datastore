@@ -1,5 +1,6 @@
 package com.kryptnostic.datastore;
 
+import digital.loom.rhizome.authentication.Auth0Pod;
 import org.apache.olingo.commons.api.edm.EdmPrimitiveTypeKind;
 import org.apache.olingo.commons.api.edm.FullQualifiedName;
 
@@ -32,7 +33,8 @@ public class Datastore extends BaseRhizomeServer {
     public static final Class<?>[] rhizomePods   = new Class<?>[] {
             CassandraPod.class,
             BaseSerializersPod.class,
-            RegistryBasedHazelcastInstanceConfigurationPod.class };
+            RegistryBasedHazelcastInstanceConfigurationPod.class,
+            Auth0Pod.class};
     public static final Class<?>[] datastorePods = new Class<?>[] {
             DatastoreServicesPod.class,
             DatastoreTypeCodecsPod.class, DatastoreStreamSerializersPod.class
@@ -44,7 +46,12 @@ public class Datastore extends BaseRhizomeServer {
     }
 
     public Datastore( Class<?>... pods ) {
-        super( Pods.concatenate( pods, webPods, rhizomePods, RhizomeApplicationServer.defaultPods, datastorePods ) );
+        super( Pods.concatenate(
+                pods,
+                webPods,
+                rhizomePods,
+                RhizomeApplicationServer.defaultPods,
+                datastorePods ) );
     }
 
     public static void main( String[] args ) throws Exception {

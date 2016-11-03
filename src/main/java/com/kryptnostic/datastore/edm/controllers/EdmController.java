@@ -155,9 +155,7 @@ public class EdmController implements EdmApi {
     @ResponseStatus( HttpStatus.OK )
     public Response putEntitySets( @RequestBody Set<EntitySet> entitySets ) {
         entitySets.forEach( entitySet -> {
-            if( authzService.upsertEntitySet( entitySet.getType(), entitySet.getName() ) ){
                 modelService.upsertEntitySet( entitySet );
-            }
         });
         return null;
     }
@@ -267,9 +265,7 @@ public class EdmController implements EdmApi {
     @ResponseStatus( HttpStatus.OK )
     public Response deleteEntityType( @PathVariable( NAMESPACE ) String namespace, @PathVariable( NAME ) String name ) {
         FullQualifiedName entityTypeFqn = new FullQualifiedName( namespace, name );
-        if( authzService.deleteEntityType( entityTypeFqn ) ){
             modelService.deleteEntityType( entityTypeFqn );
-        }
         return null;
     }
 
@@ -295,9 +291,7 @@ public class EdmController implements EdmApi {
             method = RequestMethod.PUT )
     @ResponseStatus( HttpStatus.OK )
     public Response putPropertyType( @RequestBody PropertyType propertyType ) {
-        if( authzService.upsertPropertyType( propertyType.getFullQualifiedName() ) ){
             modelService.upsertPropertyType( propertyType );
-        }
         return null;
     }
 
@@ -310,9 +304,7 @@ public class EdmController implements EdmApi {
             @PathVariable( NAMESPACE ) String namespace,
             @PathVariable( NAME ) String name ) {
         FullQualifiedName propertyTypeFqn = new FullQualifiedName( namespace, name );
-        if( authzService.deletePropertyType( propertyTypeFqn ) ){
             modelService.deletePropertyType( propertyTypeFqn );
-        }
         return null;
     }
 
@@ -348,9 +340,7 @@ public class EdmController implements EdmApi {
             @PathVariable( NAMESPACE ) String namespace,
             @PathVariable( NAME ) String name,
             @RequestBody Set<FullQualifiedName> properties ) {
-        if( authzService.alterEntityType( new FullQualifiedName(namespace, name) ) ){
             modelService.addPropertyTypesToEntityType( namespace, name, properties );
-        }
         return null;
     }
 
@@ -364,9 +354,7 @@ public class EdmController implements EdmApi {
             @PathVariable( NAMESPACE ) String namespace,
             @PathVariable( NAME ) String name,
             @RequestBody Set<FullQualifiedName> properties ) {
-        if( authzService.alterEntityType( new FullQualifiedName(namespace, name) ) ){
             modelService.removePropertyTypesFromEntityType( namespace, name, properties );
-        }
         return null;
     }
 

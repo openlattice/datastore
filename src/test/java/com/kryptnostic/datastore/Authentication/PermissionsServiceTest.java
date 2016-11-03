@@ -24,6 +24,7 @@ import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
+import com.kryptnostic.conductor.rpc.odata.DetailedEntityType;
 import com.kryptnostic.conductor.rpc.odata.EntitySet;
 import com.kryptnostic.conductor.rpc.odata.EntityType;
 import com.kryptnostic.conductor.rpc.odata.PropertyType;
@@ -219,7 +220,7 @@ public class PermissionsServiceTest {
         edmApi.deleteEntityType( NATION_CITIZENS.getNamespace(), NATION_CITIZENS.getName() );
         System.out.println( "Expected: Entity Type NATION_CITIZENS is removed." );
         System.out.println( "Print all entity types:" );
-        for (EntityType entityType: edmApi.getEntityTypes() ){
+        for (DetailedEntityType entityType: edmApi.getEntityTypes() ){
             System.out.println( entityType );
         }
         System.out.println(  "Printing finished." );

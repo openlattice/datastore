@@ -38,11 +38,12 @@ import java.util.Map;
 public class Auth0Test {
     private static final Logger    logger = LoggerFactory.getLogger( Auth0Test.class );
     private static final Datastore ds     = new Datastore();
-    private static Auth0Configuration      configuration;
-    private static Auth0                   auth0;
-    private static AuthenticationAPIClient client;
-    private static DataApi                 dataApi;
-    private static RestAdapter             dataServiceRestAdapter;
+    private static Auth0Configuration                configuration;
+    private static Auth0                             auth0;
+    private static AuthenticationAPIClient           client;
+    private static DataApi                           dataApi;
+    private static RestAdapter                       dataServiceRestAdapter;
+    private static Pair<Credentials, Authentication> authPair;
 
     @BeforeClass
     public static void init() throws Exception {
@@ -50,7 +51,8 @@ public class Auth0Test {
         configuration = ds.getContext().getBean( Auth0Configuration.class );
         auth0 = new Auth0( configuration.getClientId(), configuration.getDomain() );
         client = auth0.newAuthenticationAPIClient();
-        String jwtToken = AuthenticationTest.authenticate().getLeft().getIdToken();
+        authPair = AuthenticationTest.authenticate();
+        String jwtToken = authPair.getLeft().getIdToken();
         dataServiceRestAdapter = new RestAdapter.Builder()
                 .setEndpoint( "http://localhost:8080/ontology" )
                 .setRequestInterceptor(
@@ -70,13 +72,12 @@ public class Auth0Test {
 
     @Test
     public void testRoles() throws Exception {
-        Pair<Credentials, Authentication> auth = AuthenticationTest.authenticate();
         JWTVerifier jwtVerifier = new JWTVerifier( new Base64( true ).decodeBase64( configuration.getClientSecret() ),
                 configuration.getClientId(),
                 configuration.getIssuer() );
-        Auth0JWTToken token = new Auth0JWTToken( auth.getLeft().getIdToken() );
-        final Map<String, Object> decoded = jwtVerifier.verify( auth.getLeft().getIdToken() );
-        Map<String, Object> d2 = auth.getRight().getProfile().getAppMetadata();
+        Auth0JWTToken token = new Auth0JWTToken( authPair.getLeft().getIdToken() );
+        final Map<String, Object> decoded = jwtVerifier.verify( authPair.getLeft().getIdToken() );
+        Map<String, Object> d2 = authPair.getRight().getProfile().getAppMetadata();
         Auth0UserDetails userDetails = new Auth0UserDetails(
                 d2,
                 Auth0AuthorityStrategy.valueOf( configuration.getAuthorityStrategy() ).getStrategy() );
@@ -87,7 +88,7 @@ public class Auth0Test {
 
     @Test
     public void testLogin() {
-        Credentials credentials = AuthenticationTest.authenticate().getLeft();
+        Credentials credentials = authPair.getLeft();
         UserProfile profile = client.tokenInfo( credentials.getIdToken() ).execute();
 
         List<String> roles = (List<String>) profile.getAppMetadata().getOrDefault( "roles", ImmutableList.of() );
@@ -105,12 +106,7 @@ public class Auth0Test {
                 .setConverter( new RhizomeConverter() )
                 .setErrorHandler( new DefaultErrorHandler() )
                 .setLogLevel( RestAdapter.LogLevel.FULL )
-                .setLog( new RestAdapter.Log() {
-                    @Override
-                    public void log( String msg ) {
-                        logger.debug( msg.replaceAll( "%", "[percent]" ) );
-                    }
-                } )
+                .setLog( msg -> logger.debug( msg.replaceAll( "%", "[percent]" ) ) )
                 .build();
         DataApi unauthorizedApi = unauthorizedAdapter.create( DataApi.class );
         unauthorizedApi.getAllEntitiesOfType( "testcsv", "employee" );

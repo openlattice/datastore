@@ -8,11 +8,8 @@ import java.util.stream.StreamSupport;
 
 import javax.inject.Inject;
 
-import com.google.common.base.Optional;
-import com.kryptnostic.conductor.rpc.odata.*;
-import com.kryptnostic.datastore.services.*;
-
 import org.apache.olingo.commons.api.edm.FullQualifiedName;
+import org.spark_project.guava.collect.Iterables;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -22,10 +19,17 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.google.common.base.Optional;
 import com.google.common.collect.Maps;
 import com.kryptnostic.conductor.rpc.UUIDs.ACLs;
+import com.kryptnostic.conductor.rpc.odata.DetailedEntityType;
+import com.kryptnostic.conductor.rpc.odata.EntitySet;
+import com.kryptnostic.conductor.rpc.odata.EntityType;
+import com.kryptnostic.conductor.rpc.odata.PropertyType;
+import com.kryptnostic.conductor.rpc.odata.Schema;
 import com.kryptnostic.datastore.ServerUtil;
 import com.kryptnostic.datastore.exceptions.ResourceNotFoundException;
+import com.kryptnostic.datastore.services.ActionAuthorizationService;
 import com.kryptnostic.datastore.services.EdmApi;
 import com.kryptnostic.datastore.services.EdmManager;
 import com.kryptnostic.datastore.services.EntityDataModel;
@@ -39,6 +43,9 @@ import retrofit.client.Response;
 public class EdmController implements EdmApi {
     @Inject
     private EdmManager modelService;
+    
+    @Inject
+    private ActionAuthorizationService authzService;
 
     @Override
     @RequestMapping(
@@ -147,7 +154,11 @@ public class EdmController implements EdmApi {
             produces = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
     public Response putEntitySets( @RequestBody Set<EntitySet> entitySets ) {
-        entitySets.forEach( entitySet -> modelService.upsertEntitySet( entitySet ) );
+        entitySets.forEach( entitySet -> {
+            if( authzService.upsertEntitySet( entitySet.getType(), entitySet.getName() ) ){
+                modelService.upsertEntitySet( entitySet );
+            }
+        });
         return null;
     }
 
@@ -158,7 +169,7 @@ public class EdmController implements EdmApi {
             produces = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
     public Iterable<EntitySet> getEntitySets() {
-        return modelService.getEntitySets();
+        return Iterables.filter( modelService.getEntitySets(), entitySet -> authzService.getEntitySet( entitySet.getType(), entitySet.getName() ));
     }
 
     /*
@@ -255,7 +266,10 @@ public class EdmController implements EdmApi {
             method = RequestMethod.DELETE )
     @ResponseStatus( HttpStatus.OK )
     public Response deleteEntityType( @PathVariable( NAMESPACE ) String namespace, @PathVariable( NAME ) String name ) {
-        modelService.deleteEntityType( new FullQualifiedName( namespace, name ) );
+        FullQualifiedName entityTypeFqn = new FullQualifiedName( namespace, name );
+        if( authzService.deleteEntityType( entityTypeFqn ) ){
+            modelService.deleteEntityType( entityTypeFqn );
+        }
         return null;
     }
 
@@ -281,7 +295,9 @@ public class EdmController implements EdmApi {
             method = RequestMethod.PUT )
     @ResponseStatus( HttpStatus.OK )
     public Response putPropertyType( @RequestBody PropertyType propertyType ) {
-        modelService.upsertPropertyType( propertyType );
+        if( authzService.upsertPropertyType( propertyType.getFullQualifiedName() ) ){
+            modelService.upsertPropertyType( propertyType );
+        }
         return null;
     }
 
@@ -293,7 +309,10 @@ public class EdmController implements EdmApi {
     public Response deletePropertyType(
             @PathVariable( NAMESPACE ) String namespace,
             @PathVariable( NAME ) String name ) {
-        modelService.deletePropertyType( new FullQualifiedName( namespace, name ) );
+        FullQualifiedName propertyTypeFqn = new FullQualifiedName( namespace, name );
+        if( authzService.deletePropertyType( propertyTypeFqn ) ){
+            modelService.deletePropertyType( propertyTypeFqn );
+        }
         return null;
     }
 
@@ -329,7 +348,9 @@ public class EdmController implements EdmApi {
             @PathVariable( NAMESPACE ) String namespace,
             @PathVariable( NAME ) String name,
             @RequestBody Set<FullQualifiedName> properties ) {
-        modelService.addPropertyTypesToEntityType( namespace, name, properties );
+        if( authzService.alterEntityType( new FullQualifiedName(namespace, name) ) ){
+            modelService.addPropertyTypesToEntityType( namespace, name, properties );
+        }
         return null;
     }
 
@@ -343,7 +364,9 @@ public class EdmController implements EdmApi {
             @PathVariable( NAMESPACE ) String namespace,
             @PathVariable( NAME ) String name,
             @RequestBody Set<FullQualifiedName> properties ) {
-        modelService.removePropertyTypesFromEntityType( namespace, name, properties );
+        if( authzService.alterEntityType( new FullQualifiedName(namespace, name) ) ){
+            modelService.removePropertyTypesFromEntityType( namespace, name, properties );
+        }
         return null;
     }
 

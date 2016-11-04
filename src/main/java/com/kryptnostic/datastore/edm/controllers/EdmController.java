@@ -9,6 +9,8 @@ import java.util.stream.StreamSupport;
 
 import javax.inject.Inject;
 
+import com.kryptnostic.conductor.rpc.odata.*;
+import com.kryptnostic.datastore.services.*;
 import org.apache.olingo.commons.api.edm.FullQualifiedName;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -229,17 +231,23 @@ public class EdmController implements EdmApi {
         method = RequestMethod.GET,
         produces = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
-    public Iterable<DetailedEntityType> getEntityTypes() {
+    public Iterable<EntityType> getEntityTypes() {
+        return modelService.getEntityTypes();
+    }
+
+    @Override
+    @RequestMapping(
+            path = ENTITY_TYPE_BASE_PATH + DETAILS_PATH,
+            method = RequestMethod.GET,
+            produces = MediaType.APPLICATION_JSON_VALUE )
+    @ResponseStatus( HttpStatus.OK )
+    public Iterable<EntityTypeWithDetails> getEntityTypesWithDetails() {
         return StreamSupport.stream( modelService.getEntityTypes().spliterator(), false )
-                .map( entityType -> new DetailedEntityType(
-                        entityType.getNamespace(),
-                        entityType.getName(),
-                        entityType.getKey(),
+                .map( entityType -> new EntityTypeWithDetails(
+                        entityType,
                         entityType.getProperties().stream()
-                                .map( fqn -> modelService.getPropertyType( fqn ) )
-                                .collect( Collectors.toSet() ),
-                        Optional.of( entityType.getSchemas() ) ) )
-                .collect( Collectors.toList() );
+                                .collect( Collectors.toMap( fqn -> fqn, fqn -> modelService.getPropertyType( fqn ) ) )
+                ) ).collect( Collectors.toSet() );
     }
 
     @Override

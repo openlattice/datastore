@@ -142,15 +142,12 @@ public class BabyAclTest extends BootstrapDatastoreWithCassandra {
 
         // Entity Set
         ps.addPermissionsForEntitySet( ROLE_GOVERNOR,
-                NATION_CITIZENS,
                 NATION_SECRET_SERVICE,
                 ImmutableSet.of( Permission.ALTER ) );
         ps.addPermissionsForEntitySet( ROLE_READER,
-                NATION_CITIZENS,
                 NATION_SECRET_SERVICE,
                 ImmutableSet.of( Permission.READ ) );
         ps.addPermissionsForEntitySet( ROLE_WRITER,
-                NATION_CITIZENS,
                 NATION_SECRET_SERVICE,
                 ImmutableSet.of( Permission.WRITE ) );
     }
@@ -225,22 +222,19 @@ public class BabyAclTest extends BootstrapDatastoreWithCassandra {
 
         // Entity Set
         ps.addPermissionsForEntitySet( ROLE_GOVERNOR,
-                NATION_CITIZENS,
                 NATION_SECRET_SERVICE,
                 ImmutableSet.of( Permission.ALTER ) );
         ps.addPermissionsForEntitySet( ROLE_READER,
-                NATION_CITIZENS,
                 NATION_SECRET_SERVICE,
                 ImmutableSet.of( Permission.READ ) );
         ps.addPermissionsForEntitySet( ROLE_WRITER,
-                NATION_CITIZENS,
                 NATION_SECRET_SERVICE,
                 ImmutableSet.of( Permission.WRITE ) );
     }
 
     private EntitySet entitySetMetadataLookup( User user, FullQualifiedName entityTypeFqn, String entitySetName ) {
         setUser( user );
-        EntitySet result = dms.getEntitySet( entityTypeFqn, entitySetName );
+        EntitySet result = dms.getEntitySet( entitySetName );
         System.out.println( user.getName() + " getting Entity Set metadata for " + entitySetName + " of type "
                 + entityTypeFqn + ": " + result );
         return result;
@@ -267,13 +261,11 @@ public class BabyAclTest extends BootstrapDatastoreWithCassandra {
         EntitySet answer1 = entitySetMetadataLookup( USER_GOD, NATION_CITIZENS, NATION_SECRET_SERVICE );
 
         ps.addPermissionsForEntitySet( ROLE_CITIZEN,
-                NATION_CITIZENS,
                 NATION_SECRET_SERVICE,
                 ImmutableSet.of( Permission.DISCOVER ) );
         entitySetMetadataLookup( USER_RANDOMGUY, NATION_CITIZENS, NATION_SECRET_SERVICE, answer1 );
 
         ps.removePermissionsForEntitySet( ROLE_CITIZEN,
-                NATION_CITIZENS,
                 NATION_SECRET_SERVICE,
                 ImmutableSet.of( Permission.DISCOVER ) );
         entitySetMetadataLookup( USER_RANDOMGUY, NATION_CITIZENS, NATION_SECRET_SERVICE, null );
@@ -285,7 +277,6 @@ public class BabyAclTest extends BootstrapDatastoreWithCassandra {
         EntitySet answer2 = entitySetMetadataLookup( USER_GOD, NATION_CITIZENS, NATION_SECRET_SERVICE );
 
         ps.addPermissionsForEntitySet( ROLE_CITIZEN,
-                NATION_CITIZENS,
                 NATION_SECRET_SERVICE,
                 ImmutableSet.of( Permission.DISCOVER ) );
         ps.addPermissionsForEntityType( ROLE_CITIZEN, NATION_CITIZENS, ImmutableSet.of( Permission.DISCOVER ) );
@@ -293,7 +284,6 @@ public class BabyAclTest extends BootstrapDatastoreWithCassandra {
         entitySetMetadataLookup( USER_RANDOMGUY, NATION_CITIZENS, NATION_SECRET_SERVICE, answer2 );
 
         ps.removePermissionsForEntitySet( ROLE_CITIZEN,
-                NATION_CITIZENS,
                 NATION_SECRET_SERVICE,
                 ImmutableSet.of( Permission.DISCOVER ) );
         entitySetMetadataLookup( USER_RANDOMGUY, NATION_CITIZENS, NATION_SECRET_SERVICE, answer2 );
@@ -666,22 +656,18 @@ public class BabyAclTest extends BootstrapDatastoreWithCassandra {
         setUser( USER_RANDOMGUY );
         USER_RANDOMGUY.addRoles( Arrays.asList( ROLE_READER, ROLE_WRITER ) );
         ps.addPermissionsForPropertyTypeInEntitySet( ROLE_READER,
-                NATION_CITIZENS,
                 NATION_SECRET_SERVICE,
                 new FullQualifiedName( NAMESPACE, EMPLOYEE_ID ),
                 ImmutableSet.of( Permission.READ ) );
         ps.addPermissionsForPropertyTypeInEntitySet( ROLE_READER,
-                NATION_CITIZENS,
                 NATION_SECRET_SERVICE,
                 ADDRESS,
                 ImmutableSet.of( Permission.READ ) );
         ps.addPermissionsForPropertyTypeInEntitySet( ROLE_READER,
-                NATION_CITIZENS,
                 NATION_SECRET_SERVICE,
                 POSITION,
                 ImmutableSet.of( Permission.READ ) );
         ps.addPermissionsForPropertyTypeInEntitySet( ROLE_READER,
-                NATION_CITIZENS,
                 NATION_SECRET_SERVICE,
                 LIFE_EXPECTANCY,
                 ImmutableSet.of( Permission.READ ) );
@@ -691,43 +677,35 @@ public class BabyAclTest extends BootstrapDatastoreWithCassandra {
         // Expected: Being able to read and write all data types.
 
         ps.addPermissionsForPropertyTypeInEntitySet( ROLE_WRITER,
-                NATION_CITIZENS,
                 NATION_SECRET_SERVICE,
                 new FullQualifiedName( NAMESPACE, EMPLOYEE_ID ),
                 ImmutableSet.of( Permission.WRITE ) );
         ps.addPermissionsForPropertyTypeInEntitySet( ROLE_WRITER,
-                NATION_CITIZENS,
                 NATION_SECRET_SERVICE,
                 ADDRESS,
                 ImmutableSet.of( Permission.WRITE ) );
         ps.addPermissionsForPropertyTypeInEntitySet( ROLE_WRITER,
-                NATION_CITIZENS,
                 NATION_SECRET_SERVICE,
                 POSITION,
                 ImmutableSet.of( Permission.WRITE ) );
         ps.addPermissionsForPropertyTypeInEntitySet( ROLE_WRITER,
-                NATION_CITIZENS,
                 NATION_SECRET_SERVICE,
                 LIFE_EXPECTANCY,
                 ImmutableSet.of( Permission.WRITE ) );
 
         Assert.assertTrue( ps.checkUserHasPermissionsOnPropertyTypeInEntitySet( USER_RANDOMGUY.getRoles(),
-                NATION_CITIZENS,
                 NATION_SECRET_SERVICE,
                 new FullQualifiedName( NAMESPACE, EMPLOYEE_ID ),
                 Permission.WRITE ) );
         Assert.assertTrue( ps.checkUserHasPermissionsOnPropertyTypeInEntitySet( USER_RANDOMGUY.getRoles(),
-                NATION_CITIZENS,
                 NATION_SECRET_SERVICE,
                 ADDRESS,
                 Permission.WRITE ) );
         Assert.assertTrue( ps.checkUserHasPermissionsOnPropertyTypeInEntitySet( USER_RANDOMGUY.getRoles(),
-                NATION_CITIZENS,
                 NATION_SECRET_SERVICE,
                 POSITION,
                 Permission.WRITE ) );
         Assert.assertTrue( ps.checkUserHasPermissionsOnPropertyTypeInEntitySet( USER_RANDOMGUY.getRoles(),
-                NATION_CITIZENS,
                 NATION_SECRET_SERVICE,
                 LIFE_EXPECTANCY,
                 Permission.WRITE ) );
@@ -743,22 +721,18 @@ public class BabyAclTest extends BootstrapDatastoreWithCassandra {
 
         // Test 1.67: Read data from entity set - should be able to read all data.
         Assert.assertTrue( ps.checkUserHasPermissionsOnPropertyTypeInEntitySet( USER_RANDOMGUY.getRoles(),
-                NATION_CITIZENS,
                 NATION_SECRET_SERVICE,
                 new FullQualifiedName( NAMESPACE, EMPLOYEE_ID ),
                 Permission.READ ) );
         Assert.assertTrue( ps.checkUserHasPermissionsOnPropertyTypeInEntitySet( USER_RANDOMGUY.getRoles(),
-                NATION_CITIZENS,
                 NATION_SECRET_SERVICE,
                 ADDRESS,
                 Permission.READ ) );
         Assert.assertTrue( ps.checkUserHasPermissionsOnPropertyTypeInEntitySet( USER_RANDOMGUY.getRoles(),
-                NATION_CITIZENS,
                 NATION_SECRET_SERVICE,
                 POSITION,
                 Permission.READ ) );
         Assert.assertTrue( ps.checkUserHasPermissionsOnPropertyTypeInEntitySet( USER_RANDOMGUY.getRoles(),
-                NATION_CITIZENS,
                 NATION_SECRET_SERVICE,
                 LIFE_EXPECTANCY,
                 Permission.READ ) );
@@ -772,22 +746,18 @@ public class BabyAclTest extends BootstrapDatastoreWithCassandra {
 
         // Cleanup: remove WRITE rights for Writer.
         ps.removePermissionsForPropertyTypeInEntitySet( ROLE_WRITER,
-                NATION_CITIZENS,
                 NATION_SECRET_SERVICE,
                 new FullQualifiedName( NAMESPACE, EMPLOYEE_ID ),
                 ImmutableSet.of( Permission.WRITE ) );
         ps.removePermissionsForPropertyTypeInEntitySet( ROLE_WRITER,
-                NATION_CITIZENS,
                 NATION_SECRET_SERVICE,
                 ADDRESS,
                 ImmutableSet.of( Permission.WRITE ) );
         ps.removePermissionsForPropertyTypeInEntitySet( ROLE_WRITER,
-                NATION_CITIZENS,
                 NATION_SECRET_SERVICE,
                 POSITION,
                 ImmutableSet.of( Permission.WRITE ) );
         ps.removePermissionsForPropertyTypeInEntitySet( ROLE_WRITER,
-                NATION_CITIZENS,
                 NATION_SECRET_SERVICE,
                 LIFE_EXPECTANCY,
                 ImmutableSet.of( Permission.WRITE ) );
@@ -796,33 +766,27 @@ public class BabyAclTest extends BootstrapDatastoreWithCassandra {
         // Expected: Only have WRITE rights for (EMPLOYEE_ID, NATION_SECRET_SERVICE), (ADDRESS, NATION_SECRET_SERVICE)
 
         ps.addPermissionsForPropertyTypeInEntitySet( ROLE_WRITER,
-                NATION_CITIZENS,
                 NATION_SECRET_SERVICE,
                 new FullQualifiedName( NAMESPACE, EMPLOYEE_ID ),
                 ImmutableSet.of( Permission.WRITE ) );
         ps.addPermissionsForPropertyTypeInEntitySet( ROLE_WRITER,
-                NATION_CITIZENS,
                 NATION_SECRET_SERVICE,
                 ADDRESS,
                 ImmutableSet.of( Permission.WRITE ) );
 
         Assert.assertTrue( ps.checkUserHasPermissionsOnPropertyTypeInEntitySet( USER_RANDOMGUY.getRoles(),
-                NATION_CITIZENS,
                 NATION_SECRET_SERVICE,
                 new FullQualifiedName( NAMESPACE, EMPLOYEE_ID ),
                 Permission.WRITE ) );
         Assert.assertTrue( ps.checkUserHasPermissionsOnPropertyTypeInEntitySet( USER_RANDOMGUY.getRoles(),
-                NATION_CITIZENS,
                 NATION_SECRET_SERVICE,
                 ADDRESS,
                 Permission.WRITE ) );
         Assert.assertFalse( ps.checkUserHasPermissionsOnPropertyTypeInEntitySet( USER_RANDOMGUY.getRoles(),
-                NATION_CITIZENS,
                 NATION_SECRET_SERVICE,
                 POSITION,
                 Permission.WRITE ) );
         Assert.assertFalse( ps.checkUserHasPermissionsOnPropertyTypeInEntitySet( USER_RANDOMGUY.getRoles(),
-                NATION_CITIZENS,
                 NATION_SECRET_SERVICE,
                 LIFE_EXPECTANCY,
                 Permission.WRITE ) );
@@ -846,12 +810,10 @@ public class BabyAclTest extends BootstrapDatastoreWithCassandra {
 
         // Cleanup: remove WRITE rights for Writer.
         ps.removePermissionsForPropertyTypeInEntitySet( ROLE_WRITER,
-                NATION_CITIZENS,
                 NATION_SECRET_SERVICE,
                 new FullQualifiedName( NAMESPACE, EMPLOYEE_ID ),
                 ImmutableSet.of( Permission.WRITE ) );
         ps.removePermissionsForPropertyTypeInEntitySet( ROLE_WRITER,
-                NATION_CITIZENS,
                 NATION_SECRET_SERVICE,
                 ADDRESS,
                 ImmutableSet.of( Permission.WRITE ) );
@@ -859,22 +821,18 @@ public class BabyAclTest extends BootstrapDatastoreWithCassandra {
         // Cleanup: remove Reader/Writer Role, and all current Read rights.
         USER_RANDOMGUY.removeRoles( Arrays.asList( ROLE_READER, ROLE_WRITER ) );
         ps.removePermissionsForPropertyTypeInEntitySet( ROLE_READER,
-                NATION_CITIZENS,
                 NATION_SECRET_SERVICE,
                 new FullQualifiedName( NAMESPACE, EMPLOYEE_ID ),
                 ImmutableSet.of( Permission.READ ) );
         ps.removePermissionsForPropertyTypeInEntitySet( ROLE_READER,
-                NATION_CITIZENS,
                 NATION_SECRET_SERVICE,
                 ADDRESS,
                 ImmutableSet.of( Permission.READ ) );
         ps.removePermissionsForPropertyTypeInEntitySet( ROLE_READER,
-                NATION_CITIZENS,
                 NATION_SECRET_SERVICE,
                 POSITION,
                 ImmutableSet.of( Permission.READ ) );
         ps.removePermissionsForPropertyTypeInEntitySet( ROLE_READER,
-                NATION_CITIZENS,
                 NATION_SECRET_SERVICE,
                 LIFE_EXPECTANCY,
                 ImmutableSet.of( Permission.READ ) );
@@ -886,17 +844,14 @@ public class BabyAclTest extends BootstrapDatastoreWithCassandra {
         // NATION_SECRET_SERVICE
         USER_RANDOMGUY.addRoles( Arrays.asList( ROLE_READER, ROLE_WRITER ) );
         ps.addPermissionsForPropertyTypeInEntitySet( ROLE_READER,
-                NATION_CITIZENS,
                 NATION_SECRET_SERVICE,
                 new FullQualifiedName( NAMESPACE, EMPLOYEE_ID ),
                 ImmutableSet.of( Permission.READ ) );
         ps.addPermissionsForPropertyTypeInEntitySet( ROLE_READER,
-                NATION_CITIZENS,
                 NATION_SECRET_SERVICE,
                 ADDRESS,
                 ImmutableSet.of( Permission.READ ) );
         ps.addPermissionsForPropertyTypeInEntitySet( ROLE_READER,
-                NATION_CITIZENS,
                 NATION_SECRET_SERVICE,
                 POSITION,
                 ImmutableSet.of( Permission.READ ) );
@@ -906,43 +861,35 @@ public class BabyAclTest extends BootstrapDatastoreWithCassandra {
         // Expected: Have WRITE rights for all pairs (EMPLOYEE_ID, NATION_SECRET_SERVICE),..., (LIFE_EXPECTANCY,
         // NATION_SECRET_SERVICE)
         ps.addPermissionsForPropertyTypeInEntitySet( ROLE_WRITER,
-                NATION_CITIZENS,
                 NATION_SECRET_SERVICE,
                 new FullQualifiedName( NAMESPACE, EMPLOYEE_ID ),
                 ImmutableSet.of( Permission.WRITE ) );
         ps.addPermissionsForPropertyTypeInEntitySet( ROLE_WRITER,
-                NATION_CITIZENS,
                 NATION_SECRET_SERVICE,
                 ADDRESS,
                 ImmutableSet.of( Permission.WRITE ) );
         ps.addPermissionsForPropertyTypeInEntitySet( ROLE_WRITER,
-                NATION_CITIZENS,
                 NATION_SECRET_SERVICE,
                 POSITION,
                 ImmutableSet.of( Permission.WRITE ) );
         ps.addPermissionsForPropertyTypeInEntitySet( ROLE_WRITER,
-                NATION_CITIZENS,
                 NATION_SECRET_SERVICE,
                 LIFE_EXPECTANCY,
                 ImmutableSet.of( Permission.WRITE ) );
 
         Assert.assertTrue( ps.checkUserHasPermissionsOnPropertyTypeInEntitySet( USER_RANDOMGUY.getRoles(),
-                NATION_CITIZENS,
                 NATION_SECRET_SERVICE,
                 new FullQualifiedName( NAMESPACE, EMPLOYEE_ID ),
                 Permission.WRITE ) );
         Assert.assertTrue( ps.checkUserHasPermissionsOnPropertyTypeInEntitySet( USER_RANDOMGUY.getRoles(),
-                NATION_CITIZENS,
                 NATION_SECRET_SERVICE,
                 ADDRESS,
                 Permission.WRITE ) );
         Assert.assertTrue( ps.checkUserHasPermissionsOnPropertyTypeInEntitySet( USER_RANDOMGUY.getRoles(),
-                NATION_CITIZENS,
                 NATION_SECRET_SERVICE,
                 POSITION,
                 Permission.WRITE ) );
         Assert.assertTrue( ps.checkUserHasPermissionsOnPropertyTypeInEntitySet( USER_RANDOMGUY.getRoles(),
-                NATION_CITIZENS,
                 NATION_SECRET_SERVICE,
                 LIFE_EXPECTANCY,
                 Permission.WRITE ) );
@@ -965,22 +912,18 @@ public class BabyAclTest extends BootstrapDatastoreWithCassandra {
 
         // Cleanup: remove WRITE rights for Writer.
         ps.removePermissionsForPropertyTypeInEntitySet( ROLE_WRITER,
-                NATION_CITIZENS,
                 NATION_SECRET_SERVICE,
                 new FullQualifiedName( NAMESPACE, EMPLOYEE_ID ),
                 ImmutableSet.of( Permission.WRITE ) );
         ps.removePermissionsForPropertyTypeInEntitySet( ROLE_WRITER,
-                NATION_CITIZENS,
                 NATION_SECRET_SERVICE,
                 ADDRESS,
                 ImmutableSet.of( Permission.WRITE ) );
         ps.removePermissionsForPropertyTypeInEntitySet( ROLE_WRITER,
-                NATION_CITIZENS,
                 NATION_SECRET_SERVICE,
                 POSITION,
                 ImmutableSet.of( Permission.WRITE ) );
         ps.removePermissionsForPropertyTypeInEntitySet( ROLE_WRITER,
-                NATION_CITIZENS,
                 NATION_SECRET_SERVICE,
                 LIFE_EXPECTANCY,
                 ImmutableSet.of( Permission.WRITE ) );
@@ -988,33 +931,27 @@ public class BabyAclTest extends BootstrapDatastoreWithCassandra {
         // Test 4: given Writer WRITE rights for EMPLOYEE_ID, ADDRESS. Inherit rights from NATION_SECRET_SERVICE
         // Expected: Only have WRITE rights for (EMPLOYEE_ID, NATION_SECRET_SERVICE), (ADDRESS, NATION_SECRET_SERVICE)
         ps.addPermissionsForPropertyTypeInEntitySet( ROLE_WRITER,
-                NATION_CITIZENS,
                 NATION_SECRET_SERVICE,
                 new FullQualifiedName( NAMESPACE, EMPLOYEE_ID ),
                 ImmutableSet.of( Permission.WRITE ) );
         ps.addPermissionsForPropertyTypeInEntitySet( ROLE_WRITER,
-                NATION_CITIZENS,
                 NATION_SECRET_SERVICE,
                 ADDRESS,
                 ImmutableSet.of( Permission.WRITE ) );
 
         Assert.assertTrue( ps.checkUserHasPermissionsOnPropertyTypeInEntitySet( USER_RANDOMGUY.getRoles(),
-                NATION_CITIZENS,
                 NATION_SECRET_SERVICE,
                 new FullQualifiedName( NAMESPACE, EMPLOYEE_ID ),
                 Permission.WRITE ) );
         Assert.assertTrue( ps.checkUserHasPermissionsOnPropertyTypeInEntitySet( USER_RANDOMGUY.getRoles(),
-                NATION_CITIZENS,
                 NATION_SECRET_SERVICE,
                 ADDRESS,
                 Permission.WRITE ) );
         Assert.assertFalse( ps.checkUserHasPermissionsOnPropertyTypeInEntitySet( USER_RANDOMGUY.getRoles(),
-                NATION_CITIZENS,
                 NATION_SECRET_SERVICE,
                 POSITION,
                 Permission.WRITE ) );
         Assert.assertFalse( ps.checkUserHasPermissionsOnPropertyTypeInEntitySet( USER_RANDOMGUY.getRoles(),
-                NATION_CITIZENS,
                 NATION_SECRET_SERVICE,
                 LIFE_EXPECTANCY,
                 Permission.WRITE ) );
@@ -1039,12 +976,10 @@ public class BabyAclTest extends BootstrapDatastoreWithCassandra {
 
         // Cleanup: remove WRITE rights for Citizen.
         ps.removePermissionsForPropertyTypeInEntitySet( ROLE_WRITER,
-                NATION_CITIZENS,
                 NATION_SECRET_SERVICE,
                 new FullQualifiedName( NAMESPACE, EMPLOYEE_ID ),
                 ImmutableSet.of( Permission.WRITE ) );
         ps.removePermissionsForPropertyTypeInEntitySet( ROLE_WRITER,
-                NATION_CITIZENS,
                 NATION_SECRET_SERVICE,
                 ADDRESS,
                 ImmutableSet.of( Permission.WRITE ) );
@@ -1052,17 +987,14 @@ public class BabyAclTest extends BootstrapDatastoreWithCassandra {
         // Cleanup: remove Reader/Writer Role, and all current Read rights.
         USER_RANDOMGUY.removeRoles( Arrays.asList( ROLE_READER, ROLE_WRITER ) );
         ps.removePermissionsForPropertyTypeInEntitySet( ROLE_READER,
-                NATION_CITIZENS,
                 NATION_SECRET_SERVICE,
                 new FullQualifiedName( NAMESPACE, EMPLOYEE_ID ),
                 ImmutableSet.of( Permission.READ ) );
         ps.removePermissionsForPropertyTypeInEntitySet( ROLE_READER,
-                NATION_CITIZENS,
                 NATION_SECRET_SERVICE,
                 ADDRESS,
                 ImmutableSet.of( Permission.READ ) );
         ps.removePermissionsForPropertyTypeInEntitySet( ROLE_READER,
-                NATION_CITIZENS,
                 NATION_SECRET_SERVICE,
                 POSITION,
                 ImmutableSet.of( Permission.READ ) );

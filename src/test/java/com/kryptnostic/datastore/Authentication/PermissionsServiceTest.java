@@ -35,7 +35,6 @@ import com.kryptnostic.datastore.services.EdmApi;
 import com.kryptnostic.datastore.services.PermissionsApi;
 import com.kryptnostic.datastore.services.requests.Action;
 import com.kryptnostic.datastore.services.requests.CreateEntityRequest;
-import com.kryptnostic.datastore.services.requests.EntitySetAclRemovalRequest;
 import com.kryptnostic.datastore.services.requests.EntitySetAclRequest;
 import com.kryptnostic.datastore.services.requests.EntityTypeAclRequest;
 import com.kryptnostic.datastore.services.requests.PropertyTypeInEntitySetAclRequest;
@@ -254,11 +253,11 @@ public class PermissionsServiceTest {
         System.out.println( "Test 1 Starts!" );
         // Test 1: Citizen is given the DISCOVER permission for Secret Service; and the right got removed after.
         // Expected: RandomGuy can see the metadata for Secret Service; and cannot after.
-        ps.updateEntitySetsAcls( ImmutableSet.of( new EntitySetAclRequest().setRole(ROLE_USER).setAction( Action.ADD ).setType( NATION_CITIZENS ).setEntitySetName( NATION_SECRET_SERVICE ).setPermissions( ImmutableSet.of(Permission.DISCOVER) ) ) );
-        Assert.assertNotEquals( Iterables.size( edmApi.getEntitySets() ), 0 );
+        ps.updateEntitySetsAcls( ImmutableSet.of( new EntitySetAclRequest().setRole(ROLE_USER).setAction( Action.ADD ).setName( NATION_SECRET_SERVICE ).setPermissions( ImmutableSet.of(Permission.DISCOVER) ) ) );
+        Assert.assertNotEquals( 0, Iterables.size( edmApi.getEntitySets() ) );
         
-        ps.updateEntitySetsAcls( ImmutableSet.of( new EntitySetAclRequest().setRole(ROLE_USER).setAction( Action.REMOVE ).setType( NATION_CITIZENS ).setEntitySetName( NATION_SECRET_SERVICE ).setPermissions( ImmutableSet.of(Permission.DISCOVER) ) ) );
-        Assert.assertEquals( Iterables.size( edmApi.getEntitySets() ), 0 );
+        ps.updateEntitySetsAcls( ImmutableSet.of( new EntitySetAclRequest().setRole(ROLE_USER).setAction( Action.REMOVE ).setName( NATION_SECRET_SERVICE ).setPermissions( ImmutableSet.of(Permission.DISCOVER) ) ) );
+        Assert.assertEquals( 0, Iterables.size( edmApi.getEntitySets() ) );
     }
 
     /**
@@ -436,22 +435,22 @@ public class PermissionsServiceTest {
         System.out.println( "***Property Type In Entity Set Test Starts***" );
         // Give user READ rights for EMPLOYEE_ID, ADDRESS, POSITION, and LIFE_EXPECTANCY in NATION_CITIZENS, as well as READ rights for NATION_SECRET_SERVICE
         // Give user WRITE rights for NATION_SECRET_SERVICE
-        ps.updateEntitySetsAcls( ImmutableSet.of( new EntitySetAclRequest().setRole( ROLE_USER ).setAction( Action.ADD ).setType( NATION_CITIZENS ).setEntitySetName(NATION_SECRET_SERVICE).setPermissions( ImmutableSet.of(Permission.READ, Permission.WRITE) )) );
+        ps.updateEntitySetsAcls( ImmutableSet.of( new EntitySetAclRequest().setRole( ROLE_USER ).setAction( Action.ADD ).setName(NATION_SECRET_SERVICE).setPermissions( ImmutableSet.of(Permission.READ, Permission.WRITE) )) );
         ps.updatePropertyTypeInEntitySetAcls( ImmutableSet.of(
-                new PropertyTypeInEntitySetAclRequest().setRole( ROLE_USER ).setAction( Action.ADD ).setType( NATION_CITIZENS ).setName(NATION_SECRET_SERVICE).setPropertyType( EMPLOYEE_ID ).setPermissions( ImmutableSet.of(Permission.READ) ),
-                new PropertyTypeInEntitySetAclRequest().setRole( ROLE_USER ).setAction( Action.ADD ).setType( NATION_CITIZENS ).setName(NATION_SECRET_SERVICE).setPropertyType( ADDRESS ).setPermissions( ImmutableSet.of(Permission.READ) ),
-                new PropertyTypeInEntitySetAclRequest().setRole( ROLE_USER ).setAction( Action.ADD ).setType( NATION_CITIZENS ).setName(NATION_SECRET_SERVICE).setPropertyType( POSITION ).setPermissions( ImmutableSet.of(Permission.READ) ),
-                new PropertyTypeInEntitySetAclRequest().setRole( ROLE_USER ).setAction( Action.ADD ).setType( NATION_CITIZENS ).setName(NATION_SECRET_SERVICE).setPropertyType( LIFE_EXPECTANCY ).setPermissions( ImmutableSet.of(Permission.READ) )                
+                new PropertyTypeInEntitySetAclRequest().setRole( ROLE_USER ).setAction( Action.ADD ).setName(NATION_SECRET_SERVICE).setPropertyType( EMPLOYEE_ID ).setPermissions( ImmutableSet.of(Permission.READ) ),
+                new PropertyTypeInEntitySetAclRequest().setRole( ROLE_USER ).setAction( Action.ADD ).setName(NATION_SECRET_SERVICE).setPropertyType( ADDRESS ).setPermissions( ImmutableSet.of(Permission.READ) ),
+                new PropertyTypeInEntitySetAclRequest().setRole( ROLE_USER ).setAction( Action.ADD ).setName(NATION_SECRET_SERVICE).setPropertyType( POSITION ).setPermissions( ImmutableSet.of(Permission.READ) ),
+                new PropertyTypeInEntitySetAclRequest().setRole( ROLE_USER ).setAction( Action.ADD ).setName(NATION_SECRET_SERVICE).setPropertyType( LIFE_EXPECTANCY ).setPermissions( ImmutableSet.of(Permission.READ) )                
                 ) );
 
         // Test 1: give Writer WRITE rights for EMPLOYEE_ID, ADDRESS, POSITION, and LIFE_EXPECTANCY in NATION_CITIZENS.
         // Expected: Being able to read and write all data types.
 
         ps.updatePropertyTypeInEntitySetAcls( ImmutableSet.of(
-                new PropertyTypeInEntitySetAclRequest().setRole( ROLE_USER ).setAction( Action.ADD ).setType( NATION_CITIZENS ).setName(NATION_SECRET_SERVICE).setPropertyType( EMPLOYEE_ID ).setPermissions( ImmutableSet.of(Permission.WRITE) ),
-                new PropertyTypeInEntitySetAclRequest().setRole( ROLE_USER ).setAction( Action.ADD ).setType( NATION_CITIZENS ).setName(NATION_SECRET_SERVICE).setPropertyType( ADDRESS ).setPermissions( ImmutableSet.of(Permission.WRITE) ),
-                new PropertyTypeInEntitySetAclRequest().setRole( ROLE_USER ).setAction( Action.ADD ).setType( NATION_CITIZENS ).setName(NATION_SECRET_SERVICE).setPropertyType( POSITION ).setPermissions( ImmutableSet.of(Permission.WRITE) ),
-                new PropertyTypeInEntitySetAclRequest().setRole( ROLE_USER ).setAction( Action.ADD ).setType( NATION_CITIZENS ).setName(NATION_SECRET_SERVICE).setPropertyType( LIFE_EXPECTANCY ).setPermissions( ImmutableSet.of(Permission.WRITE) )                
+                new PropertyTypeInEntitySetAclRequest().setRole( ROLE_USER ).setAction( Action.ADD ).setName(NATION_SECRET_SERVICE).setPropertyType( EMPLOYEE_ID ).setPermissions( ImmutableSet.of(Permission.WRITE) ),
+                new PropertyTypeInEntitySetAclRequest().setRole( ROLE_USER ).setAction( Action.ADD ).setName(NATION_SECRET_SERVICE).setPropertyType( ADDRESS ).setPermissions( ImmutableSet.of(Permission.WRITE) ),
+                new PropertyTypeInEntitySetAclRequest().setRole( ROLE_USER ).setAction( Action.ADD ).setName(NATION_SECRET_SERVICE).setPropertyType( POSITION ).setPermissions( ImmutableSet.of(Permission.WRITE) ),
+                new PropertyTypeInEntitySetAclRequest().setRole( ROLE_USER ).setAction( Action.ADD ).setName(NATION_SECRET_SERVICE).setPropertyType( LIFE_EXPECTANCY ).setPermissions( ImmutableSet.of(Permission.WRITE) )                
                 ) );
 
         // Test 1.33: Actually write data to entity type
@@ -472,18 +471,18 @@ public class PermissionsServiceTest {
 
         // Cleanup: remove WRITE rights for User.
         ps.updatePropertyTypeInEntitySetAcls( ImmutableSet.of(
-                new PropertyTypeInEntitySetAclRequest().setRole( ROLE_USER ).setAction( Action.REMOVE ).setType( NATION_CITIZENS ).setName(NATION_SECRET_SERVICE).setPropertyType( EMPLOYEE_ID ).setPermissions( ImmutableSet.of(Permission.WRITE) ),
-                new PropertyTypeInEntitySetAclRequest().setRole( ROLE_USER ).setAction( Action.REMOVE ).setType( NATION_CITIZENS ).setName(NATION_SECRET_SERVICE).setPropertyType( ADDRESS ).setPermissions( ImmutableSet.of(Permission.WRITE) ),
-                new PropertyTypeInEntitySetAclRequest().setRole( ROLE_USER ).setAction( Action.REMOVE ).setType( NATION_CITIZENS ).setName(NATION_SECRET_SERVICE).setPropertyType( POSITION ).setPermissions( ImmutableSet.of(Permission.WRITE) ),
-                new PropertyTypeInEntitySetAclRequest().setRole( ROLE_USER ).setAction( Action.REMOVE ).setType( NATION_CITIZENS ).setName(NATION_SECRET_SERVICE).setPropertyType( LIFE_EXPECTANCY ).setPermissions( ImmutableSet.of(Permission.WRITE) )                
+                new PropertyTypeInEntitySetAclRequest().setRole( ROLE_USER ).setAction( Action.REMOVE ).setName(NATION_SECRET_SERVICE).setPropertyType( EMPLOYEE_ID ).setPermissions( ImmutableSet.of(Permission.WRITE) ),
+                new PropertyTypeInEntitySetAclRequest().setRole( ROLE_USER ).setAction( Action.REMOVE ).setName(NATION_SECRET_SERVICE).setPropertyType( ADDRESS ).setPermissions( ImmutableSet.of(Permission.WRITE) ),
+                new PropertyTypeInEntitySetAclRequest().setRole( ROLE_USER ).setAction( Action.REMOVE ).setName(NATION_SECRET_SERVICE).setPropertyType( POSITION ).setPermissions( ImmutableSet.of(Permission.WRITE) ),
+                new PropertyTypeInEntitySetAclRequest().setRole( ROLE_USER ).setAction( Action.REMOVE ).setName(NATION_SECRET_SERVICE).setPropertyType( LIFE_EXPECTANCY ).setPermissions( ImmutableSet.of(Permission.WRITE) )                
                 ) );
         
         // Test 2: given User WRITE rights for EMPLOYEE_ID, ADDRESS in NATION_SECRET_SERVICE
         // Expected: Only have WRITE rights for (EMPLOYEE_ID, NATION_SECRET_SERVICE), (ADDRESS, NATION_SECRET_SERVICE)
 
         ps.updatePropertyTypeInEntitySetAcls( ImmutableSet.of(
-                new PropertyTypeInEntitySetAclRequest().setRole( ROLE_USER ).setAction( Action.ADD ).setType( NATION_CITIZENS ).setName(NATION_SECRET_SERVICE).setPropertyType( EMPLOYEE_ID ).setPermissions( ImmutableSet.of(Permission.WRITE) ),
-                new PropertyTypeInEntitySetAclRequest().setRole( ROLE_USER ).setAction( Action.ADD ).setType( NATION_CITIZENS ).setName(NATION_SECRET_SERVICE).setPropertyType( ADDRESS ).setPermissions( ImmutableSet.of(Permission.WRITE) )
+                new PropertyTypeInEntitySetAclRequest().setRole( ROLE_USER ).setAction( Action.ADD ).setName(NATION_SECRET_SERVICE).setPropertyType( EMPLOYEE_ID ).setPermissions( ImmutableSet.of(Permission.WRITE) ),
+                new PropertyTypeInEntitySetAclRequest().setRole( ROLE_USER ).setAction( Action.ADD ).setName(NATION_SECRET_SERVICE).setPropertyType( ADDRESS ).setPermissions( ImmutableSet.of(Permission.WRITE) )
                 ) );
 
         // Test 2.33: Actually write data - only the columns EMPLOYEE_ID, ADDRESS would be non-empty
@@ -504,22 +503,22 @@ public class PermissionsServiceTest {
 
         // Cleanup: remove WRITE rights for User.
         ps.updatePropertyTypeInEntitySetAcls( ImmutableSet.of(
-                new PropertyTypeInEntitySetAclRequest().setRole( ROLE_USER ).setAction( Action.REMOVE ).setType( NATION_CITIZENS ).setName(NATION_SECRET_SERVICE).setPropertyType( EMPLOYEE_ID ).setPermissions( ImmutableSet.of(Permission.WRITE) ),
-                new PropertyTypeInEntitySetAclRequest().setRole( ROLE_USER ).setAction( Action.REMOVE ).setType( NATION_CITIZENS ).setName(NATION_SECRET_SERVICE).setPropertyType( ADDRESS ).setPermissions( ImmutableSet.of(Permission.WRITE) )
+                new PropertyTypeInEntitySetAclRequest().setRole( ROLE_USER ).setAction( Action.REMOVE ).setName(NATION_SECRET_SERVICE).setPropertyType( EMPLOYEE_ID ).setPermissions( ImmutableSet.of(Permission.WRITE) ),
+                new PropertyTypeInEntitySetAclRequest().setRole( ROLE_USER ).setAction( Action.REMOVE ).setName(NATION_SECRET_SERVICE).setPropertyType( ADDRESS ).setPermissions( ImmutableSet.of(Permission.WRITE) )
                 ) );
 
         // Cleanup: remove all current Read/Write rights.
-        ps.updateEntitySetsAcls( ImmutableSet.of( new EntitySetAclRequest().setRole( ROLE_USER ).setAction( Action.REMOVE ).setType( NATION_CITIZENS ).setEntitySetName(NATION_SECRET_SERVICE).setPermissions( ImmutableSet.of(Permission.READ, Permission.WRITE) )) );
-        ps.removeAllPropertyTypesInEntitySetAcls( ImmutableSet.of(new EntitySetAclRemovalRequest().setType( NATION_CITIZENS ).setName( NATION_SECRET_SERVICE) ) );
+        ps.updateEntitySetsAcls( ImmutableSet.of( new EntitySetAclRequest().setRole( ROLE_USER ).setAction( Action.REMOVE ).setName(NATION_SECRET_SERVICE).setPermissions( ImmutableSet.of(Permission.READ, Permission.WRITE) )) );
+        ps.removeAllPropertyTypesInEntitySetAcls( ImmutableSet.of( NATION_SECRET_SERVICE ) );
 
         // Setup:
         // Give User READ rights for EMPLOYEE_ID, ADDRESS, POSITION in NATION_SECRET_SERVICE, as well as READ rights for NATION_SECRET_SERVICE
         // User gets the Permission to write NATION_SECRET_SERVICE
-        ps.updateEntitySetsAcls( ImmutableSet.of( new EntitySetAclRequest().setRole( ROLE_USER ).setAction( Action.ADD ).setType( NATION_CITIZENS ).setEntitySetName(NATION_SECRET_SERVICE).setPermissions( ImmutableSet.of(Permission.READ, Permission.WRITE) )) );
+        ps.updateEntitySetsAcls( ImmutableSet.of( new EntitySetAclRequest().setRole( ROLE_USER ).setAction( Action.ADD ).setName(NATION_SECRET_SERVICE).setPermissions( ImmutableSet.of(Permission.READ, Permission.WRITE) )) );
         ps.updatePropertyTypeInEntitySetAcls( ImmutableSet.of(
-                new PropertyTypeInEntitySetAclRequest().setRole( ROLE_USER ).setAction( Action.ADD ).setType( NATION_CITIZENS ).setName(NATION_SECRET_SERVICE).setPropertyType( EMPLOYEE_ID ).setPermissions( ImmutableSet.of(Permission.READ) ),
-                new PropertyTypeInEntitySetAclRequest().setRole( ROLE_USER ).setAction( Action.ADD ).setType( NATION_CITIZENS ).setName(NATION_SECRET_SERVICE).setPropertyType( ADDRESS ).setPermissions( ImmutableSet.of(Permission.READ) ),
-                new PropertyTypeInEntitySetAclRequest().setRole( ROLE_USER ).setAction( Action.ADD ).setType( NATION_CITIZENS ).setName(NATION_SECRET_SERVICE).setPropertyType( POSITION ).setPermissions( ImmutableSet.of(Permission.READ) )
+                new PropertyTypeInEntitySetAclRequest().setRole( ROLE_USER ).setAction( Action.ADD ).setName(NATION_SECRET_SERVICE).setPropertyType( EMPLOYEE_ID ).setPermissions( ImmutableSet.of(Permission.READ) ),
+                new PropertyTypeInEntitySetAclRequest().setRole( ROLE_USER ).setAction( Action.ADD ).setName(NATION_SECRET_SERVICE).setPropertyType( ADDRESS ).setPermissions( ImmutableSet.of(Permission.READ) ),
+                new PropertyTypeInEntitySetAclRequest().setRole( ROLE_USER ).setAction( Action.ADD ).setName(NATION_SECRET_SERVICE).setPropertyType( POSITION ).setPermissions( ImmutableSet.of(Permission.READ) )
                 ) );
 
         // Test 3: give Writer WRITE rights for EMPLOYEE_ID, ADDRESS, POSITION, and LIFE_EXPECTANCY in NATION_CITIZENS
@@ -527,10 +526,10 @@ public class PermissionsServiceTest {
         // NATION_CITIZENS)
         
         ps.updatePropertyTypeInEntitySetAcls( ImmutableSet.of(
-                new PropertyTypeInEntitySetAclRequest().setRole( ROLE_USER ).setAction( Action.ADD ).setType( NATION_CITIZENS ).setName(NATION_SECRET_SERVICE).setPropertyType( EMPLOYEE_ID ).setPermissions( ImmutableSet.of(Permission.WRITE) ),
-                new PropertyTypeInEntitySetAclRequest().setRole( ROLE_USER ).setAction( Action.ADD ).setType( NATION_CITIZENS ).setName(NATION_SECRET_SERVICE).setPropertyType( ADDRESS ).setPermissions( ImmutableSet.of(Permission.WRITE) ),
-                new PropertyTypeInEntitySetAclRequest().setRole( ROLE_USER ).setAction( Action.ADD ).setType( NATION_CITIZENS ).setName(NATION_SECRET_SERVICE).setPropertyType( POSITION ).setPermissions( ImmutableSet.of(Permission.WRITE) ),
-                new PropertyTypeInEntitySetAclRequest().setRole( ROLE_USER ).setAction( Action.ADD ).setType( NATION_CITIZENS ).setName(NATION_SECRET_SERVICE).setPropertyType( LIFE_EXPECTANCY ).setPermissions( ImmutableSet.of(Permission.WRITE) )                
+                new PropertyTypeInEntitySetAclRequest().setRole( ROLE_USER ).setAction( Action.ADD ).setName(NATION_SECRET_SERVICE).setPropertyType( EMPLOYEE_ID ).setPermissions( ImmutableSet.of(Permission.WRITE) ),
+                new PropertyTypeInEntitySetAclRequest().setRole( ROLE_USER ).setAction( Action.ADD ).setName(NATION_SECRET_SERVICE).setPropertyType( ADDRESS ).setPermissions( ImmutableSet.of(Permission.WRITE) ),
+                new PropertyTypeInEntitySetAclRequest().setRole( ROLE_USER ).setAction( Action.ADD ).setName(NATION_SECRET_SERVICE).setPropertyType( POSITION ).setPermissions( ImmutableSet.of(Permission.WRITE) ),
+                new PropertyTypeInEntitySetAclRequest().setRole( ROLE_USER ).setAction( Action.ADD ).setName(NATION_SECRET_SERVICE).setPropertyType( LIFE_EXPECTANCY ).setPermissions( ImmutableSet.of(Permission.WRITE) )                
                 ) );
 
         // Test 3.33: Actually write data - all columns should be written.
@@ -552,17 +551,17 @@ public class PermissionsServiceTest {
         // Cleanup: remove WRITE rights for User.
 
         ps.updatePropertyTypeInEntitySetAcls( ImmutableSet.of(
-                new PropertyTypeInEntitySetAclRequest().setRole( ROLE_USER ).setAction( Action.REMOVE ).setType( NATION_CITIZENS ).setName(NATION_SECRET_SERVICE).setPropertyType( EMPLOYEE_ID ).setPermissions( ImmutableSet.of(Permission.WRITE) ),
-                new PropertyTypeInEntitySetAclRequest().setRole( ROLE_USER ).setAction( Action.REMOVE ).setType( NATION_CITIZENS ).setName(NATION_SECRET_SERVICE).setPropertyType( ADDRESS ).setPermissions( ImmutableSet.of(Permission.WRITE) ),
-                new PropertyTypeInEntitySetAclRequest().setRole( ROLE_USER ).setAction( Action.REMOVE ).setType( NATION_CITIZENS ).setName(NATION_SECRET_SERVICE).setPropertyType( POSITION ).setPermissions( ImmutableSet.of(Permission.WRITE) ),
-                new PropertyTypeInEntitySetAclRequest().setRole( ROLE_USER ).setAction( Action.REMOVE ).setType( NATION_CITIZENS ).setName(NATION_SECRET_SERVICE).setPropertyType( LIFE_EXPECTANCY ).setPermissions( ImmutableSet.of(Permission.WRITE) )                
+                new PropertyTypeInEntitySetAclRequest().setRole( ROLE_USER ).setAction( Action.REMOVE ).setName(NATION_SECRET_SERVICE).setPropertyType( EMPLOYEE_ID ).setPermissions( ImmutableSet.of(Permission.WRITE) ),
+                new PropertyTypeInEntitySetAclRequest().setRole( ROLE_USER ).setAction( Action.REMOVE ).setName(NATION_SECRET_SERVICE).setPropertyType( ADDRESS ).setPermissions( ImmutableSet.of(Permission.WRITE) ),
+                new PropertyTypeInEntitySetAclRequest().setRole( ROLE_USER ).setAction( Action.REMOVE ).setName(NATION_SECRET_SERVICE).setPropertyType( POSITION ).setPermissions( ImmutableSet.of(Permission.WRITE) ),
+                new PropertyTypeInEntitySetAclRequest().setRole( ROLE_USER ).setAction( Action.REMOVE ).setName(NATION_SECRET_SERVICE).setPropertyType( LIFE_EXPECTANCY ).setPermissions( ImmutableSet.of(Permission.WRITE) )                
                 ) );
 
         // Test 4: given Writer WRITE rights for EMPLOYEE_ID, ADDRESS. Inherit rights from NATION_CITIZENS
         // Expected: Only have WRITE rights for (EMPLOYEE_ID, NATION_CITIZENS), (ADDRESS, NATION_CITIZENS)
         ps.updatePropertyTypeInEntitySetAcls( ImmutableSet.of(
-                new PropertyTypeInEntitySetAclRequest().setRole( ROLE_USER ).setAction( Action.ADD ).setType( NATION_CITIZENS ).setName(NATION_SECRET_SERVICE).setPropertyType( EMPLOYEE_ID ).setPermissions( ImmutableSet.of(Permission.WRITE) ),
-                new PropertyTypeInEntitySetAclRequest().setRole( ROLE_USER ).setAction( Action.ADD ).setType( NATION_CITIZENS ).setName(NATION_SECRET_SERVICE).setPropertyType( ADDRESS ).setPermissions( ImmutableSet.of(Permission.WRITE) )
+                new PropertyTypeInEntitySetAclRequest().setRole( ROLE_USER ).setAction( Action.ADD ).setName(NATION_SECRET_SERVICE).setPropertyType( EMPLOYEE_ID ).setPermissions( ImmutableSet.of(Permission.WRITE) ),
+                new PropertyTypeInEntitySetAclRequest().setRole( ROLE_USER ).setAction( Action.ADD ).setName(NATION_SECRET_SERVICE).setPropertyType( ADDRESS ).setPermissions( ImmutableSet.of(Permission.WRITE) )
                 ) );
 
         // Test 4.33: Actually write data - only the columns EMPLOYEE_ID, ADDRESS would be non-empty
@@ -581,15 +580,14 @@ public class PermissionsServiceTest {
         for ( Multimap<FullQualifiedName, Object> entity : result4 ) {
             System.out.println( entity );
         }
-
         // Cleanup: remove WRITE rights for Citizen.
         ps.updatePropertyTypeInEntitySetAcls( ImmutableSet.of(
-                new PropertyTypeInEntitySetAclRequest().setRole( ROLE_USER ).setAction( Action.REMOVE ).setType( NATION_CITIZENS ).setName(NATION_SECRET_SERVICE).setPropertyType( EMPLOYEE_ID ).setPermissions( ImmutableSet.of(Permission.WRITE) ),
-                new PropertyTypeInEntitySetAclRequest().setRole( ROLE_USER ).setAction( Action.REMOVE ).setType( NATION_CITIZENS ).setName(NATION_SECRET_SERVICE).setPropertyType( ADDRESS ).setPermissions( ImmutableSet.of(Permission.WRITE) )
+                new PropertyTypeInEntitySetAclRequest().setRole( ROLE_USER ).setAction( Action.REMOVE ).setName(NATION_SECRET_SERVICE).setPropertyType( EMPLOYEE_ID ).setPermissions( ImmutableSet.of(Permission.WRITE) ),
+                new PropertyTypeInEntitySetAclRequest().setRole( ROLE_USER ).setAction( Action.REMOVE ).setName(NATION_SECRET_SERVICE).setPropertyType( ADDRESS ).setPermissions( ImmutableSet.of(Permission.WRITE) )
                 ) );
         // Cleanup: remove Reader/Writer Role, and all current Read rights.
-        ps.updateEntitySetsAcls( ImmutableSet.of( new EntitySetAclRequest().setRole( ROLE_USER ).setAction( Action.REMOVE ).setType( NATION_CITIZENS ).setEntitySetName(NATION_SECRET_SERVICE).setPermissions( ImmutableSet.of(Permission.READ, Permission.WRITE) )) );
-        ps.removeAllPropertyTypesInEntitySetAcls( ImmutableSet.of(new EntitySetAclRemovalRequest().setType( NATION_CITIZENS ).setName( NATION_SECRET_SERVICE) ) );
+        ps.updateEntitySetsAcls( ImmutableSet.of( new EntitySetAclRequest().setRole( ROLE_USER ).setAction( Action.REMOVE ).setName(NATION_SECRET_SERVICE).setPermissions( ImmutableSet.of(Permission.READ, Permission.WRITE) )) );
+        ps.removeAllPropertyTypesInEntitySetAcls( ImmutableSet.of( NATION_SECRET_SERVICE ) );
     }    
 
     private void createData(

@@ -17,7 +17,6 @@ import com.kryptnostic.datastore.services.ActionAuthorizationService;
 import com.kryptnostic.datastore.services.PermissionsApi;
 import com.kryptnostic.datastore.services.PermissionsService;
 import com.kryptnostic.datastore.services.requests.EntityTypeAclRequest;
-import com.kryptnostic.datastore.services.requests.EntitySetAclRemovalRequest;
 import com.kryptnostic.datastore.services.requests.EntitySetAclRequest;
 import com.kryptnostic.datastore.services.requests.PropertyTypeInEntitySetAclRemovalRequest;
 import com.kryptnostic.datastore.services.requests.PropertyTypeInEntitySetAclRequest;
@@ -74,20 +73,17 @@ public class PermissionsController implements PermissionsApi {
                 switch ( request.getAction() ) {
                     case ADD:
                         ps.addPermissionsForEntitySet( request.getRole(),
-                                request.getType(),
-                                request.getEntitySetName(),
+                                request.getName(),
                                 request.getPermissions() );
                         break;
                     case SET:
                         ps.setPermissionsForEntitySet( request.getRole(),
-                                request.getType(),
-                                request.getEntitySetName(),
+                                request.getName(),
                                 request.getPermissions() );
                         break;
                     case REMOVE:
                         ps.removePermissionsForEntitySet( request.getRole(),
-                                request.getType(),
-                                request.getEntitySetName(),
+                                request.getName(),
                                 request.getPermissions() );
                         break;
                 }
@@ -143,21 +139,18 @@ public class PermissionsController implements PermissionsApi {
                 switch ( request.getAction() ) {
                     case ADD:
                         ps.addPermissionsForPropertyTypeInEntitySet( request.getRole(),
-                                request.getType(),
                                 request.getName(),
                                 request.getPropertyType(),
                                 request.getPermissions() );
                         break;
                     case SET:
                         ps.setPermissionsForPropertyTypeInEntitySet( request.getRole(),
-                                request.getType(),
                                 request.getName(),
                                 request.getPropertyType(),
                                 request.getPermissions() );
                         break;
                     case REMOVE:
                         ps.removePermissionsForPropertyTypeInEntitySet( request.getRole(),
-                                request.getType(),
                                 request.getName(),
                                 request.getPropertyType(),
                                 request.getPermissions() );
@@ -189,10 +182,10 @@ public class PermissionsController implements PermissionsApi {
         method = RequestMethod.DELETE,
         consumes = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
-    public Response removeEntitySetAcls( @RequestBody Set<EntitySetAclRemovalRequest> requests ) {
+    public Response removeEntitySetAcls( @RequestBody Set<String> entitySetNames ) {
         if ( authzService.removeEntitySetAcls() ) {
-            for ( EntitySetAclRemovalRequest request : requests ) {
-                ps.removePermissionsForEntitySet( request.getType(), request.getName() );
+            for ( String entitySetName : entitySetNames ) {
+                ps.removePermissionsForEntitySet( entitySetName );
             }
         }
         return null;
@@ -219,7 +212,7 @@ public class PermissionsController implements PermissionsApi {
     @Override
     @RequestMapping(
         path = CONTROLLER + ENTITY_TYPE_BASE_PATH + PROPERTY_TYPE_BASE_PATH + ALL_PATH,
-              method = RequestMethod.DELETE,
+        method = RequestMethod.DELETE,
         consumes = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
     public Response removeAllPropertyTypesInEntityTypeAcls( @RequestBody Set<FullQualifiedName> entityTypeFqns ) {
@@ -242,7 +235,7 @@ public class PermissionsController implements PermissionsApi {
         if ( authzService.removePropertyTypeInEntitySetAcls() ) {
             for ( PropertyTypeInEntitySetAclRemovalRequest request : requests ) {
                 for ( FullQualifiedName propertyTypeFqn : request.getProperties() ) {
-                    ps.removePermissionsForPropertyTypeInEntitySet( request.getType(),
+                    ps.removePermissionsForPropertyTypeInEntitySet(
                             request.getName(),
                             propertyTypeFqn );
                 }
@@ -254,13 +247,13 @@ public class PermissionsController implements PermissionsApi {
     @Override
     @RequestMapping(
         path = CONTROLLER + ENTITY_SETS_BASE_PATH + PROPERTY_TYPE_BASE_PATH + ALL_PATH,
-              method = RequestMethod.DELETE,
+        method = RequestMethod.DELETE,
         consumes = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
-    public Response removeAllPropertyTypesInEntitySetAcls( @RequestBody Set<EntitySetAclRemovalRequest> requests ) {
+    public Response removeAllPropertyTypesInEntitySetAcls( @RequestBody Set<String> entitySetNames ) {
         if ( authzService.removeAllPropertyTypesInEntitySetAcls() ) {
-            for ( EntitySetAclRemovalRequest request : requests ) {
-                ps.removePermissionsForPropertyTypeInEntitySet( request.getType(), request.getName() );
+            for ( String entitySetName : entitySetNames ) {
+                ps.removePermissionsForPropertyTypeInEntitySet( entitySetName );
             }
         }
         return null;

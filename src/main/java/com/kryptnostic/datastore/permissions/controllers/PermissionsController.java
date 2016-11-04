@@ -212,7 +212,9 @@ public class PermissionsController implements PermissionsApi {
     @Override
     @RequestMapping(
         path = CONTROLLER + ENTITY_TYPE_BASE_PATH + PROPERTY_TYPE_BASE_PATH + ALL_PATH,
-        method = RequestMethod.DELETE,
+        //Debug by Ho Chung
+        method = RequestMethod.POST,
+//        method = RequestMethod.DELETE,
         consumes = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
     public Response removeAllPropertyTypesInEntityTypeAcls( @RequestBody Set<FullQualifiedName> entityTypeFqns ) {
@@ -247,7 +249,9 @@ public class PermissionsController implements PermissionsApi {
     @Override
     @RequestMapping(
         path = CONTROLLER + ENTITY_SETS_BASE_PATH + PROPERTY_TYPE_BASE_PATH + ALL_PATH,
-        method = RequestMethod.DELETE,
+        //Debug by Ho Chung
+        method = RequestMethod.POST,
+//        method = RequestMethod.DELETE,
         consumes = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
     public Response removeAllPropertyTypesInEntitySetAcls( @RequestBody Set<String> entitySetNames ) {

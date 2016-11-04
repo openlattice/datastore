@@ -24,7 +24,6 @@ import org.springframework.web.bind.annotation.RestController;
 import com.google.common.base.Optional;
 import com.google.common.collect.Maps;
 import com.kryptnostic.conductor.rpc.UUIDs.ACLs;
-import com.kryptnostic.conductor.rpc.odata.DetailedEntityType;
 import com.kryptnostic.conductor.rpc.odata.EntitySet;
 import com.kryptnostic.conductor.rpc.odata.EntityType;
 import com.kryptnostic.conductor.rpc.odata.PropertyType;

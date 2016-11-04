@@ -24,7 +24,6 @@ import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
-import com.kryptnostic.conductor.rpc.odata.DetailedEntityType;
 import com.kryptnostic.conductor.rpc.odata.EntitySet;
 import com.kryptnostic.conductor.rpc.odata.EntityType;
 import com.kryptnostic.conductor.rpc.odata.PropertyType;
@@ -219,7 +218,7 @@ public class PermissionsServiceTest {
         edmApi.deleteEntityType( NATION_CITIZENS.getNamespace(), NATION_CITIZENS.getName() );
         System.out.println( "Expected: Entity Type NATION_CITIZENS is removed." );
         System.out.println( "Print all entity types:" );
-        for (DetailedEntityType entityType: edmApi.getEntityTypes() ){
+        for (EntityType entityType: edmApi.getEntityTypes() ){
             System.out.println( entityType );
         }
         System.out.println(  "Printing finished." );
@@ -332,7 +331,6 @@ public class PermissionsServiceTest {
         for ( Multimap<FullQualifiedName, Object> entity : result2 ) {
             System.out.println( entity );
         }
-
         // Cleanup: remove WRITE rights for User.
         ps.updatePropertyTypeInEntityTypeAcls( ImmutableSet.of(
                 new PropertyTypeInEntityTypeAclRequest().setRole( ROLE_USER ).setAction( Action.REMOVE ).setType( NATION_CITIZENS ).setPropertyType( EMPLOYEE_ID ).setPermissions( ImmutableSet.of(Permission.WRITE) ),

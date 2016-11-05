@@ -14,23 +14,23 @@ import com.kryptnostic.conductor.rpc.odata.PropertyType;
 import com.kryptnostic.datastore.services.EdmManager;
 
 public class BootstrapDatastoreWithCassandra {
-    public static final String               NAMESPACE       = "testcsv";
-    protected static final DatastoreServices ds              = new DatastoreServices();
-    protected static final String            SALARY          = "salary";
-    protected static final String            EMPLOYEE_NAME   = "employee-name";
-    protected static final String            EMPLOYEE_TITLE  = "employee-title";
-    protected static final String            EMPLOYEE_DEPT   = "employee-dept";
-    protected static final String            EMPLOYEE_ID     = "employee-id";
-    protected static final String            ENTITY_SET_NAME = "Employees";
-    protected static final FullQualifiedName ENTITY_TYPE     = new FullQualifiedName( NAMESPACE, "employee" );
-    //created by Ho Chung to populate two more entity Types
-    protected static final FullQualifiedName ENTITY_TYPE_MARS= new FullQualifiedName( NAMESPACE, "employeeMars" );
-    protected static final FullQualifiedName ENTITY_TYPE_SATURN= new FullQualifiedName( NAMESPACE, "employeeSaturn" );
-    protected static final String            SCHEMA_NAME     = "csv";
+    public static final String               NAMESPACE          = "testcsv";
+    protected static final DatastoreServices ds                 = new DatastoreServices();
+    protected static final String            SALARY             = "salary";
+    protected static final String            EMPLOYEE_NAME      = "employee-name";
+    protected static final String            EMPLOYEE_TITLE     = "employee-title";
+    protected static final String            EMPLOYEE_DEPT      = "employee-dept";
+    protected static final String            EMPLOYEE_ID        = "employee-id";
+    protected static final String            ENTITY_SET_NAME    = "Employees";
+    protected static final FullQualifiedName ENTITY_TYPE        = new FullQualifiedName( NAMESPACE, "employee" );
+    // created by Ho Chung to populate two more entity Types
+    protected static final FullQualifiedName ENTITY_TYPE_MARS   = new FullQualifiedName( NAMESPACE, "employeeMars" );
+    protected static final FullQualifiedName ENTITY_TYPE_SATURN = new FullQualifiedName( NAMESPACE, "employeeSaturn" );
+    protected static final String            SCHEMA_NAME        = "csv";
 
     @BeforeClass
     public static void init() {
-        ds.sprout("cassandra");
+        ds.sprout( "local", "cassandra" );
         setupDatamodel();
     }
 
@@ -57,7 +57,7 @@ public class BootstrapDatastoreWithCassandra {
                         new FullQualifiedName( NAMESPACE, SALARY ) ) );
 
         dms.createEntityType( metadataLevel );
-        
+
         EntityType metadataLevelMars = new EntityType().setNamespace( NAMESPACE ).setName( ENTITY_TYPE_MARS.getName() )
                 .setKey( ImmutableSet.of( new FullQualifiedName( NAMESPACE, EMPLOYEE_ID ) ) )
                 .setProperties( ImmutableSet.of( new FullQualifiedName( NAMESPACE, EMPLOYEE_ID ),
@@ -68,7 +68,8 @@ public class BootstrapDatastoreWithCassandra {
 
         dms.createEntityType( metadataLevelMars );
 
-        EntityType metadataLevelSaturn = new EntityType().setNamespace( NAMESPACE ).setName( ENTITY_TYPE_SATURN.getName() )
+        EntityType metadataLevelSaturn = new EntityType().setNamespace( NAMESPACE )
+                .setName( ENTITY_TYPE_SATURN.getName() )
                 .setKey( ImmutableSet.of( new FullQualifiedName( NAMESPACE, EMPLOYEE_ID ) ) )
                 .setProperties( ImmutableSet.of( new FullQualifiedName( NAMESPACE, EMPLOYEE_ID ),
                         new FullQualifiedName( NAMESPACE, EMPLOYEE_TITLE ),
@@ -81,7 +82,7 @@ public class BootstrapDatastoreWithCassandra {
         dms.createEntitySet( ENTITY_TYPE,
                 ENTITY_SET_NAME,
                 "The entity set title" );
-        
+
         dms.createSchema( NAMESPACE,
                 SCHEMA_NAME,
                 ACLs.EVERYONE_ACL,

@@ -8,7 +8,7 @@ max-threads: 500
 context:
     descriptor: src/main/webapp/WEB-INF/web.xml
     resource-base: src/main/webapp
-    path: /
+    path: /datastore
     parent-loader-priority: true
 
 ##
@@ -22,7 +22,8 @@ web-endpoint:
     require-ssl: false
     require-client-auth: false
     want-client-auth: false
-    certificate-alias: startssl
+    certificate-alias: rhizomessl
+
 
 ##
 # Keystore and truststore configuration.

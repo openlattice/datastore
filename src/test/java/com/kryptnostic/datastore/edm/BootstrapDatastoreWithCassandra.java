@@ -26,7 +26,6 @@ import com.kryptnostic.datastore.services.EdmManager;
 import com.kryptnostic.datastore.services.PermissionsService;
 
 public class BootstrapDatastoreWithCassandra {
-
     @Inject
     private static HazelcastInstance            hazelcast;
 
@@ -50,43 +49,6 @@ public class BootstrapDatastoreWithCassandra {
             "employeeSaturn" );
     protected static final String               SCHEMA_NAME        = "csv";
 
-    /**
-     * WARNING By Ho Chung The God role is the super user that can manage all access rights
-     */
-    protected static final User                 USER_GOD           = new User(
-            "God",
-            new ArrayList<>( Arrays.asList( Constants.ROLE_ADMIN ) ) );
-
-    protected static class User {
-        private String       name;
-        private List<String> roles;
-
-        public User( String name, List<String> roles ) {
-            this.name = name;
-            this.roles = roles;
-        }
-
-        public List<String> getRoles() {
-            return roles;
-        }
-
-        public void setRoles( List<String> roles ) {
-            this.roles = roles;
-        }
-
-        public String getName() {
-            return name;
-        }
-
-        public void addRoles( List<String> rolesToAdd ) {
-            this.roles.addAll( rolesToAdd );
-        }
-
-        public void removeRoles( List<String> rolesToRemove ) {
-            this.roles.removeAll( rolesToRemove );
-        }
-    }
-
     @BeforeClass
     public static void init() {
         ds.sprout( "cassandra" );
@@ -95,8 +57,6 @@ public class BootstrapDatastoreWithCassandra {
         dataService = ds.getContext().getBean( DataService.class );
         authzService = ds.getContext().getBean( ActionAuthorizationService.class );
 
-        // You are God right now - this would be the superUser that has rights to do everything to the types created
-        setUser( USER_GOD );
         setupDatamodel();
     }
 
@@ -162,10 +122,4 @@ public class BootstrapDatastoreWithCassandra {
         ds.plowUnder();
     }
 
-    protected static void setUser( User user ) {
-        /**
-         * Check out feature/acl-local branch for a proper setUser function
-         * need to modify a few pods ad-hocly to get conductor's user set as well - this is removed in the final version.
-         */
-    }
 }

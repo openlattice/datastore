@@ -1,9 +1,9 @@
 status = debug
-name = TypesConfig
+name = DatastoreConfig
 
-property.serviceName = kryptnostic-types
-property.rootDir = /opt/kryptnostic/
-property.runningDir = ${rootDir}/deploy/
+property.serviceName = datastore
+property.rootDir = /opt/loom
+property.runningDir = ${rootDir}
 property.rollingDir = ${rootDir}/logging/
 
 appenders = console, rolling

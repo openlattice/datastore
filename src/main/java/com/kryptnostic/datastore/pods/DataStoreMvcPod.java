@@ -1,10 +1,9 @@
 package com.kryptnostic.datastore.pods;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.kryptnostic.datastore.constants.CustomMediaType;
-import com.kryptnostic.datastore.constants.DatastoreConstants;
-import com.kryptnostic.datastore.converters.CsvHttpMessageConverter;
-import com.ryantenney.metrics.spring.config.annotation.EnableMetrics;
+import java.util.List;
+
+import javax.inject.Inject;
+
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.FilterType;
@@ -13,12 +12,14 @@ import org.springframework.http.converter.HttpMessageConverter;
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
 import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.web.servlet.config.annotation.ContentNegotiationConfigurer;
+import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurationSupport;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.kryptnostic.datastore.constants.CustomMediaType;
+import com.kryptnostic.datastore.constants.DatastoreConstants;
+import com.kryptnostic.datastore.converters.CsvHttpMessageConverter;
 import com.ryantenney.metrics.spring.config.annotation.EnableMetrics;
-import javax.inject.Inject;
-import java.util.List;
 
 /**
  * Created by yao on 9/20/16.
@@ -49,6 +50,16 @@ public class DataStoreMvcPod extends WebMvcConfigurationSupport {
             }
         }
         converters.add( new CsvHttpMessageConverter() );
+    }
+
+    //TODO: We need to lock this down. Since all endpoints are stateless + authenticated this is more a defense-in-depth measure.
+    @Override
+    protected void addCorsMappings(CorsRegistry registry) {
+        registry
+            .addMapping("/**")
+            .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
+            .allowedOrigins("*");
+        super.addCorsMappings(registry);
     }
 
     @Override

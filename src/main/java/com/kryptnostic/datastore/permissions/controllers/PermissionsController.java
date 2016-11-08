@@ -45,13 +45,13 @@ public class PermissionsController implements PermissionsApi {
             for ( EntityTypeAclRequest request : requests ) {
                 switch ( request.getAction() ) {
                     case ADD:
-                        ps.addPermissionsForEntityType( request.getRole(), request.getType(), request.getPermissions() );
+                        ps.addPermissionsForEntityType( request.getPrincipal(), request.getType(), request.getPermissions() );
                         break;
                     case SET:
-                        ps.setPermissionsForEntityType( request.getRole(), request.getType(), request.getPermissions() );
+                        ps.setPermissionsForEntityType( request.getPrincipal(), request.getType(), request.getPermissions() );
                         break;
                     case REMOVE:
-                        ps.removePermissionsForEntityType( request.getRole(),
+                        ps.removePermissionsForEntityType( request.getPrincipal(),
                                 request.getType(),
                                 request.getPermissions() );
                         break;
@@ -72,17 +72,17 @@ public class PermissionsController implements PermissionsApi {
             for ( EntitySetAclRequest request : requests ) {
                 switch ( request.getAction() ) {
                     case ADD:
-                        ps.addPermissionsForEntitySet( request.getRole(),
+                        ps.addPermissionsForEntitySet( request.getPrincipal(),
                                 request.getName(),
                                 request.getPermissions() );
                         break;
                     case SET:
-                        ps.setPermissionsForEntitySet( request.getRole(),
+                        ps.setPermissionsForEntitySet( request.getPrincipal(),
                                 request.getName(),
                                 request.getPermissions() );
                         break;
                     case REMOVE:
-                        ps.removePermissionsForEntitySet( request.getRole(),
+                        ps.removePermissionsForEntitySet( request.getPrincipal(),
                                 request.getName(),
                                 request.getPermissions() );
                         break;
@@ -104,19 +104,19 @@ public class PermissionsController implements PermissionsApi {
             for ( PropertyTypeInEntityTypeAclRequest request : requests ) {
                 switch ( request.getAction() ) {
                     case ADD:
-                        ps.addPermissionsForPropertyTypeInEntityType( request.getRole(),
+                        ps.addPermissionsForPropertyTypeInEntityType( request.getPrincipal(),
                                 request.getType(),
                                 request.getPropertyType(),
                                 request.getPermissions() );
                         break;
                     case SET:
-                        ps.setPermissionsForPropertyTypeInEntityType( request.getRole(),
+                        ps.setPermissionsForPropertyTypeInEntityType( request.getPrincipal(),
                                 request.getType(),
                                 request.getPropertyType(),
                                 request.getPermissions() );
                         break;
                     case REMOVE:
-                        ps.removePermissionsForPropertyTypeInEntityType( request.getRole(),
+                        ps.removePermissionsForPropertyTypeInEntityType( request.getPrincipal(),
                                 request.getType(),
                                 request.getPropertyType(),
                                 request.getPermissions() );
@@ -138,19 +138,19 @@ public class PermissionsController implements PermissionsApi {
             for ( PropertyTypeInEntitySetAclRequest request : requests ) {
                 switch ( request.getAction() ) {
                     case ADD:
-                        ps.addPermissionsForPropertyTypeInEntitySet( request.getRole(),
+                        ps.addPermissionsForPropertyTypeInEntitySet( request.getPrincipal(),
                                 request.getName(),
                                 request.getPropertyType(),
                                 request.getPermissions() );
                         break;
                     case SET:
-                        ps.setPermissionsForPropertyTypeInEntitySet( request.getRole(),
+                        ps.setPermissionsForPropertyTypeInEntitySet( request.getPrincipal(),
                                 request.getName(),
                                 request.getPropertyType(),
                                 request.getPermissions() );
                         break;
                     case REMOVE:
-                        ps.removePermissionsForPropertyTypeInEntitySet( request.getRole(),
+                        ps.removePermissionsForPropertyTypeInEntitySet( request.getPrincipal(),
                                 request.getName(),
                                 request.getPropertyType(),
                                 request.getPermissions() );

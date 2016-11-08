@@ -35,6 +35,7 @@ public class Datastore extends BaseRhizomeServer {
             BaseSerializersPod.class,
             RegistryBasedHazelcastInstanceConfigurationPod.class,
             Auth0Pod.class};
+            
     public static final Class<?>[] datastorePods = new Class<?>[] {
             DatastoreServicesPod.class,
             DatastoreTypeCodecsPod.class, DatastoreStreamSerializersPod.class

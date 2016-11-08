@@ -27,7 +27,7 @@ import com.ryantenney.metrics.spring.config.annotation.EnableMetrics;
 @Configuration
 @ComponentScan(
     basePackages = { "com.kryptnostic.datastore.data.controllers", "com.kryptnostic.datastore.edm.controllers",
-            "com.kryptnostic.datastore.util" },
+            "com.kryptnostic.datastore.util", "com.kryptnostic.datastore.permissions.controllers" },
     includeFilters = @ComponentScan.Filter(
         value = { org.springframework.stereotype.Controller.class, org.springframework.stereotype.Service.class,
                 org.springframework.web.bind.annotation.ControllerAdvice.class },

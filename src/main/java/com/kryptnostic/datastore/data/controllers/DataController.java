@@ -2,10 +2,13 @@ package com.kryptnostic.datastore.data.controllers;
 
 import com.kryptnostic.datastore.constants.DatastoreConstants;
 
+import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import javax.inject.Inject;
 import javax.servlet.http.HttpServletResponse;
@@ -24,11 +27,14 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.google.common.collect.Multimap;
-import com.kryptnostic.conductor.rpc.CreateEntityRequest;
 import com.kryptnostic.conductor.rpc.LookupEntitiesRequest;
+import com.kryptnostic.conductor.rpc.odata.EntityType;
 import com.kryptnostic.datastore.constants.CustomMediaType;
+import com.kryptnostic.datastore.services.ActionAuthorizationService;
 import com.kryptnostic.datastore.services.DataApi;
 import com.kryptnostic.datastore.services.DataService;
+import com.kryptnostic.datastore.services.EdmManager;
+import com.kryptnostic.datastore.services.requests.CreateEntityRequest;
 import com.squareup.okhttp.Response;
 
 @RestController
@@ -42,8 +48,14 @@ public class DataController implements DataApi {
     }
 
     @Inject
+    private EdmManager dms;
+    
+    @Inject
     private DataService dataService;
 
+    @Inject
+    private ActionAuthorizationService authzService;
+    
     @RequestMapping(
         path = { "/object/{id}" },
         method = RequestMethod.GET,
@@ -66,10 +78,10 @@ public class DataController implements DataApi {
                 value = DatastoreConstants.FILE_TYPE,
                 required = false ) FileType fileType,
             HttpServletResponse response ) {
-        String fileName = entitySetName;
-        setContentDisposition( response, fileName, fileType );
-        setDownloadContentType( response, fileType );
-        return getAllEntitiesOfEntitySet( entitySetName, entityTypeNamespace, entityTypeName );
+            String fileName = entitySetName;
+            setContentDisposition( response, fileName, fileType );
+            setDownloadContentType( response, fileType );
+            return getAllEntitiesOfEntitySet( entitySetName, entityTypeNamespace, entityTypeName );
     }
 
     @Override
@@ -77,7 +89,15 @@ public class DataController implements DataApi {
             String entitySetName,
             String entityTypeNamespace,
             String entityTypeName ) {
-        return dataService.getAllEntitiesOfEntitySet( entitySetName, entityTypeNamespace, entityTypeName );
+
+        if( authzService.getAllEntitiesOfEntitySet( entitySetName ) ){
+            EntityType entityType = dms.getEntityType( entityTypeNamespace, entityTypeName );
+            Set<FullQualifiedName> authorizedPropertyFqns = entityType.getProperties().stream()
+                    .filter( propertyTypeFqn -> authzService.readPropertyTypeInEntitySet( entitySetName, propertyTypeFqn ) )
+                    .collect( Collectors.toSet() );
+            return dataService.getAllEntitiesOfEntitySet( entitySetName, entityTypeNamespace, entityTypeName, authorizedPropertyFqns );
+        }
+        return null;
     }
 
     private static void setDownloadContentType( HttpServletResponse response, FileType fileType ) {
@@ -119,7 +139,14 @@ public class DataController implements DataApi {
     @Override
     public Iterable<Multimap<FullQualifiedName, Object>> getAllEntitiesOfType(
             FullQualifiedName fqn ) {
-        return dataService.readAllEntitiesOfType( fqn );
+        if( authzService.getAllEntitiesOfType( fqn ) ){
+            EntityType entityType = dms.getEntityType( fqn );
+            Set<FullQualifiedName> authorizedPropertyFqns = entityType.getProperties().stream()
+                    .filter( propertyTypeFqn -> authzService.readPropertyTypeInEntityType( fqn, propertyTypeFqn ) )
+                    .collect( Collectors.toSet() );
+            return dataService.readAllEntitiesOfType( fqn, authorizedPropertyFqns );
+        }
+        return null;
     }
 
     @RequestMapping(
@@ -190,7 +217,18 @@ public class DataController implements DataApi {
     @Override
     public Iterable<Iterable<Multimap<FullQualifiedName, Object>>> getAllEntitiesOfTypes(
             List<FullQualifiedName> fqns ) {
-        return dataService.readAllEntitiesOfSchema( fqns );
+        Map<FullQualifiedName, Collection<FullQualifiedName>> entityTypesAndAuthorizedProperties = new HashMap<>();
+        
+        for( FullQualifiedName fqn : fqns ){
+            EntityType entityType = dms.getEntityType( fqn );
+            if( authzService.getAllEntitiesOfType( fqn ) ){
+                Set<FullQualifiedName> authorizedPropertyFqns = entityType.getProperties().stream()
+                        .filter( propertyTypeFqn -> authzService.readPropertyTypeInEntityType( fqn, propertyTypeFqn ) )
+                        .collect( Collectors.toSet() );
+                entityTypesAndAuthorizedProperties.put( fqn,  authorizedPropertyFqns );
+            } //TODO log error messages if user doesn't have privilege to read some types
+        }
+        return dataService.readAllEntitiesOfSchema( entityTypesAndAuthorizedProperties );
     }
 
     @Override
@@ -212,7 +250,31 @@ public class DataController implements DataApi {
         produces = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
     public Response createEntityData( @RequestBody CreateEntityRequest createEntityRequest ) {
-        dataService.createEntityData( createEntityRequest );
+        boolean entitySetNamePresent = createEntityRequest.getEntitySetName().isPresent();        
+        boolean authorizedToWrite;
+        
+        if ( entitySetNamePresent ) {
+            authorizedToWrite = authzService.createEntityOfEntitySet( createEntityRequest.getEntitySetName().get() );
+        } else {
+            authorizedToWrite = authzService.createEntityOfEntityType( createEntityRequest.getEntityType() );
+        }
+        
+        if( authorizedToWrite ){
+            EntityType entityType = dms.getEntityType( createEntityRequest.getEntityType() );
+            Set<FullQualifiedName> authorizedPropertyFqns;
+            
+            if( entitySetNamePresent ){
+                authorizedPropertyFqns = entityType.getProperties().stream()
+                        .filter( propertyTypeFqn -> authzService.writePropertyTypeInEntitySet( createEntityRequest.getEntitySetName().get(), propertyTypeFqn ) )
+                        .collect( Collectors.toSet() );
+            } else {
+                authorizedPropertyFqns = entityType.getProperties().stream()
+                        .filter( propertyTypeFqn -> authzService.writePropertyTypeInEntityType( createEntityRequest.getEntityType(), propertyTypeFqn ) )
+                        .collect( Collectors.toSet() );
+            }
+            
+            dataService.createEntityData( createEntityRequest, authorizedPropertyFqns );
+        }
         return null;
     }
 

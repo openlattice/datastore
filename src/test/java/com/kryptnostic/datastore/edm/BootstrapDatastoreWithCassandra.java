@@ -1,6 +1,11 @@
 package com.kryptnostic.datastore.edm;
 
-import com.kryptnostic.datastore.exceptions.BadRequestException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.concurrent.ExecutionException;
+import javax.inject.Inject;
+
 import org.apache.olingo.commons.api.edm.EdmPrimitiveTypeKind;
 import org.apache.olingo.commons.api.edm.FullQualifiedName;
 import org.junit.AfterClass;
@@ -8,34 +13,54 @@ import org.junit.Assert;
 import org.junit.BeforeClass;
 
 import com.google.common.collect.ImmutableSet;
+import com.hazelcast.core.HazelcastInstance;
+import com.kryptnostic.conductor.rpc.ConductorCall;
+import com.kryptnostic.conductor.rpc.Lambdas;
 import com.kryptnostic.conductor.rpc.UUIDs.ACLs;
 import com.kryptnostic.conductor.rpc.odata.EntityType;
 import com.kryptnostic.conductor.rpc.odata.PropertyType;
+import com.kryptnostic.datastore.services.ActionAuthorizationService;
+import com.kryptnostic.datastore.services.Constants;
+import com.kryptnostic.datastore.services.DataService;
 import com.kryptnostic.datastore.services.EdmManager;
+import com.kryptnostic.datastore.services.PermissionsService;
 
 public class BootstrapDatastoreWithCassandra {
-    public static final String               NAMESPACE          = "testcsv";
-    protected static final DatastoreServices ds                 = new DatastoreServices();
-    protected static final String            SALARY             = "salary";
-    protected static final String            EMPLOYEE_NAME      = "employee-name";
-    protected static final String            EMPLOYEE_TITLE     = "employee-title";
-    protected static final String            EMPLOYEE_DEPT      = "employee-dept";
-    protected static final String            EMPLOYEE_ID        = "employee-id";
-    protected static final String            ENTITY_SET_NAME    = "Employees";
-    protected static final FullQualifiedName ENTITY_TYPE        = new FullQualifiedName( NAMESPACE, "employee" );
+    @Inject
+    private static HazelcastInstance            hazelcast;
+
+    public static final String                  NAMESPACE          = "testcsv";
+    protected static final DatastoreServices    ds                 = new DatastoreServices();
+    protected static EdmManager                 dms;
+    protected static PermissionsService         ps;
+    protected static DataService                dataService;
+    protected static ActionAuthorizationService authzService;
+    protected static final String               SALARY             = "salary";
+    protected static final String               EMPLOYEE_NAME      = "employee-name";
+    protected static final String               EMPLOYEE_TITLE     = "employee-title";
+    protected static final String               EMPLOYEE_DEPT      = "employee-dept";
+    protected static final String               EMPLOYEE_ID        = "employee-id";
+    protected static final String               ENTITY_SET_NAME    = "Employees";
+    protected static final FullQualifiedName    ENTITY_TYPE        = new FullQualifiedName( NAMESPACE, "employee" );
     // created by Ho Chung to populate two more entity Types
-    protected static final FullQualifiedName ENTITY_TYPE_MARS   = new FullQualifiedName( NAMESPACE, "employeeMars" );
-    protected static final FullQualifiedName ENTITY_TYPE_SATURN = new FullQualifiedName( NAMESPACE, "employeeSaturn" );
-    protected static final String            SCHEMA_NAME        = "csv";
+    protected static final FullQualifiedName    ENTITY_TYPE_MARS   = new FullQualifiedName( NAMESPACE, "employeeMars" );
+    protected static final FullQualifiedName    ENTITY_TYPE_SATURN = new FullQualifiedName(
+            NAMESPACE,
+            "employeeSaturn" );
+    protected static final String               SCHEMA_NAME        = "csv";
 
     @BeforeClass
     public static void init() {
-        ds.sprout( "local", "cassandra" );
+        ds.sprout( "cassandra" );
+        dms = ds.getContext().getBean( EdmManager.class );
+        ps = ds.getContext().getBean( PermissionsService.class );
+        dataService = ds.getContext().getBean( DataService.class );
+        authzService = ds.getContext().getBean( ActionAuthorizationService.class );
+
         setupDatamodel();
     }
 
     private static void setupDatamodel() {
-        EdmManager dms = ds.getContext().getBean( EdmManager.class );
 
         dms.createPropertyType( new PropertyType().setNamespace( NAMESPACE ).setName( EMPLOYEE_ID )
                 .setDatatype( EdmPrimitiveTypeKind.Guid ).setMultiplicity( 0 ) );
@@ -89,12 +114,12 @@ public class BootstrapDatastoreWithCassandra {
                 ImmutableSet.of( ENTITY_TYPE, ENTITY_TYPE_MARS, ENTITY_TYPE_SATURN ) );
 
         Assert.assertTrue(
-                dms.isExistingEntitySet( ENTITY_TYPE, ENTITY_SET_NAME ) );
-
+                dms.isExistingEntitySet( ENTITY_SET_NAME ) );
     }
 
     @AfterClass
     public static void shutdown() {
         ds.plowUnder();
     }
+
 }

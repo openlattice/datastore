@@ -265,11 +265,11 @@ public class DataController implements DataApi {
             
             if( entitySetNamePresent ){
                 authorizedPropertyFqns = entityType.getProperties().stream()
-                        .filter( propertyTypeFqn -> authzService.writePropertyTypeInEntitySet( createEntityRequest.getEntitySetName().get(), propertyTypeFqn ) )
+                        .filter( propertyTypeFqn -> authzService.readPropertyTypeInEntitySet( createEntityRequest.getEntitySetName().get(), propertyTypeFqn ) )
                         .collect( Collectors.toSet() );
             } else {
                 authorizedPropertyFqns = entityType.getProperties().stream()
-                        .filter( propertyTypeFqn -> authzService.writePropertyTypeInEntityType( createEntityRequest.getEntityType(), propertyTypeFqn ) )
+                        .filter( propertyTypeFqn -> authzService.readPropertyTypeInEntityType( createEntityRequest.getEntityType(), propertyTypeFqn ) )
                         .collect( Collectors.toSet() );
             }
             

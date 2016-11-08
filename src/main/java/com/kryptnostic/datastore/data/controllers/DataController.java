@@ -259,6 +259,9 @@ public class DataController implements DataApi {
             authorizedToWrite = authzService.createEntityOfEntityType( createEntityRequest.getEntityType() );
         }
         
+        System.out.println( "Entity Type " + createEntityRequest.getEntityType() );
+        System.out.println( "Authorization to write " + authorizedToWrite );
+        
         if( authorizedToWrite ){
             EntityType entityType = dms.getEntityType( createEntityRequest.getEntityType() );
             Set<FullQualifiedName> authorizedPropertyFqns;

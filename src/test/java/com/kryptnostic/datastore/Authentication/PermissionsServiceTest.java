@@ -105,7 +105,7 @@ public class PermissionsServiceTest {
         client = auth0.newAuthenticationAPIClient();
         String jwtToken = AuthenticationTest.authenticate().getLeft().getIdToken();
         dataServiceRestAdapter = new RestAdapter.Builder()
-                .setEndpoint( "http://localhost:8080/ontology" )
+                .setEndpoint( "http://localhost:8080/datastore/ontology" )
                 .setRequestInterceptor(
                         (RequestInterceptor) facade -> facade.addHeader( "Authorization", "Bearer " + jwtToken ) )
                 .setConverter( new RhizomeConverter() )
@@ -155,7 +155,7 @@ public class PermissionsServiceTest {
 
     }
 
-    @AfterClass
+    @Ignore
     public static void cleanUp() {
         // Give permissions
         ps.updateEntityTypesAcls(

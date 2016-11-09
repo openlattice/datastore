@@ -21,6 +21,7 @@ import com.auth0.authentication.AuthenticationAPIClient;
 import com.geekbeast.rhizome.tests.bootstrap.DefaultErrorHandler;
 import com.google.common.base.Optional;
 import com.google.common.collect.HashMultimap;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
@@ -34,6 +35,7 @@ import com.kryptnostic.datastore.PrincipalType;
 import com.kryptnostic.datastore.services.DataApi;
 import com.kryptnostic.datastore.services.EdmApi;
 import com.kryptnostic.datastore.services.PermissionsApi;
+import com.kryptnostic.datastore.services.PermissionsService;
 import com.kryptnostic.datastore.services.requests.Action;
 import com.kryptnostic.datastore.services.requests.CreateEntityRequest;
 import com.kryptnostic.datastore.services.requests.EntitySetAclRequest;
@@ -155,7 +157,7 @@ public class PermissionsServiceTest {
 
     }
 
-    @Ignore
+    @AfterClass
     public static void cleanUp() {
         // Give permissions
         ps.updateEntityTypesAcls(

@@ -327,12 +327,12 @@ public class PermissionsServiceTest {
         ps.updateEntitySetsAcls(
                 ImmutableSet.of( new EntitySetAclRequest().setPrincipal( principal ).setAction( Action.ADD )
                         .setName( NATION_SECRET_SERVICE ).setPermissions( EnumSet.of( Permission.DISCOVER ) ) ) );
-        Assert.assertNotEquals( 0, Iterables.size( edmApi.getEntitySets() ) );
+        Assert.assertNotEquals( 0, Iterables.size( edmApi.getEntitySets( null ) ) );
 
         ps.updateEntitySetsAcls(
                 ImmutableSet.of( new EntitySetAclRequest().setPrincipal( principal ).setAction( Action.REMOVE )
                         .setName( NATION_SECRET_SERVICE ).setPermissions( EnumSet.of( Permission.DISCOVER ) ) ) );
-        Assert.assertEquals( 0, Iterables.size( edmApi.getEntitySets() ) );
+        Assert.assertEquals( 0, Iterables.size( edmApi.getEntitySets( null ) ) );
         
         // Setup: Citizen creates a new entity set in NATION_CITIZENS.
         String DYSTOPIANS = "dystopians";
@@ -354,8 +354,8 @@ public class PermissionsServiceTest {
                         .setName( NATION_SECRET_SERVICE ).setPermissions( EnumSet.of( Permission.DISCOVER ) ) ) );
         System.out.println( "--- Test 3 ---" );
         System.out.println( "Permissions for entity sets are:" );
-        for( EntitySetWithPermissions entitySet: edmApi.getEntitySets() ){
-            System.out.println( "Entity Set: " + entitySet.getName() + " Permissions " + entitySet.getPermissions() );
+        for( EntitySet entitySet: edmApi.getEntitySets( null ) ){
+            System.out.println( "Entity Set: " + entitySet.getName() + " Permissions " + ((EntitySetWithPermissions) entitySet).getPermissions() );
         }
         // Test 3.5: Remove DISCOVER permission for Secret Service. Citizen does getEntitySets
         // Expected: Citizen does not discover SECRET_SERVICE, has owner permissions for new entity set.
@@ -364,8 +364,8 @@ public class PermissionsServiceTest {
                         .setName( NATION_SECRET_SERVICE ).setPermissions( EnumSet.of( Permission.DISCOVER ) ) ) );
         System.out.println( "--- Test 3.5 ---" );
         System.out.println( "Permissions for entity sets are:" );
-        for( EntitySetWithPermissions entitySet: edmApi.getEntitySets() ){
-            System.out.println( "Entity Set: " + entitySet.getName() + " Permissions " + entitySet.getPermissions() );
+        for( EntitySet entitySet: edmApi.getEntitySets( null ) ){
+            System.out.println( "Entity Set: " + entitySet.getName() + " Permissions " + ((EntitySetWithPermissions) entitySet).getPermissions() );
         }
         
         // Test 4: Give permissions of the entity set to users and roles. Citizens check for permissions for the entity set
@@ -946,7 +946,7 @@ public class PermissionsServiceTest {
         edmApi.postEntitySets( ImmutableSet.of(cate, doge) ); 
         //Sanity check for ownership
         System.out.println( "--- SANITY TEST FOR OWNERSHIP OF CATE AND DOGE --- " );
-        System.out.println( edmApi.getEntitySets() );
+        System.out.println( edmApi.getEntitySets( null ) );
         
         //Add permissions request
         permissionsService.addPermissionsRequestForPropertyTypeInEntitySet( 

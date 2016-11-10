@@ -19,11 +19,13 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 import com.kryptnostic.conductor.rpc.UUIDs.ACLs;
 import com.kryptnostic.conductor.rpc.odata.EntitySet;
 import com.kryptnostic.conductor.rpc.odata.EntityType;
@@ -48,8 +50,8 @@ public class EdmController implements EdmApi {
     private EdmManager                 modelService;
 
     @Inject
-    private PermissionsService  ps;
-    
+    private PermissionsService         ps;
+
     @Inject
     private ActionAuthorizationService authzService;
 
@@ -172,14 +174,35 @@ public class EdmController implements EdmApi {
         method = RequestMethod.GET,
         produces = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
-    public Iterable<EntitySetWithPermissions> getEntitySets() {
+    public Iterable<? extends EntitySet> getEntitySets( @RequestParam( value = IS_OWNER, required = false ) Boolean isOwner ) {
         String username = authzService.getUsername();
         List<String> currentRoles = authzService.getRoles();
-        
-        return StreamSupport.stream( modelService.getEntitySets().spliterator(), false )
-                .filter( entitySet -> authzService.getEntitySet( entitySet.getName() ) )
-                .map( entitySet -> new EntitySetWithPermissions().fromEntitySet( entitySet ).setPermissions( ps.getEntitySetAclsForUser( username, currentRoles, entitySet.getName() ) ) )
-                .collect(Collectors.toList() );
+
+        Set<String> ownedSets = Sets.newHashSet( modelService.getEntitySetNamesUserOwns( username ) );
+
+        if( isOwner != null ){
+            if( isOwner ){
+                // isOwner = true -> return all entity sets owned
+                return modelService.getEntitySetsUserOwns( username );
+            } else {
+                // isOwner = false -> return all entity sets not owned, with permissions
+                return StreamSupport.stream( modelService.getEntitySets().spliterator(), false )
+                        .filter( entitySet -> !ownedSets.contains( entitySet.getName() ) )
+                        .filter( entitySet -> authzService.getEntitySet( entitySet.getName() ) )
+                        .map( entitySet -> new EntitySetWithPermissions().fromEntitySet( entitySet )
+                                .setPermissions( ps.getEntitySetAclsForUser( username, currentRoles, entitySet.getName() ) )
+                                .setIsOwner( false ) )
+                        .collect( Collectors.toList() );
+            }
+        } else {
+            //No query parameter -> return all entity sets
+            return StreamSupport.stream( modelService.getEntitySets().spliterator(), false )
+                    .filter( entitySet -> authzService.getEntitySet( entitySet.getName() ) )
+                    .map( entitySet -> new EntitySetWithPermissions().fromEntitySet( entitySet )
+                            .setPermissions( ps.getEntitySetAclsForUser( username, currentRoles, entitySet.getName() ) )
+                            .setIsOwner( ownedSets.contains( entitySet.getName() ) ) )
+                    .collect( Collectors.toList() );
+        }
     }
 
     @Override
@@ -246,17 +269,18 @@ public class EdmController implements EdmApi {
 
     @Override
     @RequestMapping(
-            path = ENTITY_TYPE_BASE_PATH + DETAILS_PATH,
-            method = RequestMethod.GET,
-            produces = MediaType.APPLICATION_JSON_VALUE )
+        path = ENTITY_TYPE_BASE_PATH + DETAILS_PATH,
+        method = RequestMethod.GET,
+        produces = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
     public Iterable<EntityTypeWithDetails> getEntityTypesWithDetails() {
         return StreamSupport.stream( modelService.getEntityTypes().spliterator(), false )
                 .map( entityType -> new EntityTypeWithDetails(
                         entityType,
                         entityType.getProperties().stream()
-                                .collect( Collectors.toMap( fqn -> fqn, fqn -> modelService.getPropertyType( fqn ) ) )
-                ) ).collect( Collectors.toSet() );
+                                .collect(
+                                        Collectors.toMap( fqn -> fqn, fqn -> modelService.getPropertyType( fqn ) ) ) ) )
+                .collect( Collectors.toSet() );
     }
 
     @Override

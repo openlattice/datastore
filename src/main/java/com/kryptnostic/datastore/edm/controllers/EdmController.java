@@ -1,6 +1,7 @@
 package com.kryptnostic.datastore.edm.controllers;
 
 import java.util.EnumSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -28,6 +29,7 @@ import com.kryptnostic.conductor.rpc.odata.EntitySet;
 import com.kryptnostic.conductor.rpc.odata.EntityType;
 import com.kryptnostic.conductor.rpc.odata.PropertyType;
 import com.kryptnostic.conductor.rpc.odata.Schema;
+import com.kryptnostic.datastore.Permission;
 import com.kryptnostic.datastore.ServerUtil;
 import com.kryptnostic.datastore.exceptions.ResourceNotFoundException;
 import com.kryptnostic.datastore.services.ActionAuthorizationService;
@@ -45,6 +47,9 @@ public class EdmController implements EdmApi {
     @Inject
     private EdmManager                 modelService;
 
+    @Inject
+    private PermissionsService  ps;
+    
     @Inject
     private ActionAuthorizationService authzService;
 
@@ -141,7 +146,7 @@ public class EdmController implements EdmApi {
 
         for ( EntitySet entitySet : entitySets ) {
             results.put( entitySet.getType().getFullQualifiedNameAsString(),
-                    modelService.createEntitySet( entitySet ) );
+                    modelService.createEntitySet( Optional.fromNullable( authzService.getUsername() ), entitySet ) );
         }
 
         return results;
@@ -167,9 +172,14 @@ public class EdmController implements EdmApi {
         method = RequestMethod.GET,
         produces = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
-    public Iterable<EntitySet> getEntitySets() {
+    public Iterable<EntitySetWithPermissions> getEntitySets() {
+        String username = authzService.getUsername();
+        List<String> currentRoles = authzService.getRoles();
+        
         return StreamSupport.stream( modelService.getEntitySets().spliterator(), false )
-                .filter( entitySet -> authzService.getEntitySet( entitySet.getName() ) ).collect( Collectors.toList() );
+                .filter( entitySet -> authzService.getEntitySet( entitySet.getName() ) )
+                .map( entitySet -> new EntitySetWithPermissions().fromEntitySet( entitySet ).setPermissions( ps.getEntitySetAclsForUser( username, currentRoles, entitySet.getName() ) ) )
+                .collect(Collectors.toList() );
     }
 
     @Override
@@ -220,7 +230,7 @@ public class EdmController implements EdmApi {
         method = RequestMethod.PUT )
     @ResponseStatus( HttpStatus.OK )
     public Response putEntityType( @RequestBody EntityType entityType ) {
-        modelService.createEntityType( entityType );
+        modelService.createEntityType( Optional.fromNullable( authzService.getUsername() ), entityType );
         return null;
     }
 
@@ -290,7 +300,7 @@ public class EdmController implements EdmApi {
         consumes = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
     public Response postEntityType( @RequestBody EntityType objectType ) {
-        modelService.createEntityType( objectType );
+        modelService.createEntityType( Optional.fromNullable( authzService.getUsername() ), objectType );
         return null;
     }
 
@@ -392,9 +402,7 @@ public class EdmController implements EdmApi {
     @Override
     @RequestMapping(
         path = ENTITY_TYPE_BASE_PATH + NAMESPACE_PATH + NAME_PATH + DELETE_PROPERTY_TYPES_PATH,
-        //Debug by Ho Chung
-        method = RequestMethod.POST,
-//        method = RequestMethod.DELETE,
+        method = RequestMethod.DELETE,
         consumes = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
     public Response removePropertyTypesFromEntityType(

@@ -1,9 +1,13 @@
 package com.kryptnostic.datastore.Authentication;
 
+import java.util.EnumSet;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 import java.util.UUID;
+
+import javax.ws.rs.NotFoundException;
 
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.olingo.commons.api.edm.EdmPrimitiveTypeKind;
@@ -26,14 +30,18 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import com.kryptnostic.conductor.rpc.odata.EntitySet;
+import com.kryptnostic.conductor.rpc.odata.EntitySetWithPermissions;
 import com.kryptnostic.conductor.rpc.odata.EntityType;
 import com.kryptnostic.conductor.rpc.odata.PropertyType;
 import com.kryptnostic.datastore.Datastore;
 import com.kryptnostic.datastore.Permission;
+import com.kryptnostic.datastore.PermissionsInfo;
 import com.kryptnostic.datastore.Principal;
 import com.kryptnostic.datastore.PrincipalType;
+import com.kryptnostic.datastore.exceptions.ResourceNotFoundException;
 import com.kryptnostic.datastore.services.DataApi;
 import com.kryptnostic.datastore.services.EdmApi;
+import com.kryptnostic.datastore.services.EdmService;
 import com.kryptnostic.datastore.services.PermissionsApi;
 import com.kryptnostic.datastore.services.PermissionsService;
 import com.kryptnostic.datastore.services.requests.Action;
@@ -96,7 +104,9 @@ public class PermissionsServiceTest {
     protected static AuthenticationAPIClient client;
     protected static DataApi                 dataApi;
     protected static EdmApi                  edmApi;
+    protected static EdmService              edmService;
     protected static PermissionsApi          ps;
+    protected static PermissionsService      permissionsService;
     protected static RestAdapter             dataServiceRestAdapter;
 
     @BeforeClass
@@ -123,12 +133,14 @@ public class PermissionsServiceTest {
         dataApi = dataServiceRestAdapter.create( DataApi.class );
         edmApi = dataServiceRestAdapter.create( EdmApi.class );
         ps = dataServiceRestAdapter.create( PermissionsApi.class );
+        edmService = ds.getContext().getBean( EdmService.class );
+        permissionsService = ds.getContext().getBean( PermissionsService.class );
     }
 
     @Test
     public void permissionsServiceTest() {
         createTypes();
-        
+/**        
         System.out.println( "*********************" );
         System.out.println( "ROLE TESTS START!" );
         System.out.println( "*********************" );
@@ -136,7 +148,7 @@ public class PermissionsServiceTest {
         entityTypeTest( ROLE_USER );
         entitySetTest( ROLE_USER);
         propertyTypeInEntityTypeTest( ROLE_USER );
-        propertyTypeInEntitySetTest( ROLE_USER);
+        propertyTypeInEntitySetTest( ROLE_USER );
         
         System.out.println( "*********************" );
         System.out.println( "ROLE TESTS END!" );
@@ -154,7 +166,16 @@ public class PermissionsServiceTest {
         System.out.println( "*********************" );
         System.out.println( "USER TESTS END!" );
         System.out.println( "*********************" );
-
+*/        
+        System.out.println( "*********************" );
+        System.out.println( "REQUEST ACCESS TESTS START!" );
+        System.out.println( "*********************" );
+        
+        requestAccess();
+        
+        System.out.println( "*********************" );
+        System.out.println( "REQUEST ACCESS TESTS END!" );
+        System.out.println( "*********************" );
     }
 
     @AfterClass
@@ -162,14 +183,13 @@ public class PermissionsServiceTest {
         // Give permissions
         ps.updateEntityTypesAcls(
                 ImmutableSet.of( new EntityTypeAclRequest().setPrincipal( ROLE_USER ).setAction( Action.ADD )
-                        .setType( NATION_CITIZENS ).setPermissions( ImmutableSet.of( Permission.ALTER ) ) ) );
+                        .setType( NATION_CITIZENS ).setPermissions( EnumSet.of( Permission.ALTER ) ) ) );
 
         // Delete
         edmApi.deletePropertyType( EMPLOYEE_ID.getNamespace(), EMPLOYEE_ID.getName() );
         edmApi.deletePropertyType( LIFE_EXPECTANCY.getNamespace(), LIFE_EXPECTANCY.getName() );
         edmApi.deletePropertyType( ADDRESS.getNamespace(), ADDRESS.getName() );
         edmApi.deletePropertyType( POSITION.getNamespace(), POSITION.getName() );
-        edmApi.deletePropertyType( SPIED_ON.getNamespace(), SPIED_ON.getName() );
 
         edmApi.deleteEntityType( NATION_CITIZENS.getNamespace(), NATION_CITIZENS.getName() );
 
@@ -194,7 +214,7 @@ public class PermissionsServiceTest {
         edmApi.createPropertyType( address );
         edmApi.createPropertyType( position );
 
-        // God creates entity type Citizen
+        // creates entity type Citizen
         EntityType citizens = new EntityType().setNamespace( NATION_NAMESPACE ).setName( NATION_CITIZENS.getName() )
                 .setKey( ImmutableSet.of( EMPLOYEE_ID ) )
                 .setProperties( ImmutableSet.of(
@@ -208,7 +228,7 @@ public class PermissionsServiceTest {
         EntitySet secretService = new EntitySet().setType( NATION_CITIZENS )
                 .setName( NATION_SECRET_SERVICE )
                 .setTitle( "Every nation would have one" );
-        edmApi.postEntitySets( ImmutableSet.of( secretService ) );
+        edmService.createEntitySet( secretService );
     }
 
     private EntityType entityTypeMetadataLookup( FullQualifiedName entityTypeFqn ) {
@@ -228,7 +248,7 @@ public class PermissionsServiceTest {
 
         ps.updateEntityTypesAcls(
                 ImmutableSet.of( new EntityTypeAclRequest().setPrincipal( principal ).setAction( Action.ADD )
-                        .setType( NATION_CITIZENS ).setPermissions( ImmutableSet.of( Permission.ALTER ) ) ) );
+                        .setType( NATION_CITIZENS ).setPermissions( EnumSet.of( Permission.ALTER ) ) ) );
 
         // Current setting is everyone can create types
         PropertyType spiedOn = new PropertyType().setNamespace( NATION_NAMESPACE ).setName( SPIED_ON.getName() )
@@ -250,7 +270,7 @@ public class PermissionsServiceTest {
 
         ps.updateEntityTypesAcls(
                 ImmutableSet.of( new EntityTypeAclRequest().setPrincipal( principal ).setAction( Action.REMOVE )
-                        .setType( NATION_CITIZENS ).setPermissions( ImmutableSet.of( Permission.ALTER ) ) ) );
+                        .setType( NATION_CITIZENS ).setPermissions( EnumSet.of( Permission.ALTER ) ) ) );
 
         System.out.println( "Test 2 Starts!" );
         // Test 2: Citizen has ALTER permission for NATION_CITIZENS
@@ -258,7 +278,7 @@ public class PermissionsServiceTest {
         // deleted)
         ps.updateEntityTypesAcls(
                 ImmutableSet.of( new EntityTypeAclRequest().setPrincipal( principal ).setAction( Action.ADD )
-                        .setType( NATION_CITIZENS ).setPermissions( ImmutableSet.of( Permission.ALTER ) ) ) );
+                        .setType( NATION_CITIZENS ).setPermissions( EnumSet.of( Permission.ALTER ) ) ) );
 
         edmApi.deleteEntityType( NATION_CITIZENS.getNamespace(), NATION_CITIZENS.getName() );
         System.out.println( "Expected: Entity Type NATION_CITIZENS is removed." );
@@ -273,7 +293,10 @@ public class PermissionsServiceTest {
 
     private void entityTypeTestCleanup() {
         System.out.println( " *** Entity Type Test Clean Up Happening *** " );
-        // God needs to create the entity type and entity set back
+        // Remove property type SPIED_ON
+        edmApi.deletePropertyType( SPIED_ON.getNamespace(), SPIED_ON.getName() );
+        
+        // create the entity type and entity set back
         EntityType citizens = new EntityType().setNamespace( NATION_NAMESPACE ).setName( NATION_CITIZENS.getName() )
                 .setKey( ImmutableSet.of( EMPLOYEE_ID ) )
                 .setProperties( ImmutableSet.of( EMPLOYEE_ID,
@@ -286,7 +309,7 @@ public class PermissionsServiceTest {
         EntitySet secretService = new EntitySet().setType( NATION_CITIZENS )
                 .setName( NATION_SECRET_SERVICE )
                 .setTitle( "Every nation would have one" );
-        edmApi.postEntitySets( ImmutableSet.of( secretService ) );
+        edmService.createEntitySet( secretService );
 
         System.out.println( " *** Entity Type Test Clean Up Finished *** " );
     }
@@ -294,18 +317,68 @@ public class PermissionsServiceTest {
     private void entitySetTest( Principal principal ) {
         System.out.println( "***Entity Set Test starts***" );
 
-        System.out.println( "Test 1 Starts!" );
+        System.out.println( "--- Test 1 ---" );
         // Test 1: Citizen is given the DISCOVER permission for Secret Service; and the right got removed after.
         // Expected: RandomGuy can see the metadata for Secret Service; and cannot after.
         ps.updateEntitySetsAcls(
                 ImmutableSet.of( new EntitySetAclRequest().setPrincipal( principal ).setAction( Action.ADD )
-                        .setName( NATION_SECRET_SERVICE ).setPermissions( ImmutableSet.of( Permission.DISCOVER ) ) ) );
+                        .setName( NATION_SECRET_SERVICE ).setPermissions( EnumSet.of( Permission.DISCOVER ) ) ) );
         Assert.assertNotEquals( 0, Iterables.size( edmApi.getEntitySets() ) );
 
         ps.updateEntitySetsAcls(
                 ImmutableSet.of( new EntitySetAclRequest().setPrincipal( principal ).setAction( Action.REMOVE )
-                        .setName( NATION_SECRET_SERVICE ).setPermissions( ImmutableSet.of( Permission.DISCOVER ) ) ) );
+                        .setName( NATION_SECRET_SERVICE ).setPermissions( EnumSet.of( Permission.DISCOVER ) ) ) );
         Assert.assertEquals( 0, Iterables.size( edmApi.getEntitySets() ) );
+        
+        // Setup: Citizen creates a new entity set in NATION_CITIZENS.
+        String DYSTOPIANS = "dystopians";
+        
+        EntitySet dystopians = new EntitySet().setType( NATION_CITIZENS )
+                .setName( DYSTOPIANS )
+                .setTitle( "We could be in one now" );
+        edmApi.postEntitySets( ImmutableSet.of( dystopians ) );
+        
+        // Test 2: Check Citizen's permissions for the entity set.
+        // Expected: Citizen has all permissions for the entity set.
+        System.out.println( "--- Test 2 ---" );
+        System.out.println("Permissions for " + DYSTOPIANS + " is " + ps.getEntitySetAclsForUser( DYSTOPIANS ));
+        
+        // Test 3: Given Citizen DISCOVER permission for Secret Service. Citizen does getEntitySets.
+        // Expected: Citizen discovers SECRET_SERVICE, has owner permissions for new entity set.
+        ps.updateEntitySetsAcls(
+                ImmutableSet.of( new EntitySetAclRequest().setPrincipal( principal ).setAction( Action.ADD )
+                        .setName( NATION_SECRET_SERVICE ).setPermissions( EnumSet.of( Permission.DISCOVER ) ) ) );
+        System.out.println( "--- Test 3 ---" );
+        System.out.println( "Permissions for entity sets are:" );
+        for( EntitySetWithPermissions entitySet: edmApi.getEntitySets() ){
+            System.out.println( "Entity Set: " + entitySet.getName() + " Permissions " + entitySet.getPermissions() );
+        }
+        // Test 3.5: Remove DISCOVER permission for Secret Service. Citizen does getEntitySets
+        // Expected: Citizen does not discover SECRET_SERVICE, has owner permissions for new entity set.
+        ps.updateEntitySetsAcls(
+                ImmutableSet.of( new EntitySetAclRequest().setPrincipal( principal ).setAction( Action.REMOVE )
+                        .setName( NATION_SECRET_SERVICE ).setPermissions( EnumSet.of( Permission.DISCOVER ) ) ) );
+        System.out.println( "--- Test 3.5 ---" );
+        System.out.println( "Permissions for entity sets are:" );
+        for( EntitySetWithPermissions entitySet: edmApi.getEntitySets() ){
+            System.out.println( "Entity Set: " + entitySet.getName() + " Permissions " + entitySet.getPermissions() );
+        }
+        
+        // Test 4: Give permissions of the entity set to users and roles. Citizens check for permissions for the entity set
+        // Expected: Listing all permissions given for the entity set
+        ps.updateEntitySetsAcls(
+                ImmutableSet.of( new EntitySetAclRequest().setPrincipal( new Principal(PrincipalType.ROLE, "ROLE_DISCOVER") ).setAction( Action.ADD )
+                        .setName( DYSTOPIANS ).setPermissions( EnumSet.of( Permission.DISCOVER ) ),
+                        new EntitySetAclRequest().setPrincipal( new Principal(PrincipalType.ROLE, "ROLE_READWRITE") ).setAction( Action.ADD )
+                        .setName( DYSTOPIANS ).setPermissions( EnumSet.of( Permission.READ, Permission.WRITE ) ),
+                        new EntitySetAclRequest().setPrincipal( new Principal(PrincipalType.USER, "USER_EVERYTHING") ).setAction( Action.ADD )
+                        .setName( DYSTOPIANS ).setPermissions( EnumSet.of( Permission.DISCOVER, Permission.READ, Permission.WRITE ) )
+                        ) );
+        System.out.println( "--- Test 4 ---" );
+        System.out.println( "All permissions for the entity set " + DYSTOPIANS + ":" );
+        for( PermissionsInfo info : ps.getEntitySetAclsForOwner( DYSTOPIANS ) ){
+            System.out.println( "Principal " + info.getPrincipal() + " has Permissions " + info.getPermissions() );
+        }
     }
 
     /**
@@ -318,20 +391,20 @@ public class PermissionsServiceTest {
         // Give user WRITE rights for NATION_CITIZENS
         ps.updateEntityTypesAcls( ImmutableSet.of(
                 new EntityTypeAclRequest().setPrincipal( principal ).setAction( Action.ADD ).setType( NATION_CITIZENS )
-                        .setPermissions( ImmutableSet.of( Permission.READ, Permission.WRITE ) ) ) );
+                        .setPermissions( EnumSet.of( Permission.READ, Permission.WRITE ) ) ) );
         ps.updatePropertyTypeInEntityTypeAcls( ImmutableSet.of(
                 new PropertyTypeInEntityTypeAclRequest().setPrincipal( principal ).setAction( Action.ADD )
                         .setType( NATION_CITIZENS ).setPropertyType( EMPLOYEE_ID )
-                        .setPermissions( ImmutableSet.of( Permission.READ ) ),
+                        .setPermissions( EnumSet.of( Permission.READ ) ),
                 new PropertyTypeInEntityTypeAclRequest().setPrincipal( principal ).setAction( Action.ADD )
                         .setType( NATION_CITIZENS ).setPropertyType( ADDRESS )
-                        .setPermissions( ImmutableSet.of( Permission.READ ) ),
+                        .setPermissions( EnumSet.of( Permission.READ ) ),
                 new PropertyTypeInEntityTypeAclRequest().setPrincipal( principal ).setAction( Action.ADD )
                         .setType( NATION_CITIZENS ).setPropertyType( POSITION )
-                        .setPermissions( ImmutableSet.of( Permission.READ ) ),
+                        .setPermissions( EnumSet.of( Permission.READ ) ),
                 new PropertyTypeInEntityTypeAclRequest().setPrincipal( principal ).setAction( Action.ADD )
                         .setType( NATION_CITIZENS ).setPropertyType( LIFE_EXPECTANCY )
-                        .setPermissions( ImmutableSet.of( Permission.READ ) ) ) );
+                        .setPermissions( EnumSet.of( Permission.READ ) ) ) );
 
         // Test 1: give Writer WRITE rights for EMPLOYEE_ID, ADDRESS, POSITION, and LIFE_EXPECTANCY in NATION_CITIZENS.
         // Expected: Being able to read and write all data types.
@@ -339,16 +412,16 @@ public class PermissionsServiceTest {
         ps.updatePropertyTypeInEntityTypeAcls( ImmutableSet.of(
                 new PropertyTypeInEntityTypeAclRequest().setPrincipal( principal ).setAction( Action.ADD )
                         .setType( NATION_CITIZENS ).setPropertyType( EMPLOYEE_ID )
-                        .setPermissions( ImmutableSet.of( Permission.WRITE ) ),
+                        .setPermissions( EnumSet.of( Permission.WRITE ) ),
                 new PropertyTypeInEntityTypeAclRequest().setPrincipal( principal ).setAction( Action.ADD )
                         .setType( NATION_CITIZENS ).setPropertyType( ADDRESS )
-                        .setPermissions( ImmutableSet.of( Permission.WRITE ) ),
+                        .setPermissions( EnumSet.of( Permission.WRITE ) ),
                 new PropertyTypeInEntityTypeAclRequest().setPrincipal( principal ).setAction( Action.ADD )
                         .setType( NATION_CITIZENS ).setPropertyType( POSITION )
-                        .setPermissions( ImmutableSet.of( Permission.WRITE ) ),
+                        .setPermissions( EnumSet.of( Permission.WRITE ) ),
                 new PropertyTypeInEntityTypeAclRequest().setPrincipal( principal ).setAction( Action.ADD )
                         .setType( NATION_CITIZENS ).setPropertyType( LIFE_EXPECTANCY )
-                        .setPermissions( ImmutableSet.of( Permission.WRITE ) ) ) );
+                        .setPermissions( EnumSet.of( Permission.WRITE ) ) ) );
 
         // Test 1.33: Actually write data to entity type
         createData( 10,
@@ -370,16 +443,16 @@ public class PermissionsServiceTest {
         ps.updatePropertyTypeInEntityTypeAcls( ImmutableSet.of(
                 new PropertyTypeInEntityTypeAclRequest().setPrincipal( principal ).setAction( Action.REMOVE )
                         .setType( NATION_CITIZENS ).setPropertyType( EMPLOYEE_ID )
-                        .setPermissions( ImmutableSet.of( Permission.WRITE ) ),
+                        .setPermissions( EnumSet.of( Permission.WRITE ) ),
                 new PropertyTypeInEntityTypeAclRequest().setPrincipal( principal ).setAction( Action.REMOVE )
                         .setType( NATION_CITIZENS ).setPropertyType( ADDRESS )
-                        .setPermissions( ImmutableSet.of( Permission.WRITE ) ),
+                        .setPermissions( EnumSet.of( Permission.WRITE ) ),
                 new PropertyTypeInEntityTypeAclRequest().setPrincipal( principal ).setAction( Action.REMOVE )
                         .setType( NATION_CITIZENS ).setPropertyType( POSITION )
-                        .setPermissions( ImmutableSet.of( Permission.WRITE ) ),
+                        .setPermissions( EnumSet.of( Permission.WRITE ) ),
                 new PropertyTypeInEntityTypeAclRequest().setPrincipal( principal ).setAction( Action.REMOVE )
                         .setType( NATION_CITIZENS ).setPropertyType( LIFE_EXPECTANCY )
-                        .setPermissions( ImmutableSet.of( Permission.WRITE ) ) ) );
+                        .setPermissions( EnumSet.of( Permission.WRITE ) ) ) );
 
         // Test 2: given User WRITE rights for EMPLOYEE_ID, ADDRESS in NATION_CITIZENS
         // Expected: Only have WRITE rights for (EMPLOYEE_ID, NATION_CITIZENS), (ADDRESS, NATION_CITIZENS)
@@ -387,10 +460,10 @@ public class PermissionsServiceTest {
         ps.updatePropertyTypeInEntityTypeAcls( ImmutableSet.of(
                 new PropertyTypeInEntityTypeAclRequest().setPrincipal( principal ).setAction( Action.ADD )
                         .setType( NATION_CITIZENS ).setPropertyType( EMPLOYEE_ID )
-                        .setPermissions( ImmutableSet.of( Permission.WRITE ) ),
+                        .setPermissions( EnumSet.of( Permission.WRITE ) ),
                 new PropertyTypeInEntityTypeAclRequest().setPrincipal( principal ).setAction( Action.ADD )
                         .setType( NATION_CITIZENS ).setPropertyType( ADDRESS )
-                        .setPermissions( ImmutableSet.of( Permission.WRITE ) ) ) );
+                        .setPermissions( EnumSet.of( Permission.WRITE ) ) ) );
 
         // Test 2.33: Actually write data - only the columns EMPLOYEE_ID, ADDRESS would be non-empty
         createData( 10,
@@ -411,15 +484,15 @@ public class PermissionsServiceTest {
         ps.updatePropertyTypeInEntityTypeAcls( ImmutableSet.of(
                 new PropertyTypeInEntityTypeAclRequest().setPrincipal( principal ).setAction( Action.REMOVE )
                         .setType( NATION_CITIZENS ).setPropertyType( EMPLOYEE_ID )
-                        .setPermissions( ImmutableSet.of( Permission.WRITE ) ),
+                        .setPermissions( EnumSet.of( Permission.WRITE ) ),
                 new PropertyTypeInEntityTypeAclRequest().setPrincipal( principal ).setAction( Action.REMOVE )
                         .setType( NATION_CITIZENS ).setPropertyType( ADDRESS )
-                        .setPermissions( ImmutableSet.of( Permission.WRITE ) ) ) );
+                        .setPermissions( EnumSet.of( Permission.WRITE ) ) ) );
 
         // Cleanup: remove all current Read/Write rights.
         ps.updateEntityTypesAcls( ImmutableSet.of( new EntityTypeAclRequest().setPrincipal( principal )
                 .setAction( Action.REMOVE ).setType( NATION_CITIZENS )
-                .setPermissions( ImmutableSet.of( Permission.READ, Permission.WRITE ) ) ) );
+                .setPermissions( EnumSet.of( Permission.READ, Permission.WRITE ) ) ) );
         ps.removeAllPropertyTypesInEntityTypeAcls(
                 ImmutableSet.of( NATION_CITIZENS ) );
 
@@ -429,17 +502,17 @@ public class PermissionsServiceTest {
         // User gets the Permission to write NATION_CITIZENS
         ps.updateEntityTypesAcls( ImmutableSet.of(
                 new EntityTypeAclRequest().setPrincipal( principal ).setAction( Action.ADD ).setType( NATION_CITIZENS )
-                        .setPermissions( ImmutableSet.of( Permission.READ, Permission.WRITE ) ) ) );
+                        .setPermissions( EnumSet.of( Permission.READ, Permission.WRITE ) ) ) );
         ps.updatePropertyTypeInEntityTypeAcls( ImmutableSet.of(
                 new PropertyTypeInEntityTypeAclRequest().setPrincipal( principal ).setAction( Action.ADD )
                         .setType( NATION_CITIZENS ).setPropertyType( EMPLOYEE_ID )
-                        .setPermissions( ImmutableSet.of( Permission.READ ) ),
+                        .setPermissions( EnumSet.of( Permission.READ ) ),
                 new PropertyTypeInEntityTypeAclRequest().setPrincipal( principal ).setAction( Action.ADD )
                         .setType( NATION_CITIZENS ).setPropertyType( ADDRESS )
-                        .setPermissions( ImmutableSet.of( Permission.READ ) ),
+                        .setPermissions( EnumSet.of( Permission.READ ) ),
                 new PropertyTypeInEntityTypeAclRequest().setPrincipal( principal ).setAction( Action.ADD )
                         .setType( NATION_CITIZENS ).setPropertyType( POSITION )
-                        .setPermissions( ImmutableSet.of( Permission.READ ) ) ) );
+                        .setPermissions( EnumSet.of( Permission.READ ) ) ) );
 
         // Test 3: give Writer WRITE rights for EMPLOYEE_ID, ADDRESS, POSITION, and LIFE_EXPECTANCY in NATION_CITIZENS
         // Expected: Have WRITE rights for all pairs (EMPLOYEE_ID, NATION_CITIZENS),..., (LIFE_EXPECTANCY,
@@ -448,16 +521,16 @@ public class PermissionsServiceTest {
         ps.updatePropertyTypeInEntityTypeAcls( ImmutableSet.of(
                 new PropertyTypeInEntityTypeAclRequest().setPrincipal( principal ).setAction( Action.ADD )
                         .setType( NATION_CITIZENS ).setPropertyType( EMPLOYEE_ID )
-                        .setPermissions( ImmutableSet.of( Permission.WRITE ) ),
+                        .setPermissions( EnumSet.of( Permission.WRITE ) ),
                 new PropertyTypeInEntityTypeAclRequest().setPrincipal( principal ).setAction( Action.ADD )
                         .setType( NATION_CITIZENS ).setPropertyType( ADDRESS )
-                        .setPermissions( ImmutableSet.of( Permission.WRITE ) ),
+                        .setPermissions( EnumSet.of( Permission.WRITE ) ),
                 new PropertyTypeInEntityTypeAclRequest().setPrincipal( principal ).setAction( Action.ADD )
                         .setType( NATION_CITIZENS ).setPropertyType( POSITION )
-                        .setPermissions( ImmutableSet.of( Permission.WRITE ) ),
+                        .setPermissions( EnumSet.of( Permission.WRITE ) ),
                 new PropertyTypeInEntityTypeAclRequest().setPrincipal( principal ).setAction( Action.ADD )
                         .setType( NATION_CITIZENS ).setPropertyType( LIFE_EXPECTANCY )
-                        .setPermissions( ImmutableSet.of( Permission.WRITE ) ) ) );
+                        .setPermissions( EnumSet.of( Permission.WRITE ) ) ) );
 
         // Test 3.33: Actually write data - all columns should be written.
         createData( 10,
@@ -480,26 +553,26 @@ public class PermissionsServiceTest {
         ps.updatePropertyTypeInEntityTypeAcls( ImmutableSet.of(
                 new PropertyTypeInEntityTypeAclRequest().setPrincipal( principal ).setAction( Action.REMOVE )
                         .setType( NATION_CITIZENS ).setPropertyType( EMPLOYEE_ID )
-                        .setPermissions( ImmutableSet.of( Permission.WRITE ) ),
+                        .setPermissions( EnumSet.of( Permission.WRITE ) ),
                 new PropertyTypeInEntityTypeAclRequest().setPrincipal( principal ).setAction( Action.REMOVE )
                         .setType( NATION_CITIZENS ).setPropertyType( ADDRESS )
-                        .setPermissions( ImmutableSet.of( Permission.WRITE ) ),
+                        .setPermissions( EnumSet.of( Permission.WRITE ) ),
                 new PropertyTypeInEntityTypeAclRequest().setPrincipal( principal ).setAction( Action.REMOVE )
                         .setType( NATION_CITIZENS ).setPropertyType( POSITION )
-                        .setPermissions( ImmutableSet.of( Permission.WRITE ) ),
+                        .setPermissions( EnumSet.of( Permission.WRITE ) ),
                 new PropertyTypeInEntityTypeAclRequest().setPrincipal( principal ).setAction( Action.REMOVE )
                         .setType( NATION_CITIZENS ).setPropertyType( LIFE_EXPECTANCY )
-                        .setPermissions( ImmutableSet.of( Permission.WRITE ) ) ) );
+                        .setPermissions( EnumSet.of( Permission.WRITE ) ) ) );
 
         // Test 4: given Writer WRITE rights for EMPLOYEE_ID, ADDRESS. Inherit rights from NATION_CITIZENS
         // Expected: Only have WRITE rights for (EMPLOYEE_ID, NATION_CITIZENS), (ADDRESS, NATION_CITIZENS)
         ps.updatePropertyTypeInEntityTypeAcls( ImmutableSet.of(
                 new PropertyTypeInEntityTypeAclRequest().setPrincipal( principal ).setAction( Action.ADD )
                         .setType( NATION_CITIZENS ).setPropertyType( EMPLOYEE_ID )
-                        .setPermissions( ImmutableSet.of( Permission.WRITE ) ),
+                        .setPermissions( EnumSet.of( Permission.WRITE ) ),
                 new PropertyTypeInEntityTypeAclRequest().setPrincipal( principal ).setAction( Action.ADD )
                         .setType( NATION_CITIZENS ).setPropertyType( ADDRESS )
-                        .setPermissions( ImmutableSet.of( Permission.WRITE ) ) ) );
+                        .setPermissions( EnumSet.of( Permission.WRITE ) ) ) );
 
         // Test 4.33: Actually write data - only the columns EMPLOYEE_ID, ADDRESS would be non-empty
         createData( 10,
@@ -522,15 +595,15 @@ public class PermissionsServiceTest {
         ps.updatePropertyTypeInEntityTypeAcls( ImmutableSet.of(
                 new PropertyTypeInEntityTypeAclRequest().setPrincipal( principal ).setAction( Action.REMOVE )
                         .setType( NATION_CITIZENS ).setPropertyType( EMPLOYEE_ID )
-                        .setPermissions( ImmutableSet.of( Permission.WRITE ) ),
+                        .setPermissions( EnumSet.of( Permission.WRITE ) ),
                 new PropertyTypeInEntityTypeAclRequest().setPrincipal( principal ).setAction( Action.REMOVE )
                         .setType( NATION_CITIZENS ).setPropertyType( ADDRESS )
-                        .setPermissions( ImmutableSet.of( Permission.WRITE ) ) ) );
+                        .setPermissions( EnumSet.of( Permission.WRITE ) ) ) );
 
         // Cleanup: remove Reader/Writer Role, and all current Read rights.
         ps.updateEntityTypesAcls( ImmutableSet.of( new EntityTypeAclRequest().setPrincipal( principal )
                 .setAction( Action.REMOVE ).setType( NATION_CITIZENS )
-                .setPermissions( ImmutableSet.of( Permission.READ, Permission.WRITE ) ) ) );
+                .setPermissions( EnumSet.of( Permission.READ, Permission.WRITE ) ) ) );
         ps.removeAllPropertyTypesInEntityTypeAcls(
                 ImmutableSet.of( NATION_CITIZENS ) );
     }
@@ -545,20 +618,20 @@ public class PermissionsServiceTest {
         // Give user WRITE rights for NATION_SECRET_SERVICE
         ps.updateEntitySetsAcls( ImmutableSet.of( new EntitySetAclRequest().setPrincipal( principal )
                 .setAction( Action.ADD ).setName( NATION_SECRET_SERVICE )
-                .setPermissions( ImmutableSet.of( Permission.READ, Permission.WRITE ) ) ) );
+                .setPermissions( EnumSet.of( Permission.READ, Permission.WRITE ) ) ) );
         ps.updatePropertyTypeInEntitySetAcls( ImmutableSet.of(
                 new PropertyTypeInEntitySetAclRequest().setPrincipal( principal ).setAction( Action.ADD )
                         .setName( NATION_SECRET_SERVICE ).setPropertyType( EMPLOYEE_ID )
-                        .setPermissions( ImmutableSet.of( Permission.READ ) ),
+                        .setPermissions( EnumSet.of( Permission.READ ) ),
                 new PropertyTypeInEntitySetAclRequest().setPrincipal( principal ).setAction( Action.ADD )
                         .setName( NATION_SECRET_SERVICE ).setPropertyType( ADDRESS )
-                        .setPermissions( ImmutableSet.of( Permission.READ ) ),
+                        .setPermissions( EnumSet.of( Permission.READ ) ),
                 new PropertyTypeInEntitySetAclRequest().setPrincipal( principal ).setAction( Action.ADD )
                         .setName( NATION_SECRET_SERVICE ).setPropertyType( POSITION )
-                        .setPermissions( ImmutableSet.of( Permission.READ ) ),
+                        .setPermissions( EnumSet.of( Permission.READ ) ),
                 new PropertyTypeInEntitySetAclRequest().setPrincipal( principal ).setAction( Action.ADD )
                         .setName( NATION_SECRET_SERVICE ).setPropertyType( LIFE_EXPECTANCY )
-                        .setPermissions( ImmutableSet.of( Permission.READ ) ) ) );
+                        .setPermissions( EnumSet.of( Permission.READ ) ) ) );
 
         // Test 1: give Writer WRITE rights for EMPLOYEE_ID, ADDRESS, POSITION, and LIFE_EXPECTANCY in NATION_CITIZENS.
         // Expected: Being able to read and write all data types.
@@ -566,16 +639,16 @@ public class PermissionsServiceTest {
         ps.updatePropertyTypeInEntitySetAcls( ImmutableSet.of(
                 new PropertyTypeInEntitySetAclRequest().setPrincipal( principal ).setAction( Action.ADD )
                         .setName( NATION_SECRET_SERVICE ).setPropertyType( EMPLOYEE_ID )
-                        .setPermissions( ImmutableSet.of( Permission.WRITE ) ),
+                        .setPermissions( EnumSet.of( Permission.WRITE ) ),
                 new PropertyTypeInEntitySetAclRequest().setPrincipal( principal ).setAction( Action.ADD )
                         .setName( NATION_SECRET_SERVICE ).setPropertyType( ADDRESS )
-                        .setPermissions( ImmutableSet.of( Permission.WRITE ) ),
+                        .setPermissions( EnumSet.of( Permission.WRITE ) ),
                 new PropertyTypeInEntitySetAclRequest().setPrincipal( principal ).setAction( Action.ADD )
                         .setName( NATION_SECRET_SERVICE ).setPropertyType( POSITION )
-                        .setPermissions( ImmutableSet.of( Permission.WRITE ) ),
+                        .setPermissions( EnumSet.of( Permission.WRITE ) ),
                 new PropertyTypeInEntitySetAclRequest().setPrincipal( principal ).setAction( Action.ADD )
                         .setName( NATION_SECRET_SERVICE ).setPropertyType( LIFE_EXPECTANCY )
-                        .setPermissions( ImmutableSet.of( Permission.WRITE ) ) ) );
+                        .setPermissions( EnumSet.of( Permission.WRITE ) ) ) );
 
         // Test 1.33: Actually write data to entity type
         createData( 10,
@@ -598,16 +671,16 @@ public class PermissionsServiceTest {
         ps.updatePropertyTypeInEntitySetAcls( ImmutableSet.of(
                 new PropertyTypeInEntitySetAclRequest().setPrincipal( principal ).setAction( Action.REMOVE )
                         .setName( NATION_SECRET_SERVICE ).setPropertyType( EMPLOYEE_ID )
-                        .setPermissions( ImmutableSet.of( Permission.WRITE ) ),
+                        .setPermissions( EnumSet.of( Permission.WRITE ) ),
                 new PropertyTypeInEntitySetAclRequest().setPrincipal( principal ).setAction( Action.REMOVE )
                         .setName( NATION_SECRET_SERVICE ).setPropertyType( ADDRESS )
-                        .setPermissions( ImmutableSet.of( Permission.WRITE ) ),
+                        .setPermissions( EnumSet.of( Permission.WRITE ) ),
                 new PropertyTypeInEntitySetAclRequest().setPrincipal( principal ).setAction( Action.REMOVE )
                         .setName( NATION_SECRET_SERVICE ).setPropertyType( POSITION )
-                        .setPermissions( ImmutableSet.of( Permission.WRITE ) ),
+                        .setPermissions( EnumSet.of( Permission.WRITE ) ),
                 new PropertyTypeInEntitySetAclRequest().setPrincipal( principal ).setAction( Action.REMOVE )
                         .setName( NATION_SECRET_SERVICE ).setPropertyType( LIFE_EXPECTANCY )
-                        .setPermissions( ImmutableSet.of( Permission.WRITE ) ) ) );
+                        .setPermissions( EnumSet.of( Permission.WRITE ) ) ) );
 
         // Test 2: given User WRITE rights for EMPLOYEE_ID, ADDRESS in NATION_SECRET_SERVICE
         // Expected: Only have WRITE rights for (EMPLOYEE_ID, NATION_SECRET_SERVICE), (ADDRESS, NATION_SECRET_SERVICE)
@@ -615,10 +688,10 @@ public class PermissionsServiceTest {
         ps.updatePropertyTypeInEntitySetAcls( ImmutableSet.of(
                 new PropertyTypeInEntitySetAclRequest().setPrincipal( principal ).setAction( Action.ADD )
                         .setName( NATION_SECRET_SERVICE ).setPropertyType( EMPLOYEE_ID )
-                        .setPermissions( ImmutableSet.of( Permission.WRITE ) ),
+                        .setPermissions( EnumSet.of( Permission.WRITE ) ),
                 new PropertyTypeInEntitySetAclRequest().setPrincipal( principal ).setAction( Action.ADD )
                         .setName( NATION_SECRET_SERVICE ).setPropertyType( ADDRESS )
-                        .setPermissions( ImmutableSet.of( Permission.WRITE ) ) ) );
+                        .setPermissions( EnumSet.of( Permission.WRITE ) ) ) );
 
         // Test 2.33: Actually write data - only the columns EMPLOYEE_ID, ADDRESS would be non-empty
         createData( 10,
@@ -641,15 +714,15 @@ public class PermissionsServiceTest {
         ps.updatePropertyTypeInEntitySetAcls( ImmutableSet.of(
                 new PropertyTypeInEntitySetAclRequest().setPrincipal( principal ).setAction( Action.REMOVE )
                         .setName( NATION_SECRET_SERVICE ).setPropertyType( EMPLOYEE_ID )
-                        .setPermissions( ImmutableSet.of( Permission.WRITE ) ),
+                        .setPermissions( EnumSet.of( Permission.WRITE ) ),
                 new PropertyTypeInEntitySetAclRequest().setPrincipal( principal ).setAction( Action.REMOVE )
                         .setName( NATION_SECRET_SERVICE ).setPropertyType( ADDRESS )
-                        .setPermissions( ImmutableSet.of( Permission.WRITE ) ) ) );
+                        .setPermissions( EnumSet.of( Permission.WRITE ) ) ) );
 
         // Cleanup: remove all current Read/Write rights.
         ps.updateEntitySetsAcls( ImmutableSet.of( new EntitySetAclRequest().setPrincipal( principal )
                 .setAction( Action.REMOVE ).setName( NATION_SECRET_SERVICE )
-                .setPermissions( ImmutableSet.of( Permission.READ, Permission.WRITE ) ) ) );
+                .setPermissions( EnumSet.of( Permission.READ, Permission.WRITE ) ) ) );
         ps.removeAllPropertyTypesInEntitySetAcls( ImmutableSet.of( NATION_SECRET_SERVICE ) );
 
         // Setup:
@@ -658,17 +731,17 @@ public class PermissionsServiceTest {
         // User gets the Permission to write NATION_SECRET_SERVICE
         ps.updateEntitySetsAcls( ImmutableSet.of( new EntitySetAclRequest().setPrincipal( principal )
                 .setAction( Action.ADD ).setName( NATION_SECRET_SERVICE )
-                .setPermissions( ImmutableSet.of( Permission.READ, Permission.WRITE ) ) ) );
+                .setPermissions( EnumSet.of( Permission.READ, Permission.WRITE ) ) ) );
         ps.updatePropertyTypeInEntitySetAcls( ImmutableSet.of(
                 new PropertyTypeInEntitySetAclRequest().setPrincipal( principal ).setAction( Action.ADD )
                         .setName( NATION_SECRET_SERVICE ).setPropertyType( EMPLOYEE_ID )
-                        .setPermissions( ImmutableSet.of( Permission.READ ) ),
+                        .setPermissions( EnumSet.of( Permission.READ ) ),
                 new PropertyTypeInEntitySetAclRequest().setPrincipal( principal ).setAction( Action.ADD )
                         .setName( NATION_SECRET_SERVICE ).setPropertyType( ADDRESS )
-                        .setPermissions( ImmutableSet.of( Permission.READ ) ),
+                        .setPermissions( EnumSet.of( Permission.READ ) ),
                 new PropertyTypeInEntitySetAclRequest().setPrincipal( principal ).setAction( Action.ADD )
                         .setName( NATION_SECRET_SERVICE ).setPropertyType( POSITION )
-                        .setPermissions( ImmutableSet.of( Permission.READ ) ) ) );
+                        .setPermissions( EnumSet.of( Permission.READ ) ) ) );
 
         // Test 3: give Writer WRITE rights for EMPLOYEE_ID, ADDRESS, POSITION, and LIFE_EXPECTANCY in NATION_CITIZENS
         // Expected: Have WRITE rights for all pairs (EMPLOYEE_ID, NATION_CITIZENS),..., (LIFE_EXPECTANCY,
@@ -677,16 +750,16 @@ public class PermissionsServiceTest {
         ps.updatePropertyTypeInEntitySetAcls( ImmutableSet.of(
                 new PropertyTypeInEntitySetAclRequest().setPrincipal( principal ).setAction( Action.ADD )
                         .setName( NATION_SECRET_SERVICE ).setPropertyType( EMPLOYEE_ID )
-                        .setPermissions( ImmutableSet.of( Permission.WRITE ) ),
+                        .setPermissions( EnumSet.of( Permission.WRITE ) ),
                 new PropertyTypeInEntitySetAclRequest().setPrincipal( principal ).setAction( Action.ADD )
                         .setName( NATION_SECRET_SERVICE ).setPropertyType( ADDRESS )
-                        .setPermissions( ImmutableSet.of( Permission.WRITE ) ),
+                        .setPermissions( EnumSet.of( Permission.WRITE ) ),
                 new PropertyTypeInEntitySetAclRequest().setPrincipal( principal ).setAction( Action.ADD )
                         .setName( NATION_SECRET_SERVICE ).setPropertyType( POSITION )
-                        .setPermissions( ImmutableSet.of( Permission.WRITE ) ),
+                        .setPermissions( EnumSet.of( Permission.WRITE ) ),
                 new PropertyTypeInEntitySetAclRequest().setPrincipal( principal ).setAction( Action.ADD )
                         .setName( NATION_SECRET_SERVICE ).setPropertyType( LIFE_EXPECTANCY )
-                        .setPermissions( ImmutableSet.of( Permission.WRITE ) ) ) );
+                        .setPermissions( EnumSet.of( Permission.WRITE ) ) ) );
 
         // Test 3.33: Actually write data - all columns should be written.
         createData( 10,
@@ -710,26 +783,26 @@ public class PermissionsServiceTest {
         ps.updatePropertyTypeInEntitySetAcls( ImmutableSet.of(
                 new PropertyTypeInEntitySetAclRequest().setPrincipal( principal ).setAction( Action.REMOVE )
                         .setName( NATION_SECRET_SERVICE ).setPropertyType( EMPLOYEE_ID )
-                        .setPermissions( ImmutableSet.of( Permission.WRITE ) ),
+                        .setPermissions( EnumSet.of( Permission.WRITE ) ),
                 new PropertyTypeInEntitySetAclRequest().setPrincipal( principal ).setAction( Action.REMOVE )
                         .setName( NATION_SECRET_SERVICE ).setPropertyType( ADDRESS )
-                        .setPermissions( ImmutableSet.of( Permission.WRITE ) ),
+                        .setPermissions( EnumSet.of( Permission.WRITE ) ),
                 new PropertyTypeInEntitySetAclRequest().setPrincipal( principal ).setAction( Action.REMOVE )
                         .setName( NATION_SECRET_SERVICE ).setPropertyType( POSITION )
-                        .setPermissions( ImmutableSet.of( Permission.WRITE ) ),
+                        .setPermissions( EnumSet.of( Permission.WRITE ) ),
                 new PropertyTypeInEntitySetAclRequest().setPrincipal( principal ).setAction( Action.REMOVE )
                         .setName( NATION_SECRET_SERVICE ).setPropertyType( LIFE_EXPECTANCY )
-                        .setPermissions( ImmutableSet.of( Permission.WRITE ) ) ) );
+                        .setPermissions( EnumSet.of( Permission.WRITE ) ) ) );
 
         // Test 4: given Writer WRITE rights for EMPLOYEE_ID, ADDRESS. Inherit rights from NATION_CITIZENS
         // Expected: Only have WRITE rights for (EMPLOYEE_ID, NATION_CITIZENS), (ADDRESS, NATION_CITIZENS)
         ps.updatePropertyTypeInEntitySetAcls( ImmutableSet.of(
                 new PropertyTypeInEntitySetAclRequest().setPrincipal( principal ).setAction( Action.ADD )
                         .setName( NATION_SECRET_SERVICE ).setPropertyType( EMPLOYEE_ID )
-                        .setPermissions( ImmutableSet.of( Permission.WRITE ) ),
+                        .setPermissions( EnumSet.of( Permission.WRITE ) ),
                 new PropertyTypeInEntitySetAclRequest().setPrincipal( principal ).setAction( Action.ADD )
                         .setName( NATION_SECRET_SERVICE ).setPropertyType( ADDRESS )
-                        .setPermissions( ImmutableSet.of( Permission.WRITE ) ) ) );
+                        .setPermissions( EnumSet.of( Permission.WRITE ) ) ) );
 
         // Test 4.33: Actually write data - only the columns EMPLOYEE_ID, ADDRESS would be non-empty
         createData( 10,
@@ -752,14 +825,14 @@ public class PermissionsServiceTest {
         ps.updatePropertyTypeInEntitySetAcls( ImmutableSet.of(
                 new PropertyTypeInEntitySetAclRequest().setPrincipal( principal ).setAction( Action.REMOVE )
                         .setName( NATION_SECRET_SERVICE ).setPropertyType( EMPLOYEE_ID )
-                        .setPermissions( ImmutableSet.of( Permission.WRITE ) ),
+                        .setPermissions( EnumSet.of( Permission.WRITE ) ),
                 new PropertyTypeInEntitySetAclRequest().setPrincipal( principal ).setAction( Action.REMOVE )
                         .setName( NATION_SECRET_SERVICE ).setPropertyType( ADDRESS )
-                        .setPermissions( ImmutableSet.of( Permission.WRITE ) ) ) );
+                        .setPermissions( EnumSet.of( Permission.WRITE ) ) ) );
         // Cleanup: remove Reader/Writer Role, and all current Read rights.
         ps.updateEntitySetsAcls( ImmutableSet.of( new EntitySetAclRequest().setPrincipal( principal )
                 .setAction( Action.REMOVE ).setName( NATION_SECRET_SERVICE )
-                .setPermissions( ImmutableSet.of( Permission.READ, Permission.WRITE ) ) ) );
+                .setPermissions( EnumSet.of( Permission.READ, Permission.WRITE ) ) ) );
         ps.removeAllPropertyTypesInEntitySetAcls( ImmutableSet.of( NATION_SECRET_SERVICE ) );
     }
 
@@ -798,5 +871,99 @@ public class PermissionsServiceTest {
                 Optional.absent() );
 
         dataApi.createEntityData( createEntityRequest );
+    }
+
+    private void requestAccess(){
+        System.out.println( "---TEST 1---" );
+        // Test 1: God creates Entity Sets Hombres, Mujeres, and give Citizen DISCOVER rights
+        // Citizen requests access to them
+        // Expected: Citizens' sent request list should have Hombres and Mujeres
+        String HOMBRES = "hombres";
+        String MUJERES = "mujeres";
+        
+        EntitySet hombres = new EntitySet().setType( NATION_CITIZENS )
+                .setName( HOMBRES )
+                .setTitle( "Every nation would have some" );
+        EntitySet mujeres = new EntitySet().setType( NATION_CITIZENS )
+                .setName( MUJERES )
+                .setTitle( "Every nation would have some" );
+        edmService.createEntitySet( hombres );        
+        edmService.createEntitySet( mujeres ); 
+
+        ps.updateEntitySetsAcls(
+                ImmutableSet.of( new EntitySetAclRequest().setPrincipal( ROLE_USER ).setAction( Action.ADD )
+                        .setName( HOMBRES ).setPermissions( EnumSet.of( Permission.DISCOVER ) ) ) );
+        ps.updateEntitySetsAcls(
+                ImmutableSet.of( new EntitySetAclRequest().setPrincipal( ROLE_USER ).setAction( Action.ADD )
+                        .setName( MUJERES ).setPermissions( EnumSet.of( Permission.DISCOVER ) ) ) );
+        
+        // Request for HOMBRES: request READ access the entity set itself, no specific property type
+        ps.addPermissionsRequestForPropertyTypesInEntitySet( ImmutableSet.of(
+                new PropertyTypeInEntitySetAclRequest().setPrincipal( ROLE_USER ).setAction( Action.REQUEST )
+                .setName( HOMBRES ).setPermissions( EnumSet.of( Permission.READ ) )
+                ) );
+        // Request for MUJERES: request READ,WRITE access for Property Type ADDRESS
+        ps.addPermissionsRequestForPropertyTypesInEntitySet( ImmutableSet.of(
+                new PropertyTypeInEntitySetAclRequest().setPrincipal( USER_USER ).setAction( Action.REQUEST )
+                .setName( MUJERES ).setPropertyType( ADDRESS ).setPermissions( EnumSet.of( Permission.READ, Permission.WRITE ) )
+                ) );
+        
+        System.out.println( "--- TEST FOR GETTING ALL SENT REQUEST --- " );
+        System.out.println( ps.getAllSentRequestsForPermissions( null ) );
+
+        System.out.println( "--- TEST FOR GETTING SENT REQUEST FOR HOMBRES --- " );
+        System.out.println( ps.getAllSentRequestsForPermissions( HOMBRES ) );
+
+        /**
+         * Skipped, because can't see a clean way of getting UUID of the request here.
+         */
+        // Ideal Test: Citizen removes Request for Hombres
+        // Expected: Citizens' sent request list should have only Mujeres
+
+        System.out.println( "---TEST 2---" );
+        // Test 2: Citizens create Entity Sets Cate, Doge. A few request accesses were made to them.
+        // Expected: Citizens' received request list should have Cate and Doge.
+        
+        String CATE = "kryptocate";
+        String DOGE = "kryptodoge";
+        
+        EntitySet cate = new EntitySet().setType( NATION_CITIZENS )
+                .setName( CATE )
+                .setTitle( "Every reddit would have some" );
+        EntitySet doge = new EntitySet().setType( NATION_CITIZENS )
+                .setName( DOGE )
+                .setTitle( "Every reddit would have some" );
+        edmApi.postEntitySets( ImmutableSet.of(cate, doge) ); 
+        //Sanity check for ownership
+        System.out.println( "--- SANITY TEST FOR OWNERSHIP OF CATE AND DOGE --- " );
+        System.out.println( edmApi.getEntitySets() );
+        
+        //Add permissions request
+        permissionsService.addPermissionsRequestForPropertyTypeInEntitySet( 
+                "redditUser1", ROLE_USER, CATE, ADDRESS, EnumSet.of( Permission.READ ) );
+        permissionsService.addPermissionsRequestForPropertyTypeInEntitySet( 
+                "redditUser314", USER_USER, DOGE, LIFE_EXPECTANCY, EnumSet.of( Permission.READ, Permission.WRITE, Permission.DISCOVER ) );
+        
+        System.out.println( "--- TEST FOR GETTING ALL RECEIVED REQUEST --- " );
+        System.out.println( ps.getAllReceivedRequestsForPermissions( null ) );
+
+        System.out.println( "--- TEST FOR GETTING RECEIVED REQUEST FOR CATE --- " );
+        System.out.println( ps.getAllReceivedRequestsForPermissions( CATE ) );     
+        
+        System.out.println( "--- TEST FOR GETTING RECEIVED REQUEST FOR HOMBRES --- " );
+        try{
+            System.out.println( ps.getAllReceivedRequestsForPermissions( HOMBRES ) );     
+        } catch ( Exception e ){
+            // 404 thrown by ExceptionHandler would be caught by retrofit, so it's NotFoundException rather than custom ResourceNotFoundException
+            Assert.assertTrue( e instanceof NotFoundException );
+        }
+
+        requestAccessCleanup();
+    }
+    
+    private void requestAccessCleanup(){
+        /*
+         * TODO: remove unattended PermissionsRequest to avoid pollution.
+         */
     }
 }

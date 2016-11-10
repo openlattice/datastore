@@ -1,5 +1,6 @@
 package com.kryptnostic.datastore.pods;
 
+import java.time.Instant;
 import java.util.EnumSet;
 import java.util.Set;
 import java.util.UUID;
@@ -11,6 +12,7 @@ import org.springframework.context.annotation.Configuration;
 
 import com.datastax.driver.core.TypeCodec;
 import com.datastax.driver.extras.codecs.enums.EnumNameCodec;
+import com.datastax.driver.extras.codecs.jdk8.InstantCodec;
 import com.kryptnostic.conductor.codecs.EnumSetTypeCodec;
 import com.kryptnostic.conductor.codecs.FullQualifiedNameTypeCodec;
 import com.kryptnostic.datastore.Permission;
@@ -35,6 +37,11 @@ public class DatastoreTypeCodecsPod {
     @Bean
     public TypeCodec<FullQualifiedName> fqnCodec() {
         return new FullQualifiedNameTypeCodec();
+    }
+    
+    @Bean
+    public TypeCodec<Instant> instantCodec() {
+        return InstantCodec.instance;
     }
 
     @Bean

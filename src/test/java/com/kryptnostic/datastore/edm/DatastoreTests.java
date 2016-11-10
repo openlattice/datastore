@@ -6,12 +6,11 @@ import static org.junit.Assert.assertSame;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.util.HashSet;
 import java.util.Set;
-import java.io.OutputStream;
 import java.util.UUID;
 
-import com.kryptnostic.datastore.exceptions.BadRequestException;
 import org.apache.olingo.commons.api.data.Entity;
 import org.apache.olingo.commons.api.data.EntityCollection;
 import org.apache.olingo.commons.api.data.Property;
@@ -30,6 +29,7 @@ import org.apache.olingo.commons.core.edm.EdmEntitySetImpl;
 import org.apache.olingo.commons.core.edm.EdmEntityTypeImpl;
 import org.apache.olingo.commons.core.edm.EdmProviderImpl;
 import org.apache.olingo.server.api.ODataApplicationException;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpOutputMessage;
@@ -37,26 +37,32 @@ import org.springframework.http.converter.HttpMessageNotWritableException;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Multimap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Multimap;
 import com.kryptnostic.conductor.rpc.Employee;
 import com.kryptnostic.conductor.rpc.UUIDs.ACLs;
 import com.kryptnostic.conductor.rpc.UUIDs.Syncs;
 import com.kryptnostic.conductor.rpc.odata.EntitySet;
 import com.kryptnostic.conductor.rpc.odata.EntityType;
 import com.kryptnostic.conductor.rpc.odata.PropertyType;
+import com.kryptnostic.datastore.converters.IterableCsvHttpMessageConverter;
+import com.kryptnostic.datastore.exceptions.BadRequestException;
 import com.kryptnostic.datastore.odata.KryptnosticEdmProvider;
 import com.kryptnostic.datastore.odata.Transformers;
 import com.kryptnostic.datastore.odata.Transformers.EntityTypeTransformer;
 import com.kryptnostic.datastore.services.EdmManager;
-import com.kryptnostic.datastore.services.ODataStorageService;
-import com.kryptnostic.datastore.converters.IterableCsvHttpMessageConverter;
 import com.kryptnostic.datastore.services.EdmService;
+import com.kryptnostic.datastore.services.ODataStorageService;
 
 public class DatastoreTests extends BootstrapDatastoreWithCassandra {
 
     private static final Multimap<String, Object> m = HashMultimap.create();
-
+ 
+    @BeforeClass
+    public static void initDatastoreTests() {
+        init();
+    }
+    
     @Test
     public void testSerialization() throws HttpMessageNotWritableException, IOException {
         IterableCsvHttpMessageConverter converter = new IterableCsvHttpMessageConverter(

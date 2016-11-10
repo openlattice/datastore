@@ -29,7 +29,7 @@ run {
   }
 }
 
-run.args = ["cassandra"]
+run.args = ["aws","cassandra"]
 
 configurations {
     tests

@@ -1,21 +1,25 @@
 package com.kryptnostic.datastore.edm;
 
-import com.kryptnostic.datastore.exceptions.BadRequestException;
+import java.util.Set;
+
 import org.apache.olingo.commons.api.edm.EdmPrimitiveTypeKind;
 import org.apache.olingo.commons.api.edm.FullQualifiedName;
 import org.junit.AfterClass;
 import org.junit.Assert;
-import org.junit.BeforeClass;
 
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
 import com.kryptnostic.conductor.rpc.UUIDs.ACLs;
 import com.kryptnostic.conductor.rpc.odata.EntityType;
 import com.kryptnostic.conductor.rpc.odata.PropertyType;
 import com.kryptnostic.datastore.services.EdmManager;
+import com.kryptnostic.rhizome.pods.SparkPod;
 
 public class BootstrapDatastoreWithCassandra {
     public static final String               NAMESPACE          = "testcsv";
+    protected static final Set<Class<?>>     PODS               = Sets.newHashSet( SparkPod.class );
     protected static final DatastoreServices ds                 = new DatastoreServices();
+    protected static final Set<String>       PROFILES           = Sets.newHashSet( "local", "cassandra" );
     protected static final String            SALARY             = "salary";
     protected static final String            EMPLOYEE_NAME      = "employee-name";
     protected static final String            EMPLOYEE_TITLE     = "employee-title";
@@ -28,9 +32,9 @@ public class BootstrapDatastoreWithCassandra {
     protected static final FullQualifiedName ENTITY_TYPE_SATURN = new FullQualifiedName( NAMESPACE, "employeeSaturn" );
     protected static final String            SCHEMA_NAME        = "csv";
 
-    @BeforeClass
     public static void init() {
-        ds.sprout( "local", "cassandra" );
+        ds.intercrop( PODS.toArray( new Class<?>[ 0 ] ) );
+        ds.sprout( PROFILES.toArray( new String[ 0 ] ) );
         setupDatamodel();
     }
 

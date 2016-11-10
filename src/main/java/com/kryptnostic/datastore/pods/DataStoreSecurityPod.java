@@ -10,15 +10,16 @@ import digital.loom.rhizome.authentication.Auth0SecurityPod;
 
 @Configuration
 @EnableGlobalMethodSecurity(
-    prePostEnabled = true )
+        prePostEnabled = true )
 @EnableWebSecurity(
-    debug = false )
+        debug = false )
 public class DataStoreSecurityPod extends Auth0SecurityPod {
 
     @Override
     protected void authorizeRequests( HttpSecurity http ) throws Exception {
         http.authorizeRequests()
                 .antMatchers( HttpMethod.OPTIONS ).permitAll()
+                .antMatchers( "/ontology/admin/**" ).hasAnyAuthority( "admin", "ADMIN" )
                 .antMatchers( "/odata/**" ).hasAnyAuthority( "user", "USER" )
                 .antMatchers( "/ontology/**" ).hasAnyAuthority( "user", "USER" );
     }

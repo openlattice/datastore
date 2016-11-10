@@ -1,40 +1,39 @@
 package com.kryptnostic.datastore.edm;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.concurrent.ExecutionException;
+import java.util.Set;
+
 import javax.inject.Inject;
 
 import org.apache.olingo.commons.api.edm.EdmPrimitiveTypeKind;
 import org.apache.olingo.commons.api.edm.FullQualifiedName;
 import org.junit.AfterClass;
 import org.junit.Assert;
-import org.junit.BeforeClass;
 
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
 import com.hazelcast.core.HazelcastInstance;
-import com.kryptnostic.conductor.rpc.ConductorCall;
-import com.kryptnostic.conductor.rpc.Lambdas;
 import com.kryptnostic.conductor.rpc.UUIDs.ACLs;
 import com.kryptnostic.conductor.rpc.odata.EntityType;
 import com.kryptnostic.conductor.rpc.odata.PropertyType;
 import com.kryptnostic.datastore.services.ActionAuthorizationService;
-import com.kryptnostic.datastore.services.Constants;
 import com.kryptnostic.datastore.services.DataService;
 import com.kryptnostic.datastore.services.EdmManager;
 import com.kryptnostic.datastore.services.PermissionsService;
+import com.kryptnostic.rhizome.pods.SparkPod;
 
 public class BootstrapDatastoreWithCassandra {
     @Inject
     private static HazelcastInstance            hazelcast;
 
     public static final String                  NAMESPACE          = "testcsv";
-    protected static final DatastoreServices    ds                 = new DatastoreServices();
     protected static EdmManager                 dms;
     protected static PermissionsService         ps;
     protected static DataService                dataService;
     protected static ActionAuthorizationService authzService;
+
+    protected static final Set<Class<?>>        PODS               = Sets.newHashSet( SparkPod.class );
+    protected static final DatastoreServices    ds                 = new DatastoreServices();
+    protected static final Set<String>          PROFILES           = Sets.newHashSet( "local", "cassandra" );
     protected static final String               SALARY             = "salary";
     protected static final String               EMPLOYEE_NAME      = "employee-name";
     protected static final String               EMPLOYEE_TITLE     = "employee-title";
@@ -49,9 +48,10 @@ public class BootstrapDatastoreWithCassandra {
             "employeeSaturn" );
     protected static final String               SCHEMA_NAME        = "csv";
 
-    @BeforeClass
     public static void init() {
-        ds.sprout( "cassandra" );
+        ds.intercrop( PODS.toArray( new Class<?>[ 0 ] ) );
+        ds.sprout( PROFILES.toArray( new String[ 0 ] ) );
+        ds.sprout( "local", "cassandra" );
         dms = ds.getContext().getBean( EdmManager.class );
         ps = ds.getContext().getBean( PermissionsService.class );
         dataService = ds.getContext().getBean( DataService.class );

@@ -20,6 +20,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.kryptnostic.datastore.Permission;
 import com.kryptnostic.datastore.PermissionsInfo;
 import com.kryptnostic.datastore.Principal;
+import com.kryptnostic.datastore.PrincipalType;
 import com.kryptnostic.datastore.exceptions.ResourceNotFoundException;
 import com.kryptnostic.datastore.services.ActionAuthorizationService;
 import com.kryptnostic.datastore.services.PermissionsApi;
@@ -380,12 +381,14 @@ public class PermissionsController implements PermissionsApi {
            @RequestBody Set<PropertyTypeInEntitySetAclRequest> requests ) {
         
         String username = authzService.getUsername();
+        Principal userAsPrincipal = new Principal(PrincipalType.USER, username);
         
         for ( PropertyTypeInEntitySetAclRequest request : requests ) {
             switch ( request.getAction() ) {
                 case REQUEST:
+                    // if principal is missing, would assume that user is requesting permissions for himself
                     ps.addPermissionsRequestForPropertyTypeInEntitySet( username,
-                            request.getPrincipal(),
+                            ( request.getPrincipal() != null ) ? request.getPrincipal() : userAsPrincipal,
                             request.getName(),
                             request.getPropertyType(),
                             request.getPermissions() );

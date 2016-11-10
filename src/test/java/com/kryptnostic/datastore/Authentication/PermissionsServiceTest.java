@@ -144,7 +144,7 @@ public class PermissionsServiceTest {
     @Test
     public void permissionsServiceTest() {
         createTypes();
-        
+/**        
         System.out.println( "*********************" );
         System.out.println( "ROLE TESTS START!" );
         System.out.println( "*********************" );
@@ -170,7 +170,7 @@ public class PermissionsServiceTest {
         System.out.println( "*********************" );
         System.out.println( "USER TESTS END!" );
         System.out.println( "*********************" );
-                
+*/                
         System.out.println( "*********************" );
         System.out.println( "REQUEST ACCESS TESTS START!" );
         System.out.println( "*********************" );
@@ -918,14 +918,20 @@ public class PermissionsServiceTest {
         System.out.println( "--- TEST FOR GETTING SENT REQUEST FOR HOMBRES --- " );
         System.out.println( ps.getAllSentRequestsForPermissions( HOMBRES ) );
 
-        /**
-         * Skipped, because can't see a clean way of getting UUID of the request here.
-         */
-        // Ideal Test: Citizen removes Request for Hombres
+        System.out.println( "---TEST 2---" );
+        // Test 2: Citizen removes Request for Hombres
         // Expected: Citizens' sent request list should have only Mujeres
 
-        System.out.println( "---TEST 2---" );
-        // Test 2: Citizens create Entity Sets Cate, Doge. A few request accesses were made to them.
+        ps.getAllSentRequestsForPermissions( HOMBRES ).forEach( request -> ps.removePermissionsRequestForEntitySet( request.getRequestId() ) );
+
+        System.out.println( "--- TEST FOR GETTING ALL SENT REQUEST --- " );
+        System.out.println( ps.getAllSentRequestsForPermissions( null ) );
+
+        System.out.println( "--- TEST FOR GETTING SENT REQUEST FOR HOMBRES --- " );
+        System.out.println( ps.getAllSentRequestsForPermissions( HOMBRES ) );
+
+        System.out.println( "---TEST 3---" );
+        // Test 3: Citizens create Entity Sets Cate, Doge. A few request accesses were made to them.
         // Expected: Citizens' received request list should have Cate and Doge.
         
         String CATE = "kryptocate";
@@ -966,9 +972,9 @@ public class PermissionsServiceTest {
     }
     
     private void requestAccessCleanup(){
-        /*
-         * TODO: remove unattended PermissionsRequest to avoid pollution.
-         */
+        // Remove unattended PermissionsRequest to avoid pollution.
+        ps.getAllSentRequestsForPermissions( null ).forEach( request -> ps.removePermissionsRequestForEntitySet( request.getRequestId() ) );
+        ps.getAllReceivedRequestsForPermissions( null ).forEach( request -> ps.removePermissionsRequestForEntitySet( request.getRequestId() ) );
     }
     
     private void uncheckedCreateData(

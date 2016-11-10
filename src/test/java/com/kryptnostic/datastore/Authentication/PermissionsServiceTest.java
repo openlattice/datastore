@@ -144,7 +144,7 @@ public class PermissionsServiceTest {
     @Test
     public void permissionsServiceTest() {
         createTypes();
-/**        
+        
         System.out.println( "*********************" );
         System.out.println( "ROLE TESTS START!" );
         System.out.println( "*********************" );
@@ -170,7 +170,7 @@ public class PermissionsServiceTest {
         System.out.println( "*********************" );
         System.out.println( "USER TESTS END!" );
         System.out.println( "*********************" );
-*/                
+               
         System.out.println( "*********************" );
         System.out.println( "REQUEST ACCESS TESTS START!" );
         System.out.println( "*********************" );

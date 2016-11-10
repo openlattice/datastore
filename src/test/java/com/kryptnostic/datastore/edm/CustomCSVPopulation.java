@@ -417,7 +417,7 @@ public class CustomCSVPopulation {
 			e.printStackTrace();
 		}		
 
-		ds.sprout("cassandra");
+		ds.sprout("cassandra","local");
         dms = ds.getContext().getBean( EdmManager.class );
         odsc = ds.getContext().getBean( ODataStorageService.class );
         dataService = ds.getContext().getBean( DataService.class );

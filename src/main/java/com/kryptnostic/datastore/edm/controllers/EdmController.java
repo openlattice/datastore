@@ -19,6 +19,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -173,18 +174,35 @@ public class EdmController implements EdmApi {
         method = RequestMethod.GET,
         produces = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
-    public Iterable<EntitySetWithPermissions> getEntitySets() {
+    public Iterable<? extends EntitySet> getEntitySets( @RequestParam( value = IS_OWNER, required = false ) Boolean isOwner ) {
         String username = authzService.getUsername();
         List<String> currentRoles = authzService.getRoles();
 
         Set<String> ownedSets = Sets.newHashSet( modelService.getEntitySetNamesUserOwns( username ) );
 
-        return StreamSupport.stream( modelService.getEntitySets().spliterator(), false )
-                .filter( entitySet -> authzService.getEntitySet( entitySet.getName() ) )
-                .map( entitySet -> new EntitySetWithPermissions().fromEntitySet( entitySet )
-                        .setPermissions( ps.getEntitySetAclsForUser( username, currentRoles, entitySet.getName() ) )
-                        .setIsOwner( ownedSets.contains( entitySet.getName() ) ) )
-                .collect( Collectors.toList() );
+        if( isOwner != null ){
+            if( isOwner ){
+                // isOwner = true -> return all entity sets owned
+                return modelService.getEntitySetsUserOwns( username );
+            } else {
+                // isOwner = false -> return all entity sets not owned, with permissions
+                return StreamSupport.stream( modelService.getEntitySets().spliterator(), false )
+                        .filter( entitySet -> !ownedSets.contains( entitySet.getName() ) )
+                        .filter( entitySet -> authzService.getEntitySet( entitySet.getName() ) )
+                        .map( entitySet -> new EntitySetWithPermissions().fromEntitySet( entitySet )
+                                .setPermissions( ps.getEntitySetAclsForUser( username, currentRoles, entitySet.getName() ) )
+                                .setIsOwner( false ) )
+                        .collect( Collectors.toList() );
+            }
+        } else {
+            //No query parameter -> return all entity sets
+            return StreamSupport.stream( modelService.getEntitySets().spliterator(), false )
+                    .filter( entitySet -> authzService.getEntitySet( entitySet.getName() ) )
+                    .map( entitySet -> new EntitySetWithPermissions().fromEntitySet( entitySet )
+                            .setPermissions( ps.getEntitySetAclsForUser( username, currentRoles, entitySet.getName() ) )
+                            .setIsOwner( ownedSets.contains( entitySet.getName() ) ) )
+                    .collect( Collectors.toList() );
+        }
     }
 
     @Override

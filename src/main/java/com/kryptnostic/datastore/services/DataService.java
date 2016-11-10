@@ -8,6 +8,7 @@ import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.olingo.commons.api.edm.FullQualifiedName;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -16,6 +17,8 @@ import com.datastax.driver.core.BoundStatement;
 import com.datastax.driver.core.DataType;
 import com.datastax.driver.core.Session;
 import com.datastax.driver.mapping.MappingManager;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
@@ -162,8 +165,8 @@ public class DataService {
             // TODO: This will keep the last value that appears ... i.e no property multiplicity.
             bindList[ 0 ] = entityId;
             bindList[ 1 ] = typename;
-            bindList[ 2 ] = entitySetName;
-            bindList[ 3 ] = syncId;
+            bindList[ 2 ] = StringUtils.isBlank( entitySetName ) ? ImmutableSet.of() : ImmutableSet.of( entitySetName );
+            bindList[ 3 ] = ImmutableList.of( syncId );
 
             obj.entries().stream().filter( authorizedPropertyFqns::contains ).forEach( e -> {
                 DataType dt = propertyDataTypeMap.get( e.getKey() );

@@ -183,8 +183,11 @@ public class EdmController implements EdmApi {
         if( isOwner != null ){
             if( isOwner ){
                 // isOwner = true -> return all entity sets owned
+                EnumSet<Permission> allPermissions = EnumSet.allOf( Permission.class );
                 return StreamSupport.stream( modelService.getEntitySetsUserOwns( username ).spliterator(), false )
-                        .map( entitySet -> new EntitySetWithPermissions().fromEntitySet( entitySet ) )
+                        .map( entitySet -> new EntitySetWithPermissions().fromEntitySet( entitySet )
+                                .setPermissions( allPermissions )
+                                .setIsOwner( true ) )
                         .collect( Collectors.toList() );
             } else {
                 // isOwner = false -> return all entity sets not owned, with permissions

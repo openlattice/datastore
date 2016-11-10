@@ -8,16 +8,15 @@ import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.olingo.commons.api.edm.FullQualifiedName;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.datastax.driver.core.BoundStatement;
 import com.datastax.driver.core.DataType;
-import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.Session;
 import com.datastax.driver.mapping.MappingManager;
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
@@ -36,6 +35,7 @@ import com.kryptnostic.conductor.rpc.odata.EntityType;
 import com.kryptnostic.conductor.rpc.odata.PropertyType;
 import com.kryptnostic.datastore.cassandra.CassandraEdmMapping;
 import com.kryptnostic.datastore.cassandra.CassandraStorage;
+import com.kryptnostic.datastore.services.CassandraTableManager.PreparedStatementMapping;
 import com.kryptnostic.datastore.services.requests.CreateEntityRequest;
 
 public class DataService {
@@ -155,57 +155,59 @@ public class DataService {
         String typename = tableManager.getTypenameForEntityType( entityFqn );
         String entitySetName = createEntityRequest.getEntitySetName()
                 .or( CassandraTableManager.getNameForDefaultEntitySet( typename ) );
-
-        propertyValues.stream().forEach( obj -> {
-            PreparedStatement createQuery = Preconditions.checkNotNull(
-                    tableManager.getInsertEntityPreparedStatement( entityFqn ),
-                    "Insert data prepared statement does not exist." );
-
-            PreparedStatement entityIdTypenameLookupQuery = Preconditions.checkNotNull(
-                    tableManager.getUpdateEntityIdTypenamePreparedStatement( entityFqn ),
-                    "Entity ID typename lookup query cannot be null." );
-
+        PreparedStatementMapping cqm = tableManager.getInsertEntityPreparedStatement( entityFqn,
+                authorizedPropertyFqns,
+                createEntityRequest.getEntitySetName() );
+        Object[] bindList = new Object[ 4 + cqm.mapping.size() ];
+        propertyValues.stream().map( obj -> {
             UUID entityId = UUID.randomUUID();
-            BoundStatement boundQuery = createQuery.bind( entityId,
-                    typename,
-                    ImmutableSet.of( entitySetName ),
-                    ImmutableList.of( syncId ) );
-            logger.info( "Attempting to create entity : {}", boundQuery.toString() );
-            session.execute( boundQuery );
-            session.execute( entityIdTypenameLookupQuery.bind( typename, entityId ) );
 
-            EntityType entityType = dms.getEntityType( entityFqn );
-            Set<FullQualifiedName> key = entityType.getKey();
+            // TODO: This will keep the last value that appears ... i.e no property multiplicity.
+            bindList[ 0 ] = entityId;
+            bindList[ 1 ] = typename;
+            bindList[ 2 ] = StringUtils.isBlank( entitySetName ) ? ImmutableSet.of() : ImmutableSet.of( entitySetName );
+            bindList[ 3 ] = ImmutableList.of( syncId );
 
-            // Pre-calculate properties that user can actually write on
-            Map<FullQualifiedName, Boolean> authorizationCheck = obj.keySet().stream()
-                    .collect( Collectors.toMap( fqn -> fqn, fqn -> authorizedPropertyFqns.contains( fqn ) ) );
+            obj.entries().stream().filter( authorizedPropertyFqns::contains ).forEach( e -> {
+                DataType dt = propertyDataTypeMap.get( e.getKey() );
+                Object propertyValue = e.getValue();
+                if ( dt.equals( DataType.bigint() ) ) {
+                    propertyValue = Long.valueOf( propertyValue.toString() );
+                } else if ( dt.equals( DataType.uuid() ) ) {
+                    // TODO Ho Chung: Added conversion back to UUID; haven't checked other types
+                    propertyValue = UUID.fromString( propertyValue.toString() );
+                }
 
-            obj.entries().stream()
-                    .filter( e -> authorizationCheck.get( e.getKey() ) )
-                    .forEach( e -> {
-                        PreparedStatement pps = tableManager.getUpdatePropertyPreparedStatement( e.getKey() );
+                bindList[ cqm.mapping.get( e.getKey() ) ] = e.getValue();
+            } );
 
-                        logger.info( "Attempting to write property value: {}", e.getValue() );
-                        DataType dt = propertyDataTypeMap.get( e.getKey() );
-
-                        Object propertyValue = e.getValue();
-                        if ( dt.equals( DataType.bigint() ) ) {
-                            propertyValue = Long.valueOf( propertyValue.toString() );
-                        } else if ( dt.equals( DataType.uuid() ) ) {
-                            // TODO Ho Chung: Added conversion back to UUID; haven't checked other types
-                            propertyValue = UUID.fromString( propertyValue.toString() );
-                        }
-                        session.executeAsync( pps.bind( ImmutableList.of( syncId ), entityId, propertyValue ) );
-                        if ( key.contains( e.getKey() ) ) {
-                            PreparedStatement pipps = tableManager
-                                    .getUpdatePropertyIndexPreparedStatement( e.getKey() );
-                            logger.info( "Attempting to write property Index: {}", e.getValue() );
-                            session.executeAsync(
-                                    pipps.bind( ImmutableList.of( syncId ), propertyValue, entityId ) );
-                        }
-                    } );
+            BoundStatement bq = cqm.stmt.bind( bindList );
+            return session.executeAsync( bq );
         } );
+
+        /*
+         * PreparedStatement createQuery = Preconditions.checkNotNull( tableManager.getInsertEntityPreparedStatement(
+         * entityFqn ), "Insert data prepared statement does not exist." ); PreparedStatement
+         * entityIdTypenameLookupQuery = Preconditions.checkNotNull(
+         * tableManager.getUpdateEntityIdTypenamePreparedStatement( entityFqn ),
+         * "Entity ID typename lookup query cannot be null." ); BoundStatement boundQuery = createQuery.bind( entityId,
+         * typename, ImmutableSet.of( entitySetName ), ImmutableList.of( syncId ) ); logger.info(
+         * "Attempting to create entity : {}", boundQuery.toString() ); session.execute( boundQuery ); session.execute(
+         * entityIdTypenameLookupQuery.bind( typename, entityId ) ); EntityType entityType = dms.getEntityType(
+         * entityFqn ); Set<FullQualifiedName> key = entityType.getKey(); // Pre-calculate properties that user can
+         * actually write on Map<FullQualifiedName, Boolean> authorizationCheck = obj.keySet().stream() .collect(
+         * Collectors.toMap( fqn -> fqn, fqn -> authorizedPropertyFqns.contains( fqn ) ) ); obj.entries().stream()
+         * .filter( e -> authorizationCheck.get( e.getKey() ) ) .forEach( e -> { PreparedStatement pps =
+         * tableManager.getUpdatePropertyPreparedStatement( e.getKey() ); logger.info(
+         * "Attempting to write property value: {}", e.getValue() ); DataType dt = propertyDataTypeMap.get( e.getKey()
+         * ); Object propertyValue = e.getValue(); if ( dt.equals( DataType.bigint() ) ) { propertyValue = Long.valueOf(
+         * propertyValue.toString() ); } else if ( dt.equals( DataType.uuid() ) ) { // TODO Ho Chung: Added conversion
+         * back to UUID; haven't checked other types propertyValue = UUID.fromString( propertyValue.toString() ); }
+         * session.executeAsync( pps.bind( ImmutableList.of( syncId ), entityId, propertyValue ) ); if ( key.contains(
+         * e.getKey() ) ) { PreparedStatement pipps = tableManager .getUpdatePropertyIndexPreparedStatement( e.getKey()
+         * ); logger.info( "Attempting to write property Index: {}", e.getValue() ); session.executeAsync( pipps.bind(
+         * ImmutableList.of( syncId ), propertyValue, entityId ) ); } } );
+         */
     }
 
     // TODO Permissions stuff not added yet - would need to modify a bit. Don't think frontend has been using it, so am

@@ -22,14 +22,14 @@ mainClassName = "com.kryptnostic.datastore.Datastore"
 applicationDefaultJvmArgs = ["-Xmx5G", "-server"]
 sourceCompatibility=JavaVersion.VERSION_1_8
 targetCompatibility=JavaVersion.VERSION_1_8
-
+/*
 run {
   if (System.getProperty("exec.args")) {
     args System.getProperty("exec.args").split()
   }
 }
-
-run.args = ["cassandra"]
+*/
+run.args = ["local","cassandra"]
 
 configurations {
     tests

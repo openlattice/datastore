@@ -7,7 +7,6 @@ enable-persistence:  false
 session-clustering-enabled: false
 
 cassandra:
-    ssl-enabled: true
     keyspace: "sparks"
     replication-factor: 2
     seed-nodes:

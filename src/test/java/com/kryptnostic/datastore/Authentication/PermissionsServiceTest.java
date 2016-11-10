@@ -40,6 +40,7 @@ import com.kryptnostic.datastore.Principal;
 import com.kryptnostic.datastore.PrincipalType;
 import com.kryptnostic.datastore.exceptions.ResourceNotFoundException;
 import com.kryptnostic.datastore.services.DataApi;
+import com.kryptnostic.datastore.services.DataService;
 import com.kryptnostic.datastore.services.EdmApi;
 import com.kryptnostic.datastore.services.EdmService;
 import com.kryptnostic.datastore.services.PermissionsApi;
@@ -75,6 +76,7 @@ public class PermissionsServiceTest {
                                                                                                                  // set
                                                                                                                  // name
 
+
     protected static final FullQualifiedName EMPLOYEE_ID           = new FullQualifiedName(
             NATION_NAMESPACE,
             "employee-id" );
@@ -97,6 +99,7 @@ public class PermissionsServiceTest {
             "spied-on" );                                                                                        // property
                                                                                                                  // type
 
+
     private static final Logger              logger                = LoggerFactory.getLogger( Auth0Test.class );
     protected static final Datastore         ds                    = new Datastore();
     protected static Auth0Configuration      configuration;
@@ -107,6 +110,7 @@ public class PermissionsServiceTest {
     protected static EdmService              edmService;
     protected static PermissionsApi          ps;
     protected static PermissionsService      permissionsService;
+
     protected static RestAdapter             dataServiceRestAdapter;
 
     @BeforeClass
@@ -140,7 +144,7 @@ public class PermissionsServiceTest {
     @Test
     public void permissionsServiceTest() {
         createTypes();
-/**        
+        
         System.out.println( "*********************" );
         System.out.println( "ROLE TESTS START!" );
         System.out.println( "*********************" );
@@ -166,7 +170,7 @@ public class PermissionsServiceTest {
         System.out.println( "*********************" );
         System.out.println( "USER TESTS END!" );
         System.out.println( "*********************" );
-*/        
+                
         System.out.println( "*********************" );
         System.out.println( "REQUEST ACCESS TESTS START!" );
         System.out.println( "*********************" );
@@ -965,5 +969,74 @@ public class PermissionsServiceTest {
         /*
          * TODO: remove unattended PermissionsRequest to avoid pollution.
          */
+    }
+    
+    private void uncheckedCreateData(
+            int dataLength,
+            FullQualifiedName entityTypeFqn,
+            Optional<String> entitySetName,
+            Set<FullQualifiedName> includedProperties ) {
+        Random rand = new Random();
+
+        Set<Multimap<FullQualifiedName, Object>> entities = new HashSet<>();
+        for ( int i = 0; i < dataLength; i++ ) {
+            Multimap<FullQualifiedName, Object> entity = HashMultimap.create();
+
+            entity.put( EMPLOYEE_ID, UUID.randomUUID() );
+
+            if ( includedProperties.contains( LIFE_EXPECTANCY ) ) {
+                entity.put( LIFE_EXPECTANCY, rand.nextInt( 100 ) );
+            }
+
+            if ( includedProperties.contains( ADDRESS ) ) {
+                entity.put( ADDRESS, RandomStringUtils.randomAlphanumeric( 10 ) );
+            }
+
+            if ( includedProperties.contains( POSITION ) ) {
+                entity.put( POSITION, RandomStringUtils.randomAlphabetic( 6 ) );
+            }
+            entities.add( entity );
+        }
+
+        CreateEntityRequest createEntityRequest = new CreateEntityRequest(
+                entitySetName,
+                entityTypeFqn,
+                entities,
+                Optional.absent(),
+                Optional.absent() );
+
+        DataService dataService = ds.getContext().getBean( DataService.class );
+        dataService.createEntityData( createEntityRequest, includedProperties );
+    }
+    
+    /**
+     * Helper function to generate garbage data, if necessary.
+     * This goes through DataApi rather than ODataStorageClient, which has not been merged with permissionsApi.
+     */
+    //@Test
+    public void populateData(){
+        /**
+         * Create:
+         * Property Types: EMPLOYEE_ID, ADDRESS, POSITION, LIFE_EXPECTANCY
+         * Entity Types: NATION_CITIZENS
+         * Entity Sets: NATION_SECRET_SERVICE
+         */
+        createTypes();
+        
+        /**
+         * Create 100 rows of Data in NATION_CITIZENS (entity type), no entity set, and write random values to Set of EMPLOYEE_ID, ADDRESS, POSITION, LIFE_EXPECTANCY
+         */
+        uncheckedCreateData( 100, NATION_CITIZENS, Optional.absent(), ImmutableSet.of( EMPLOYEE_ID,
+                ADDRESS,
+                POSITION,
+                LIFE_EXPECTANCY ));
+
+        /**
+         * Create 100 rows of Data in NATION_CITIZENS (entity type), NATION_SECRET_SEVICE (entity set), and write random values to Set of EMPLOYEE_ID, ADDRESS, POSITION, LIFE_EXPECTANCY
+         */
+        uncheckedCreateData( 100, NATION_CITIZENS, Optional.of( NATION_SECRET_SERVICE ), ImmutableSet.of( EMPLOYEE_ID,
+                ADDRESS,
+                POSITION,
+                LIFE_EXPECTANCY ));   
     }
 }

@@ -144,7 +144,7 @@ public class PermissionsServiceTest {
     @Test
     public void permissionsServiceTest() {
         createTypes();
-        
+/**        
         System.out.println( "*********************" );
         System.out.println( "ROLE TESTS START!" );
         System.out.println( "*********************" );
@@ -157,7 +157,7 @@ public class PermissionsServiceTest {
         System.out.println( "*********************" );
         System.out.println( "ROLE TESTS END!" );
         System.out.println( "*********************" );
-
+*/
         System.out.println( "*********************" );
         System.out.println( "USER TESTS START!" );
         System.out.println( "*********************" );
@@ -170,7 +170,7 @@ public class PermissionsServiceTest {
         System.out.println( "*********************" );
         System.out.println( "USER TESTS END!" );
         System.out.println( "*********************" );
-               
+/**               
         System.out.println( "*********************" );
         System.out.println( "REQUEST ACCESS TESTS START!" );
         System.out.println( "*********************" );
@@ -180,9 +180,10 @@ public class PermissionsServiceTest {
         System.out.println( "*********************" );
         System.out.println( "REQUEST ACCESS TESTS END!" );
         System.out.println( "*********************" );
+*/
     }
 
-    @AfterClass
+    @Ignore
     public static void cleanUp() {
         // Give permissions
         ps.updateEntityTypesAcls(
@@ -500,6 +501,7 @@ public class PermissionsServiceTest {
         ps.removeAllPropertyTypesInEntityTypeAcls(
                 ImmutableSet.of( NATION_CITIZENS ) );
 
+/**
         // Setup:
         // Give User READ rights for EMPLOYEE_ID, ADDRESS, POSITION in NATION_CITIZENS, as well as READ rights for
         // NATION_CITIZENS
@@ -610,6 +612,7 @@ public class PermissionsServiceTest {
                 .setPermissions( EnumSet.of( Permission.READ, Permission.WRITE ) ) ) );
         ps.removeAllPropertyTypesInEntityTypeAcls(
                 ImmutableSet.of( NATION_CITIZENS ) );
+*/                
     }
 
     /**
@@ -728,7 +731,7 @@ public class PermissionsServiceTest {
                 .setAction( Action.REMOVE ).setName( NATION_SECRET_SERVICE )
                 .setPermissions( EnumSet.of( Permission.READ, Permission.WRITE ) ) ) );
         ps.removeAllPropertyTypesInEntitySetAcls( ImmutableSet.of( NATION_SECRET_SERVICE ) );
-
+/**
         // Setup:
         // Give User READ rights for EMPLOYEE_ID, ADDRESS, POSITION in NATION_SECRET_SERVICE, as well as READ rights for
         // NATION_SECRET_SERVICE
@@ -838,6 +841,7 @@ public class PermissionsServiceTest {
                 .setAction( Action.REMOVE ).setName( NATION_SECRET_SERVICE )
                 .setPermissions( EnumSet.of( Permission.READ, Permission.WRITE ) ) ) );
         ps.removeAllPropertyTypesInEntitySetAcls( ImmutableSet.of( NATION_SECRET_SERVICE ) );
+*/
     }
 
     private void createData(

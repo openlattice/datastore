@@ -174,7 +174,7 @@ public class EdmController implements EdmApi {
         method = RequestMethod.GET,
         produces = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
-    public Iterable<? extends EntitySet> getEntitySets( @RequestParam( value = IS_OWNER, required = false ) Boolean isOwner ) {
+    public Iterable<EntitySetWithPermissions> getEntitySets( @RequestParam( value = IS_OWNER, required = false ) Boolean isOwner ) {
         String username = authzService.getUsername();
         List<String> currentRoles = authzService.getRoles();
 
@@ -183,7 +183,9 @@ public class EdmController implements EdmApi {
         if( isOwner != null ){
             if( isOwner ){
                 // isOwner = true -> return all entity sets owned
-                return modelService.getEntitySetsUserOwns( username );
+                return StreamSupport.stream( modelService.getEntitySetsUserOwns( username ).spliterator(), false )
+                        .map( entitySet -> new EntitySetWithPermissions().fromEntitySet( entitySet ) )
+                        .collect( Collectors.toList() );
             } else {
                 // isOwner = false -> return all entity sets not owned, with permissions
                 return StreamSupport.stream( modelService.getEntitySets().spliterator(), false )
@@ -426,7 +428,9 @@ public class EdmController implements EdmApi {
     @Override
     @RequestMapping(
         path = ENTITY_TYPE_BASE_PATH + NAMESPACE_PATH + NAME_PATH + DELETE_PROPERTY_TYPES_PATH,
-        method = RequestMethod.DELETE,
+        //Debug by Ho Chung
+        method = RequestMethod.POST,
+//        method = RequestMethod.DELETE,
         consumes = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
     public Response removePropertyTypesFromEntityType(

@@ -21,13 +21,11 @@ import com.kryptnostic.datastore.constants.DatastoreConstants;
 import com.kryptnostic.datastore.converters.CsvHttpMessageConverter;
 import com.ryantenney.metrics.spring.config.annotation.EnableMetrics;
 
-/**
- * Created by yao on 9/20/16.
- */
 @Configuration
 @ComponentScan(
     basePackages = { "com.kryptnostic.datastore.data.controllers", "com.kryptnostic.datastore.edm.controllers",
-            "com.kryptnostic.datastore.util", "com.kryptnostic.datastore.permissions.controllers" },
+            "com.kryptnostic.datastore.util", "com.kryptnostic.datastore.permissions.controllers",
+            "com.kryptnostic.datastore.directory.controllers" },
     includeFilters = @ComponentScan.Filter(
         value = { org.springframework.stereotype.Controller.class, org.springframework.stereotype.Service.class,
                 org.springframework.web.bind.annotation.ControllerAdvice.class },
@@ -52,14 +50,15 @@ public class DataStoreMvcPod extends WebMvcConfigurationSupport {
         converters.add( new CsvHttpMessageConverter() );
     }
 
-    //TODO: We need to lock this down. Since all endpoints are stateless + authenticated this is more a defense-in-depth measure.
+    // TODO: We need to lock this down. Since all endpoints are stateless + authenticated this is more a
+    // defense-in-depth measure.
     @Override
-    protected void addCorsMappings(CorsRegistry registry) {
+    protected void addCorsMappings( CorsRegistry registry ) {
         registry
-            .addMapping("/**")
-            .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
-            .allowedOrigins("*");
-        super.addCorsMappings(registry);
+                .addMapping( "/**" )
+                .allowedMethods( "GET", "POST", "PUT", "DELETE", "OPTIONS" )
+                .allowedOrigins( "*" );
+        super.addCorsMappings( registry );
     }
 
     @Override

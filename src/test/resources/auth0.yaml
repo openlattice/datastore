@@ -6,3 +6,4 @@ securedRoute: "NOT_USED"
 authorityStrategy: "ROLES"
 signingAlgorithm: "HS256"
 base64EncodedSecret: true
+token: "No token for you"

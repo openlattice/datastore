@@ -15,6 +15,7 @@ import org.slf4j.LoggerFactory;
 
 import com.datastax.driver.core.BoundStatement;
 import com.datastax.driver.core.DataType;
+import com.datastax.driver.core.ResultSetFuture;
 import com.datastax.driver.core.Session;
 import com.datastax.driver.mapping.MappingManager;
 import com.google.common.collect.ImmutableList;
@@ -22,6 +23,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
+import com.google.common.util.concurrent.Futures;
 import com.hazelcast.core.HazelcastInstance;
 import com.hazelcast.core.IMap;
 import com.hazelcast.durableexecutor.DurableExecutorService;
@@ -159,9 +161,9 @@ public class DataService {
         PreparedStatementMapping cqm = tableManager.getInsertEntityPreparedStatement( entityFqn,
                 authorizedPropertyFqns,
                 createEntityRequest.getEntitySetName() );
-        Object[] bindList = new Object[ 4 + cqm.mapping.size() ];
 
-        propertyValues.stream().forEach( obj -> {
+        Object[] bindList =  new Object[ 4 + cqm.mapping.size() ];
+        List<ResultSetFuture> results = propertyValues.stream().map( obj -> {
             UUID entityId = UUID.randomUUID();
 
             // TODO: This will keep the last value that appears ... i.e no property multiplicity.
@@ -184,10 +186,15 @@ public class DataService {
             } );
 
             BoundStatement bq = cqm.stmt.bind( bindList );
-            
-            session.executeAsync( bq );
-        } );
 
+            return session.executeAsync( bq );
+        } ).collect( Collectors.toList() );
+        
+        try {
+            Futures.allAsList( results ).get();
+        } catch ( InterruptedException | ExecutionException e ) {
+            logger.error( "Error writing data." ,  e );
+        }
         /*
          * PreparedStatement createQuery = Preconditions.checkNotNull( tableManager.getInsertEntityPreparedStatement(
          * entityFqn ), "Insert data prepared statement does not exist." ); PreparedStatement

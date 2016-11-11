@@ -141,10 +141,10 @@ public class PermissionsServiceTest {
         permissionsService = ds.getContext().getBean( PermissionsService.class );
     }
 
-    //@Test
+    @Test
     public void permissionsServiceTest() {
         createTypes();
-/**        
+        
         System.err.println( "*********************" );
         System.err.println( "ROLE TESTS START!" );
         System.err.println( "*********************" );
@@ -157,7 +157,7 @@ public class PermissionsServiceTest {
         System.err.println( "*********************" );
         System.err.println( "ROLE TESTS END!" );
         System.err.println( "*********************" );
-*/
+
         System.err.println( "*********************" );
         System.err.println( "USER TESTS START!" );
         System.err.println( "*********************" );
@@ -170,7 +170,7 @@ public class PermissionsServiceTest {
         System.err.println( "*********************" );
         System.err.println( "USER TESTS END!" );
         System.err.println( "*********************" );
-/**               
+              
         System.err.println( "*********************" );
         System.err.println( "REQUEST ACCESS TESTS START!" );
         System.err.println( "*********************" );
@@ -180,10 +180,10 @@ public class PermissionsServiceTest {
         System.err.println( "*********************" );
         System.err.println( "REQUEST ACCESS TESTS END!" );
         System.err.println( "*********************" );
-*/
+
     }
 
-    @Ignore
+    @AfterClass
     public static void cleanUp() {
         // Give permissions
         ps.updateEntityTypesAcls(
@@ -501,7 +501,7 @@ public class PermissionsServiceTest {
         ps.removeAllPropertyTypesInEntityTypeAcls(
                 ImmutableSet.of( NATION_CITIZENS ) );
 
-/**
+
         // Setup:
         // Give User READ rights for EMPLOYEE_ID, ADDRESS, POSITION in NATION_CITIZENS, as well as READ rights for
         // NATION_CITIZENS
@@ -612,7 +612,7 @@ public class PermissionsServiceTest {
                 .setPermissions( EnumSet.of( Permission.READ, Permission.WRITE ) ) ) );
         ps.removeAllPropertyTypesInEntityTypeAcls(
                 ImmutableSet.of( NATION_CITIZENS ) );
-*/                
+               
     }
 
     /**
@@ -731,7 +731,7 @@ public class PermissionsServiceTest {
                 .setAction( Action.REMOVE ).setName( NATION_SECRET_SERVICE )
                 .setPermissions( EnumSet.of( Permission.READ, Permission.WRITE ) ) ) );
         ps.removeAllPropertyTypesInEntitySetAcls( ImmutableSet.of( NATION_SECRET_SERVICE ) );
-/**
+
         // Setup:
         // Give User READ rights for EMPLOYEE_ID, ADDRESS, POSITION in NATION_SECRET_SERVICE, as well as READ rights for
         // NATION_SECRET_SERVICE
@@ -841,7 +841,6 @@ public class PermissionsServiceTest {
                 .setAction( Action.REMOVE ).setName( NATION_SECRET_SERVICE )
                 .setPermissions( EnumSet.of( Permission.READ, Permission.WRITE ) ) ) );
         ps.removeAllPropertyTypesInEntitySetAcls( ImmutableSet.of( NATION_SECRET_SERVICE ) );
-*/
     }
 
     private void createData(
@@ -1023,7 +1022,7 @@ public class PermissionsServiceTest {
      * Helper function to generate garbage data, if necessary.
      * This goes through DataApi rather than ODataStorageClient, which has not been merged with permissionsApi.
      */
-    @Test
+    //@Test
     public void populateData(){
         /**
          * Create:
@@ -1032,7 +1031,6 @@ public class PermissionsServiceTest {
          * Entity Sets: NATION_SECRET_SERVICE
          */
         createTypes();
-        
         /**
          * Create 100 rows of Data in NATION_CITIZENS (entity type), no entity set, and write random values to Set of EMPLOYEE_ID, ADDRESS, POSITION, LIFE_EXPECTANCY
          */

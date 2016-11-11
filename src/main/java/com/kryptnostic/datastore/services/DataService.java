@@ -155,11 +155,13 @@ public class DataService {
         String typename = tableManager.getTypenameForEntityType( entityFqn );
         String entitySetName = createEntityRequest.getEntitySetName()
                 .or( CassandraTableManager.getNameForDefaultEntitySet( typename ) );
+      
         PreparedStatementMapping cqm = tableManager.getInsertEntityPreparedStatement( entityFqn,
                 authorizedPropertyFqns,
                 createEntityRequest.getEntitySetName() );
         Object[] bindList = new Object[ 4 + cqm.mapping.size() ];
-        propertyValues.stream().map( obj -> {
+
+        propertyValues.stream().forEach( obj -> {
             UUID entityId = UUID.randomUUID();
 
             // TODO: This will keep the last value that appears ... i.e no property multiplicity.
@@ -168,7 +170,7 @@ public class DataService {
             bindList[ 2 ] = StringUtils.isBlank( entitySetName ) ? ImmutableSet.of() : ImmutableSet.of( entitySetName );
             bindList[ 3 ] = ImmutableList.of( syncId );
 
-            obj.entries().stream().filter( authorizedPropertyFqns::contains ).forEach( e -> {
+            obj.entries().stream().filter( e -> authorizedPropertyFqns.contains( e.getKey() ) ).forEach( e -> {
                 DataType dt = propertyDataTypeMap.get( e.getKey() );
                 Object propertyValue = e.getValue();
                 if ( dt.equals( DataType.bigint() ) ) {
@@ -178,11 +180,12 @@ public class DataService {
                     propertyValue = UUID.fromString( propertyValue.toString() );
                 }
 
-                bindList[ cqm.mapping.get( e.getKey() ) ] = e.getValue();
+                bindList[ cqm.mapping.get( e.getKey() ) ] = propertyValue;
             } );
 
             BoundStatement bq = cqm.stmt.bind( bindList );
-            return session.executeAsync( bq );
+            
+            session.executeAsync( bq );
         } );
 
         /*

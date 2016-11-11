@@ -431,9 +431,7 @@ public class EdmController implements EdmApi {
     @Override
     @RequestMapping(
         path = ENTITY_TYPE_BASE_PATH + NAMESPACE_PATH + NAME_PATH + DELETE_PROPERTY_TYPES_PATH,
-        //Debug by Ho Chung
-        method = RequestMethod.POST,
-//        method = RequestMethod.DELETE,
+        method = RequestMethod.DELETE,
         consumes = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
     public Response removePropertyTypesFromEntityType(

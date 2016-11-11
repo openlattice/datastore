@@ -364,7 +364,24 @@ public class PermissionsController implements PermissionsApi {
             @RequestParam( NAME ) String entitySetName,
             @RequestBody Principal principal ) {
         if ( authzService.getEntitySetAclsForOwner( entitySetName ) ) {
-            return ps.getPropertyTypesInEntitySetAclsForOwner( entitySetName, principal );
+            return ps.getPropertyTypesInEntitySetAclsOfPrincipalForOwner( entitySetName, principal );
+        } else {
+            // TODO to write a new handler
+            throw new UnauthorizedException();
+        }
+    }
+    
+    @Override
+    @RequestMapping(
+        path = CONTROLLER + ENTITY_SETS_BASE_PATH + OWNER_PATH + PROPERTY_TYPE_BASE_PATH,
+        method = RequestMethod.POST,
+        consumes = MediaType.APPLICATION_JSON_VALUE )
+    @ResponseStatus( HttpStatus.OK )
+    public Iterable<PermissionsInfo> getPropertyTypesInEntitySetAclsForOwner(
+            @RequestParam( NAME ) String entitySetName,
+            @RequestBody FullQualifiedName propertyTypeFqn ) {
+        if ( authzService.getEntitySetAclsForOwner( entitySetName ) ) {
+            return ps.getPropertyTypesInEntitySetAclsForOwner( entitySetName, propertyTypeFqn );
         } else {
             // TODO to write a new handler
             throw new UnauthorizedException();

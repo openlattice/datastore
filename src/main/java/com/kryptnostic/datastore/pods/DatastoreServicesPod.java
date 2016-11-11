@@ -50,8 +50,18 @@ public class DatastoreServicesPod {
     }
 
     @Bean
+    public PermissionsService permissionsService() {
+        return new PermissionsService( session, mappingManager(), tableManager() );
+    }
+    
+    @Bean
+    public ActionAuthorizationService authzService(){
+        return new ActionAuthorizationService( permissionsService() );
+    }
+    
+    @Bean
     public EdmManager dataModelService() {
-        return new EdmService( session, mappingManager(), tableManager() );
+        return new EdmService( session, mappingManager(), tableManager(), permissionsService() );
     }
 
     @Bean

@@ -1,5 +1,7 @@
 package com.kryptnostic.datastore.pods;
 
+import java.time.Instant;
+import java.util.EnumSet;
 import java.util.Set;
 import java.util.UUID;
 
@@ -10,7 +12,10 @@ import org.springframework.context.annotation.Configuration;
 
 import com.datastax.driver.core.TypeCodec;
 import com.datastax.driver.extras.codecs.enums.EnumNameCodec;
+import com.datastax.driver.extras.codecs.jdk8.InstantCodec;
+import com.kryptnostic.conductor.codecs.EnumSetTypeCodec;
 import com.kryptnostic.conductor.codecs.FullQualifiedNameTypeCodec;
+import com.kryptnostic.datastore.Permission;
 
 @Configuration
 public class DatastoreTypeCodecsPod {
@@ -24,14 +29,29 @@ public class DatastoreTypeCodecsPod {
         return TypeCodec.set( TypeCodec.varchar() );
     }
 
-    @Bean 
+    @Bean
     public TypeCodec<Set<UUID>> setUuidCodec() {
         return TypeCodec.set( TypeCodec.uuid() );
     }
-    
+
     @Bean
     public TypeCodec<FullQualifiedName> fqnCodec() {
         return new FullQualifiedNameTypeCodec();
     }
     
+    @Bean
+    public TypeCodec<Instant> instantCodec() {
+        return InstantCodec.instance;
+    }
+
+    @Bean
+    public EnumNameCodec<Permission> permissionCodec() {
+        return new EnumNameCodec<>( Permission.class );
+    }
+
+    @Bean
+    public TypeCodec<EnumSet<Permission>> enumSetPermissionCodec() {
+        return new EnumSetTypeCodec<Permission>( permissionCodec() );
+    }
+
 }

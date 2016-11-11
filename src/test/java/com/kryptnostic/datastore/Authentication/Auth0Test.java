@@ -15,6 +15,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Multimap;
 import com.kryptnostic.datastore.Datastore;
 import com.kryptnostic.datastore.services.DataApi;
+import com.kryptnostic.datastore.services.EdmApi;
 import com.kryptnostic.rhizome.converters.RhizomeConverter;
 import digital.loom.rhizome.authentication.AuthenticationTest;
 import digital.loom.rhizome.configuration.auth0.Auth0Configuration;
@@ -43,6 +44,7 @@ public class Auth0Test {
     private static AuthenticationAPIClient           client;
     private static DataApi                           dataApi;
     private static RestAdapter                       dataServiceRestAdapter;
+    protected static EdmApi edmApi;
     private static Pair<Credentials, Authentication> authPair;
 
     @BeforeClass
@@ -63,6 +65,7 @@ public class Auth0Test {
                 .setLog( msg -> logger.debug( msg.replaceAll( "%", "[percent]" ) ) )
                 .build();
         dataApi = dataServiceRestAdapter.create( DataApi.class );
+        edmApi = dataServiceRestAdapter.create( EdmApi.class );
     }
 
     @Test
@@ -112,7 +115,7 @@ public class Auth0Test {
         Iterable<Multimap<FullQualifiedName, Object>> result = dataApi.getAllEntitiesOfType( "testcsv", "employee" );
         Assert.assertNull( result );
     }
-
+    
     @AfterClass
     public static void shutdown() throws Exception {
         ds.stop();

@@ -2,8 +2,6 @@ package com.kryptnostic.datastore.edm;
 
 import java.util.Set;
 
-import javax.inject.Inject;
-
 import org.apache.olingo.commons.api.edm.EdmPrimitiveTypeKind;
 import org.apache.olingo.commons.api.edm.FullQualifiedName;
 import org.junit.AfterClass;
@@ -22,7 +20,6 @@ import com.kryptnostic.datastore.services.PermissionsService;
 import com.kryptnostic.rhizome.pods.SparkPod;
 
 public class BootstrapDatastoreWithCassandra {
-    @Inject
     private static HazelcastInstance            hazelcast;
 
     public static final String                  NAMESPACE          = "testcsv";
@@ -49,15 +46,19 @@ public class BootstrapDatastoreWithCassandra {
     protected static final String               SCHEMA_NAME        = "csv";
 
     public static void init() {
-        ds.intercrop( PODS.toArray( new Class<?>[ 0 ] ) );
-        ds.sprout( PROFILES.toArray( new String[ 0 ] ) );
-        ds.sprout( "local", "cassandra" );
-        dms = ds.getContext().getBean( EdmManager.class );
-        ps = ds.getContext().getBean( PermissionsService.class );
-        dataService = ds.getContext().getBean( DataService.class );
-        authzService = ds.getContext().getBean( ActionAuthorizationService.class );
+        synchronized ( ds ) {
+            if ( !ds.getContext().isActive() ) {
+                ds.intercrop( PODS.toArray( new Class<?>[ 0 ] ) );
+                ds.sprout( PROFILES.toArray( new String[ 0 ] ) );
+                ds.sprout( "local", "cassandra" );
+                dms = ds.getContext().getBean( EdmManager.class );
+                ps = ds.getContext().getBean( PermissionsService.class );
+                dataService = ds.getContext().getBean( DataService.class );
+                authzService = ds.getContext().getBean( ActionAuthorizationService.class );
 
-        setupDatamodel();
+                setupDatamodel();
+            }
+        }
     }
 
     private static void setupDatamodel() {

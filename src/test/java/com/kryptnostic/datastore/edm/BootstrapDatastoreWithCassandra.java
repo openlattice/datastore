@@ -1,6 +1,7 @@
 package com.kryptnostic.datastore.edm;
 
 import java.util.Set;
+import java.util.concurrent.Semaphore;
 
 import org.apache.olingo.commons.api.edm.EdmPrimitiveTypeKind;
 import org.apache.olingo.commons.api.edm.FullQualifiedName;
@@ -32,10 +33,10 @@ public class BootstrapDatastoreWithCassandra {
     protected static final DatastoreServices    ds                 = new DatastoreServices();
     protected static final Set<String>          PROFILES           = Sets.newHashSet( "local", "cassandra" );
     protected static final String               SALARY             = "salary";
-    protected static final String               EMPLOYEE_NAME      = "employee-name";
-    protected static final String               EMPLOYEE_TITLE     = "employee-title";
-    protected static final String               EMPLOYEE_DEPT      = "employee-dept";
-    protected static final String               EMPLOYEE_ID        = "employee-id";
+    protected static final String               EMPLOYEE_NAME      = "employee_name";
+    protected static final String               EMPLOYEE_TITLE     = "employee_title";
+    protected static final String               EMPLOYEE_DEPT      = "employee_dept";
+    protected static final String               EMPLOYEE_ID        = "employee_id";
     protected static final String               ENTITY_SET_NAME    = "Employees";
     protected static final FullQualifiedName    ENTITY_TYPE        = new FullQualifiedName( NAMESPACE, "employee" );
     // created by Ho Chung to populate two more entity Types
@@ -44,20 +45,18 @@ public class BootstrapDatastoreWithCassandra {
             NAMESPACE,
             "employeeSaturn" );
     protected static final String               SCHEMA_NAME        = "csv";
+    protected static final Semaphore            initLock           = new Semaphore( 1 );
 
     public static void init() {
-        synchronized ( ds ) {
-            if ( !ds.getContext().isActive() ) {
-                ds.intercrop( PODS.toArray( new Class<?>[ 0 ] ) );
-                ds.sprout( PROFILES.toArray( new String[ 0 ] ) );
-                ds.sprout( "local", "cassandra" );
-                dms = ds.getContext().getBean( EdmManager.class );
-                ps = ds.getContext().getBean( PermissionsService.class );
-                dataService = ds.getContext().getBean( DataService.class );
-                authzService = ds.getContext().getBean( ActionAuthorizationService.class );
+        if ( initLock.tryAcquire() ) {
+            ds.intercrop( PODS.toArray( new Class<?>[ 0 ] ) );
+            ds.sprout( PROFILES.toArray( new String[ 0 ] ) );
+            dms = ds.getContext().getBean( EdmManager.class );
+            ps = ds.getContext().getBean( PermissionsService.class );
+            dataService = ds.getContext().getBean( DataService.class );
+            authzService = ds.getContext().getBean( ActionAuthorizationService.class );
 
-                setupDatamodel();
-            }
+            setupDatamodel();
         }
     }
 
@@ -118,9 +117,9 @@ public class BootstrapDatastoreWithCassandra {
                 dms.isExistingEntitySet( ENTITY_SET_NAME ) );
     }
 
-    @AfterClass
-    public static void shutdown() {
-        ds.plowUnder();
-    }
+//    @AfterClass
+//    public static void shutdown() {
+//        ds.plowUnder();
+//    }
 
 }

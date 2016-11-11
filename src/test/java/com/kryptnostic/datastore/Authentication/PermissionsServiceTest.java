@@ -79,11 +79,11 @@ public class PermissionsServiceTest {
 
     protected static final FullQualifiedName EMPLOYEE_ID           = new FullQualifiedName(
             NATION_NAMESPACE,
-            "employee-id" );
+            "employee_id" );
 
     protected static final FullQualifiedName LIFE_EXPECTANCY       = new FullQualifiedName(
             NATION_NAMESPACE,
-            "life-expectancy" );                                                                                 // property
+            "life_expectancy" );                                                                                 // property
                                                                                                                  // type
     protected static final FullQualifiedName ADDRESS               = new FullQualifiedName(
             NATION_NAMESPACE,
@@ -96,7 +96,7 @@ public class PermissionsServiceTest {
 
     protected static final FullQualifiedName SPIED_ON              = new FullQualifiedName(
             NATION_NAMESPACE,
-            "spied-on" );                                                                                        // property
+            "spied_on" );                                                                                        // property
                                                                                                                  // type
 
 

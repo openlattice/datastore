@@ -180,7 +180,7 @@ public class DataService {
                     propertyValue = UUID.fromString( propertyValue.toString() );
                 }
 
-                bindList[ cqm.mapping.get( e.getKey() ) ] = e.getValue();
+                bindList[ cqm.mapping.get( e.getKey() ) ] = propertyValue;
             } );
 
             BoundStatement bq = cqm.stmt.bind( bindList );

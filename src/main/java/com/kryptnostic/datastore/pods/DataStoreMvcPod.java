@@ -21,13 +21,10 @@ import com.kryptnostic.datastore.constants.DatastoreConstants;
 import com.kryptnostic.datastore.converters.CsvHttpMessageConverter;
 import com.ryantenney.metrics.spring.config.annotation.EnableMetrics;
 
-/**
- * Created by yao on 9/20/16.
- */
 @Configuration
 @ComponentScan(
     basePackages = { "com.kryptnostic.datastore.data.controllers", "com.kryptnostic.datastore.edm.controllers",
-            "com.kryptnostic.datastore.util" },
+            "com.kryptnostic.datastore.directory.controllers", "com.kryptnostic.datastore.util" },
     includeFilters = @ComponentScan.Filter(
         value = { org.springframework.stereotype.Controller.class, org.springframework.stereotype.Service.class,
                 org.springframework.web.bind.annotation.ControllerAdvice.class },

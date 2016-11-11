@@ -3,6 +3,8 @@ package com.kryptnostic.datastore.pods;
 import javax.inject.Inject;
 
 import com.kryptnostic.datastore.services.*;
+import digital.loom.rhizome.authentication.Auth0Pod;
+import digital.loom.rhizome.configuration.auth0.Auth0Configuration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
@@ -17,7 +19,7 @@ import com.kryptnostic.rhizome.pods.CassandraPod;
 import com.kryptnostic.rhizome.registries.ObjectMapperRegistry;
 
 @Configuration
-@Import( { CassandraPod.class } )
+@Import( { CassandraPod.class, Auth0Pod.class } )
 public class DatastoreServicesPod {
 
     @Inject
@@ -25,6 +27,9 @@ public class DatastoreServicesPod {
 
     @Inject
     private Session           session;
+
+    @Inject
+    private Auth0Configuration auth0Configuration;
 
     @Bean
     public ObjectMapper defaultObjectMapper() {
@@ -82,6 +87,11 @@ public class DatastoreServicesPod {
     @Bean
     public DatasourceManager datasourceManager() {
         return new DatasourceManager();
+    }
+
+    @Bean
+    public UserDirectoryService userDirectoryService() {
+        return new UserDirectoryService( auth0Configuration.getToken() );
     }
 
 }

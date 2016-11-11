@@ -54,18 +54,13 @@ public class Auth0Test {
         authPair = AuthenticationTest.authenticate();
         String jwtToken = authPair.getLeft().getIdToken();
         dataServiceRestAdapter = new RestAdapter.Builder()
-                .setEndpoint( "http://localhost:8080/ontology" )
+                .setEndpoint( "http://localhost:8080/datastore/ontology" )
                 .setRequestInterceptor(
                         (RequestInterceptor) facade -> facade.addHeader( "Authorization", "Bearer " + jwtToken ) )
                 .setConverter( new RhizomeConverter() )
                 .setErrorHandler( new DefaultErrorHandler() )
                 .setLogLevel( RestAdapter.LogLevel.FULL )
-                .setLog( new RestAdapter.Log() {
-                    @Override
-                    public void log( String msg ) {
-                        logger.debug( msg.replaceAll( "%", "[percent]" ) );
-                    }
-                } )
+                .setLog( msg -> logger.debug( msg.replaceAll( "%", "[percent]" ) ) )
                 .build();
         dataApi = dataServiceRestAdapter.create( DataApi.class );
     }
@@ -99,7 +94,7 @@ public class Auth0Test {
     @Test( expected = AccessDeniedException.class )
     public void testUnauthenticatedAPICall() {
         RestAdapter unauthorizedAdapter = new RestAdapter.Builder()
-                .setEndpoint( "http://localhost:8080/ontology" )
+                .setEndpoint( "http://localhost:8080/datastore/ontology" )
                 .setRequestInterceptor(
                         (RequestInterceptor) facade -> facade
                                 .addHeader( "Authorization", "Bearer " + "I am wrong token" ) )

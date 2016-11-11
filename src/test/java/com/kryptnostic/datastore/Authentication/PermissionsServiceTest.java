@@ -115,7 +115,7 @@ public class PermissionsServiceTest {
 
     @BeforeClass
     public static void init() throws Exception {
-        ds.start( "cassandra" );
+        ds.start( "local", "cassandra" );
         configuration = ds.getContext().getBean( Auth0Configuration.class );
         auth0 = new Auth0( configuration.getClientId(), configuration.getDomain() );
         client = auth0.newAuthenticationAPIClient();
@@ -1019,7 +1019,7 @@ public class PermissionsServiceTest {
      * Helper function to generate garbage data, if necessary.
      * This goes through DataApi rather than ODataStorageClient, which has not been merged with permissionsApi.
      */
-    //@Test
+    @Test
     public void populateData(){
         /**
          * Create:

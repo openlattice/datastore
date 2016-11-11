@@ -101,7 +101,6 @@ public class PermissionsServiceTest {
 
 
     private static final Logger              logger                = LoggerFactory.getLogger( Auth0Test.class );
-    protected static final Conductor c = new Conductor();
     protected static final Datastore         ds                    = new Datastore();
     protected static Auth0Configuration      configuration;
     protected static Auth0                   auth0;

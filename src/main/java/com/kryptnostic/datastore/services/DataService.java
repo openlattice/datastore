@@ -1,6 +1,12 @@
 package com.kryptnostic.datastore.services;
 
+import java.math.BigDecimal;
+import java.net.InetAddress;
+import java.nio.ByteBuffer;
+import java.text.DateFormat;
 import java.util.Collection;
+import java.util.Date;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -15,6 +21,7 @@ import org.slf4j.LoggerFactory;
 
 import com.datastax.driver.core.BoundStatement;
 import com.datastax.driver.core.DataType;
+import com.datastax.driver.core.LocalDate;
 import com.datastax.driver.core.ResultSetFuture;
 import com.datastax.driver.core.Session;
 import com.datastax.driver.mapping.MappingManager;
@@ -174,13 +181,7 @@ public class DataService {
 
             obj.entries().stream().filter( e -> authorizedPropertyFqns.contains( e.getKey() ) ).forEach( e -> {
                 DataType dt = propertyDataTypeMap.get( e.getKey() );
-                Object propertyValue = e.getValue();
-                if ( dt.equals( DataType.bigint() ) ) {
-                    propertyValue = Long.valueOf( propertyValue.toString() );
-                } else if ( dt.equals( DataType.uuid() ) ) {
-                    // TODO Ho Chung: Added conversion back to UUID; haven't checked other types
-                    propertyValue = UUID.fromString( propertyValue.toString() );
-                }
+                Object propertyValue = deserializeFromObject( e.getValue(), dt );
 
                 bindList[ cqm.mapping.get( e.getKey() ) ] = propertyValue;
             } );
@@ -269,6 +270,58 @@ public class DataService {
             return result;
         } catch ( InterruptedException | ExecutionException e ) {
             logger.error( e.getMessage() );
+        }
+        return null;
+    }
+    
+    /**
+     * Given CQL Data Type, convert (Jackson-deserialized) Java object to Java object of correct type.
+     * Correspondence between CQL Data type and Java class follows here:
+     * http://docs.datastax.com/en/drivers/java/3.1/com/datastax/driver/core/TypeCodec.html
+     * also See Jackson's UntypedObjectDeserializer for expected input of Java object, resulted from Jackson's raw data-binding.
+     * @param input
+     * @param dt Cassandra DataType
+     * @return
+     */
+    private static Object deserializeFromObject( Object input, DataType dt){
+        try{
+            switch( dt.getName() ){
+                //Jackson would already deserialize input to java.lang.Number
+                case BIGINT:
+                case COUNTER:
+                case TIME:
+                    return ( (Number) input ).longValue();
+                case INT:
+                    return ((Number) input).intValue();
+                case SMALLINT:
+                    return ( (Number) input ).shortValue();
+                case TINYINT:
+                    return ( (Number) input ).byteValue();
+                //Jackson would already deserialize input to java.lang.Double, unless USE_BIG_DECIMAL_FOR_FLOATS is enabled.
+                case DECIMAL:
+                    return BigDecimal.valueOf( (Double) input );
+                case FLOAT:
+                    return ( (Double) input).floatValue();                    
+                case TIMESTAMP:
+                    return new Date( ( (Number) input ).longValue() );
+                case DATE:
+                    return LocalDate.fromMillisSinceEpoch( DateFormat.getInstance().parse( input.toString() ).getTime() );
+                case UUID:
+                case TIMEUUID:
+                    return UUID.fromString( input.toString() );
+                case INET:
+                    return InetAddress.getByName( input.toString() );
+                case BLOB:
+                    return ByteBuffer.wrap( input.toString().getBytes() );
+                //Jackson would already deserialize input to java.util.List, unless USE_JAVA_ARRAY_FOR_JSON_ARRAY is enabled.
+                case SET:
+                    return new HashSet<Object>( (List<?>) input ); 
+                //Default cases (i.e. already converted by Jackson) include: BOOLEAN, DOUBLE, TEXT, VARCHAR, VARINT, LIST, MAP. 
+                //Untreated cases include: CUSTOM (returns LinkedHashMap), TUPLE (return String)
+                default: return input;
+            }
+        } catch ( Exception e ){
+            logger.error( "Error writing data: Wrong data format." ,  e );            
         }
         return null;
     }

@@ -182,7 +182,8 @@ public class DataService {
             obj.entries().stream().filter( e -> authorizedPropertyFqns.contains( e.getKey() ) ).forEach( e -> {
                 DataType dt = propertyDataTypeMap.get( e.getKey() );
                 Object propertyValue = CassandraEdmMapping.recoverJavaTypeFromCqlDataType( e.getValue(), dt );
-
+                
+                bindList[ cqm.mapping.get( e.getKey() ) ] = propertyValue;
             } );
             
             BoundStatement bq = cqm.stmt.bind( bindList );

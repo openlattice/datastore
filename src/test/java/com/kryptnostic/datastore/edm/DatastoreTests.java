@@ -559,13 +559,7 @@ public class DatastoreTests extends BootstrapDatastoreWithCassandra {
         try {
             serialized = mapper.writeValueAsString( value );
             //Pretend we are doing raw data binding
-            deserialized = mapper.readValue( serialized, Object.class );
-            //Debug by Ho Chung
-            System.err.println( "Edm Type: " + edmType.toString());            
-            System.err.println( "Raw value: " + value);
-            System.err.println( "Serialized: " + serialized );
-            System.err.println( "Deserialized: " + deserialized );
-            
+            deserialized = mapper.readValue( serialized, Object.class );            
         } catch ( Exception e ) {
             // TODO Auto-generated catch block
             e.printStackTrace();

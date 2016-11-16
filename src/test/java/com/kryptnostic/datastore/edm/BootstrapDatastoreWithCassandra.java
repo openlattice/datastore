@@ -114,7 +114,7 @@ public class BootstrapDatastoreWithCassandra {
                 ImmutableSet.of( ENTITY_TYPE, ENTITY_TYPE_MARS, ENTITY_TYPE_SATURN ) );
 
         Assert.assertTrue(
-                dms.isExistingEntitySet( ENTITY_SET_NAME ) );
+                dms.checkEntitySetExists( ENTITY_SET_NAME ) );
     }
 
 //    @AfterClass

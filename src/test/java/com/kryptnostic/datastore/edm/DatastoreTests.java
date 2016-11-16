@@ -265,7 +265,7 @@ public class DatastoreTests extends BootstrapDatastoreWithCassandra {
         dms.addPropertyTypesToEntityType(ENTITY_TYPE.getNamespace(), ENTITY_TYPE.getName(), properties);
     }
     
-    @Test(expected=BadRequestException.class)
+    @Test(expected=IllegalArgumentException.class)
     public void testAddPhantomPropertyTypeToEntityType() {
     	//Action: Add Property EMPLOYEE_HEIGHT to ENTITY_TYPE (Employees)
     	//Desired result: Since property does not exist, Bad Request Exception should be thrown
@@ -307,7 +307,7 @@ public class DatastoreTests extends BootstrapDatastoreWithCassandra {
         	caught = t;
         }
         assertNotNull(caught);
-        assertSame(BadRequestException.class, caught.getClass());
+        assertSame(IllegalArgumentException.class, caught.getClass());
     }
     
     @Test

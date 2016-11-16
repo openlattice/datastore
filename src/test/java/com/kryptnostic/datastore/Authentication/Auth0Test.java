@@ -36,6 +36,8 @@ import retrofit.RestAdapter;
 import java.util.List;
 import java.util.Map;
 
+import javax.ws.rs.NotFoundException;
+
 public class Auth0Test {
     private static final Logger    logger = LoggerFactory.getLogger( Auth0Test.class );
     private static final Datastore ds     = new Datastore();
@@ -112,8 +114,21 @@ public class Auth0Test {
 
     @Test
     public void testAuthenticatedAPICall() {
-        Iterable<Multimap<FullQualifiedName, Object>> result = dataApi.getAllEntitiesOfType( "testcsv", "employee" );
-        Assert.assertNull( result );
+        boolean entityTypeExists = true;
+        
+        try{
+            edmApi.getEntityType( "testcsv", "employee" );
+        } catch ( NotFoundException e){
+            entityTypeExists = false;
+        }
+        
+        try{
+            Iterable<Multimap<FullQualifiedName, Object>> result = dataApi.getAllEntitiesOfType( "testcsv", "employee" );
+            Assert.assertNull( result );
+        } catch ( NotFoundException e ){
+            //NotFoundException only thrown if testcsv.employee entity Type doesn't exist.
+            Assert.assertFalse( entityTypeExists );
+        }
     }
     
     @AfterClass

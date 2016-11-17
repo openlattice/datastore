@@ -26,11 +26,11 @@ import com.auth0.spring.security.api.Auth0AuthorityStrategy;
 import com.auth0.spring.security.api.Auth0JWTToken;
 import com.auth0.spring.security.api.Auth0UserDetails;
 import com.dataloom.data.DataApi;
+import com.dataloom.edm.EdmApi;
 import com.geekbeast.rhizome.tests.bootstrap.DefaultErrorHandler;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Multimap;
 import com.kryptnostic.datastore.Datastore;
-import com.kryptnostic.datastore.services.EdmApi;
 import com.kryptnostic.rhizome.converters.RhizomeConverter;
 
 import digital.loom.rhizome.authentication.AuthenticationTest;

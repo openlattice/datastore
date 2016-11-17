@@ -7,6 +7,8 @@ import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import com.dataloom.data.serializers.FullQualifedNameJacksonDeserializer;
+import com.dataloom.data.serializers.FullQualifedNameJacksonSerializer;
 import com.kryptnostic.conductor.rpc.odata.PropertyType;
 import com.kryptnostic.rhizome.hazelcast.serializers.BaseJacksonSerializationTest;
 import com.kryptnostic.rhizome.registries.ObjectMapperRegistry;

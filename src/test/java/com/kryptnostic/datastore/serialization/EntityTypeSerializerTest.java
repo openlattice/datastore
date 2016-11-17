@@ -5,6 +5,8 @@ import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import com.dataloom.data.serializers.FullQualifedNameJacksonDeserializer;
+import com.dataloom.data.serializers.FullQualifedNameJacksonSerializer;
 import com.google.common.collect.ImmutableSet;
 import com.kryptnostic.conductor.rpc.odata.EntityType;
 import com.kryptnostic.rhizome.hazelcast.serializers.BaseJacksonSerializationTest;

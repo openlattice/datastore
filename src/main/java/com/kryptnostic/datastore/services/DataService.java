@@ -25,6 +25,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
+import com.google.common.collect.SetMultimap;
 import com.google.common.util.concurrent.Futures;
 import com.hazelcast.core.HazelcastInstance;
 import com.hazelcast.core.IMap;
@@ -151,7 +152,7 @@ public class DataService {
                         fqn -> CassandraEdmMapping
                                 .getCassandraType( dms.getPropertyType( fqn ).getDatatype() ) ) );
 
-        Set<Multimap<FullQualifiedName, Object>> propertyValues = createEntityRequest.getPropertyValues();
+        Set<SetMultimap<FullQualifiedName, Object>> propertyValues = createEntityRequest.getPropertyValues();
         UUID aclId = createEntityRequest.getAclId().or( UUIDs.ACLs.EVERYONE_ACL );
         UUID syncId = createEntityRequest.getSyncId().or( UUIDs.Syncs.BASE.getSyncId() );
         String typename = tableManager.getTypenameForEntityType( entityFqn );

@@ -28,6 +28,7 @@ import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
+import com.google.common.collect.SetMultimap;
 import com.kryptnostic.conductor.rpc.odata.EntitySet;
 import com.kryptnostic.conductor.rpc.odata.EntitySetWithPermissions;
 import com.kryptnostic.conductor.rpc.odata.EntityType;
@@ -57,7 +58,9 @@ import retrofit.RestAdapter;
 public class PermissionsServiceTest {
 
     protected static final Principal         ROLE_USER             = new Principal( PrincipalType.ROLE, "user" );
-    protected static final Principal         USER_USER             = new Principal( PrincipalType.USER, "support@kryptnostic.com" );
+    protected static final Principal         USER_USER             = new Principal(
+            PrincipalType.USER,
+            "support@kryptnostic.com" );
 
     protected static final String            NATION_NAMESPACE      = "us";
     protected static final FullQualifiedName NATION_SCHEMA         = new FullQualifiedName(
@@ -71,7 +74,6 @@ public class PermissionsServiceTest {
     protected static final String            NATION_SECRET_SERVICE = "secret_service";                           // entity
                                                                                                                  // set
                                                                                                                  // name
-
 
     protected static final FullQualifiedName EMPLOYEE_ID           = new FullQualifiedName(
             NATION_NAMESPACE,
@@ -94,7 +96,6 @@ public class PermissionsServiceTest {
             NATION_NAMESPACE,
             "spied_on" );                                                                                        // property
                                                                                                                  // type
-
 
     private static final Logger              logger                = LoggerFactory.getLogger( Auth0Test.class );
     protected static final Datastore         ds                    = new Datastore();
@@ -140,16 +141,16 @@ public class PermissionsServiceTest {
     @Test
     public void permissionsServiceTest() {
         createTypes();
-        
+
         System.err.println( "*********************" );
         System.err.println( "ROLE TESTS START!" );
         System.err.println( "*********************" );
-        
+
         entityTypeTest( ROLE_USER );
-        entitySetTest( ROLE_USER);
+        entitySetTest( ROLE_USER );
         propertyTypeInEntityTypeTest( ROLE_USER );
         propertyTypeInEntitySetTest( ROLE_USER );
-        
+
         System.err.println( "*********************" );
         System.err.println( "ROLE TESTS END!" );
         System.err.println( "*********************" );
@@ -157,22 +158,22 @@ public class PermissionsServiceTest {
         System.err.println( "*********************" );
         System.err.println( "USER TESTS START!" );
         System.err.println( "*********************" );
-        
+
         entityTypeTest( USER_USER );
-        entitySetTest( USER_USER);
+        entitySetTest( USER_USER );
         propertyTypeInEntityTypeTest( USER_USER );
-        propertyTypeInEntitySetTest( USER_USER);
-        
+        propertyTypeInEntitySetTest( USER_USER );
+
         System.err.println( "*********************" );
         System.err.println( "USER TESTS END!" );
         System.err.println( "*********************" );
-              
+
         System.err.println( "*********************" );
         System.err.println( "REQUEST ACCESS TESTS START!" );
         System.err.println( "*********************" );
-        
+
         requestAccess();
-        
+
         System.err.println( "*********************" );
         System.err.println( "REQUEST ACCESS TESTS END!" );
         System.err.println( "*********************" );
@@ -296,7 +297,7 @@ public class PermissionsServiceTest {
         System.err.println( " *** Entity Type Test Clean Up Happening *** " );
         // Remove property type SPIED_ON
         edmApi.deletePropertyType( SPIED_ON.getNamespace(), SPIED_ON.getName() );
-        
+
         // create the entity type and entity set back
         EntityType citizens = new EntityType().setNamespace( NATION_NAMESPACE ).setName( NATION_CITIZENS.getName() )
                 .setKey( ImmutableSet.of( EMPLOYEE_ID ) )
@@ -330,20 +331,20 @@ public class PermissionsServiceTest {
                 ImmutableSet.of( new EntitySetAclRequest().setPrincipal( principal ).setAction( Action.REMOVE )
                         .setName( NATION_SECRET_SERVICE ).setPermissions( EnumSet.of( Permission.DISCOVER ) ) ) );
         Assert.assertEquals( 0, Iterables.size( edmApi.getEntitySets( null ) ) );
-        
+
         // Setup: Citizen creates a new entity set in NATION_CITIZENS.
         String DYSTOPIANS = "dystopians";
-        
+
         EntitySet dystopians = new EntitySet().setType( NATION_CITIZENS )
                 .setName( DYSTOPIANS )
                 .setTitle( "We could be in one now" );
         edmApi.postEntitySets( ImmutableSet.of( dystopians ) );
-        
+
         // Test 2: Check Citizen's permissions for the entity set.
         // Expected: Citizen has all permissions for the entity set.
         System.err.println( "--- Test 2 ---" );
-        System.err.println("Permissions for " + DYSTOPIANS + " is " + ps.getEntitySetAclsForUser( DYSTOPIANS ));
-        
+        System.err.println( "Permissions for " + DYSTOPIANS + " is " + ps.getEntitySetAclsForUser( DYSTOPIANS ) );
+
         // Test 3: Given Citizen DISCOVER permission for Secret Service. Citizen does getEntitySets.
         // Expected: Citizen discovers SECRET_SERVICE, has owner permissions for new entity set.
         ps.updateEntitySetsAcls(
@@ -351,8 +352,9 @@ public class PermissionsServiceTest {
                         .setName( NATION_SECRET_SERVICE ).setPermissions( EnumSet.of( Permission.DISCOVER ) ) ) );
         System.err.println( "--- Test 3 ---" );
         System.err.println( "Permissions for entity sets are:" );
-        for( EntitySet entitySet: edmApi.getEntitySets( null ) ){
-            System.err.println( "Entity Set: " + entitySet.getName() + " Permissions " + ((EntitySetWithPermissions) entitySet).getPermissions() );
+        for ( EntitySet entitySet : edmApi.getEntitySets( null ) ) {
+            System.err.println( "Entity Set: " + entitySet.getName() + " Permissions "
+                    + ( (EntitySetWithPermissions) entitySet ).getPermissions() );
         }
         // Test 3.5: Remove DISCOVER permission for Secret Service. Citizen does getEntitySets
         // Expected: Citizen does not discover SECRET_SERVICE, has owner permissions for new entity set.
@@ -361,23 +363,29 @@ public class PermissionsServiceTest {
                         .setName( NATION_SECRET_SERVICE ).setPermissions( EnumSet.of( Permission.DISCOVER ) ) ) );
         System.err.println( "--- Test 3.5 ---" );
         System.err.println( "Permissions for entity sets are:" );
-        for( EntitySet entitySet: edmApi.getEntitySets( null ) ){
-            System.err.println( "Entity Set: " + entitySet.getName() + " Permissions " + ((EntitySetWithPermissions) entitySet).getPermissions() );
+        for ( EntitySet entitySet : edmApi.getEntitySets( null ) ) {
+            System.err.println( "Entity Set: " + entitySet.getName() + " Permissions "
+                    + ( (EntitySetWithPermissions) entitySet ).getPermissions() );
         }
-        
-        // Test 4: Give permissions of the entity set to users and roles. Citizens check for permissions for the entity set
+
+        // Test 4: Give permissions of the entity set to users and roles. Citizens check for permissions for the entity
+        // set
         // Expected: Listing all permissions given for the entity set
         ps.updateEntitySetsAcls(
-                ImmutableSet.of( new EntitySetAclRequest().setPrincipal( new Principal(PrincipalType.ROLE, "ROLE_DISCOVER") ).setAction( Action.ADD )
+                ImmutableSet.of( new EntitySetAclRequest()
+                        .setPrincipal( new Principal( PrincipalType.ROLE, "ROLE_DISCOVER" ) ).setAction( Action.ADD )
                         .setName( DYSTOPIANS ).setPermissions( EnumSet.of( Permission.DISCOVER ) ),
-                        new EntitySetAclRequest().setPrincipal( new Principal(PrincipalType.ROLE, "ROLE_READWRITE") ).setAction( Action.ADD )
-                        .setName( DYSTOPIANS ).setPermissions( EnumSet.of( Permission.READ, Permission.WRITE ) ),
-                        new EntitySetAclRequest().setPrincipal( new Principal(PrincipalType.USER, "USER_EVERYTHING") ).setAction( Action.ADD )
-                        .setName( DYSTOPIANS ).setPermissions( EnumSet.of( Permission.DISCOVER, Permission.READ, Permission.WRITE ) )
-                        ) );
+                        new EntitySetAclRequest().setPrincipal( new Principal( PrincipalType.ROLE, "ROLE_READWRITE" ) )
+                                .setAction( Action.ADD )
+                                .setName( DYSTOPIANS )
+                                .setPermissions( EnumSet.of( Permission.READ, Permission.WRITE ) ),
+                        new EntitySetAclRequest().setPrincipal( new Principal( PrincipalType.USER, "USER_EVERYTHING" ) )
+                                .setAction( Action.ADD )
+                                .setName( DYSTOPIANS ).setPermissions(
+                                        EnumSet.of( Permission.DISCOVER, Permission.READ, Permission.WRITE ) ) ) );
         System.err.println( "--- Test 4 ---" );
         System.err.println( "All permissions for the entity set " + DYSTOPIANS + ":" );
-        for( PermissionsInfo info : ps.getEntitySetAclsForOwner( DYSTOPIANS ) ){
+        for ( PermissionsInfo info : ps.getEntitySetAclsForOwner( DYSTOPIANS ) ) {
             System.err.println( "Principal " + info.getPrincipal() + " has Permissions " + info.getPermissions() );
         }
     }
@@ -497,7 +505,6 @@ public class PermissionsServiceTest {
         ps.removeAllPropertyTypesInEntityTypeAcls(
                 ImmutableSet.of( NATION_CITIZENS ) );
 
-
         // Setup:
         // Give User READ rights for EMPLOYEE_ID, ADDRESS, POSITION in NATION_CITIZENS, as well as READ rights for
         // NATION_CITIZENS
@@ -608,7 +615,7 @@ public class PermissionsServiceTest {
                 .setPermissions( EnumSet.of( Permission.READ, Permission.WRITE ) ) ) );
         ps.removeAllPropertyTypesInEntityTypeAcls(
                 ImmutableSet.of( NATION_CITIZENS ) );
-               
+
     }
 
     /**
@@ -846,9 +853,9 @@ public class PermissionsServiceTest {
             Set<FullQualifiedName> includedProperties ) {
         Random rand = new Random();
 
-        Set<Multimap<FullQualifiedName, Object>> entities = new HashSet<>();
+        Set<SetMultimap<FullQualifiedName, Object>> entities = new HashSet<>();
         for ( int i = 0; i < dataLength; i++ ) {
-            Multimap<FullQualifiedName, Object> entity = HashMultimap.create();
+            SetMultimap<FullQualifiedName, Object> entity = HashMultimap.create();
 
             entity.put( EMPLOYEE_ID, UUID.randomUUID() );
 
@@ -876,22 +883,22 @@ public class PermissionsServiceTest {
         dataApi.createEntityData( createEntityRequest );
     }
 
-    private void requestAccess(){
+    private void requestAccess() {
         System.err.println( "---TEST 1---" );
         // Test 1: God creates Entity Sets Hombres, Mujeres, and give Citizen DISCOVER rights
         // Citizen requests access to them
         // Expected: Citizens' sent request list should have Hombres and Mujeres
         String HOMBRES = "hombres";
         String MUJERES = "mujeres";
-        
+
         EntitySet hombres = new EntitySet().setType( NATION_CITIZENS )
                 .setName( HOMBRES )
                 .setTitle( "Every nation would have some" );
         EntitySet mujeres = new EntitySet().setType( NATION_CITIZENS )
                 .setName( MUJERES )
                 .setTitle( "Every nation would have some" );
-        edmService.createEntitySet( hombres );        
-        edmService.createEntitySet( mujeres ); 
+        edmService.createEntitySet( hombres );
+        edmService.createEntitySet( mujeres );
 
         ps.updateEntitySetsAcls(
                 ImmutableSet.of( new EntitySetAclRequest().setPrincipal( ROLE_USER ).setAction( Action.ADD )
@@ -899,18 +906,17 @@ public class PermissionsServiceTest {
         ps.updateEntitySetsAcls(
                 ImmutableSet.of( new EntitySetAclRequest().setPrincipal( ROLE_USER ).setAction( Action.ADD )
                         .setName( MUJERES ).setPermissions( EnumSet.of( Permission.DISCOVER ) ) ) );
-        
+
         // Request for HOMBRES: request READ access the entity set itself, no specific property type
         ps.addPermissionsRequestForPropertyTypesInEntitySet( ImmutableSet.of(
                 new PropertyTypeInEntitySetAclRequest().setPrincipal( ROLE_USER ).setAction( Action.REQUEST )
-                .setName( HOMBRES ).setPermissions( EnumSet.of( Permission.READ ) )
-                ) );
+                        .setName( HOMBRES ).setPermissions( EnumSet.of( Permission.READ ) ) ) );
         // Request for MUJERES: request READ,WRITE access for Property Type ADDRESS
         ps.addPermissionsRequestForPropertyTypesInEntitySet( ImmutableSet.of(
                 new PropertyTypeInEntitySetAclRequest().setPrincipal( USER_USER ).setAction( Action.REQUEST )
-                .setName( MUJERES ).setPropertyType( ADDRESS ).setPermissions( EnumSet.of( Permission.READ, Permission.WRITE ) )
-                ) );
-        
+                        .setName( MUJERES ).setPropertyType( ADDRESS )
+                        .setPermissions( EnumSet.of( Permission.READ, Permission.WRITE ) ) ) );
+
         System.err.println( "--- TEST FOR GETTING ALL SENT REQUEST --- " );
         System.err.println( ps.getAllSentRequestsForPermissions( null ) );
 
@@ -921,7 +927,8 @@ public class PermissionsServiceTest {
         // Test 2: Citizen removes Request for Hombres
         // Expected: Citizens' sent request list should have only Mujeres
 
-        ps.getAllSentRequestsForPermissions( HOMBRES ).forEach( request -> ps.removePermissionsRequestForEntitySet( request.getRequestId() ) );
+        ps.getAllSentRequestsForPermissions( HOMBRES )
+                .forEach( request -> ps.removePermissionsRequestForEntitySet( request.getRequestId() ) );
 
         System.err.println( "--- TEST FOR GETTING ALL SENT REQUEST --- " );
         System.err.println( ps.getAllSentRequestsForPermissions( null ) );
@@ -932,50 +939,57 @@ public class PermissionsServiceTest {
         System.err.println( "---TEST 3---" );
         // Test 3: Citizens create Entity Sets Cate, Doge. A few request accesses were made to them.
         // Expected: Citizens' received request list should have Cate and Doge.
-        
+
         String CATE = "kryptocate";
         String DOGE = "kryptodoge";
-        
+
         EntitySet cate = new EntitySet().setType( NATION_CITIZENS )
                 .setName( CATE )
                 .setTitle( "Every reddit would have some" );
         EntitySet doge = new EntitySet().setType( NATION_CITIZENS )
                 .setName( DOGE )
                 .setTitle( "Every reddit would have some" );
-        edmApi.postEntitySets( ImmutableSet.of(cate, doge) ); 
-        //Sanity check for ownership
+        edmApi.postEntitySets( ImmutableSet.of( cate, doge ) );
+        // Sanity check for ownership
         System.err.println( "--- SANITY TEST FOR OWNERSHIP OF CATE AND DOGE --- " );
         System.err.println( edmApi.getEntitySets( null ) );
-        
-        //Add permissions request
-        permissionsService.addPermissionsRequestForPropertyTypeInEntitySet( 
+
+        // Add permissions request
+        permissionsService.addPermissionsRequestForPropertyTypeInEntitySet(
                 "redditUser1", ROLE_USER, CATE, ADDRESS, EnumSet.of( Permission.READ ) );
-        permissionsService.addPermissionsRequestForPropertyTypeInEntitySet( 
-                "redditUser314", USER_USER, DOGE, LIFE_EXPECTANCY, EnumSet.of( Permission.READ, Permission.WRITE, Permission.DISCOVER ) );
-        
+        permissionsService.addPermissionsRequestForPropertyTypeInEntitySet(
+                "redditUser314",
+                USER_USER,
+                DOGE,
+                LIFE_EXPECTANCY,
+                EnumSet.of( Permission.READ, Permission.WRITE, Permission.DISCOVER ) );
+
         System.err.println( "--- TEST FOR GETTING ALL RECEIVED REQUEST --- " );
         System.err.println( ps.getAllReceivedRequestsForPermissions( null ) );
 
         System.err.println( "--- TEST FOR GETTING RECEIVED REQUEST FOR CATE --- " );
-        System.err.println( ps.getAllReceivedRequestsForPermissions( CATE ) );     
-        
+        System.err.println( ps.getAllReceivedRequestsForPermissions( CATE ) );
+
         System.err.println( "--- TEST FOR GETTING RECEIVED REQUEST FOR HOMBRES --- " );
-        try{
-            System.err.println( ps.getAllReceivedRequestsForPermissions( HOMBRES ) );     
-        } catch ( Exception e ){
-            // 404 thrown by ExceptionHandler would be caught by retrofit, so it's NotFoundException rather than custom ResourceNotFoundException
+        try {
+            System.err.println( ps.getAllReceivedRequestsForPermissions( HOMBRES ) );
+        } catch ( Exception e ) {
+            // 404 thrown by ExceptionHandler would be caught by retrofit, so it's NotFoundException rather than custom
+            // ResourceNotFoundException
             Assert.assertTrue( e instanceof NotFoundException );
         }
 
         requestAccessCleanup();
     }
-    
-    private void requestAccessCleanup(){
+
+    private void requestAccessCleanup() {
         // Remove unattended PermissionsRequest to avoid pollution.
-        ps.getAllSentRequestsForPermissions( null ).forEach( request -> ps.removePermissionsRequestForEntitySet( request.getRequestId() ) );
-        ps.getAllReceivedRequestsForPermissions( null ).forEach( request -> ps.removePermissionsRequestForEntitySet( request.getRequestId() ) );
+        ps.getAllSentRequestsForPermissions( null )
+                .forEach( request -> ps.removePermissionsRequestForEntitySet( request.getRequestId() ) );
+        ps.getAllReceivedRequestsForPermissions( null )
+                .forEach( request -> ps.removePermissionsRequestForEntitySet( request.getRequestId() ) );
     }
-    
+
     private void uncheckedCreateData(
             int dataLength,
             FullQualifiedName entityTypeFqn,
@@ -983,9 +997,9 @@ public class PermissionsServiceTest {
             Set<FullQualifiedName> includedProperties ) {
         Random rand = new Random();
 
-        Set<Multimap<FullQualifiedName, Object>> entities = new HashSet<>();
+        Set<SetMultimap<FullQualifiedName, Object>> entities = new HashSet<>();
         for ( int i = 0; i < dataLength; i++ ) {
-            Multimap<FullQualifiedName, Object> entity = HashMultimap.create();
+            SetMultimap<FullQualifiedName, Object> entity = HashMultimap.create();
 
             entity.put( EMPLOYEE_ID, UUID.randomUUID() );
 
@@ -1013,34 +1027,34 @@ public class PermissionsServiceTest {
         DataService dataService = ds.getContext().getBean( DataService.class );
         dataService.createEntityData( createEntityRequest, includedProperties );
     }
-    
+
     /**
-     * Helper function to generate garbage data, if necessary.
-     * This goes through DataApi rather than ODataStorageClient, which has not been merged with permissionsApi.
+     * Helper function to generate garbage data, if necessary. This goes through DataApi rather than ODataStorageClient,
+     * which has not been merged with permissionsApi.
      */
     @Test
-    public void populateData(){
+    public void populateData() {
         /**
-         * Create:
-         * Property Types: EMPLOYEE_ID, ADDRESS, POSITION, LIFE_EXPECTANCY
-         * Entity Types: NATION_CITIZENS
-         * Entity Sets: NATION_SECRET_SERVICE
+         * Create: Property Types: EMPLOYEE_ID, ADDRESS, POSITION, LIFE_EXPECTANCY Entity Types: NATION_CITIZENS Entity
+         * Sets: NATION_SECRET_SERVICE
          */
         createTypes();
         /**
-         * Create 100 rows of Data in NATION_CITIZENS (entity type), no entity set, and write random values to Set of EMPLOYEE_ID, ADDRESS, POSITION, LIFE_EXPECTANCY
+         * Create 100 rows of Data in NATION_CITIZENS (entity type), no entity set, and write random values to Set of
+         * EMPLOYEE_ID, ADDRESS, POSITION, LIFE_EXPECTANCY
          */
         uncheckedCreateData( 100, NATION_CITIZENS, Optional.absent(), ImmutableSet.of( EMPLOYEE_ID,
                 ADDRESS,
                 POSITION,
-                LIFE_EXPECTANCY ));
+                LIFE_EXPECTANCY ) );
 
         /**
-         * Create 100 rows of Data in NATION_CITIZENS (entity type), NATION_SECRET_SEVICE (entity set), and write random values to Set of EMPLOYEE_ID, ADDRESS, POSITION, LIFE_EXPECTANCY
+         * Create 100 rows of Data in NATION_CITIZENS (entity type), NATION_SECRET_SEVICE (entity set), and write random
+         * values to Set of EMPLOYEE_ID, ADDRESS, POSITION, LIFE_EXPECTANCY
          */
         uncheckedCreateData( 100, NATION_CITIZENS, Optional.of( NATION_SECRET_SERVICE ), ImmutableSet.of( EMPLOYEE_ID,
                 ADDRESS,
                 POSITION,
-                LIFE_EXPECTANCY ));   
+                LIFE_EXPECTANCY ) );
     }
 }

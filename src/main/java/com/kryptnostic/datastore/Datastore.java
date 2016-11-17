@@ -4,6 +4,8 @@ import digital.loom.rhizome.authentication.Auth0Pod;
 import org.apache.olingo.commons.api.edm.EdmPrimitiveTypeKind;
 import org.apache.olingo.commons.api.edm.FullQualifiedName;
 
+import com.dataloom.data.serializers.FullQualifedNameJacksonDeserializer;
+import com.dataloom.data.serializers.FullQualifedNameJacksonSerializer;
 import com.google.common.collect.ImmutableSet;
 import com.kryptnostic.conductor.rpc.UUIDs.ACLs;
 import com.kryptnostic.conductor.rpc.odata.EntityType;
@@ -14,8 +16,6 @@ import com.kryptnostic.datastore.pods.DatastoreServicesPod;
 import com.kryptnostic.datastore.pods.DatastoreServletsPod;
 import com.kryptnostic.datastore.pods.DatastoreStreamSerializersPod;
 import com.kryptnostic.datastore.pods.DatastoreTypeCodecsPod;
-import com.kryptnostic.datastore.serialization.FullQualifedNameJacksonDeserializer;
-import com.kryptnostic.datastore.serialization.FullQualifedNameJacksonSerializer;
 import com.kryptnostic.datastore.services.EdmManager;
 import com.kryptnostic.mapstores.pods.BaseSerializersPod;
 import com.kryptnostic.rhizome.configuration.websockets.BaseRhizomeServer;

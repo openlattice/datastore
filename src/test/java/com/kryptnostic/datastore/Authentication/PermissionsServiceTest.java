@@ -5,6 +5,7 @@ import java.util.HashSet;
 import java.util.Random;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 import javax.ws.rs.NotFoundException;
 
@@ -49,11 +50,13 @@ import com.kryptnostic.datastore.services.DataService;
 import com.kryptnostic.datastore.services.EdmService;
 import com.kryptnostic.datastore.services.PermissionsService;
 import com.kryptnostic.rhizome.converters.RhizomeConverter;
+import com.squareup.okhttp.OkHttpClient;
 
 import digital.loom.rhizome.authentication.AuthenticationTest;
 import digital.loom.rhizome.configuration.auth0.Auth0Configuration;
 import retrofit.RequestInterceptor;
 import retrofit.RestAdapter;
+import retrofit.client.OkClient;
 
 public class PermissionsServiceTest {
 
@@ -117,6 +120,10 @@ public class PermissionsServiceTest {
         auth0 = new Auth0( configuration.getClientId(), configuration.getDomain() );
         client = auth0.newAuthenticationAPIClient();
         String jwtToken = AuthenticationTest.authenticate().getLeft().getIdToken();
+        OkHttpClient httpClient = new OkHttpClient();
+        httpClient.setConnectTimeout( 60, TimeUnit.SECONDS );
+        httpClient.setReadTimeout( 60, TimeUnit.SECONDS );
+        OkClient okClient = new OkClient( httpClient );
         dataServiceRestAdapter = new RestAdapter.Builder()
                 .setEndpoint( "http://localhost:8080/datastore/ontology" )
                 .setRequestInterceptor(
@@ -130,6 +137,7 @@ public class PermissionsServiceTest {
                         logger.debug( msg.replaceAll( "%", "[percent]" ) );
                     }
                 } )
+                .setClient( okClient )
                 .build();
         dataApi = dataServiceRestAdapter.create( DataApi.class );
         edmApi = dataServiceRestAdapter.create( EdmApi.class );

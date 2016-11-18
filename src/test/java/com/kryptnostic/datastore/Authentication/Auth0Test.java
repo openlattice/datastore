@@ -63,7 +63,7 @@ public class Auth0Test {
         OkHttpClient httpClient = new OkHttpClient();
         httpClient.setConnectTimeout( 60, TimeUnit.SECONDS );
         httpClient.setReadTimeout( 60, TimeUnit.SECONDS );
-        OkClient client = new OkClient( httpClient );
+        OkClient okClient = new OkClient( httpClient );
 
         dataServiceRestAdapter = new RestAdapter.Builder()
                 .setEndpoint( "http://localhost:8080/datastore/ontology" )
@@ -73,7 +73,7 @@ public class Auth0Test {
                 .setErrorHandler( new DefaultErrorHandler() )
                 .setLogLevel( RestAdapter.LogLevel.FULL )
                 .setLog( msg -> logger.debug( msg.replaceAll( "%", "[percent]" ) ) )
-                .setClient( client )
+                .setClient( okClient )
                 .build();
         dataApi = dataServiceRestAdapter.create( DataApi.class );
         edmApi = dataServiceRestAdapter.create( EdmApi.class );

@@ -1,8 +1,5 @@
 package com.kryptnostic.datastore.data.controllers;
 
-import com.kryptnostic.datastore.constants.DatastoreConstants;
-import com.kryptnostic.datastore.exceptions.ResourceNotFoundException;
-
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -21,7 +18,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
-
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -31,15 +27,17 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.client.HttpServerErrorException;
 
+import com.dataloom.data.DataApi;
+import com.dataloom.data.requests.CreateEntityRequest;
+import com.dataloom.data.requests.LookupEntitiesRequest;
+import com.dataloom.edm.internal.EntityType;
 import com.google.common.collect.Multimap;
-import com.kryptnostic.conductor.rpc.LookupEntitiesRequest;
-import com.kryptnostic.conductor.rpc.odata.EntityType;
 import com.kryptnostic.datastore.constants.CustomMediaType;
+import com.kryptnostic.datastore.constants.DatastoreConstants;
+import com.kryptnostic.datastore.exceptions.ResourceNotFoundException;
 import com.kryptnostic.datastore.services.ActionAuthorizationService;
-import com.kryptnostic.datastore.services.DataApi;
 import com.kryptnostic.datastore.services.DataService;
 import com.kryptnostic.datastore.services.EdmManager;
-import com.kryptnostic.datastore.services.requests.CreateEntityRequest;
 import com.squareup.okhttp.Response;
 
 @RestController

@@ -8,12 +8,12 @@ import org.apache.olingo.commons.api.edm.FullQualifiedName;
 import org.junit.AfterClass;
 import org.junit.Assert;
 
+import com.dataloom.edm.internal.EntityType;
+import com.dataloom.edm.internal.PropertyType;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import com.hazelcast.core.HazelcastInstance;
 import com.kryptnostic.conductor.rpc.UUIDs.ACLs;
-import com.kryptnostic.conductor.rpc.odata.EntityType;
-import com.kryptnostic.conductor.rpc.odata.PropertyType;
 import com.kryptnostic.datastore.services.ActionAuthorizationService;
 import com.kryptnostic.datastore.services.DataService;
 import com.kryptnostic.datastore.services.EdmManager;

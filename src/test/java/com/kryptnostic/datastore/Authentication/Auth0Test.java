@@ -1,24 +1,9 @@
 package com.kryptnostic.datastore.Authentication;
 
-import com.auth0.Auth0;
-import com.auth0.authentication.AuthenticationAPIClient;
-import com.auth0.authentication.result.Authentication;
-import com.auth0.authentication.result.Credentials;
-import com.auth0.authentication.result.UserProfile;
-import com.auth0.jwt.JWTVerifier;
-import com.auth0.jwt.internal.org.apache.commons.codec.binary.Base64;
-import com.auth0.spring.security.api.Auth0AuthorityStrategy;
-import com.auth0.spring.security.api.Auth0JWTToken;
-import com.auth0.spring.security.api.Auth0UserDetails;
-import com.geekbeast.rhizome.tests.bootstrap.DefaultErrorHandler;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Multimap;
-import com.kryptnostic.datastore.Datastore;
-import com.kryptnostic.datastore.services.DataApi;
-import com.kryptnostic.datastore.services.EdmApi;
-import com.kryptnostic.rhizome.converters.RhizomeConverter;
-import digital.loom.rhizome.authentication.AuthenticationTest;
-import digital.loom.rhizome.configuration.auth0.Auth0Configuration;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
+
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.olingo.commons.api.edm.FullQualifiedName;
@@ -30,23 +15,43 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
+
+import com.auth0.Auth0;
+import com.auth0.authentication.AuthenticationAPIClient;
+import com.auth0.authentication.result.Authentication;
+import com.auth0.authentication.result.Credentials;
+import com.auth0.authentication.result.UserProfile;
+import com.auth0.jwt.JWTVerifier;
+import com.auth0.jwt.internal.org.apache.commons.codec.binary.Base64;
+import com.auth0.spring.security.api.Auth0AuthorityStrategy;
+import com.auth0.spring.security.api.Auth0JWTToken;
+import com.auth0.spring.security.api.Auth0UserDetails;
+import com.dataloom.data.DataApi;
+import com.dataloom.edm.EdmApi;
+import com.geekbeast.rhizome.tests.bootstrap.DefaultErrorHandler;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Multimap;
+import com.kryptnostic.datastore.Datastore;
+import com.kryptnostic.rhizome.converters.RhizomeConverter;
+import com.squareup.okhttp.OkHttpClient;
+
+import digital.loom.rhizome.authentication.AuthenticationTest;
+import digital.loom.rhizome.configuration.auth0.Auth0Configuration;
 import retrofit.RequestInterceptor;
 import retrofit.RestAdapter;
-
-import java.util.List;
-import java.util.Map;
+import retrofit.client.OkClient;
 
 import javax.ws.rs.NotFoundException;
 
 public class Auth0Test {
-    private static final Logger    logger = LoggerFactory.getLogger( Auth0Test.class );
-    private static final Datastore ds     = new Datastore();
+    private static final Logger                      logger = LoggerFactory.getLogger( Auth0Test.class );
+    private static final Datastore                   ds     = new Datastore();
     private static Auth0Configuration                configuration;
     private static Auth0                             auth0;
     private static AuthenticationAPIClient           client;
     private static DataApi                           dataApi;
     private static RestAdapter                       dataServiceRestAdapter;
-    protected static EdmApi edmApi;
+    protected static EdmApi                          edmApi;
     private static Pair<Credentials, Authentication> authPair;
 
     @BeforeClass
@@ -57,6 +62,11 @@ public class Auth0Test {
         client = auth0.newAuthenticationAPIClient();
         authPair = AuthenticationTest.authenticate();
         String jwtToken = authPair.getLeft().getIdToken();
+        OkHttpClient httpClient = new OkHttpClient();
+        httpClient.setConnectTimeout( 60, TimeUnit.SECONDS );
+        httpClient.setReadTimeout( 60, TimeUnit.SECONDS );
+        OkClient okClient = new OkClient( httpClient );
+
         dataServiceRestAdapter = new RestAdapter.Builder()
                 .setEndpoint( "http://localhost:8080/datastore/ontology" )
                 .setRequestInterceptor(
@@ -65,6 +75,7 @@ public class Auth0Test {
                 .setErrorHandler( new DefaultErrorHandler() )
                 .setLogLevel( RestAdapter.LogLevel.FULL )
                 .setLog( msg -> logger.debug( msg.replaceAll( "%", "[percent]" ) ) )
+                .setClient( okClient )
                 .build();
         dataApi = dataServiceRestAdapter.create( DataApi.class );
         edmApi = dataServiceRestAdapter.create( EdmApi.class );
@@ -72,7 +83,8 @@ public class Auth0Test {
 
     @Test
     public void testRoles() throws Exception {
-        JWTVerifier jwtVerifier = new JWTVerifier( new Base64( true ).decodeBase64( configuration.getClientSecret() ),
+        JWTVerifier jwtVerifier = new JWTVerifier(
+                new Base64( true ).decodeBase64( configuration.getClientSecret() ),
                 configuration.getClientId(),
                 configuration.getIssuer() );
         Auth0JWTToken token = new Auth0JWTToken( authPair.getLeft().getIdToken() );
@@ -96,7 +108,8 @@ public class Auth0Test {
         Assert.assertTrue( StringUtils.isNotBlank( credentials.getIdToken() ) );
     }
 
-    @Test( expected = AccessDeniedException.class )
+    @Test(
+        expected = AccessDeniedException.class )
     public void testUnauthenticatedAPICall() {
         RestAdapter unauthorizedAdapter = new RestAdapter.Builder()
                 .setEndpoint( "http://localhost:8080/datastore/ontology" )
@@ -130,7 +143,7 @@ public class Auth0Test {
             Assert.assertFalse( entityTypeExists );
         }
     }
-    
+
     @AfterClass
     public static void shutdown() throws Exception {
         ds.stop();

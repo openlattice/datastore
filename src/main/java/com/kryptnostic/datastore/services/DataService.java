@@ -13,6 +13,10 @@ import org.apache.olingo.commons.api.edm.FullQualifiedName;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.dataloom.data.requests.CreateEntityRequest;
+import com.dataloom.data.requests.LookupEntitiesRequest;
+import com.dataloom.edm.internal.EntityType;
+import com.dataloom.edm.internal.PropertyType;
 import com.datastax.driver.core.BoundStatement;
 import com.datastax.driver.core.DataType;
 import com.datastax.driver.core.ResultSetFuture;
@@ -23,22 +27,19 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
+import com.google.common.collect.SetMultimap;
 import com.google.common.util.concurrent.Futures;
 import com.hazelcast.core.HazelcastInstance;
 import com.hazelcast.core.IMap;
 import com.hazelcast.durableexecutor.DurableExecutorService;
 import com.kryptnostic.conductor.rpc.ConductorCall;
 import com.kryptnostic.conductor.rpc.Lambdas;
-import com.kryptnostic.conductor.rpc.LookupEntitiesRequest;
 import com.kryptnostic.conductor.rpc.QueryResult;
 import com.kryptnostic.conductor.rpc.ResultSetAdapterFactory;
 import com.kryptnostic.conductor.rpc.UUIDs;
-import com.kryptnostic.conductor.rpc.odata.EntityType;
-import com.kryptnostic.conductor.rpc.odata.PropertyType;
 import com.kryptnostic.datastore.cassandra.CassandraEdmMapping;
 import com.kryptnostic.datastore.cassandra.CassandraStorage;
 import com.kryptnostic.datastore.services.CassandraTableManager.PreparedStatementMapping;
-import com.kryptnostic.datastore.services.requests.CreateEntityRequest;
 
 public class DataService {
 
@@ -151,7 +152,7 @@ public class DataService {
                         fqn -> CassandraEdmMapping
                                 .getCassandraType( dms.getPropertyType( fqn ).getDatatype() ) ) );
 
-        Set<Multimap<FullQualifiedName, Object>> propertyValues = createEntityRequest.getPropertyValues();
+        Set<SetMultimap<FullQualifiedName, Object>> propertyValues = createEntityRequest.getPropertyValues();
         UUID aclId = createEntityRequest.getAclId().or( UUIDs.ACLs.EVERYONE_ACL );
         UUID syncId = createEntityRequest.getSyncId().or( UUIDs.Syncs.BASE.getSyncId() );
         String typename = tableManager.getTypenameForEntityType( entityFqn );

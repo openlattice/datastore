@@ -120,9 +120,9 @@ public class EdmController implements EdmApi {
     @Override
     @RequestMapping(
             path = SCHEMA_BASE_PATH + NAMESPACE_PATH + NAME_PATH,
-            method = RequestMethod.PUT )
+            method = RequestMethod.POST )
     @ResponseStatus( HttpStatus.OK )
-    public Response putSchema( @PathVariable( NAMESPACE ) String namespace, @PathVariable( NAME ) String name ) {
+    public Response createEmptySchema( @PathVariable( NAMESPACE ) String namespace, @PathVariable( NAME ) String name ) {
         modelService
                 .upsertSchema(
                         new Schema().setNamespace( namespace ).setName( name )
@@ -133,9 +133,9 @@ public class EdmController implements EdmApi {
     @Override
     @RequestMapping(
             path = SCHEMA_BASE_PATH + NAMESPACE_PATH + NAME_PATH + ACL_ID_WITH_DOT,
-            method = RequestMethod.PUT )
+            method = RequestMethod.POST )
     @ResponseStatus( HttpStatus.OK )
-    public Response putSchema(
+    public Response createEmptySchema(
             @Path( NAMESPACE ) String namespace, @PathVariable( NAME ) String name, @PathVariable( ACL_ID ) UUID aclId ) {
         modelService
                 .upsertSchema(

@@ -51,7 +51,7 @@ dependencies {
         compile "com.kryptnostic:rhizome:${rhizome_version}"
         compile "com.kryptnostic:kryptnostic-conductor-client:${conductor_client_version}"
         compile "com.kryptnostic:kryptnostic-mapstores:${mapstores_version}"
-        compile ("com.dataloom:loom-api:${loom_api_version}")
+        compile ("com.kryptnostic:loom-api:${loom_api_version}")
         testCompile "com.kryptnostic:rhizome:${rhizome_version}:tests"
     }
 

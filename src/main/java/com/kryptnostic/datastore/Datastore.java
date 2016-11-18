@@ -6,10 +6,10 @@ import org.apache.olingo.commons.api.edm.FullQualifiedName;
 
 import com.dataloom.data.serializers.FullQualifedNameJacksonDeserializer;
 import com.dataloom.data.serializers.FullQualifedNameJacksonSerializer;
+import com.dataloom.edm.internal.EntityType;
+import com.dataloom.edm.internal.PropertyType;
 import com.google.common.collect.ImmutableSet;
 import com.kryptnostic.conductor.rpc.UUIDs.ACLs;
-import com.kryptnostic.conductor.rpc.odata.EntityType;
-import com.kryptnostic.conductor.rpc.odata.PropertyType;
 import com.kryptnostic.datastore.odata.KryptnosticEdmProvider;
 import com.kryptnostic.datastore.pods.DataStoreSecurityPod;
 import com.kryptnostic.datastore.pods.DatastoreServicesPod;

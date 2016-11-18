@@ -10,8 +10,6 @@ import java.util.stream.StreamSupport;
 
 import javax.inject.Inject;
 
-import com.kryptnostic.conductor.rpc.odata.*;
-import com.kryptnostic.datastore.services.*;
 import org.apache.olingo.commons.api.edm.FullQualifiedName;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -25,19 +23,24 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.dataloom.authorization.requests.Permission;
 import com.dataloom.edm.EdmApi;
+import com.dataloom.edm.EntityDataModel;
+import com.dataloom.edm.internal.EntitySet;
+import com.dataloom.edm.internal.EntitySetWithPermissions;
+import com.dataloom.edm.internal.EntityType;
+import com.dataloom.edm.internal.EntityTypeWithDetails;
+import com.dataloom.edm.internal.PropertyType;
+import com.dataloom.edm.internal.Schema;
+import com.dataloom.edm.requests.GetSchemasRequest;
+import com.dataloom.edm.requests.GetSchemasRequest.TypeDetails;
+import com.dataloom.edm.requests.PutSchemaRequest;
 import com.google.common.base.Optional;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
-import com.kryptnostic.conductor.rpc.UUIDs.ACLs;
-import com.kryptnostic.conductor.rpc.odata.EntitySet;
-import com.kryptnostic.conductor.rpc.odata.EntityType;
-import com.kryptnostic.conductor.rpc.odata.PropertyType;
-import com.kryptnostic.conductor.rpc.odata.Schema;
 import com.kryptnostic.datastore.ServerUtil;
 import com.kryptnostic.datastore.exceptions.ResourceNotFoundException;
-import com.kryptnostic.datastore.services.requests.GetSchemasRequest;
-import com.kryptnostic.datastore.services.requests.GetSchemasRequest.TypeDetails;
-import com.kryptnostic.datastore.services.requests.PutSchemaRequest;
+import com.kryptnostic.datastore.services.ActionAuthorizationService;
+import com.kryptnostic.datastore.services.EdmManager;
+import com.kryptnostic.datastore.services.PermissionsService;
 
 import retrofit.client.Response;
 
@@ -128,8 +131,7 @@ public class EdmController implements EdmApi {
     public Response putSchema( @RequestBody PutSchemaRequest request ) {
         modelService
                 .upsertSchema(
-                        new Schema().setNamespace( request.getNamespace() ).setName( request.getName() )
-                                .setAclId( request.getAclId().or( ACLs.EVERYONE_ACL ) ) );
+                        new Schema().setNamespace( request.getNamespace() ).setName( request.getName() ) );
         return null;
     }
 
@@ -171,14 +173,16 @@ public class EdmController implements EdmApi {
         method = RequestMethod.GET,
         produces = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
-    public Iterable<EntitySetWithPermissions> getEntitySets( @RequestParam( value = IS_OWNER, required = false ) Boolean isOwner ) {
+    public Iterable<EntitySetWithPermissions> getEntitySets( @RequestParam(
+        value = IS_OWNER,
+        required = false ) Boolean isOwner ) {
         String username = authzService.getUsername();
         List<String> currentRoles = authzService.getRoles();
 
         Set<String> ownedSets = Sets.newHashSet( modelService.getEntitySetNamesUserOwns( username ) );
 
-        if( isOwner != null ){
-            if( isOwner ){
+        if ( isOwner != null ) {
+            if ( isOwner ) {
                 // isOwner = true -> return all entity sets owned
                 EnumSet<Permission> allPermissions = EnumSet.allOf( Permission.class );
                 return StreamSupport.stream( modelService.getEntitySetsUserOwns( username ).spliterator(), false )
@@ -192,12 +196,13 @@ public class EdmController implements EdmApi {
                         .filter( entitySet -> !ownedSets.contains( entitySet.getName() ) )
                         .filter( entitySet -> authzService.getEntitySet( entitySet.getName() ) )
                         .map( entitySet -> new EntitySetWithPermissions().fromEntitySet( entitySet )
-                                .setPermissions( ps.getEntitySetAclsForUser( username, currentRoles, entitySet.getName() ) )
+                                .setPermissions(
+                                        ps.getEntitySetAclsForUser( username, currentRoles, entitySet.getName() ) )
                                 .setIsOwner( false ) )
                         .collect( Collectors.toList() );
             }
         } else {
-            //No query parameter -> return all entity sets
+            // No query parameter -> return all entity sets
             return StreamSupport.stream( modelService.getEntitySets().spliterator(), false )
                     .filter( entitySet -> authzService.getEntitySet( entitySet.getName() ) )
                     .map( entitySet -> new EntitySetWithPermissions().fromEntitySet( entitySet )

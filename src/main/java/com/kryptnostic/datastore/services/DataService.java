@@ -15,6 +15,8 @@ import org.slf4j.LoggerFactory;
 
 import com.dataloom.data.requests.CreateEntityRequest;
 import com.dataloom.data.requests.LookupEntitiesRequest;
+import com.dataloom.edm.internal.EntityType;
+import com.dataloom.edm.internal.PropertyType;
 import com.datastax.driver.core.BoundStatement;
 import com.datastax.driver.core.DataType;
 import com.datastax.driver.core.ResultSetFuture;
@@ -35,8 +37,6 @@ import com.kryptnostic.conductor.rpc.Lambdas;
 import com.kryptnostic.conductor.rpc.QueryResult;
 import com.kryptnostic.conductor.rpc.ResultSetAdapterFactory;
 import com.kryptnostic.conductor.rpc.UUIDs;
-import com.kryptnostic.conductor.rpc.odata.EntityType;
-import com.kryptnostic.conductor.rpc.odata.PropertyType;
 import com.kryptnostic.datastore.cassandra.CassandraEdmMapping;
 import com.kryptnostic.datastore.cassandra.CassandraStorage;
 import com.kryptnostic.datastore.services.CassandraTableManager.PreparedStatementMapping;

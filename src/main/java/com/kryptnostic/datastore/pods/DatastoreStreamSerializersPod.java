@@ -2,15 +2,14 @@ package com.kryptnostic.datastore.pods;
 
 import javax.inject.Inject;
 
-import com.datastax.driver.core.Session;
-import com.kryptnostic.conductor.rpc.serializers.QueryResultStreamSerializer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+import com.datastax.driver.core.Session;
 import com.kryptnostic.conductor.rpc.ConductorSparkApi;
 import com.kryptnostic.conductor.rpc.LambdaStreamSerializer;
 import com.kryptnostic.conductor.rpc.serializers.ConductorCallStreamSerializer;
-import com.kryptnostic.conductor.rpc.serializers.EmployeeStreamSerializer;
+import com.kryptnostic.conductor.rpc.serializers.QueryResultStreamSerializer;
 
 @Configuration
 public class DatastoreStreamSerializersPod {

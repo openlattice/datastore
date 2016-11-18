@@ -11,14 +11,14 @@ rethinkdb:
     port: 28015
     
 cassandra:
-    ssl-enabled: true
+    ssl-enabled: false
     keyspace: "sparks"
     replication-factor: 1
     seed-nodes:
         - "127.0.0.1"
 
 hazelcast:
-    server: false
+    server: true
     group: "local"
     password: "kryptodoge4life"
     seed-nodes: 

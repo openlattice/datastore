@@ -43,20 +43,20 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpOutputMessage;
 import org.springframework.http.converter.HttpMessageNotWritableException;
 
-import com.datastax.driver.core.DataType;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Optional;
+import com.dataloom.data.requests.CreateEntityRequest;
+import com.dataloom.edm.internal.EntitySet;
+import com.dataloom.edm.internal.EntityType;
+import com.dataloom.edm.internal.PropertyType;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
+import com.google.common.collect.SetMultimap;
 import com.kryptnostic.conductor.rpc.Employee;
 import com.kryptnostic.conductor.rpc.UUIDs.ACLs;
 import com.kryptnostic.conductor.rpc.UUIDs.Syncs;
-import com.kryptnostic.conductor.rpc.odata.EntitySet;
-import com.kryptnostic.conductor.rpc.odata.EntityType;
-import com.kryptnostic.conductor.rpc.odata.PropertyType;
 import com.kryptnostic.datastore.converters.IterableCsvHttpMessageConverter;
 import com.kryptnostic.datastore.exceptions.BadRequestException;
 import com.kryptnostic.datastore.odata.KryptnosticEdmProvider;
@@ -66,7 +66,6 @@ import com.kryptnostic.datastore.services.DataService;
 import com.kryptnostic.datastore.services.EdmManager;
 import com.kryptnostic.datastore.services.EdmService;
 import com.kryptnostic.datastore.services.ODataStorageService;
-import com.kryptnostic.datastore.services.requests.CreateEntityRequest;
 
 public class DatastoreTests extends BootstrapDatastoreWithCassandra {
 
@@ -380,7 +379,7 @@ public class DatastoreTests extends BootstrapDatastoreWithCassandra {
                 EMPLOYEE_DEPT_FQN,
                 EMPLOYEE_SALARY_FQN );
 
-        Set<Multimap<FullQualifiedName, Object>> entities = new HashSet<>();
+        Set<SetMultimap<FullQualifiedName, Object>> entities = new HashSet<>();
 
         try ( FileReader fr = new FileReader( "src/test/resources/employees.csv" );
                 BufferedReader br = new BufferedReader( fr ) ) {
@@ -392,7 +391,7 @@ public class DatastoreTests extends BootstrapDatastoreWithCassandra {
                 Employee employee = Employee.EmployeeCsvReader.getEmployee( line );
                 System.out.println( employee.toString() );
 
-                Multimap<FullQualifiedName, Object> entity = HashMultimap.create();
+                SetMultimap<FullQualifiedName, Object> entity = HashMultimap.create();
 
                 entity.put( EMPLOYEE_ID_FQN, UUID.randomUUID() );
                 entity.put( EMPLOYEE_NAME_FQN, employee.getName() );
@@ -473,10 +472,10 @@ public class DatastoreTests extends BootstrapDatastoreWithCassandra {
     
     private void writeRandomData( DataService dataService, FullQualifiedName entityTypeFqn, Map<FullQualifiedName, EdmPrimitiveTypeKind> propertyTypeMap, int n){
         Random rand = new Random();
-        Set<Multimap<FullQualifiedName, Object>> entities = new HashSet<>();
+        Set<SetMultimap<FullQualifiedName, Object>> entities = new HashSet<>();
         
         for(int i = 0; i < n; i++){
-            Multimap<FullQualifiedName, Object> entity = HashMultimap.create();
+            SetMultimap<FullQualifiedName, Object> entity = HashMultimap.create();
             for( Map.Entry<FullQualifiedName, EdmPrimitiveTypeKind> entry : propertyTypeMap.entrySet() ){
                 entity.put( entry.getKey(), generateValueOfType(rand, entry.getValue()) );
             }

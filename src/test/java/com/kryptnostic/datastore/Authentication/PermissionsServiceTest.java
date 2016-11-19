@@ -29,6 +29,8 @@ import com.dataloom.authorization.requests.PermissionsInfo;
 import com.dataloom.authorization.requests.Principal;
 import com.dataloom.authorization.requests.PrincipalType;
 import com.dataloom.authorization.requests.PropertyTypeInEntityTypeAclRequest;
+import com.dataloom.client.RetrofitFactory;
+import com.dataloom.client.RetrofitFactory.Environment;
 import com.dataloom.data.DataApi;
 import com.dataloom.data.requests.CreateEntityRequest;
 import com.dataloom.edm.EdmApi;
@@ -38,7 +40,6 @@ import com.dataloom.edm.internal.EntityType;
 import com.dataloom.edm.internal.PropertyType;
 import com.dataloom.edm.requests.PropertyTypeInEntitySetAclRequest;
 import com.dataloom.permissions.PermissionsApi;
-import com.geekbeast.rhizome.tests.bootstrap.DefaultErrorHandler;
 import com.google.common.base.Optional;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableSet;
@@ -49,14 +50,12 @@ import com.kryptnostic.datastore.Datastore;
 import com.kryptnostic.datastore.services.DataService;
 import com.kryptnostic.datastore.services.EdmService;
 import com.kryptnostic.datastore.services.PermissionsService;
-import com.kryptnostic.rhizome.converters.RhizomeConverter;
 import com.squareup.okhttp.OkHttpClient;
 
 import digital.loom.rhizome.authentication.AuthenticationTest;
 import digital.loom.rhizome.configuration.auth0.Auth0Configuration;
-import retrofit.RequestInterceptor;
-import retrofit.RestAdapter;
 import retrofit.client.OkClient;
+import retrofit2.Retrofit;
 
 public class PermissionsServiceTest {
 
@@ -111,7 +110,7 @@ public class PermissionsServiceTest {
     protected static PermissionsApi          ps;
     protected static PermissionsService      permissionsService;
 
-    protected static RestAdapter             dataServiceRestAdapter;
+    protected static Retrofit                dataServiceRestAdapter;
 
     @BeforeClass
     public static void init() throws Exception {
@@ -124,21 +123,7 @@ public class PermissionsServiceTest {
         httpClient.setConnectTimeout( 60, TimeUnit.SECONDS );
         httpClient.setReadTimeout( 60, TimeUnit.SECONDS );
         OkClient okClient = new OkClient( httpClient );
-        dataServiceRestAdapter = new RestAdapter.Builder()
-                .setEndpoint( "http://localhost:8080/datastore/ontology" )
-                .setRequestInterceptor(
-                        (RequestInterceptor) facade -> facade.addHeader( "Authorization", "Bearer " + jwtToken ) )
-                .setConverter( new RhizomeConverter() )
-                .setErrorHandler( new DefaultErrorHandler() )
-                .setLogLevel( RestAdapter.LogLevel.FULL )
-                .setLog( new RestAdapter.Log() {
-                    @Override
-                    public void log( String msg ) {
-                        logger.debug( msg.replaceAll( "%", "[percent]" ) );
-                    }
-                } )
-                .setClient( okClient )
-                .build();
+        dataServiceRestAdapter = RetrofitFactory.newClient( Environment.TESTING, () -> jwtToken );
         dataApi = dataServiceRestAdapter.create( DataApi.class );
         edmApi = dataServiceRestAdapter.create( EdmApi.class );
         ps = dataServiceRestAdapter.create( PermissionsApi.class );
@@ -360,9 +345,9 @@ public class PermissionsServiceTest {
                         .setName( NATION_SECRET_SERVICE ).setPermissions( EnumSet.of( Permission.DISCOVER ) ) ) );
         System.err.println( "--- Test 3 ---" );
         System.err.println( "Permissions for entity sets are:" );
-        for ( EntitySet entitySet : edmApi.getEntitySets( null ) ) {
-            System.err.println( "Entity Set: " + entitySet.getName() + " Permissions "
-                    + ( (EntitySetWithPermissions) entitySet ).getPermissions() );
+        for ( EntitySetWithPermissions entitySetWithPermissions : edmApi.getEntitySets( null ) ) {
+            System.err.println( "Entity Set: " + entitySetWithPermissions.getEntitySet().getName() + " Permissions "
+                    + ( (EntitySetWithPermissions) entitySetWithPermissions ).getPermissions() );
         }
         // Test 3.5: Remove DISCOVER permission for Secret Service. Citizen does getEntitySets
         // Expected: Citizen does not discover SECRET_SERVICE, has owner permissions for new entity set.
@@ -371,8 +356,8 @@ public class PermissionsServiceTest {
                         .setName( NATION_SECRET_SERVICE ).setPermissions( EnumSet.of( Permission.DISCOVER ) ) ) );
         System.err.println( "--- Test 3.5 ---" );
         System.err.println( "Permissions for entity sets are:" );
-        for ( EntitySet entitySet : edmApi.getEntitySets( null ) ) {
-            System.err.println( "Entity Set: " + entitySet.getName() + " Permissions "
+        for ( EntitySetWithPermissions entitySet : edmApi.getEntitySets( null ) ) {
+            System.err.println( "Entity Set: " + entitySet.getEntitySet().getName() + " Permissions "
                     + ( (EntitySetWithPermissions) entitySet ).getPermissions() );
         }
 

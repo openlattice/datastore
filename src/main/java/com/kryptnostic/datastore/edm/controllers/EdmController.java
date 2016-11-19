@@ -1,8 +1,8 @@
 package com.kryptnostic.datastore.edm.controllers;
 
+import java.util.Arrays;
 import java.util.EnumSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -34,15 +34,12 @@ import com.dataloom.edm.requests.GetSchemasRequest;
 import com.dataloom.edm.requests.GetSchemasRequest.TypeDetails;
 import com.dataloom.edm.requests.PutSchemaRequest;
 import com.google.common.base.Optional;
-import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.kryptnostic.datastore.ServerUtil;
 import com.kryptnostic.datastore.exceptions.ResourceNotFoundException;
 import com.kryptnostic.datastore.services.ActionAuthorizationService;
 import com.kryptnostic.datastore.services.EdmManager;
 import com.kryptnostic.datastore.services.PermissionsService;
-
-import retrofit.client.Response;
 
 @RestController
 public class EdmController implements EdmApi {
@@ -86,9 +83,9 @@ public class EdmController implements EdmApi {
     public Iterable<Schema> getSchemas( @RequestBody GetSchemasRequest request ) {
         if ( request.getNamespace().isPresent() ) {
             if ( request.getName().isPresent() ) {
-                return modelService.getSchema( request.getNamespace().get(),
+                return Arrays.asList( modelService.getSchema( request.getNamespace().get(),
                         request.getName().get(),
-                        request.getLoadDetails() );
+                        request.getLoadDetails() ) );
             } else {
                 return modelService.getSchemasInNamespace( request.getNamespace().get(),
                         request.getLoadDetails() );
@@ -103,7 +100,7 @@ public class EdmController implements EdmApi {
         path = SCHEMA_BASE_PATH + NAMESPACE_PATH + NAME_PATH,
         method = RequestMethod.GET )
     @ResponseStatus( HttpStatus.OK )
-    public Iterable<Schema> getSchemaContents(
+    public Schema getSchemaContents(
             @PathVariable( NAMESPACE ) String namespace,
             @PathVariable( NAME ) String name ) {
         return modelService.getSchema( namespace, name, EnumSet.allOf( TypeDetails.class ) );
@@ -128,11 +125,10 @@ public class EdmController implements EdmApi {
         method = RequestMethod.PUT,
         consumes = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
-    public Response putSchema( @RequestBody PutSchemaRequest request ) {
+    public void putSchema( @RequestBody PutSchemaRequest request ) {
         modelService
                 .upsertSchema(
                         new Schema().setNamespace( request.getNamespace() ).setName( request.getName() ) );
-        return null;
     }
 
     @Override
@@ -142,15 +138,10 @@ public class EdmController implements EdmApi {
         consumes = MediaType.APPLICATION_JSON_VALUE,
         produces = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
-    public Map<String, Boolean> postEntitySets( @RequestBody Set<EntitySet> entitySets ) {
-        Map<String, Boolean> results = Maps.newHashMapWithExpectedSize( entitySets.size() );
-
+    public void postEntitySets( @RequestBody Set<EntitySet> entitySets ) {
         for ( EntitySet entitySet : entitySets ) {
-            results.put( entitySet.getType().getFullQualifiedNameAsString(),
-                    modelService.createEntitySet( Optional.fromNullable( authzService.getUsername() ), entitySet ) );
+            modelService.createEntitySet( Optional.fromNullable( authzService.getUsername() ), entitySet );
         }
-
-        return results;
     }
 
     @Override
@@ -160,11 +151,10 @@ public class EdmController implements EdmApi {
         consumes = MediaType.APPLICATION_JSON_VALUE,
         produces = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
-    public Response putEntitySets( @RequestBody Set<EntitySet> entitySets ) {
+    public void putEntitySets( @RequestBody Set<EntitySet> entitySets ) {
         entitySets.forEach( entitySet -> {
             modelService.upsertEntitySet( entitySet );
         } );
-        return null;
     }
 
     @Override
@@ -186,7 +176,7 @@ public class EdmController implements EdmApi {
                 // isOwner = true -> return all entity sets owned
                 EnumSet<Permission> allPermissions = EnumSet.allOf( Permission.class );
                 return StreamSupport.stream( modelService.getEntitySetsUserOwns( username ).spliterator(), false )
-                        .map( entitySet -> new EntitySetWithPermissions().fromEntitySet( entitySet )
+                        .map( entitySet -> new EntitySetWithPermissions().setEntitySet( entitySet )
                                 .setPermissions( allPermissions )
                                 .setIsOwner( true ) )
                         .collect( Collectors.toList() );
@@ -195,7 +185,7 @@ public class EdmController implements EdmApi {
                 return StreamSupport.stream( modelService.getEntitySets().spliterator(), false )
                         .filter( entitySet -> !ownedSets.contains( entitySet.getName() ) )
                         .filter( entitySet -> authzService.getEntitySet( entitySet.getName() ) )
-                        .map( entitySet -> new EntitySetWithPermissions().fromEntitySet( entitySet )
+                        .map( entitySet -> new EntitySetWithPermissions().setEntitySet( entitySet )
                                 .setPermissions(
                                         ps.getEntitySetAclsForUser( username, currentRoles, entitySet.getName() ) )
                                 .setIsOwner( false ) )
@@ -205,7 +195,7 @@ public class EdmController implements EdmApi {
             // No query parameter -> return all entity sets
             return StreamSupport.stream( modelService.getEntitySets().spliterator(), false )
                     .filter( entitySet -> authzService.getEntitySet( entitySet.getName() ) )
-                    .map( entitySet -> new EntitySetWithPermissions().fromEntitySet( entitySet )
+                    .map( entitySet -> new EntitySetWithPermissions().setEntitySet( entitySet )
                             .setPermissions( ps.getEntitySetAclsForUser( username, currentRoles, entitySet.getName() ) )
                             .setIsOwner( ownedSets.contains( entitySet.getName() ) ) )
                     .collect( Collectors.toList() );
@@ -230,13 +220,12 @@ public class EdmController implements EdmApi {
         path = ENTITY_SETS_BASE_PATH + NAME_PATH,
         method = RequestMethod.POST )
     @ResponseStatus( HttpStatus.OK )
-    public Response assignEntityToEntitySet( String entitySetName, Set<UUID> entityIds ) {
+    public void assignEntityToEntitySet( String entitySetName, Set<UUID> entityIds ) {
         if ( authzService.assignEntityToEntitySet( entitySetName ) ) {
             for ( UUID entityId : entityIds ) {
                 modelService.assignEntityToEntitySet( entityId, entitySetName );
             }
         }
-        return null;
     }
 
     @Override
@@ -244,9 +233,8 @@ public class EdmController implements EdmApi {
         path = ENTITY_SETS_BASE_PATH + NAME_PATH,
         method = RequestMethod.DELETE )
     @ResponseStatus( HttpStatus.OK )
-    public Response deleteEntitySet( String entitySetName ) {
+    public void deleteEntitySet( String entitySetName ) {
         modelService.deleteEntitySet( entitySetName );
-        return null;
     }
 
     /*
@@ -259,9 +247,8 @@ public class EdmController implements EdmApi {
         path = ENTITY_TYPE_BASE_PATH,
         method = RequestMethod.PUT )
     @ResponseStatus( HttpStatus.OK )
-    public Response putEntityType( @RequestBody EntityType entityType ) {
+    public void putEntityType( @RequestBody EntityType entityType ) {
         modelService.createEntityType( Optional.fromNullable( authzService.getUsername() ), entityType );
-        return null;
     }
 
     @Override
@@ -296,7 +283,7 @@ public class EdmController implements EdmApi {
         method = RequestMethod.PUT,
         consumes = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
-    public Response addEntityTypesToSchema(
+    public void addEntityTypesToSchema(
             @PathVariable( NAMESPACE ) String namespace,
             @PathVariable( NAME ) String name,
             @RequestBody Set<FullQualifiedName> entityTypes ) {
@@ -307,7 +294,6 @@ public class EdmController implements EdmApi {
             }
         }
         modelService.addEntityTypesToSchema( namespace, name, entityTypes );
-        return null;
     }
 
     @Override
@@ -316,12 +302,11 @@ public class EdmController implements EdmApi {
         method = RequestMethod.DELETE,
         consumes = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
-    public Response removeEntityTypeFromSchema(
+    public void removeEntityTypeFromSchema(
             @PathVariable( NAMESPACE ) String namespace,
             @PathVariable( NAME ) String name,
             @RequestBody Set<FullQualifiedName> objectTypes ) {
         modelService.removeEntityTypesFromSchema( namespace, name, objectTypes );
-        return null;
     }
 
     @Override
@@ -330,9 +315,8 @@ public class EdmController implements EdmApi {
         method = RequestMethod.POST,
         consumes = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
-    public Response postEntityType( @RequestBody EntityType objectType ) {
+    public void postEntityType( @RequestBody EntityType objectType ) {
         modelService.createEntityType( Optional.fromNullable( authzService.getUsername() ), objectType );
-        return null;
     }
 
     @Override
@@ -349,10 +333,9 @@ public class EdmController implements EdmApi {
         path = ENTITY_TYPE_BASE_PATH + NAMESPACE_PATH + NAME_PATH,
         method = RequestMethod.DELETE )
     @ResponseStatus( HttpStatus.OK )
-    public Response deleteEntityType( @PathVariable( NAMESPACE ) String namespace, @PathVariable( NAME ) String name ) {
+    public void deleteEntityType( @PathVariable( NAMESPACE ) String namespace, @PathVariable( NAME ) String name ) {
         FullQualifiedName entityTypeFqn = new FullQualifiedName( namespace, name );
         modelService.deleteEntityType( entityTypeFqn );
-        return null;
     }
 
     @Override
@@ -361,9 +344,8 @@ public class EdmController implements EdmApi {
         method = RequestMethod.POST,
         consumes = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
-    public Response createPropertyType( @RequestBody PropertyType propertyType ) {
+    public void createPropertyType( @RequestBody PropertyType propertyType ) {
         modelService.createPropertyType( propertyType );
-        return null;
     }
 
     /*
@@ -376,9 +358,8 @@ public class EdmController implements EdmApi {
         path = PROPERTY_TYPE_BASE_PATH,
         method = RequestMethod.PUT )
     @ResponseStatus( HttpStatus.OK )
-    public Response putPropertyType( @RequestBody PropertyType propertyType ) {
+    public void putPropertyType( @RequestBody PropertyType propertyType ) {
         modelService.upsertPropertyType( propertyType );
-        return null;
     }
 
     @Override
@@ -386,12 +367,11 @@ public class EdmController implements EdmApi {
         path = PROPERTY_TYPE_BASE_PATH + NAMESPACE_PATH + NAME_PATH,
         method = RequestMethod.DELETE )
     @ResponseStatus( HttpStatus.OK )
-    public Response deletePropertyType(
+    public void deletePropertyType(
             @PathVariable( NAMESPACE ) String namespace,
             @PathVariable( NAME ) String name ) {
         FullQualifiedName propertyTypeFqn = new FullQualifiedName( namespace, name );
         modelService.deletePropertyType( propertyTypeFqn );
-        return null;
     }
 
     @Override
@@ -422,12 +402,11 @@ public class EdmController implements EdmApi {
         method = RequestMethod.PUT,
         consumes = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
-    public Response addPropertyTypesToEntityType(
+    public void addPropertyTypesToEntityType(
             @PathVariable( NAMESPACE ) String namespace,
             @PathVariable( NAME ) String name,
             @RequestBody Set<FullQualifiedName> properties ) {
         modelService.addPropertyTypesToEntityType( namespace, name, properties );
-        return null;
     }
 
     @Override
@@ -436,12 +415,11 @@ public class EdmController implements EdmApi {
         method = RequestMethod.DELETE,
         consumes = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
-    public Response removePropertyTypesFromEntityType(
+    public void removePropertyTypesFromEntityType(
             @PathVariable( NAMESPACE ) String namespace,
             @PathVariable( NAME ) String name,
             @RequestBody Set<FullQualifiedName> properties ) {
         modelService.removePropertyTypesFromEntityType( namespace, name, properties );
-        return null;
     }
 
     @Override
@@ -450,12 +428,11 @@ public class EdmController implements EdmApi {
         method = RequestMethod.PUT,
         consumes = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
-    public Response addPropertyTypesToSchema(
+    public void addPropertyTypesToSchema(
             @PathVariable( NAMESPACE ) String namespace,
             @PathVariable( NAME ) String name,
             @RequestBody Set<FullQualifiedName> properties ) {
         modelService.addPropertyTypesToSchema( namespace, name, properties );
-        return null;
     }
 
     @Override
@@ -464,12 +441,11 @@ public class EdmController implements EdmApi {
         method = RequestMethod.DELETE,
         consumes = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
-    public Response removePropertyTypesFromSchema(
+    public void removePropertyTypesFromSchema(
             @PathVariable( NAMESPACE ) String namespace,
             @PathVariable( NAME ) String name,
             @RequestBody Set<FullQualifiedName> properties ) {
         modelService.removePropertyTypesFromSchema( namespace, name, properties );
-        return null;
     }
 
     @Override

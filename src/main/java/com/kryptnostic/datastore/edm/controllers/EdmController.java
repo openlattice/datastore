@@ -144,11 +144,10 @@ public class EdmController implements EdmApi {
         method = RequestMethod.PUT,
         consumes = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
-    public Response putSchema( @RequestBody PutSchemaRequest request ) {
+    public void putSchema( @RequestBody PutSchemaRequest request ) {
         modelService
                 .upsertSchema(
                         new Schema().setNamespace( request.getNamespace() ).setName( request.getName() ) );
-        return null;
     }
 
     @Override
@@ -186,11 +185,10 @@ public class EdmController implements EdmApi {
         consumes = MediaType.APPLICATION_JSON_VALUE,
         produces = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
-    public Response putEntitySets( @RequestBody Set<EntitySet> entitySets ) {
+    public void putEntitySets( @RequestBody Set<EntitySet> entitySets ) {
         entitySets.forEach( entitySet -> {
             modelService.upsertEntitySet( entitySet );
         } );
-        return null;
     }
 
     @Override
@@ -256,18 +254,17 @@ public class EdmController implements EdmApi {
         path = ENTITY_SETS_BASE_PATH + NAME_PATH,
         method = RequestMethod.POST )
     @ResponseStatus( HttpStatus.OK )
-    public Response assignEntityToEntitySet( String entitySetName, Set<UUID> entityIds ) {
+    public void assignEntityToEntitySet( String entitySetName, Set<UUID> entityIds ) {
         if ( modelService.checkEntitySetExists( entitySetName ) && 
                 authzService.assignEntityToEntitySet( entitySetName ) ) {
             try{
                 for ( UUID entityId : entityIds ) {
                     modelService.assignEntityToEntitySet( entityId, entitySetName );
                 }
-            } catch( IllegalArgumentException e){
-                return null;
+            } catch( IllegalStateException e){
+                throw new HttpServerErrorException( HttpStatus.INTERNAL_SERVER_ERROR, e.getMessage() ); 
             }
         }
-        return null;
     }
 
     @Override
@@ -275,10 +272,9 @@ public class EdmController implements EdmApi {
         path = ENTITY_SETS_BASE_PATH + NAME_PATH,
         method = RequestMethod.DELETE )
     @ResponseStatus( HttpStatus.OK )
-    public Response deleteEntitySet( String entitySetName ) {
+    public void deleteEntitySet( String entitySetName ) {
         try{
             modelService.deleteEntitySet( entitySetName );
-            return null;
         } catch (IllegalStateException e){
             throw new HttpServerErrorException( HttpStatus.INTERNAL_SERVER_ERROR, e.getMessage() ); 
         }
@@ -294,10 +290,9 @@ public class EdmController implements EdmApi {
         path = ENTITY_TYPE_BASE_PATH,
         method = RequestMethod.PUT )
     @ResponseStatus( HttpStatus.OK )
-    public Response putEntityType( @RequestBody EntityType entityType ) {
+    public void putEntityType( @RequestBody EntityType entityType ) {
         try{
             modelService.createEntityType( Optional.fromNullable( authzService.getUsername() ), entityType );
-            return null;
         } catch ( IllegalArgumentException e){
             throw new BadRequestException( e.getMessage() );
         }
@@ -335,12 +330,11 @@ public class EdmController implements EdmApi {
         method = RequestMethod.PUT,
         consumes = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
-    public Response addEntityTypesToSchema(
+    public void addEntityTypesToSchema(
             @PathVariable( NAMESPACE ) String namespace,
             @PathVariable( NAME ) String name,
             @RequestBody Set<FullQualifiedName> entityTypes ) {
         modelService.addEntityTypesToSchema( namespace, name, entityTypes );
-        return null;
     }
 
     @Override
@@ -349,12 +343,11 @@ public class EdmController implements EdmApi {
         method = RequestMethod.DELETE,
         consumes = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
-    public Response removeEntityTypeFromSchema(
+    public void removeEntityTypeFromSchema(
             @PathVariable( NAMESPACE ) String namespace,
             @PathVariable( NAME ) String name,
             @RequestBody Set<FullQualifiedName> objectTypes ) {
         modelService.removeEntityTypesFromSchema( namespace, name, objectTypes );
-        return null;
     }
 
     @Override
@@ -363,9 +356,8 @@ public class EdmController implements EdmApi {
         method = RequestMethod.POST,
         consumes = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
-    public Response postEntityType( @RequestBody EntityType objectType ) {
+    public void postEntityType( @RequestBody EntityType objectType ) {
         modelService.createEntityType( Optional.fromNullable( authzService.getUsername() ), objectType );
-        return null;
     }
 
     @Override
@@ -386,11 +378,10 @@ public class EdmController implements EdmApi {
         path = ENTITY_TYPE_BASE_PATH + NAMESPACE_PATH + NAME_PATH,
         method = RequestMethod.DELETE )
     @ResponseStatus( HttpStatus.OK )
-    public Response deleteEntityType( @PathVariable( NAMESPACE ) String namespace, @PathVariable( NAME ) String name ) {
+    public void deleteEntityType( @PathVariable( NAMESPACE ) String namespace, @PathVariable( NAME ) String name ) {
         try{
             FullQualifiedName entityTypeFqn = new FullQualifiedName( namespace, name );
             modelService.deleteEntityType( entityTypeFqn );
-            return null;
         } catch ( IllegalStateException e ){
             throw new HttpServerErrorException( HttpStatus.INTERNAL_SERVER_ERROR, e.getMessage() ); 
         }
@@ -402,10 +393,9 @@ public class EdmController implements EdmApi {
         method = RequestMethod.POST,
         consumes = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
-    public Response createPropertyType( @RequestBody PropertyType propertyType ) {
+    public void createPropertyType( @RequestBody PropertyType propertyType ) {
         try{
             modelService.createPropertyType( propertyType );
-            return null;
         } catch( IllegalStateException e ){
             throw new HttpServerErrorException( HttpStatus.INTERNAL_SERVER_ERROR, e.getMessage() ); 
         }
@@ -421,9 +411,8 @@ public class EdmController implements EdmApi {
         path = PROPERTY_TYPE_BASE_PATH,
         method = RequestMethod.PUT )
     @ResponseStatus( HttpStatus.OK )
-    public Response putPropertyType( @RequestBody PropertyType propertyType ) {
+    public void putPropertyType( @RequestBody PropertyType propertyType ) {
         modelService.upsertPropertyType( propertyType );
-        return null;
     }
 
     @Override
@@ -431,13 +420,12 @@ public class EdmController implements EdmApi {
         path = PROPERTY_TYPE_BASE_PATH + NAMESPACE_PATH + NAME_PATH,
         method = RequestMethod.DELETE )
     @ResponseStatus( HttpStatus.OK )
-    public Response deletePropertyType(
+    public void deletePropertyType(
             @PathVariable( NAMESPACE ) String namespace,
             @PathVariable( NAME ) String name ) {
         try{
             FullQualifiedName propertyTypeFqn = new FullQualifiedName( namespace, name );
             modelService.deletePropertyType( propertyTypeFqn );
-            return null;
         } catch ( IllegalStateException e ){
             throw new HttpServerErrorException( HttpStatus.INTERNAL_SERVER_ERROR, e.getMessage() ); 
         }
@@ -479,13 +467,12 @@ public class EdmController implements EdmApi {
         method = RequestMethod.PUT,
         consumes = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
-    public Response addPropertyTypesToEntityType(
+    public void addPropertyTypesToEntityType(
             @PathVariable( NAMESPACE ) String namespace,
             @PathVariable( NAME ) String name,
             @RequestBody Set<FullQualifiedName> properties ) {
         try{
             modelService.addPropertyTypesToEntityType( namespace, name, properties );
-            return null;
         } catch ( IllegalArgumentException e ){
             throw new BadRequestException( e.getMessage() ); 
         }
@@ -497,13 +484,12 @@ public class EdmController implements EdmApi {
         method = RequestMethod.DELETE,
         consumes = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
-    public Response removePropertyTypesFromEntityType(
+    public void removePropertyTypesFromEntityType(
             @PathVariable( NAMESPACE ) String namespace,
             @PathVariable( NAME ) String name,
             @RequestBody Set<FullQualifiedName> properties ) {
         try{
             modelService.removePropertyTypesFromEntityType( namespace, name, properties );
-            return null;
         } catch ( IllegalStateException e ){
             throw new HttpServerErrorException( HttpStatus.INTERNAL_SERVER_ERROR, e.getMessage() ); 
         }
@@ -515,13 +501,12 @@ public class EdmController implements EdmApi {
         method = RequestMethod.PUT,
         consumes = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
-    public Response addPropertyTypesToSchema(
+    public void addPropertyTypesToSchema(
             @PathVariable( NAMESPACE ) String namespace,
             @PathVariable( NAME ) String name,
             @RequestBody Set<FullQualifiedName> properties ) {
         try{
             modelService.addPropertyTypesToSchema( namespace, name, properties );
-            return null;
         } catch ( IllegalStateException e ){
             throw new HttpServerErrorException( HttpStatus.INTERNAL_SERVER_ERROR, e.getMessage() ); 
         }        
@@ -533,13 +518,12 @@ public class EdmController implements EdmApi {
         method = RequestMethod.DELETE,
         consumes = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
-    public Response removePropertyTypesFromSchema(
+    public void removePropertyTypesFromSchema(
             @PathVariable( NAMESPACE ) String namespace,
             @PathVariable( NAME ) String name,
             @RequestBody Set<FullQualifiedName> properties ) {
         try{
             modelService.removePropertyTypesFromSchema( namespace, name, properties );
-            return null;
         } catch ( IllegalStateException e ){
             throw new HttpServerErrorException( HttpStatus.INTERNAL_SERVER_ERROR, e.getMessage() ); 
         }

@@ -38,7 +38,6 @@ import com.kryptnostic.datastore.exceptions.ResourceNotFoundException;
 import com.kryptnostic.datastore.services.ActionAuthorizationService;
 import com.kryptnostic.datastore.services.DataService;
 import com.kryptnostic.datastore.services.EdmManager;
-import com.squareup.okhttp.Response;
 
 @RestController
 @RequestMapping( DataApi.CONTROLLER )
@@ -257,7 +256,7 @@ public class DataController implements DataApi {
         consumes = MediaType.APPLICATION_JSON_VALUE,
         produces = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
-    public Response createEntityData( @RequestBody CreateEntityRequest createEntityRequest ) {
+    public void createEntityData( @RequestBody CreateEntityRequest createEntityRequest ) {
         boolean entitySetNamePresent = createEntityRequest.getEntitySetName().isPresent();        
         boolean authorizedToWrite;
         
@@ -294,7 +293,6 @@ public class DataController implements DataApi {
                 throw new HttpServerErrorException( HttpStatus.INTERNAL_SERVER_ERROR, e.getMessage() ); 
             }
         }
-        return null;
     }
 
     @Override
@@ -324,9 +322,8 @@ public class DataController implements DataApi {
         method = RequestMethod.POST,
         consumes = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
-    public Response createIntegrationScript( @RequestBody Map<String, String> integrationScripts ) {
+    public void createIntegrationScript( @RequestBody Map<String, String> integrationScripts ) {
         dataService.createIntegrationScript( integrationScripts );
-        return null;
     }
 
 }

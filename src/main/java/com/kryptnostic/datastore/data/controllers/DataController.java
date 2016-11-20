@@ -250,7 +250,7 @@ public class DataController implements DataApi {
         consumes = MediaType.APPLICATION_JSON_VALUE,
         produces = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
-    public void createEntityData( @RequestBody CreateEntityRequest createEntityRequest ) {
+    public Void createEntityData( @RequestBody CreateEntityRequest createEntityRequest ) {
         boolean entitySetNamePresent = createEntityRequest.getEntitySetName().isPresent();
         boolean authorizedToWrite;
 
@@ -278,6 +278,7 @@ public class DataController implements DataApi {
 
             dataService.createEntityData( createEntityRequest, authorizedPropertyFqns );
         }
+        return null;
     }
 
     @Override
@@ -307,8 +308,9 @@ public class DataController implements DataApi {
         method = RequestMethod.POST,
         consumes = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
-    public void createIntegrationScript( @RequestBody Map<String, String> integrationScripts ) {
+    public Void createIntegrationScript( @RequestBody Map<String, String> integrationScripts ) {
         dataService.createIntegrationScript( integrationScripts );
+        return null;
     }
 
 }

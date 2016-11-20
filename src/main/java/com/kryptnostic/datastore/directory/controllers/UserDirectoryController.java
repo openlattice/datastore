@@ -1,16 +1,22 @@
 package com.kryptnostic.datastore.directory.controllers;
 
+import java.util.List;
+import java.util.Map;
+
+import javax.inject.Inject;
+
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.web.bind.annotation.RestController;
+
 import com.kryptnostic.datastore.services.Auth0UserBasic;
 import com.kryptnostic.datastore.services.UserDirectoryApi;
 import com.kryptnostic.datastore.services.UserDirectoryService;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
-import org.springframework.web.bind.annotation.*;
-import retrofit.client.Response;
-
-import javax.inject.Inject;
-import java.util.List;
-import java.util.Map;
 
 @RestController
 @RequestMapping( UserDirectoryApi.CONTROLLER )
@@ -66,8 +72,7 @@ public class UserDirectoryController implements UserDirectoryApi {
             consumes = MediaType.APPLICATION_JSON_VALUE,
             produces = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
-    public Response resetRolesOfUser( @PathVariable( USER_ID ) String userId, @RequestBody List<String> roles ) {
+    public void resetRolesOfUser( @PathVariable( USER_ID ) String userId, @RequestBody List<String> roles ) {
         userDirectoryService.resetRolesOfUser( userId, roles );
-        return null;
     }
 }

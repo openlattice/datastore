@@ -43,7 +43,6 @@ import com.kryptnostic.datastore.services.EntityDataModel;
 import com.kryptnostic.datastore.services.requests.GetSchemasRequest;
 import com.kryptnostic.datastore.services.requests.GetSchemasRequest.TypeDetails;
 
-import retrofit.client.Response;
 import retrofit.http.Path;
 import com.kryptnostic.datastore.services.PermissionsService;
 
@@ -126,7 +125,7 @@ public class EdmController implements EdmApi {
             path = SCHEMA_BASE_PATH + NAMESPACE_PATH + NAME_PATH,
             method = RequestMethod.POST )
     @ResponseStatus( HttpStatus.OK )
-    public Response createEmptySchema( @PathVariable( NAMESPACE ) String namespace, @PathVariable( NAME ) String name ) {
+    public Void createEmptySchema( @PathVariable( NAMESPACE ) String namespace, @PathVariable( NAME ) String name ) {
         modelService
                 .upsertSchema(
                         new Schema().setNamespace( namespace ).setName( name )
@@ -203,9 +202,8 @@ public class EdmController implements EdmApi {
                 return StreamSupport.stream( modelService.getEntitySets().spliterator(), false )
                         .filter( entitySet -> !ownedSets.contains( entitySet.getName() ) )
                         .filter( entitySet -> authzService.getEntitySet( entitySet.getName() ) )
-                        .map( entitySet -> new EntitySetWithPermissions().fromEntitySet( entitySet )
-                                .setPermissions( ps
-                                        .getEntitySetAclsForUser( username, currentRoles, entitySet.getName() ) )
+                        .map( entitySet -> new EntitySetWithPermissions().setEntitySet( entitySet )
+                                .setPermissions( ps.getEntitySetAclsForUser( username, currentRoles, entitySet.getName() ) )
                                 .setIsOwner( false ) )
                         .collect( Collectors.toList() );
             }

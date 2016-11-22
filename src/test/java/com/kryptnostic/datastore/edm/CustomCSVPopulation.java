@@ -94,10 +94,12 @@ public class CustomCSVPopulation {
     /**
      * Custom PropertyType. Will use to generate PropertyType in datastore.
      * 
+     * WARNING: THIS TEST IS DISABLED FOR NOW.
+     * 
      * @param name Name of property type to be used in generating datastore PropertyType
      * @param dataType DataType of property type to be used in generating datastore PropertyType
      * @param typeInURL Keywords defined in http://www.convertcsv.com/generate-test-data.htm#keywords
-     * @author soarer
+     * @author Ho Chung Siu
      *
      */
     private static class CustomPropertyType {
@@ -445,7 +447,7 @@ public class CustomCSVPopulation {
         bwAverage.close();
     }
 
-    @BeforeClass
+    //@BeforeClass
     public static void PopulateWithData() throws Exception {
         // Perhaps drop keyspace to make things cleaner
         loadDefaultPropertyTypes();
@@ -476,14 +478,14 @@ public class CustomCSVPopulation {
         System.out.println( "TEST STARTS" );
     }
 
-    @Test
+    //@Test
     public void TestGetAllEntitiesOfType() throws IOException {
         // Time getAllEntitiesOfType 10 times
         timeGetAllEntitiesOfType( 10 );
         // Go to src/test/resources/{allResult.text, averageResult.txt} for test results.
     }
 
-    @AfterClass
+    //@AfterClass
     public static void PlowingUnder() {
         ds.plowUnder();
         System.out.println( "TEST DONE" );

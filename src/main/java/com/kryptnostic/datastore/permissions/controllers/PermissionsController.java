@@ -45,7 +45,7 @@ public class PermissionsController implements PermissionsApi {
 
     @Override
     @RequestMapping(
-        path = CONTROLLER + ENTITY_TYPE_BASE_PATH,
+        path = "/" + CONTROLLER + "/" + ENTITY_TYPE_BASE_PATH,
         method = RequestMethod.POST,
         consumes = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
@@ -78,7 +78,7 @@ public class PermissionsController implements PermissionsApi {
 
     @Override
     @RequestMapping(
-        path = CONTROLLER + ENTITY_SETS_BASE_PATH,
+        path = "/" + CONTROLLER + "/" + ENTITY_SETS_BASE_PATH,
         method = RequestMethod.POST,
         consumes = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
@@ -111,7 +111,7 @@ public class PermissionsController implements PermissionsApi {
 
     @Override
     @RequestMapping(
-        path = CONTROLLER + ENTITY_TYPE_BASE_PATH + PROPERTY_TYPE_BASE_PATH,
+        path = "/" + CONTROLLER + "/" + ENTITY_TYPE_BASE_PATH + "/" + PROPERTY_TYPE_BASE_PATH,
         method = RequestMethod.POST,
         consumes = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
@@ -148,7 +148,7 @@ public class PermissionsController implements PermissionsApi {
 
     @Override
     @RequestMapping(
-        path = CONTROLLER + ENTITY_SETS_BASE_PATH + PROPERTY_TYPE_BASE_PATH,
+        path = "/" + CONTROLLER + "/" + ENTITY_SETS_BASE_PATH + "/" + PROPERTY_TYPE_BASE_PATH,
         method = RequestMethod.POST,
         consumes = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
@@ -184,7 +184,7 @@ public class PermissionsController implements PermissionsApi {
 
     @Override
     @RequestMapping(
-        path = CONTROLLER + ENTITY_TYPE_BASE_PATH,
+        path = "/" + CONTROLLER + "/" + ENTITY_TYPE_BASE_PATH,
         method = RequestMethod.DELETE,
         consumes = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
@@ -199,7 +199,7 @@ public class PermissionsController implements PermissionsApi {
 
     @Override
     @RequestMapping(
-        path = CONTROLLER + ENTITY_SETS_BASE_PATH,
+        path = "/" + CONTROLLER + "/" + ENTITY_SETS_BASE_PATH,
         method = RequestMethod.DELETE,
         consumes = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
@@ -214,7 +214,7 @@ public class PermissionsController implements PermissionsApi {
 
     @Override
     @RequestMapping(
-        path = CONTROLLER + ENTITY_TYPE_BASE_PATH + PROPERTY_TYPE_BASE_PATH,
+        path = "/" + CONTROLLER + "/" + ENTITY_TYPE_BASE_PATH + "/" + PROPERTY_TYPE_BASE_PATH,
         method = RequestMethod.DELETE,
         consumes = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
@@ -232,7 +232,7 @@ public class PermissionsController implements PermissionsApi {
 
     @Override
     @RequestMapping(
-        path = CONTROLLER + ENTITY_TYPE_BASE_PATH + PROPERTY_TYPE_BASE_PATH + ALL_PATH,
+        path = "/" + CONTROLLER + "/" + ENTITY_TYPE_BASE_PATH + "/" + PROPERTY_TYPE_BASE_PATH + "/" + ALL_PATH,
         method = RequestMethod.DELETE,
         consumes = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
@@ -247,7 +247,7 @@ public class PermissionsController implements PermissionsApi {
 
     @Override
     @RequestMapping(
-        path = CONTROLLER + ENTITY_SETS_BASE_PATH + PROPERTY_TYPE_BASE_PATH,
+        path = "/" + CONTROLLER + "/" + ENTITY_SETS_BASE_PATH + "/" + PROPERTY_TYPE_BASE_PATH,
         method = RequestMethod.DELETE,
         consumes = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
@@ -267,7 +267,7 @@ public class PermissionsController implements PermissionsApi {
 
     @Override
     @RequestMapping(
-        path = CONTROLLER + ENTITY_SETS_BASE_PATH + PROPERTY_TYPE_BASE_PATH + ALL_PATH,
+        path = "/" + CONTROLLER + "/" + ENTITY_SETS_BASE_PATH + "/" + PROPERTY_TYPE_BASE_PATH + "/" + ALL_PATH,
         method = RequestMethod.DELETE,
         consumes = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
@@ -282,7 +282,7 @@ public class PermissionsController implements PermissionsApi {
 
     @Override
     @RequestMapping(
-        path = CONTROLLER + ENTITY_SETS_BASE_PATH,
+        path = "/" + CONTROLLER + "/" + ENTITY_SETS_BASE_PATH,
         method = RequestMethod.GET )
     @ResponseStatus( HttpStatus.OK )
     public EnumSet<Permission> getEntitySetAclsForUser( @RequestParam( NAME ) String entitySetName ) {
@@ -295,7 +295,7 @@ public class PermissionsController implements PermissionsApi {
 
     @Override
     @RequestMapping(
-        path = CONTROLLER + ENTITY_SETS_BASE_PATH + PROPERTY_TYPE_BASE_PATH,
+        path = "/" + CONTROLLER + "/" + ENTITY_SETS_BASE_PATH + "/" + PROPERTY_TYPE_BASE_PATH,
         method = RequestMethod.GET )
     @ResponseStatus( HttpStatus.OK )
     public Map<FullQualifiedName, EnumSet<Permission>> getPropertyTypesInEntitySetAclsForUser(
@@ -311,7 +311,7 @@ public class PermissionsController implements PermissionsApi {
 
     @Override
     @RequestMapping(
-        path = CONTROLLER + ENTITY_TYPE_BASE_PATH,
+        path = "/" + CONTROLLER + "/" + ENTITY_TYPE_BASE_PATH,
         method = RequestMethod.GET )
     @ResponseStatus( HttpStatus.OK )
     public EnumSet<Permission> getEntityTypeAclsForUser(
@@ -324,7 +324,7 @@ public class PermissionsController implements PermissionsApi {
 
     @Override
     @RequestMapping(
-        path = CONTROLLER + ENTITY_TYPE_BASE_PATH + PROPERTY_TYPE_BASE_PATH,
+        path = "/" + CONTROLLER + "/" + ENTITY_TYPE_BASE_PATH + "/" + PROPERTY_TYPE_BASE_PATH,
         method = RequestMethod.GET )
     @ResponseStatus( HttpStatus.OK )
     public Map<FullQualifiedName, EnumSet<Permission>> getPropertyTypesInEntityTypeAclsForUser(
@@ -337,7 +337,7 @@ public class PermissionsController implements PermissionsApi {
 
     @Override
     @RequestMapping(
-        path = CONTROLLER + ENTITY_SETS_BASE_PATH + OWNER_PATH,
+        path = "/" + CONTROLLER + "/" + ENTITY_SETS_BASE_PATH + "/" + OWNER_PATH,
         method = RequestMethod.GET )
     @ResponseStatus( HttpStatus.OK )
     public Iterable<PermissionsInfo> getEntitySetAclsForOwner( @RequestParam( NAME ) String entitySetName ) {
@@ -351,7 +351,7 @@ public class PermissionsController implements PermissionsApi {
 
     @Override
     @RequestMapping(
-        path = CONTROLLER + ENTITY_SETS_BASE_PATH + OWNER_PATH,
+        path = "/" + CONTROLLER + "/" + ENTITY_SETS_BASE_PATH + "/" + OWNER_PATH,
         method = RequestMethod.POST,
         consumes = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
@@ -368,7 +368,7 @@ public class PermissionsController implements PermissionsApi {
     
     @Override
     @RequestMapping(
-        path = CONTROLLER + ENTITY_SETS_BASE_PATH + OWNER_PATH + PROPERTY_TYPE_BASE_PATH,
+        path = "/" + CONTROLLER + "/" + ENTITY_SETS_BASE_PATH + "/" + OWNER_PATH + "/" + PROPERTY_TYPE_BASE_PATH,
         method = RequestMethod.POST,
         consumes = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
@@ -385,7 +385,7 @@ public class PermissionsController implements PermissionsApi {
 
     @Override
     @RequestMapping(
-        path = CONTROLLER + ENTITY_SETS_BASE_PATH + REQUEST_PERMISSIONS_PATH,
+        path = "/" + CONTROLLER + "/" + ENTITY_SETS_BASE_PATH + "/" + REQUEST_PERMISSIONS_PATH,
         method = RequestMethod.POST,
         consumes = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
@@ -414,7 +414,7 @@ public class PermissionsController implements PermissionsApi {
 
     @Override
     @RequestMapping(
-        path = CONTROLLER + ENTITY_SETS_BASE_PATH + REQUEST_PERMISSIONS_PATH,
+        path = "/" + CONTROLLER + "/" + ENTITY_SETS_BASE_PATH + "/" + REQUEST_PERMISSIONS_PATH,
         method = RequestMethod.DELETE )
     @ResponseStatus( HttpStatus.OK )
     public Void removePermissionsRequestForEntitySet(
@@ -430,7 +430,7 @@ public class PermissionsController implements PermissionsApi {
 
     @Override
     @RequestMapping(
-        path = CONTROLLER + ENTITY_SETS_BASE_PATH + OWNER_PATH + REQUEST_PERMISSIONS_PATH,
+        path = "/" + CONTROLLER + "/" + ENTITY_SETS_BASE_PATH + "/" + OWNER_PATH + "/" + REQUEST_PERMISSIONS_PATH,
         method = RequestMethod.GET,
         produces = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
@@ -451,7 +451,7 @@ public class PermissionsController implements PermissionsApi {
     
     @Override
     @RequestMapping(
-        path = CONTROLLER + ENTITY_SETS_BASE_PATH + REQUEST_PERMISSIONS_PATH,
+        path = "/" + CONTROLLER + "/" + ENTITY_SETS_BASE_PATH + "/" + REQUEST_PERMISSIONS_PATH,
         method = RequestMethod.GET,
         produces = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )

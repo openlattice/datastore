@@ -35,7 +35,7 @@ import com.kryptnostic.datastore.services.DataService;
 import com.kryptnostic.datastore.services.EdmManager;
 
 @RestController
-@RequestMapping( DataApi.CONTROLLER )
+@RequestMapping( "/" + DataApi.CONTROLLER )
 public class DataController implements DataApi {
     // TODO: Move to DataApi
     // TODO: Make spring handling case insensitive to follow correct Java style.
@@ -63,7 +63,7 @@ public class DataController implements DataApi {
     }
 
     @RequestMapping(
-        path = DataApi.ENTITY_DATA + DataApi.NAME_SPACE_PATH + DataApi.TYPE_NAME_PATH + DataApi.NAME_PATH,
+        path = "/" + DataApi.ENTITY_DATA + "/" + DataApi.NAME_SPACE_PATH + "/" + DataApi.TYPE_NAME_PATH + "/" + DataApi.NAME_PATH,
         method = RequestMethod.GET,
         produces = { MediaType.APPLICATION_JSON_VALUE, CustomMediaType.TEXT_CSV_VALUE } )
     @ResponseStatus( HttpStatus.OK )
@@ -120,7 +120,7 @@ public class DataController implements DataApi {
     }
 
     @RequestMapping(
-        path = DataApi.ENTITY_DATA,
+        path = "/" + DataApi.ENTITY_DATA,
         method = RequestMethod.PUT,
         consumes = MediaType.APPLICATION_JSON_VALUE,
         produces = { MediaType.APPLICATION_JSON_VALUE, CustomMediaType.TEXT_CSV_VALUE } )
@@ -151,7 +151,7 @@ public class DataController implements DataApi {
     }
 
     @RequestMapping(
-        path = DataApi.ENTITY_DATA + DataApi.FULLQUALIFIEDNAME_PATH_WITH_DOT,
+        path = "/" + DataApi.ENTITY_DATA + "/" + DataApi.FULLQUALIFIEDNAME_PATH_WITH_DOT,
         method = RequestMethod.GET,
         produces = { MediaType.APPLICATION_JSON_VALUE, CustomMediaType.TEXT_CSV_VALUE } )
     @ResponseStatus( HttpStatus.OK )
@@ -174,7 +174,7 @@ public class DataController implements DataApi {
     }
 
     @RequestMapping(
-        path = DataApi.ENTITY_DATA + DataApi.NAME_SPACE_PATH + DataApi.NAME_PATH,
+        path = "/" + DataApi.ENTITY_DATA + "/" + DataApi.NAME_SPACE_PATH + "/" + DataApi.NAME_PATH,
         method = RequestMethod.GET,
         produces = { MediaType.APPLICATION_JSON_VALUE, CustomMediaType.TEXT_CSV_VALUE } )
     @ResponseStatus( HttpStatus.OK )
@@ -197,7 +197,7 @@ public class DataController implements DataApi {
     }
 
     @RequestMapping(
-        path = DataApi.ENTITY_DATA + DataApi.MULTIPLE,
+        path = "/" + DataApi.ENTITY_DATA + "/" + DataApi.MULTIPLE,
         method = RequestMethod.PUT,
         consumes = MediaType.APPLICATION_JSON_VALUE,
         produces = MediaType.APPLICATION_JSON_VALUE )
@@ -234,7 +234,7 @@ public class DataController implements DataApi {
 
     @Override
     @RequestMapping(
-        path = DataApi.ENTITY_DATA + DataApi.FILTERED,
+        path = "/" + DataApi.ENTITY_DATA + "/" + DataApi.FILTERED,
         method = RequestMethod.PUT,
         consumes = MediaType.APPLICATION_JSON_VALUE,
         produces = MediaType.APPLICATION_JSON_VALUE )
@@ -245,7 +245,7 @@ public class DataController implements DataApi {
 
     @Override
     @RequestMapping(
-        path = DataApi.ENTITY_DATA,
+        path = "/" + DataApi.ENTITY_DATA,
         method = RequestMethod.POST,
         consumes = MediaType.APPLICATION_JSON_VALUE,
         produces = MediaType.APPLICATION_JSON_VALUE )
@@ -283,7 +283,7 @@ public class DataController implements DataApi {
 
     @Override
     @RequestMapping(
-        path = DataApi.INTEGRATION,
+        path = "/" + DataApi.INTEGRATION,
         method = RequestMethod.GET,
         produces = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
@@ -293,7 +293,7 @@ public class DataController implements DataApi {
 
     @Override
     @RequestMapping(
-        path = DataApi.INTEGRATION,
+        path = "/" + DataApi.INTEGRATION,
         method = RequestMethod.PUT,
         consumes = MediaType.APPLICATION_JSON_VALUE,
         produces = MediaType.APPLICATION_JSON_VALUE )
@@ -304,7 +304,7 @@ public class DataController implements DataApi {
 
     @Override
     @RequestMapping(
-        path = DataApi.INTEGRATION,
+        path = "/" + DataApi.INTEGRATION,
         method = RequestMethod.POST,
         consumes = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )

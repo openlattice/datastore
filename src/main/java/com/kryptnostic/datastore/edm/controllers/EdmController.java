@@ -32,20 +32,14 @@ import com.dataloom.edm.internal.PropertyType;
 import com.dataloom.edm.internal.Schema;
 import com.dataloom.edm.requests.GetSchemasRequest;
 import com.dataloom.edm.requests.GetSchemasRequest.TypeDetails;
-import com.dataloom.edm.requests.PutSchemaRequest;
 import com.google.common.base.Optional;
 import com.google.common.collect.Sets;
 import com.kryptnostic.datastore.ServerUtil;
 import com.kryptnostic.datastore.exceptions.ResourceNotFoundException;
 import com.kryptnostic.datastore.services.ActionAuthorizationService;
 import com.kryptnostic.datastore.services.EdmManager;
-import com.kryptnostic.datastore.services.EntityDataModel;
-import com.kryptnostic.datastore.services.requests.GetSchemasRequest;
-import com.kryptnostic.datastore.services.requests.GetSchemasRequest.TypeDetails;
 
-import retrofit.http.Path;
 import com.kryptnostic.datastore.services.PermissionsService;
-
 
 @RestController
 public class EdmController implements EdmApi {
@@ -128,22 +122,7 @@ public class EdmController implements EdmApi {
     public Void createEmptySchema( @PathVariable( NAMESPACE ) String namespace, @PathVariable( NAME ) String name ) {
         modelService
                 .upsertSchema(
-                        new Schema().setNamespace( namespace ).setName( name )
-                                .setAclId( ACLs.EVERYONE_ACL ) );
-        return null;
-    }
-
-    @Override
-    @RequestMapping(
-            path = SCHEMA_BASE_PATH + NAMESPACE_PATH + NAME_PATH + ACL_ID_WITH_DOT,
-            method = RequestMethod.POST )
-    @ResponseStatus( HttpStatus.OK )
-    public Void createEmptySchema(
-            @Path( NAMESPACE ) String namespace, @PathVariable( NAME ) String name, @PathVariable( ACL_ID ) UUID aclId ) {
-        modelService
-                .upsertSchema(
-                        new Schema().setNamespace( namespace ).setName( name )
-                                .setAclId( aclId ) );
+                        new Schema().setNamespace( namespace ).setName( name ) );
         return null;
     }
 
@@ -203,7 +182,8 @@ public class EdmController implements EdmApi {
                         .filter( entitySet -> !ownedSets.contains( entitySet.getName() ) )
                         .filter( entitySet -> authzService.getEntitySet( entitySet.getName() ) )
                         .map( entitySet -> new EntitySetWithPermissions().setEntitySet( entitySet )
-                                .setPermissions( ps.getEntitySetAclsForUser( username, currentRoles, entitySet.getName() ) )
+                                .setPermissions( ps
+                                        .getEntitySetAclsForUser( username, currentRoles, entitySet.getName() ) )
                                 .setIsOwner( false ) )
                         .collect( Collectors.toList() );
             }

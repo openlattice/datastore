@@ -15,6 +15,7 @@ import org.apache.olingo.commons.api.edm.FullQualifiedName;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,6 +30,8 @@ import com.dataloom.authorization.requests.PermissionsInfo;
 import com.dataloom.authorization.requests.Principal;
 import com.dataloom.authorization.requests.PrincipalType;
 import com.dataloom.authorization.requests.PropertyTypeInEntityTypeAclRequest;
+import com.dataloom.client.RetrofitFactory;
+import com.dataloom.client.RetrofitFactory.Environment;
 import com.dataloom.data.DataApi;
 import com.dataloom.data.requests.CreateEntityRequest;
 import com.dataloom.edm.EdmApi;
@@ -38,7 +41,6 @@ import com.dataloom.edm.internal.EntityType;
 import com.dataloom.edm.internal.PropertyType;
 import com.dataloom.edm.requests.PropertyTypeInEntitySetAclRequest;
 import com.dataloom.permissions.PermissionsApi;
-import com.geekbeast.rhizome.tests.bootstrap.DefaultErrorHandler;
 import com.google.common.base.Optional;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableSet;
@@ -49,14 +51,12 @@ import com.kryptnostic.datastore.Datastore;
 import com.kryptnostic.datastore.services.DataService;
 import com.kryptnostic.datastore.services.EdmService;
 import com.kryptnostic.datastore.services.PermissionsService;
-import com.kryptnostic.rhizome.converters.RhizomeConverter;
 import com.squareup.okhttp.OkHttpClient;
 
 import digital.loom.rhizome.authentication.AuthenticationTest;
 import digital.loom.rhizome.configuration.auth0.Auth0Configuration;
-import retrofit.RequestInterceptor;
-import retrofit.RestAdapter;
 import retrofit.client.OkClient;
+import retrofit2.Retrofit;
 
 public class PermissionsServiceTest {
 
@@ -111,7 +111,7 @@ public class PermissionsServiceTest {
     protected static PermissionsApi          ps;
     protected static PermissionsService      permissionsService;
 
-    protected static RestAdapter             dataServiceRestAdapter;
+    protected static Retrofit                dataServiceRestAdapter;
 
     @BeforeClass
     public static void init() throws Exception {
@@ -124,21 +124,7 @@ public class PermissionsServiceTest {
         httpClient.setConnectTimeout( 60, TimeUnit.SECONDS );
         httpClient.setReadTimeout( 60, TimeUnit.SECONDS );
         OkClient okClient = new OkClient( httpClient );
-        dataServiceRestAdapter = new RestAdapter.Builder()
-                .setEndpoint( "http://localhost:8080/datastore/ontology" )
-                .setRequestInterceptor(
-                        (RequestInterceptor) facade -> facade.addHeader( "Authorization", "Bearer " + jwtToken ) )
-                .setConverter( new RhizomeConverter() )
-                .setErrorHandler( new DefaultErrorHandler() )
-                .setLogLevel( RestAdapter.LogLevel.FULL )
-                .setLog( new RestAdapter.Log() {
-                    @Override
-                    public void log( String msg ) {
-                        logger.debug( msg.replaceAll( "%", "[percent]" ) );
-                    }
-                } )
-                .setClient( okClient )
-                .build();
+        dataServiceRestAdapter = RetrofitFactory.newClient( Environment.TESTING, () -> jwtToken );
         dataApi = dataServiceRestAdapter.create( DataApi.class );
         edmApi = dataServiceRestAdapter.create( EdmApi.class );
         ps = dataServiceRestAdapter.create( PermissionsApi.class );
@@ -185,10 +171,9 @@ public class PermissionsServiceTest {
         System.err.println( "*********************" );
         System.err.println( "REQUEST ACCESS TESTS END!" );
         System.err.println( "*********************" );
-
     }
 
-    @AfterClass
+    @AfterClass 
     public static void cleanUp() {
         // Give permissions
         ps.updateEntityTypesAcls(
@@ -234,11 +219,16 @@ public class PermissionsServiceTest {
                         POSITION ) );
         edmApi.postEntityType( citizens );
 
-        // God creates entity set Secret Service
-        EntitySet secretService = new EntitySet().setType( NATION_CITIZENS )
-                .setName( NATION_SECRET_SERVICE )
-                .setTitle( "Every nation would have one" );
-        edmService.createEntitySet( secretService );
+        try{
+            // God creates entity set Secret Service
+            EntitySet secretService = new EntitySet().setType( NATION_CITIZENS )
+                    .setName( NATION_SECRET_SERVICE )
+                    .setTitle( "Every nation would have one" );
+            edmService.createEntitySet( secretService );
+        } catch ( IllegalArgumentException e ){
+            // This would happen if entity set already exists
+            System.err.println( e );
+        }
     }
 
     private EntityType entityTypeMetadataLookup( FullQualifiedName entityTypeFqn ) {
@@ -360,9 +350,9 @@ public class PermissionsServiceTest {
                         .setName( NATION_SECRET_SERVICE ).setPermissions( EnumSet.of( Permission.DISCOVER ) ) ) );
         System.err.println( "--- Test 3 ---" );
         System.err.println( "Permissions for entity sets are:" );
-        for ( EntitySet entitySet : edmApi.getEntitySets( null ) ) {
-            System.err.println( "Entity Set: " + entitySet.getName() + " Permissions "
-                    + ( (EntitySetWithPermissions) entitySet ).getPermissions() );
+        for ( EntitySetWithPermissions entitySetWithPermissions : edmApi.getEntitySets( null ) ) {
+            System.err.println( "Entity Set: " + entitySetWithPermissions.getEntitySet().getName() + " Permissions "
+                    + entitySetWithPermissions.getPermissions() );
         }
         // Test 3.5: Remove DISCOVER permission for Secret Service. Citizen does getEntitySets
         // Expected: Citizen does not discover SECRET_SERVICE, has owner permissions for new entity set.
@@ -371,9 +361,9 @@ public class PermissionsServiceTest {
                         .setName( NATION_SECRET_SERVICE ).setPermissions( EnumSet.of( Permission.DISCOVER ) ) ) );
         System.err.println( "--- Test 3.5 ---" );
         System.err.println( "Permissions for entity sets are:" );
-        for ( EntitySet entitySet : edmApi.getEntitySets( null ) ) {
-            System.err.println( "Entity Set: " + entitySet.getName() + " Permissions "
-                    + ( (EntitySetWithPermissions) entitySet ).getPermissions() );
+        for ( EntitySetWithPermissions entitySet : edmApi.getEntitySets( null ) ) {
+            System.err.println( "Entity Set: " + entitySet.getEntitySet().getName() + " Permissions "
+                    + entitySet.getPermissions() );
         }
 
         // Test 4: Give permissions of the entity set to users and roles. Citizens check for permissions for the entity
@@ -394,7 +384,7 @@ public class PermissionsServiceTest {
         System.err.println( "--- Test 4 ---" );
         System.err.println( "All permissions for the entity set " + DYSTOPIANS + ":" );
         for ( PermissionsInfo info : ps.getEntitySetAclsForOwner( DYSTOPIANS ) ) {
-            System.err.println( "Principal " + info.getPrincipal() + " has Permissions " + info.getPermissions() );
+            System.err.println( info.getPrincipal() + " has Permissions " + info.getPermissions() );
         }
     }
 
@@ -449,12 +439,12 @@ public class PermissionsServiceTest {
                         POSITION,
                         LIFE_EXPECTANCY ) );
 
-        // Test 1.67: Read data from entity type - should be able to read all data.
-        System.err.println( " -- READ TEST 1 --" );
-        Iterable<Multimap<FullQualifiedName, Object>> result1 = dataApi.getAllEntitiesOfType( NATION_CITIZENS );
-        for ( Multimap<FullQualifiedName, Object> entity : result1 ) {
-            System.err.println( entity );
-        }
+//        // Test 1.67: Read data from entity type - should be able to read all data.
+//        System.err.println( " -- READ TEST 1 --" );
+//        Iterable<Multimap<FullQualifiedName, Object>> result1 = dataApi.getAllEntitiesOfType( NATION_CITIZENS );
+//        for ( Multimap<FullQualifiedName, Object> entity : result1 ) {
+//            System.err.println( entity );
+//        }
 
         // Cleanup: remove WRITE rights for User.
         ps.updatePropertyTypeInEntityTypeAcls( ImmutableSet.of(
@@ -491,12 +481,12 @@ public class PermissionsServiceTest {
                         POSITION,
                         LIFE_EXPECTANCY ) );
 
-        // Test 2.67: Read data - should be able to read all data, but only EMPLOYEE_ID and ADDRESS are non-null.
-        System.err.println( " -- READ TEST 2 --" );
-        Iterable<Multimap<FullQualifiedName, Object>> result2 = dataApi.getAllEntitiesOfType( NATION_CITIZENS );
-        for ( Multimap<FullQualifiedName, Object> entity : result2 ) {
-            System.err.println( entity );
-        }
+//        // Test 2.67: Read data - should be able to read all data, but only EMPLOYEE_ID and ADDRESS are non-null.
+//        System.err.println( " -- READ TEST 2 --" );
+//        Iterable<Multimap<FullQualifiedName, Object>> result2 = dataApi.getAllEntitiesOfType( NATION_CITIZENS );
+//        for ( Multimap<FullQualifiedName, Object> entity : result2 ) {
+//            System.err.println( entity );
+//        }
         // Cleanup: remove WRITE rights for User.
         ps.updatePropertyTypeInEntityTypeAcls( ImmutableSet.of(
                 new PropertyTypeInEntityTypeAclRequest().setPrincipal( principal ).setAction( Action.REMOVE )
@@ -558,12 +548,12 @@ public class PermissionsServiceTest {
                         POSITION,
                         LIFE_EXPECTANCY ) );
 
-        // Test 3.67: Read data - should be unable to read LIFE_EXPECTANCY.
-        System.err.println( " -- READ TEST 3 --" );
-        Iterable<Multimap<FullQualifiedName, Object>> result3 = dataApi.getAllEntitiesOfType( NATION_CITIZENS );
-        for ( Multimap<FullQualifiedName, Object> entity : result3 ) {
-            System.err.println( entity );
-        }
+//        // Test 3.67: Read data - should be unable to read LIFE_EXPECTANCY.
+//        System.err.println( " -- READ TEST 3 --" );
+//        Iterable<Multimap<FullQualifiedName, Object>> result3 = dataApi.getAllEntitiesOfType( NATION_CITIZENS );
+//        for ( Multimap<FullQualifiedName, Object> entity : result3 ) {
+//            System.err.println( entity );
+//        }
 
         // Cleanup: remove WRITE rights for User.
 
@@ -600,13 +590,13 @@ public class PermissionsServiceTest {
                         POSITION,
                         LIFE_EXPECTANCY ) );
 
-        // Test 4.67: Read data - should be able to read (EMPLOYEE_ID, ADDRESS, POSITION), but only EMPLOYEE_ID and
-        // ADDRESS are non-null.
-        System.err.println( " -- READ TEST 4 --" );
-        Iterable<Multimap<FullQualifiedName, Object>> result4 = dataApi.getAllEntitiesOfType( NATION_CITIZENS );
-        for ( Multimap<FullQualifiedName, Object> entity : result4 ) {
-            System.err.println( entity );
-        }
+//        // Test 4.67: Read data - should be able to read (EMPLOYEE_ID, ADDRESS, POSITION), but only EMPLOYEE_ID and
+//        // ADDRESS are non-null.
+//        System.err.println( " -- READ TEST 4 --" );
+//        Iterable<Multimap<FullQualifiedName, Object>> result4 = dataApi.getAllEntitiesOfType( NATION_CITIZENS );
+//        for ( Multimap<FullQualifiedName, Object> entity : result4 ) {
+//            System.err.println( entity );
+//        }
 
         // Cleanup: remove WRITE rights for Citizen.
         ps.updatePropertyTypeInEntityTypeAcls( ImmutableSet.of(
@@ -677,13 +667,13 @@ public class PermissionsServiceTest {
                         POSITION,
                         LIFE_EXPECTANCY ) );
 
-        // Test 1.67: Read data from entity type - should be able to read all data.
-        System.err.println( " -- READ TEST 1 --" );
-        Iterable<Multimap<FullQualifiedName, Object>> result1 = dataApi.getAllEntitiesOfEntitySet(
-                NATION_SECRET_SERVICE, NATION_CITIZENS.getNamespace(), NATION_CITIZENS.getName() );
-        for ( Multimap<FullQualifiedName, Object> entity : result1 ) {
-            System.err.println( entity );
-        }
+//        // Test 1.67: Read data from entity type - should be able to read all data.
+//        System.err.println( " -- READ TEST 1 --" );
+//        Iterable<Multimap<FullQualifiedName, Object>> result1 = dataApi.getAllEntitiesOfEntitySet(
+//                NATION_SECRET_SERVICE, NATION_CITIZENS.getNamespace(), NATION_CITIZENS.getName() );
+//        for ( Multimap<FullQualifiedName, Object> entity : result1 ) {
+//            System.err.println( entity );
+//        }
 
         // Cleanup: remove WRITE rights for User.
         ps.updatePropertyTypeInEntitySetAcls( ImmutableSet.of(
@@ -720,13 +710,13 @@ public class PermissionsServiceTest {
                         POSITION,
                         LIFE_EXPECTANCY ) );
 
-        // Test 2.67: Read data - should be able to read all data, but only EMPLOYEE_ID and ADDRESS are non-null.
-        System.err.println( " -- READ TEST 2 --" );
-        Iterable<Multimap<FullQualifiedName, Object>> result2 = dataApi.getAllEntitiesOfEntitySet(
-                NATION_SECRET_SERVICE, NATION_CITIZENS.getNamespace(), NATION_CITIZENS.getName() );
-        for ( Multimap<FullQualifiedName, Object> entity : result2 ) {
-            System.err.println( entity );
-        }
+//        // Test 2.67: Read data - should be able to read all data, but only EMPLOYEE_ID and ADDRESS are non-null.
+//        System.err.println( " -- READ TEST 2 --" );
+//        Iterable<Multimap<FullQualifiedName, Object>> result2 = dataApi.getAllEntitiesOfEntitySet(
+//                NATION_SECRET_SERVICE, NATION_CITIZENS.getNamespace(), NATION_CITIZENS.getName() );
+//        for ( Multimap<FullQualifiedName, Object> entity : result2 ) {
+//            System.err.println( entity );
+//        }
 
         // Cleanup: remove WRITE rights for User.
         ps.updatePropertyTypeInEntitySetAcls( ImmutableSet.of(
@@ -788,13 +778,13 @@ public class PermissionsServiceTest {
                         POSITION,
                         LIFE_EXPECTANCY ) );
 
-        // Test 3.67: Read data - should be unable to read LIFE_EXPECTANCY.
-        System.err.println( " -- READ TEST 3 --" );
-        Iterable<Multimap<FullQualifiedName, Object>> result3 = dataApi.getAllEntitiesOfEntitySet(
-                NATION_SECRET_SERVICE, NATION_CITIZENS.getNamespace(), NATION_CITIZENS.getName() );
-        for ( Multimap<FullQualifiedName, Object> entity : result3 ) {
-            System.err.println( entity );
-        }
+//        // Test 3.67: Read data - should be unable to read LIFE_EXPECTANCY.
+//        System.err.println( " -- READ TEST 3 --" );
+//        Iterable<Multimap<FullQualifiedName, Object>> result3 = dataApi.getAllEntitiesOfEntitySet(
+//                NATION_SECRET_SERVICE, NATION_CITIZENS.getNamespace(), NATION_CITIZENS.getName() );
+//        for ( Multimap<FullQualifiedName, Object> entity : result3 ) {
+//            System.err.println( entity );
+//        }
 
         // Cleanup: remove WRITE rights for User.
 
@@ -831,14 +821,14 @@ public class PermissionsServiceTest {
                         POSITION,
                         LIFE_EXPECTANCY ) );
 
-        // Test 4.67: Read data - should be able to read (EMPLOYEE_ID, ADDRESS, POSITION), but only EMPLOYEE_ID and
-        // ADDRESS are non-null.
-        System.err.println( " -- READ TEST 4 --" );
-        Iterable<Multimap<FullQualifiedName, Object>> result4 = dataApi.getAllEntitiesOfEntitySet(
-                NATION_SECRET_SERVICE, NATION_CITIZENS.getNamespace(), NATION_CITIZENS.getName() );
-        for ( Multimap<FullQualifiedName, Object> entity : result4 ) {
-            System.err.println( entity );
-        }
+//        // Test 4.67: Read data - should be able to read (EMPLOYEE_ID, ADDRESS, POSITION), but only EMPLOYEE_ID and
+//        // ADDRESS are non-null.
+//        System.err.println( " -- READ TEST 4 --" );
+//        Iterable<Multimap<FullQualifiedName, Object>> result4 = dataApi.getAllEntitiesOfEntitySet(
+//                NATION_SECRET_SERVICE, NATION_CITIZENS.getNamespace(), NATION_CITIZENS.getName() );
+//        for ( Multimap<FullQualifiedName, Object> entity : result4 ) {
+//            System.err.println( entity );
+//        }
         // Cleanup: remove WRITE rights for Citizen.
         ps.updatePropertyTypeInEntitySetAcls( ImmutableSet.of(
                 new PropertyTypeInEntitySetAclRequest().setPrincipal( principal ).setAction( Action.REMOVE )
@@ -996,73 +986,5 @@ public class PermissionsServiceTest {
                 .forEach( request -> ps.removePermissionsRequestForEntitySet( request.getRequestId() ) );
         ps.getAllReceivedRequestsForPermissions( null )
                 .forEach( request -> ps.removePermissionsRequestForEntitySet( request.getRequestId() ) );
-    }
-
-    private void uncheckedCreateData(
-            int dataLength,
-            FullQualifiedName entityTypeFqn,
-            Optional<String> entitySetName,
-            Set<FullQualifiedName> includedProperties ) {
-        Random rand = new Random();
-
-        Set<SetMultimap<FullQualifiedName, Object>> entities = new HashSet<>();
-        for ( int i = 0; i < dataLength; i++ ) {
-            SetMultimap<FullQualifiedName, Object> entity = HashMultimap.create();
-
-            entity.put( EMPLOYEE_ID, UUID.randomUUID() );
-
-            if ( includedProperties.contains( LIFE_EXPECTANCY ) ) {
-                entity.put( LIFE_EXPECTANCY, rand.nextInt( 100 ) );
-            }
-
-            if ( includedProperties.contains( ADDRESS ) ) {
-                entity.put( ADDRESS, RandomStringUtils.randomAlphanumeric( 10 ) );
-            }
-
-            if ( includedProperties.contains( POSITION ) ) {
-                entity.put( POSITION, RandomStringUtils.randomAlphabetic( 6 ) );
-            }
-            entities.add( entity );
-        }
-
-        CreateEntityRequest createEntityRequest = new CreateEntityRequest(
-                entitySetName,
-                entityTypeFqn,
-                entities,
-                Optional.absent(),
-                Optional.absent() );
-
-        DataService dataService = ds.getContext().getBean( DataService.class );
-        dataService.createEntityData( createEntityRequest, includedProperties );
-    }
-
-    /**
-     * Helper function to generate garbage data, if necessary. This goes through DataApi rather than ODataStorageClient,
-     * which has not been merged with permissionsApi.
-     */
-    @Test
-    public void populateData() {
-        /**
-         * Create: Property Types: EMPLOYEE_ID, ADDRESS, POSITION, LIFE_EXPECTANCY Entity Types: NATION_CITIZENS Entity
-         * Sets: NATION_SECRET_SERVICE
-         */
-        createTypes();
-        /**
-         * Create 100 rows of Data in NATION_CITIZENS (entity type), no entity set, and write random values to Set of
-         * EMPLOYEE_ID, ADDRESS, POSITION, LIFE_EXPECTANCY
-         */
-        uncheckedCreateData( 100, NATION_CITIZENS, Optional.absent(), ImmutableSet.of( EMPLOYEE_ID,
-                ADDRESS,
-                POSITION,
-                LIFE_EXPECTANCY ) );
-
-        /**
-         * Create 100 rows of Data in NATION_CITIZENS (entity type), NATION_SECRET_SEVICE (entity set), and write random
-         * values to Set of EMPLOYEE_ID, ADDRESS, POSITION, LIFE_EXPECTANCY
-         */
-        uncheckedCreateData( 100, NATION_CITIZENS, Optional.of( NATION_SECRET_SERVICE ), ImmutableSet.of( EMPLOYEE_ID,
-                ADDRESS,
-                POSITION,
-                LIFE_EXPECTANCY ) );
     }
 }

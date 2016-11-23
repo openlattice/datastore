@@ -156,8 +156,7 @@ public class DataService {
         UUID aclId = createEntityRequest.getAclId().or( UUIDs.ACLs.EVERYONE_ACL );
         UUID syncId = createEntityRequest.getSyncId().or( UUIDs.Syncs.BASE.getSyncId() );
         String typename = tableManager.getTypenameForEntityType( entityFqn );
-        String entitySetName = createEntityRequest.getEntitySetName()
-                .or( CassandraTableManager.getNameForDefaultEntitySet( typename ) );
+        String entitySetName = createEntityRequest.getEntitySetName().orNull();
       
         PreparedStatementMapping cqm = tableManager.getInsertEntityPreparedStatement( entityFqn,
                 authorizedPropertyFqns,

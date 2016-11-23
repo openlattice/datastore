@@ -15,6 +15,7 @@ import org.apache.olingo.commons.api.edm.FullQualifiedName;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -170,10 +171,9 @@ public class PermissionsServiceTest {
         System.err.println( "*********************" );
         System.err.println( "REQUEST ACCESS TESTS END!" );
         System.err.println( "*********************" );
-
     }
 
-    @AfterClass
+    @AfterClass 
     public static void cleanUp() {
         // Give permissions
         ps.updateEntityTypesAcls(
@@ -219,11 +219,16 @@ public class PermissionsServiceTest {
                         POSITION ) );
         edmApi.postEntityType( citizens );
 
-        // God creates entity set Secret Service
-        EntitySet secretService = new EntitySet().setType( NATION_CITIZENS )
-                .setName( NATION_SECRET_SERVICE )
-                .setTitle( "Every nation would have one" );
-        edmService.createEntitySet( secretService );
+        try{
+            // God creates entity set Secret Service
+            EntitySet secretService = new EntitySet().setType( NATION_CITIZENS )
+                    .setName( NATION_SECRET_SERVICE )
+                    .setTitle( "Every nation would have one" );
+            edmService.createEntitySet( secretService );
+        } catch ( IllegalArgumentException e ){
+            // This would happen if entity set already exists
+            System.err.println( e );
+        }
     }
 
     private EntityType entityTypeMetadataLookup( FullQualifiedName entityTypeFqn ) {
@@ -347,7 +352,7 @@ public class PermissionsServiceTest {
         System.err.println( "Permissions for entity sets are:" );
         for ( EntitySetWithPermissions entitySetWithPermissions : edmApi.getEntitySets( null ) ) {
             System.err.println( "Entity Set: " + entitySetWithPermissions.getEntitySet().getName() + " Permissions "
-                    + ( (EntitySetWithPermissions) entitySetWithPermissions ).getPermissions() );
+                    + entitySetWithPermissions.getPermissions() );
         }
         // Test 3.5: Remove DISCOVER permission for Secret Service. Citizen does getEntitySets
         // Expected: Citizen does not discover SECRET_SERVICE, has owner permissions for new entity set.
@@ -358,7 +363,7 @@ public class PermissionsServiceTest {
         System.err.println( "Permissions for entity sets are:" );
         for ( EntitySetWithPermissions entitySet : edmApi.getEntitySets( null ) ) {
             System.err.println( "Entity Set: " + entitySet.getEntitySet().getName() + " Permissions "
-                    + ( (EntitySetWithPermissions) entitySet ).getPermissions() );
+                    + entitySet.getPermissions() );
         }
 
         // Test 4: Give permissions of the entity set to users and roles. Citizens check for permissions for the entity
@@ -379,7 +384,7 @@ public class PermissionsServiceTest {
         System.err.println( "--- Test 4 ---" );
         System.err.println( "All permissions for the entity set " + DYSTOPIANS + ":" );
         for ( PermissionsInfo info : ps.getEntitySetAclsForOwner( DYSTOPIANS ) ) {
-            System.err.println( "Principal " + info.getPrincipal() + " has Permissions " + info.getPermissions() );
+            System.err.println( info.getPrincipal() + " has Permissions " + info.getPermissions() );
         }
     }
 
@@ -981,73 +986,5 @@ public class PermissionsServiceTest {
                 .forEach( request -> ps.removePermissionsRequestForEntitySet( request.getRequestId() ) );
         ps.getAllReceivedRequestsForPermissions( null )
                 .forEach( request -> ps.removePermissionsRequestForEntitySet( request.getRequestId() ) );
-    }
-
-    private void uncheckedCreateData(
-            int dataLength,
-            FullQualifiedName entityTypeFqn,
-            Optional<String> entitySetName,
-            Set<FullQualifiedName> includedProperties ) {
-        Random rand = new Random();
-
-        Set<SetMultimap<FullQualifiedName, Object>> entities = new HashSet<>();
-        for ( int i = 0; i < dataLength; i++ ) {
-            SetMultimap<FullQualifiedName, Object> entity = HashMultimap.create();
-
-            entity.put( EMPLOYEE_ID, UUID.randomUUID() );
-
-            if ( includedProperties.contains( LIFE_EXPECTANCY ) ) {
-                entity.put( LIFE_EXPECTANCY, rand.nextInt( 100 ) );
-            }
-
-            if ( includedProperties.contains( ADDRESS ) ) {
-                entity.put( ADDRESS, RandomStringUtils.randomAlphanumeric( 10 ) );
-            }
-
-            if ( includedProperties.contains( POSITION ) ) {
-                entity.put( POSITION, RandomStringUtils.randomAlphabetic( 6 ) );
-            }
-            entities.add( entity );
-        }
-
-        CreateEntityRequest createEntityRequest = new CreateEntityRequest(
-                entitySetName,
-                entityTypeFqn,
-                entities,
-                Optional.absent(),
-                Optional.absent() );
-
-        DataService dataService = ds.getContext().getBean( DataService.class );
-        dataService.createEntityData( createEntityRequest, includedProperties );
-    }
-
-    /**
-     * Helper function to generate garbage data, if necessary. This goes through DataApi rather than ODataStorageClient,
-     * which has not been merged with permissionsApi.
-     */
-    @Test
-    public void populateData() {
-        /**
-         * Create: Property Types: EMPLOYEE_ID, ADDRESS, POSITION, LIFE_EXPECTANCY Entity Types: NATION_CITIZENS Entity
-         * Sets: NATION_SECRET_SERVICE
-         */
-        createTypes();
-        /**
-         * Create 100 rows of Data in NATION_CITIZENS (entity type), no entity set, and write random values to Set of
-         * EMPLOYEE_ID, ADDRESS, POSITION, LIFE_EXPECTANCY
-         */
-        uncheckedCreateData( 100, NATION_CITIZENS, Optional.absent(), ImmutableSet.of( EMPLOYEE_ID,
-                ADDRESS,
-                POSITION,
-                LIFE_EXPECTANCY ) );
-
-        /**
-         * Create 100 rows of Data in NATION_CITIZENS (entity type), NATION_SECRET_SEVICE (entity set), and write random
-         * values to Set of EMPLOYEE_ID, ADDRESS, POSITION, LIFE_EXPECTANCY
-         */
-        uncheckedCreateData( 100, NATION_CITIZENS, Optional.of( NATION_SECRET_SERVICE ), ImmutableSet.of( EMPLOYEE_ID,
-                ADDRESS,
-                POSITION,
-                LIFE_EXPECTANCY ) );
     }
 }

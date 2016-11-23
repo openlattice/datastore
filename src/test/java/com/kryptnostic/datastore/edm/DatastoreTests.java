@@ -37,6 +37,7 @@ import org.apache.olingo.commons.core.edm.EdmEntitySetImpl;
 import org.apache.olingo.commons.core.edm.EdmEntityTypeImpl;
 import org.apache.olingo.commons.core.edm.EdmProviderImpl;
 import org.apache.olingo.server.api.ODataApplicationException;
+import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.springframework.http.HttpHeaders;
@@ -248,18 +249,28 @@ public class DatastoreTests extends BootstrapDatastoreWithCassandra {
 
     @Test
     public void testAddPropertyTypeToEntityType() {
-        // Desired result: Properties EMPLOYEE_COUNTRY, EMPLOYEE_WEIGHT are added to ENTITY_TYPE (Employees)
-        final String EMPLOYEE_COUNTRY = "employee-country";
-        final String EMPLOYEE_WEIGHT = "employee-weight";
-
+    	//Desired result: Properties EMPLOYEE_COUNTRY, EMPLOYEE_WEIGHT are added to ENTITY_TYPE (Employees)
+        final String EMPLOYEE_COUNTRY= "employee_country";
+        final String EMPLOYEE_WEIGHT= "employee_weight";
+        
         EdmManager dms = ds.getContext().getBean( EdmManager.class );
 
-        dms.createPropertyType( new PropertyType().setNamespace( NAMESPACE ).setName( EMPLOYEE_COUNTRY )
-                .setDatatype( EdmPrimitiveTypeKind.String ).setMultiplicity( 0 ) );
-
-        dms.createPropertyType( new PropertyType().setNamespace( NAMESPACE ).setName( EMPLOYEE_WEIGHT )
-                .setDatatype( EdmPrimitiveTypeKind.Int32 ).setMultiplicity( 0 ) );
-
+        try{
+            dms.createPropertyType( new PropertyType().setNamespace( NAMESPACE ).setName( EMPLOYEE_COUNTRY )
+                    .setDatatype( EdmPrimitiveTypeKind.String ).setMultiplicity( 0 ) );
+        } catch ( IllegalArgumentException e ){
+            //Only acceptable exception is property type already exists
+            Assert.assertEquals( PROPERTY_TYPE_EXISTS_MSG, e.getMessage() );
+        };
+        
+        try{
+            dms.createPropertyType( new PropertyType().setNamespace( NAMESPACE ).setName( EMPLOYEE_WEIGHT )
+                    .setDatatype( EdmPrimitiveTypeKind.Int32 ).setMultiplicity( 0 ) );
+        } catch ( IllegalArgumentException e ){
+            //Only acceptable exception is property type already exists
+            Assert.assertEquals( PROPERTY_TYPE_EXISTS_MSG, e.getMessage() );
+        }
+        
         Set<FullQualifiedName> properties = new HashSet<>();
         properties.add( new FullQualifiedName( NAMESPACE, EMPLOYEE_COUNTRY ) );
         properties.add( new FullQualifiedName( NAMESPACE, EMPLOYEE_WEIGHT ) );
@@ -278,9 +289,8 @@ public class DatastoreTests extends BootstrapDatastoreWithCassandra {
 
         dms.addPropertyTypesToEntityType( ENTITY_TYPE.getNamespace(), ENTITY_TYPE.getName(), properties );
     }
-
-    @Test(
-        expected = BadRequestException.class )
+    
+    @Test(expected=IllegalArgumentException.class)
     public void testAddPhantomPropertyTypeToEntityType() {
         // Action: Add Property EMPLOYEE_HEIGHT to ENTITY_TYPE (Employees)
         // Desired result: Since property does not exist, Bad Request Exception should be thrown
@@ -299,13 +309,23 @@ public class DatastoreTests extends BootstrapDatastoreWithCassandra {
         final String EMPLOYEE_TOENAIL_LENGTH = "employee-toenail-length";
         final String EMPLOYEE_FINGERNAIL_LENGTH = "employee-fingernail-length";
 
-        EdmManager dms = ds.getContext().getBean( EdmManager.class );
-        dms.createPropertyType( new PropertyType().setNamespace( NAMESPACE ).setName( EMPLOYEE_TOENAIL_LENGTH )
-                .setDatatype( EdmPrimitiveTypeKind.Int32 ).setMultiplicity( 0 ) );
-        dms.createPropertyType( new PropertyType().setNamespace( NAMESPACE ).setName( EMPLOYEE_FINGERNAIL_LENGTH )
-                .setDatatype( EdmPrimitiveTypeKind.Int32 ).setMultiplicity( 0 ) );
-
-        // Add new property to Schema
+    	EdmManager dms = ds.getContext().getBean( EdmManager.class );
+        try { 
+        	dms.createPropertyType( new PropertyType().setNamespace( NAMESPACE ).setName( EMPLOYEE_TOENAIL_LENGTH )
+                    .setDatatype( EdmPrimitiveTypeKind.Int32 ).setMultiplicity( 0 ) );    	
+        } catch ( IllegalArgumentException e ){
+            //Only acceptable exception is property type already exists
+            Assert.assertEquals( PROPERTY_TYPE_EXISTS_MSG, e.getMessage() );
+        }
+        
+        try {
+        	dms.createPropertyType( new PropertyType().setNamespace( NAMESPACE ).setName( EMPLOYEE_FINGERNAIL_LENGTH )
+                    .setDatatype( EdmPrimitiveTypeKind.Int32 ).setMultiplicity( 0 ) );    	
+        } catch ( IllegalArgumentException e ){
+            //Only acceptable exception is property type already exists
+            Assert.assertEquals( PROPERTY_TYPE_EXISTS_MSG, e.getMessage() );
+        }
+        //Add new property to Schema
         Set<FullQualifiedName> newProperties = new HashSet<>();
         newProperties.add( new FullQualifiedName( NAMESPACE, EMPLOYEE_TOENAIL_LENGTH ) );
         newProperties.add( new FullQualifiedName( NAMESPACE, EMPLOYEE_FINGERNAIL_LENGTH ) );
@@ -325,32 +345,36 @@ public class DatastoreTests extends BootstrapDatastoreWithCassandra {
         } catch ( Throwable t ) {
             caught = t;
         }
-        assertNotNull( caught );
-        assertSame( BadRequestException.class, caught.getClass() );
+        assertNotNull(caught);
+        assertSame(IllegalArgumentException.class, caught.getClass());
     }
 
     @Test
-    public void removePropertyTypes() {
-        // Action: Add Property EMPLOYEE_HAIRLENGTH to ENTITY_TYPE (Employees), and EMPLOYEE_EYEBROW_LENGTH to Schema,
-        // then remove them
-        // Desired result: Schemas and Entity_Types tables should look the same as before, without any trace of
-        // EMPLOYEE_HAIRLENGTH and EMPLOYEE_EYEBROW_LENGTH
-        // Property_Types and lookup table should be updated.
-        final String EMPLOYEE_HAIR_LENGTH = "employee-hair-length";
-        final String EMPLOYEE_EYEBROW_LENGTH = "employee-eyebrow-length";
-
-        EdmManager dms = ds.getContext().getBean( EdmManager.class );
-        dms.createPropertyType( new PropertyType().setNamespace( NAMESPACE ).setName( EMPLOYEE_HAIR_LENGTH )
-                .setDatatype( EdmPrimitiveTypeKind.Int32 ).setMultiplicity( 0 ) );
-        dms.createPropertyType( new PropertyType().setNamespace( NAMESPACE ).setName( EMPLOYEE_EYEBROW_LENGTH )
-                .setDatatype( EdmPrimitiveTypeKind.Int32 ).setMultiplicity( 0 ) );
-
-        dms.addPropertyTypesToEntityType( ENTITY_TYPE.getNamespace(),
-                ENTITY_TYPE.getName(),
-                ImmutableSet.of( new FullQualifiedName( NAMESPACE, EMPLOYEE_HAIR_LENGTH ) ) );
-        dms.addPropertyTypesToSchema( NAMESPACE,
-                SCHEMA_NAME,
-                ImmutableSet.of( new FullQualifiedName( NAMESPACE, EMPLOYEE_EYEBROW_LENGTH ) ) );
+    public void removePropertyTypes(){
+    	//Action: Add Property EMPLOYEE_HAIRLENGTH to ENTITY_TYPE (Employees), and EMPLOYEE_EYEBROW_LENGTH to Schema, then remove them
+    	//Desired result: Schemas and Entity_Types tables should look the same as before, without any trace of EMPLOYEE_HAIRLENGTH and EMPLOYEE_EYEBROW_LENGTH
+    	//                Property_Types and lookup table should be updated.
+    	final String EMPLOYEE_HAIR_LENGTH = "employee-hair-length";
+    	final String EMPLOYEE_EYEBROW_LENGTH = "employee-eyebrow-length";
+    	
+    	EdmManager dms = ds.getContext().getBean( EdmManager.class );
+    	try{
+            dms.createPropertyType( new PropertyType().setNamespace( NAMESPACE ).setName( EMPLOYEE_HAIR_LENGTH )
+                    .setDatatype( EdmPrimitiveTypeKind.Int32 ).setMultiplicity( 0 ) );    
+    	} catch ( IllegalArgumentException e ){
+            //Only acceptable exception is property type already exists
+            Assert.assertEquals( PROPERTY_TYPE_EXISTS_MSG, e.getMessage() );
+        }
+    	
+    	try{
+            dms.createPropertyType( new PropertyType().setNamespace( NAMESPACE ).setName( EMPLOYEE_EYEBROW_LENGTH )
+                    .setDatatype( EdmPrimitiveTypeKind.Int32 ).setMultiplicity( 0 ) );    
+    	} catch ( IllegalArgumentException e ){
+            //Only acceptable exception is property type already exists
+            Assert.assertEquals( PROPERTY_TYPE_EXISTS_MSG, e.getMessage() );
+        }
+        dms.addPropertyTypesToEntityType(ENTITY_TYPE.getNamespace(), ENTITY_TYPE.getName(), ImmutableSet.of( new FullQualifiedName(NAMESPACE, EMPLOYEE_HAIR_LENGTH) ) );
+        dms.addPropertyTypesToSchema(NAMESPACE, SCHEMA_NAME, ImmutableSet.of( new FullQualifiedName(NAMESPACE, EMPLOYEE_EYEBROW_LENGTH) ) );
 
         dms.removePropertyTypesFromEntityType( ENTITY_TYPE.getNamespace(),
                 ENTITY_TYPE.getName(),
@@ -460,7 +484,7 @@ public class DatastoreTests extends BootstrapDatastoreWithCassandra {
                     .setDatatype( edmType ).setMultiplicity( 0 ) );
             propertyTypeMap.put( new FullQualifiedName( NAMESPACE, propertyName ), edmType );
         }
-        
+
         EntityType entityType = new EntityType().setNamespace( entityTypeFqn.getNamespace() )
                 .setName( entityTypeFqn.getName() )
                 .setKey( ImmutableSet.of(propertyTypeMap.keySet().iterator().next()) )

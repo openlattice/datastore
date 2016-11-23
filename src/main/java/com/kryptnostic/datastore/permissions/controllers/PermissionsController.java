@@ -33,11 +33,6 @@ import com.kryptnostic.datastore.services.ActionAuthorizationService;
 import com.kryptnostic.datastore.services.PermissionsService;
 import com.kryptnostic.instrumentation.v1.exceptions.types.UnauthorizedException;
 
-import retrofit.client.Response;
-import retrofit.http.DELETE;
-import retrofit.http.GET;
-import retrofit.http.POST;
-import retrofit.http.Query;
 
 @RestController
 public class PermissionsController implements PermissionsApi {
@@ -50,11 +45,11 @@ public class PermissionsController implements PermissionsApi {
 
     @Override
     @RequestMapping(
-        path = CONTROLLER + ENTITY_TYPE_BASE_PATH,
+        path = "/" + CONTROLLER + "/" + ENTITY_TYPE_BASE_PATH,
         method = RequestMethod.POST,
         consumes = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
-    public Response updateEntityTypesAcls( @RequestBody Set<EntityTypeAclRequest> requests ) {
+    public Void updateEntityTypesAcls( @RequestBody Set<EntityTypeAclRequest> requests ) {
         if ( authzService.updateEntityTypesAcls() ) {
             for ( EntityTypeAclRequest request : requests ) {
                 switch ( request.getAction() ) {
@@ -83,11 +78,11 @@ public class PermissionsController implements PermissionsApi {
 
     @Override
     @RequestMapping(
-        path = CONTROLLER + ENTITY_SETS_BASE_PATH,
+        path = "/" + CONTROLLER + "/" + ENTITY_SETS_BASE_PATH,
         method = RequestMethod.POST,
         consumes = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
-    public Response updateEntitySetsAcls( @RequestBody Set<EntitySetAclRequest> requests ) {
+    public Void updateEntitySetsAcls( @RequestBody Set<EntitySetAclRequest> requests ) {
         if ( authzService.updateEntitySetsAcls() ) {
             for ( EntitySetAclRequest request : requests ) {
                 switch ( request.getAction() ) {
@@ -116,11 +111,11 @@ public class PermissionsController implements PermissionsApi {
 
     @Override
     @RequestMapping(
-        path = CONTROLLER + ENTITY_TYPE_BASE_PATH + PROPERTY_TYPE_BASE_PATH,
+        path = "/" + CONTROLLER + "/" + ENTITY_TYPE_BASE_PATH + "/" + PROPERTY_TYPE_BASE_PATH,
         method = RequestMethod.POST,
         consumes = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
-    public Response updatePropertyTypeInEntityTypeAcls(
+    public Void updatePropertyTypeInEntityTypeAcls(
             @RequestBody Set<PropertyTypeInEntityTypeAclRequest> requests ) {
         if ( authzService.updatePropertyTypeInEntityTypeAcls() ) {
             for ( PropertyTypeInEntityTypeAclRequest request : requests ) {
@@ -153,11 +148,11 @@ public class PermissionsController implements PermissionsApi {
 
     @Override
     @RequestMapping(
-        path = CONTROLLER + ENTITY_SETS_BASE_PATH + PROPERTY_TYPE_BASE_PATH,
+        path = "/" + CONTROLLER + "/" + ENTITY_SETS_BASE_PATH + "/" + PROPERTY_TYPE_BASE_PATH,
         method = RequestMethod.POST,
         consumes = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
-    public Response updatePropertyTypeInEntitySetAcls( @RequestBody Set<PropertyTypeInEntitySetAclRequest> requests ) {
+    public Void updatePropertyTypeInEntitySetAcls( @RequestBody Set<PropertyTypeInEntitySetAclRequest> requests ) {
         if ( authzService.updatePropertyTypeInEntitySetAcls() ) {
             for ( PropertyTypeInEntitySetAclRequest request : requests ) {
                 switch ( request.getAction() ) {
@@ -189,11 +184,11 @@ public class PermissionsController implements PermissionsApi {
 
     @Override
     @RequestMapping(
-        path = CONTROLLER + ENTITY_TYPE_BASE_PATH,
+        path = "/" + CONTROLLER + "/" + ENTITY_TYPE_BASE_PATH,
         method = RequestMethod.DELETE,
         consumes = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
-    public Response removeEntityTypeAcls( @RequestBody Set<FullQualifiedName> entityTypeFqns ) {
+    public Void removeEntityTypeAcls( @RequestBody Set<FullQualifiedName> entityTypeFqns ) {
         if ( authzService.removeEntityTypeAcls() ) {
             for ( FullQualifiedName entityTypeFqn : entityTypeFqns ) {
                 ps.removePermissionsForEntityType( entityTypeFqn );
@@ -204,11 +199,11 @@ public class PermissionsController implements PermissionsApi {
 
     @Override
     @RequestMapping(
-        path = CONTROLLER + ENTITY_SETS_BASE_PATH,
+        path = "/" + CONTROLLER + "/" + ENTITY_SETS_BASE_PATH,
         method = RequestMethod.DELETE,
         consumes = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
-    public Response removeEntitySetAcls( @RequestBody Set<String> entitySetNames ) {
+    public Void removeEntitySetAcls( @RequestBody Set<String> entitySetNames ) {
         if ( authzService.removeEntitySetAcls() ) {
             for ( String entitySetName : entitySetNames ) {
                 ps.removePermissionsForEntitySet( entitySetName );
@@ -219,11 +214,11 @@ public class PermissionsController implements PermissionsApi {
 
     @Override
     @RequestMapping(
-        path = CONTROLLER + ENTITY_TYPE_BASE_PATH + PROPERTY_TYPE_BASE_PATH,
+        path = "/" + CONTROLLER + "/" + ENTITY_TYPE_BASE_PATH + "/" + PROPERTY_TYPE_BASE_PATH,
         method = RequestMethod.DELETE,
         consumes = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
-    public Response removePropertyTypeInEntityTypeAcls(
+    public Void removePropertyTypeInEntityTypeAcls(
             @RequestBody Set<PropertyTypeInEntityTypeAclRemovalRequest> requests ) {
         if ( authzService.removePropertyTypeInEntityTypeAcls() ) {
             for ( PropertyTypeInEntityTypeAclRemovalRequest request : requests ) {
@@ -237,11 +232,11 @@ public class PermissionsController implements PermissionsApi {
 
     @Override
     @RequestMapping(
-        path = CONTROLLER + ENTITY_TYPE_BASE_PATH + PROPERTY_TYPE_BASE_PATH + ALL_PATH,
+        path = "/" + CONTROLLER + "/" + ENTITY_TYPE_BASE_PATH + "/" + PROPERTY_TYPE_BASE_PATH + "/" + ALL_PATH,
         method = RequestMethod.DELETE,
         consumes = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
-    public Response removeAllPropertyTypesInEntityTypeAcls( @RequestBody Set<FullQualifiedName> entityTypeFqns ) {
+    public Void removeAllPropertyTypesInEntityTypeAcls( @RequestBody Set<FullQualifiedName> entityTypeFqns ) {
         if ( authzService.removeAllPropertyTypesInEntityTypeAcls() ) {
             for ( FullQualifiedName entityTypeFqn : entityTypeFqns ) {
                 ps.removePermissionsForPropertyTypeInEntityType( entityTypeFqn );
@@ -252,11 +247,11 @@ public class PermissionsController implements PermissionsApi {
 
     @Override
     @RequestMapping(
-        path = CONTROLLER + ENTITY_SETS_BASE_PATH + PROPERTY_TYPE_BASE_PATH,
+        path = "/" + CONTROLLER + "/" + ENTITY_SETS_BASE_PATH + "/" + PROPERTY_TYPE_BASE_PATH,
         method = RequestMethod.DELETE,
         consumes = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
-    public Response removePropertyTypeInEntitySetAcls(
+    public Void removePropertyTypeInEntitySetAcls(
             @RequestBody Set<PropertyTypeInEntitySetAclRemovalRequest> requests ) {
         if ( authzService.removePropertyTypeInEntitySetAcls() ) {
             for ( PropertyTypeInEntitySetAclRemovalRequest request : requests ) {
@@ -272,11 +267,11 @@ public class PermissionsController implements PermissionsApi {
 
     @Override
     @RequestMapping(
-        path = CONTROLLER + ENTITY_SETS_BASE_PATH + PROPERTY_TYPE_BASE_PATH + ALL_PATH,
+        path = "/" + CONTROLLER + "/" + ENTITY_SETS_BASE_PATH + "/" + PROPERTY_TYPE_BASE_PATH + "/" + ALL_PATH,
         method = RequestMethod.DELETE,
         consumes = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
-    public Response removeAllPropertyTypesInEntitySetAcls( @RequestBody Set<String> entitySetNames ) {
+    public Void removeAllPropertyTypesInEntitySetAcls( @RequestBody Set<String> entitySetNames ) {
         if ( authzService.removeAllPropertyTypesInEntitySetAcls() ) {
             for ( String entitySetName : entitySetNames ) {
                 ps.removePermissionsForPropertyTypeInEntitySet( entitySetName );
@@ -287,7 +282,7 @@ public class PermissionsController implements PermissionsApi {
 
     @Override
     @RequestMapping(
-        path = CONTROLLER + ENTITY_SETS_BASE_PATH,
+        path = "/" + CONTROLLER + "/" + ENTITY_SETS_BASE_PATH,
         method = RequestMethod.GET )
     @ResponseStatus( HttpStatus.OK )
     public EnumSet<Permission> getEntitySetAclsForUser( @RequestParam( NAME ) String entitySetName ) {
@@ -300,7 +295,7 @@ public class PermissionsController implements PermissionsApi {
 
     @Override
     @RequestMapping(
-        path = CONTROLLER + ENTITY_SETS_BASE_PATH + PROPERTY_TYPE_BASE_PATH,
+        path = "/" + CONTROLLER + "/" + ENTITY_SETS_BASE_PATH + "/" + PROPERTY_TYPE_BASE_PATH,
         method = RequestMethod.GET )
     @ResponseStatus( HttpStatus.OK )
     public Map<FullQualifiedName, EnumSet<Permission>> getPropertyTypesInEntitySetAclsForUser(
@@ -316,7 +311,7 @@ public class PermissionsController implements PermissionsApi {
 
     @Override
     @RequestMapping(
-        path = CONTROLLER + ENTITY_TYPE_BASE_PATH,
+        path = "/" + CONTROLLER + "/" + ENTITY_TYPE_BASE_PATH,
         method = RequestMethod.GET )
     @ResponseStatus( HttpStatus.OK )
     public EnumSet<Permission> getEntityTypeAclsForUser(
@@ -329,7 +324,7 @@ public class PermissionsController implements PermissionsApi {
 
     @Override
     @RequestMapping(
-        path = CONTROLLER + ENTITY_TYPE_BASE_PATH + PROPERTY_TYPE_BASE_PATH,
+        path = "/" + CONTROLLER + "/" + ENTITY_TYPE_BASE_PATH + "/" + PROPERTY_TYPE_BASE_PATH,
         method = RequestMethod.GET )
     @ResponseStatus( HttpStatus.OK )
     public Map<FullQualifiedName, EnumSet<Permission>> getPropertyTypesInEntityTypeAclsForUser(
@@ -342,7 +337,7 @@ public class PermissionsController implements PermissionsApi {
 
     @Override
     @RequestMapping(
-        path = CONTROLLER + ENTITY_SETS_BASE_PATH + OWNER_PATH,
+        path = "/" + CONTROLLER + "/" + ENTITY_SETS_BASE_PATH + "/" + OWNER_PATH,
         method = RequestMethod.GET )
     @ResponseStatus( HttpStatus.OK )
     public Iterable<PermissionsInfo> getEntitySetAclsForOwner( @RequestParam( NAME ) String entitySetName ) {
@@ -356,7 +351,7 @@ public class PermissionsController implements PermissionsApi {
 
     @Override
     @RequestMapping(
-        path = CONTROLLER + ENTITY_SETS_BASE_PATH + OWNER_PATH,
+        path = "/" + CONTROLLER + "/" + ENTITY_SETS_BASE_PATH + "/" + OWNER_PATH,
         method = RequestMethod.POST,
         consumes = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
@@ -373,7 +368,7 @@ public class PermissionsController implements PermissionsApi {
     
     @Override
     @RequestMapping(
-        path = CONTROLLER + ENTITY_SETS_BASE_PATH + OWNER_PATH + PROPERTY_TYPE_BASE_PATH,
+        path = "/" + CONTROLLER + "/" + ENTITY_SETS_BASE_PATH + "/" + OWNER_PATH + "/" + PROPERTY_TYPE_BASE_PATH,
         method = RequestMethod.POST,
         consumes = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
@@ -390,11 +385,11 @@ public class PermissionsController implements PermissionsApi {
 
     @Override
     @RequestMapping(
-        path = CONTROLLER + ENTITY_SETS_BASE_PATH + REQUEST_PERMISSIONS_PATH,
+        path = "/" + CONTROLLER + "/" + ENTITY_SETS_BASE_PATH + "/" + REQUEST_PERMISSIONS_PATH,
         method = RequestMethod.POST,
         consumes = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
-    public Response addPermissionsRequestForPropertyTypesInEntitySet(
+    public Void addPermissionsRequestForPropertyTypesInEntitySet(
            @RequestBody Set<PropertyTypeInEntitySetAclRequest> requests ) {
         
         String username = authzService.getUsername();
@@ -419,10 +414,10 @@ public class PermissionsController implements PermissionsApi {
 
     @Override
     @RequestMapping(
-        path = CONTROLLER + ENTITY_SETS_BASE_PATH + REQUEST_PERMISSIONS_PATH,
+        path = "/" + CONTROLLER + "/" + ENTITY_SETS_BASE_PATH + "/" + REQUEST_PERMISSIONS_PATH,
         method = RequestMethod.DELETE )
     @ResponseStatus( HttpStatus.OK )
-    public Response removePermissionsRequestForEntitySet(
+    public Void removePermissionsRequestForEntitySet(
             @RequestParam( REQUEST_ID ) UUID id ) {
         if( authzService.removePermissionsRequestForEntitySet( id ) ){
             ps.removePermissionsRequestForEntitySet( id );
@@ -435,7 +430,7 @@ public class PermissionsController implements PermissionsApi {
 
     @Override
     @RequestMapping(
-        path = CONTROLLER + ENTITY_SETS_BASE_PATH + OWNER_PATH + REQUEST_PERMISSIONS_PATH,
+        path = "/" + CONTROLLER + "/" + ENTITY_SETS_BASE_PATH + "/" + OWNER_PATH + "/" + REQUEST_PERMISSIONS_PATH,
         method = RequestMethod.GET,
         produces = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
@@ -456,7 +451,7 @@ public class PermissionsController implements PermissionsApi {
     
     @Override
     @RequestMapping(
-        path = CONTROLLER + ENTITY_SETS_BASE_PATH + REQUEST_PERMISSIONS_PATH,
+        path = "/" + CONTROLLER + "/" + ENTITY_SETS_BASE_PATH + "/" + REQUEST_PERMISSIONS_PATH,
         method = RequestMethod.GET,
         produces = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )

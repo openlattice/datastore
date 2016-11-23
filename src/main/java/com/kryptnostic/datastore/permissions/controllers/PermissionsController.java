@@ -24,6 +24,7 @@ import com.dataloom.authorization.requests.PermissionsInfo;
 import com.dataloom.authorization.requests.Principal;
 import com.dataloom.authorization.requests.PrincipalType;
 import com.dataloom.authorization.requests.PropertyTypeInEntitySetAclRemovalRequest;
+import com.dataloom.authorization.requests.PropertyTypeInEntitySetAclRequestWithRequestingUser;
 import com.dataloom.authorization.requests.PropertyTypeInEntityTypeAclRemovalRequest;
 import com.dataloom.authorization.requests.PropertyTypeInEntityTypeAclRequest;
 import com.dataloom.edm.requests.PropertyTypeInEntitySetAclRequest;
@@ -434,7 +435,7 @@ public class PermissionsController implements PermissionsApi {
         method = RequestMethod.GET,
         produces = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
-    public Iterable<PropertyTypeInEntitySetAclRequest> getAllReceivedRequestsForPermissions(
+    public Iterable<PropertyTypeInEntitySetAclRequestWithRequestingUser> getAllReceivedRequestsForPermissions(
             @RequestParam( value = NAME, required = false ) String entitySetName ) {
         String username = authzService.getUsername();
         
@@ -455,7 +456,7 @@ public class PermissionsController implements PermissionsApi {
         method = RequestMethod.GET,
         produces = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
-    public Iterable<PropertyTypeInEntitySetAclRequest> getAllSentRequestsForPermissions(
+    public Iterable<PropertyTypeInEntitySetAclRequestWithRequestingUser> getAllSentRequestsForPermissions(
             @RequestParam( value = NAME, required = false ) String entitySetName ) {
         String username = authzService.getUsername();
         

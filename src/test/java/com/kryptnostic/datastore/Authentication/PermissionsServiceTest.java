@@ -921,7 +921,7 @@ public class PermissionsServiceTest {
         // Expected: Citizens' sent request list should have only Mujeres
 
         ps.getAllSentRequestsForPermissions( HOMBRES )
-                .forEach( request -> ps.removePermissionsRequestForEntitySet( request.getRequestId() ) );
+                .forEach( request -> ps.removePermissionsRequestForEntitySet( request.getRequest().getRequestId() ) );
 
         System.err.println( "--- TEST FOR GETTING ALL SENT REQUEST --- " );
         System.err.println( ps.getAllSentRequestsForPermissions( null ) );
@@ -978,9 +978,9 @@ public class PermissionsServiceTest {
     private void requestAccessCleanup() {
         // Remove unattended PermissionsRequest to avoid pollution.
         ps.getAllSentRequestsForPermissions( null )
-                .forEach( request -> ps.removePermissionsRequestForEntitySet( request.getRequestId() ) );
+                .forEach( request -> ps.removePermissionsRequestForEntitySet( request.getRequest().getRequestId() ) );
         ps.getAllReceivedRequestsForPermissions( null )
-                .forEach( request -> ps.removePermissionsRequestForEntitySet( request.getRequestId() ) );
+                .forEach( request -> ps.removePermissionsRequestForEntitySet( request.getRequest().getRequestId() ) );
     }
 
     private void uncheckedCreateData(

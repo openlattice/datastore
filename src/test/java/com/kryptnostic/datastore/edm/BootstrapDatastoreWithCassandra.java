@@ -47,6 +47,11 @@ public class BootstrapDatastoreWithCassandra {
     protected static final String               SCHEMA_NAME        = "csv";
     protected static final Semaphore            initLock           = new Semaphore( 1 );
 
+    protected static final String               PROPERTY_TYPE_EXISTS_MSG      = "Property Type of same name exists.";
+    protected static final String               ENTITY_TYPE_EXISTS_MSG        = "Entity type of same name already exists.";
+    protected static final String               ENTITY_SET_EXISTS_MSG        = "Entity set already exists.";
+    protected static final String               SCHEMA_EXISTS_MSG        = "Failed to create schema.";
+    
     public static void init() {
         if ( initLock.tryAcquire() ) {
             ds.intercrop( PODS.toArray( new Class<?>[ 0 ] ) );
@@ -61,17 +66,41 @@ public class BootstrapDatastoreWithCassandra {
     }
 
     private static void setupDatamodel() {
-
-        dms.createPropertyType( new PropertyType().setNamespace( NAMESPACE ).setName( EMPLOYEE_ID )
-                .setDatatype( EdmPrimitiveTypeKind.Guid ).setMultiplicity( 0 ) );
-        dms.createPropertyType( new PropertyType().setNamespace( NAMESPACE ).setName( EMPLOYEE_TITLE )
-                .setDatatype( EdmPrimitiveTypeKind.String ).setMultiplicity( 0 ) );
-        dms.createPropertyType( new PropertyType().setNamespace( NAMESPACE ).setName( EMPLOYEE_NAME )
-                .setDatatype( EdmPrimitiveTypeKind.String ).setMultiplicity( 0 ) );
-        dms.createPropertyType( new PropertyType().setNamespace( NAMESPACE ).setName( EMPLOYEE_DEPT )
-                .setDatatype( EdmPrimitiveTypeKind.String ).setMultiplicity( 0 ) );
-        dms.createPropertyType( new PropertyType().setNamespace( NAMESPACE ).setName( SALARY )
-                .setDatatype( EdmPrimitiveTypeKind.Int64 ).setMultiplicity( 0 ) );
+        try{
+            dms.createPropertyType( new PropertyType().setNamespace( NAMESPACE ).setName( EMPLOYEE_ID )
+                    .setDatatype( EdmPrimitiveTypeKind.Guid ).setMultiplicity( 0 ) );
+        } catch ( IllegalArgumentException e ){
+            //Only acceptable exception is property type already exists
+            Assert.assertEquals( PROPERTY_TYPE_EXISTS_MSG, e.getMessage() );
+        }
+        try{
+            dms.createPropertyType( new PropertyType().setNamespace( NAMESPACE ).setName( EMPLOYEE_TITLE )
+                    .setDatatype( EdmPrimitiveTypeKind.String ).setMultiplicity( 0 ) );
+        } catch ( IllegalArgumentException e ){
+            //Only acceptable exception is property type already exists
+            Assert.assertEquals( PROPERTY_TYPE_EXISTS_MSG, e.getMessage() );
+        }
+        try{
+            dms.createPropertyType( new PropertyType().setNamespace( NAMESPACE ).setName( EMPLOYEE_NAME )
+                    .setDatatype( EdmPrimitiveTypeKind.String ).setMultiplicity( 0 ) );
+        } catch ( IllegalArgumentException e ){
+            //Only acceptable exception is property type already exists
+            Assert.assertEquals( PROPERTY_TYPE_EXISTS_MSG, e.getMessage() );
+        }
+        try{
+            dms.createPropertyType( new PropertyType().setNamespace( NAMESPACE ).setName( EMPLOYEE_DEPT )
+                    .setDatatype( EdmPrimitiveTypeKind.String ).setMultiplicity( 0 ) );
+        } catch ( IllegalArgumentException e ){
+            //Only acceptable exception is property type already exists
+            Assert.assertEquals( PROPERTY_TYPE_EXISTS_MSG, e.getMessage() );
+        }
+        try{
+            dms.createPropertyType( new PropertyType().setNamespace( NAMESPACE ).setName( SALARY )
+                    .setDatatype( EdmPrimitiveTypeKind.Int64 ).setMultiplicity( 0 ) );
+        } catch ( IllegalArgumentException e ){
+            //Only acceptable exception is property type already exists
+            Assert.assertEquals( PROPERTY_TYPE_EXISTS_MSG, e.getMessage() );
+        }
 
         EntityType metadataLevel = new EntityType().setNamespace( NAMESPACE ).setName( ENTITY_TYPE.getName() )
                 .setKey( ImmutableSet.of( new FullQualifiedName( NAMESPACE, EMPLOYEE_ID ) ) )
@@ -80,9 +109,13 @@ public class BootstrapDatastoreWithCassandra {
                         new FullQualifiedName( NAMESPACE, EMPLOYEE_NAME ),
                         new FullQualifiedName( NAMESPACE, EMPLOYEE_DEPT ),
                         new FullQualifiedName( NAMESPACE, SALARY ) ) );
-
-        dms.createEntityType( metadataLevel );
-
+        try{
+            dms.createEntityType( metadataLevel );
+        } catch ( IllegalArgumentException e ){
+            //Only acceptable exception is entity type already exists
+            Assert.assertEquals( ENTITY_TYPE_EXISTS_MSG, e.getMessage() );
+        }
+        
         EntityType metadataLevelMars = new EntityType().setNamespace( NAMESPACE ).setName( ENTITY_TYPE_MARS.getName() )
                 .setKey( ImmutableSet.of( new FullQualifiedName( NAMESPACE, EMPLOYEE_ID ) ) )
                 .setProperties( ImmutableSet.of( new FullQualifiedName( NAMESPACE, EMPLOYEE_ID ),
@@ -90,9 +123,13 @@ public class BootstrapDatastoreWithCassandra {
                         new FullQualifiedName( NAMESPACE, EMPLOYEE_NAME ),
                         new FullQualifiedName( NAMESPACE, EMPLOYEE_DEPT ),
                         new FullQualifiedName( NAMESPACE, SALARY ) ) );
-
-        dms.createEntityType( metadataLevelMars );
-
+        try{
+            dms.createEntityType( metadataLevelMars );
+        } catch ( IllegalArgumentException e ){
+            //Only acceptable exception is entity type already exists
+            Assert.assertEquals( ENTITY_TYPE_EXISTS_MSG, e.getMessage() );
+        }
+        
         EntityType metadataLevelSaturn = new EntityType().setNamespace( NAMESPACE )
                 .setName( ENTITY_TYPE_SATURN.getName() )
                 .setKey( ImmutableSet.of( new FullQualifiedName( NAMESPACE, EMPLOYEE_ID ) ) )
@@ -101,17 +138,31 @@ public class BootstrapDatastoreWithCassandra {
                         new FullQualifiedName( NAMESPACE, EMPLOYEE_NAME ),
                         new FullQualifiedName( NAMESPACE, EMPLOYEE_DEPT ),
                         new FullQualifiedName( NAMESPACE, SALARY ) ) );
+        try{
+            dms.createEntityType( metadataLevelSaturn );
+        } catch ( IllegalArgumentException e ){
+            //Only acceptable exception is entity type already exists
+            Assert.assertEquals( ENTITY_TYPE_EXISTS_MSG, e.getMessage() );
+        }
+        
+        try{
+            dms.createEntitySet( ENTITY_TYPE,
+                    ENTITY_SET_NAME,
+                    "The entity set title" );
+        } catch ( IllegalArgumentException e ){
+            //Only acceptable exception is entity type already exists
+            Assert.assertEquals( ENTITY_SET_EXISTS_MSG, e.getMessage() );
+        }
 
-        dms.createEntityType( metadataLevelSaturn );
-
-        dms.createEntitySet( ENTITY_TYPE,
-                ENTITY_SET_NAME,
-                "The entity set title" );
-
-        dms.createSchema( NAMESPACE,
-                SCHEMA_NAME,
-                ACLs.EVERYONE_ACL,
-                ImmutableSet.of( ENTITY_TYPE, ENTITY_TYPE_MARS, ENTITY_TYPE_SATURN ) );
+        try{
+            dms.createSchema( NAMESPACE,
+                    SCHEMA_NAME,
+                    ACLs.EVERYONE_ACL,
+                    ImmutableSet.of( ENTITY_TYPE, ENTITY_TYPE_MARS, ENTITY_TYPE_SATURN ) );
+        } catch ( IllegalStateException e ){
+            //TODO Temporary fix, should add validation for schema existence
+            Assert.assertEquals( SCHEMA_EXISTS_MSG, e.getMessage() );
+        }        
 
         Assert.assertTrue(
                 dms.checkEntitySetExists( ENTITY_SET_NAME ) );

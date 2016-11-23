@@ -336,8 +336,8 @@ public class DatastoreTests extends BootstrapDatastoreWithCassandra {
     	//Action: Add Property EMPLOYEE_HAIRLENGTH to ENTITY_TYPE (Employees), and EMPLOYEE_EYEBROW_LENGTH to Schema, then remove them
     	//Desired result: Schemas and Entity_Types tables should look the same as before, without any trace of EMPLOYEE_HAIRLENGTH and EMPLOYEE_EYEBROW_LENGTH
     	//                Property_Types and lookup table should be updated.
-    	final String EMPLOYEE_HAIR_LENGTH = "employee-hair-length";
-    	final String EMPLOYEE_EYEBROW_LENGTH = "employee-eyebrow-length";
+    	final String EMPLOYEE_HAIR_LENGTH = "employee_hair_length";
+    	final String EMPLOYEE_EYEBROW_LENGTH = "employee_eyebrow_length";
     	
     	EdmManager dms = ds.getContext().getBean( EdmManager.class );
     	try{

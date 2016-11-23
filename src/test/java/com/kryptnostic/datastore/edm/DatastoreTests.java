@@ -236,8 +236,8 @@ public class DatastoreTests extends BootstrapDatastoreWithCassandra {
     @Test
     public void testAddPropertyTypeToEntityType() {
     	//Desired result: Properties EMPLOYEE_COUNTRY, EMPLOYEE_WEIGHT are added to ENTITY_TYPE (Employees)
-        final String EMPLOYEE_COUNTRY= "employee-country";
-        final String EMPLOYEE_WEIGHT= "employee-weight";
+        final String EMPLOYEE_COUNTRY= "employee_country";
+        final String EMPLOYEE_WEIGHT= "employee_weight";
         
         EdmManager dms = ds.getContext().getBean( EdmManager.class );
 

@@ -33,7 +33,6 @@ import com.kryptnostic.datastore.services.ActionAuthorizationService;
 import com.kryptnostic.datastore.services.PermissionsService;
 import com.kryptnostic.instrumentation.v1.exceptions.types.UnauthorizedException;
 
-
 @RestController
 public class PermissionsController implements PermissionsApi {
 
@@ -105,7 +104,7 @@ public class PermissionsController implements PermissionsApi {
                         break;
                 }
             }
-        }
+        }        
         return null;
     }
 
@@ -142,7 +141,7 @@ public class PermissionsController implements PermissionsApi {
                         break;
                 }
             }
-        }
+        }       
         return null;
     }
 
@@ -178,7 +177,7 @@ public class PermissionsController implements PermissionsApi {
                         break;
                 }
             }
-        }
+        }        
         return null;
     }
 
@@ -193,7 +192,7 @@ public class PermissionsController implements PermissionsApi {
             for ( FullQualifiedName entityTypeFqn : entityTypeFqns ) {
                 ps.removePermissionsForEntityType( entityTypeFqn );
             }
-        }
+        }        
         return null;
     }
 
@@ -208,7 +207,7 @@ public class PermissionsController implements PermissionsApi {
             for ( String entitySetName : entitySetNames ) {
                 ps.removePermissionsForEntitySet( entitySetName );
             }
-        }
+        }        
         return null;
     }
 
@@ -226,7 +225,7 @@ public class PermissionsController implements PermissionsApi {
                     ps.removePermissionsForPropertyTypeInEntityType( request.getType(), propertyTypeFqn );
                 }
             }
-        }
+        }        
         return null;
     }
 
@@ -241,7 +240,7 @@ public class PermissionsController implements PermissionsApi {
             for ( FullQualifiedName entityTypeFqn : entityTypeFqns ) {
                 ps.removePermissionsForPropertyTypeInEntityType( entityTypeFqn );
             }
-        }
+        }      
         return null;
     }
 
@@ -261,7 +260,7 @@ public class PermissionsController implements PermissionsApi {
                             propertyTypeFqn );
                 }
             }
-        }
+        }        
         return null;
     }
 
@@ -276,7 +275,7 @@ public class PermissionsController implements PermissionsApi {
             for ( String entitySetName : entitySetNames ) {
                 ps.removePermissionsForPropertyTypeInEntitySet( entitySetName );
             }
-        }
+        }        
         return null;
     }
 
@@ -408,7 +407,7 @@ public class PermissionsController implements PermissionsApi {
                 default:
                     break;
             }
-        }
+        }        
         return null;
     }
 
@@ -424,7 +423,7 @@ public class PermissionsController implements PermissionsApi {
         } else {
             //TODO write an error handler
             throw new UnauthorizedException();
-        }
+        }        
         return null;
     }
 

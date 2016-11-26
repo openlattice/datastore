@@ -32,30 +32,30 @@ import com.dataloom.edm.internal.PropertyType;
 import com.dataloom.edm.internal.Schema;
 import com.dataloom.edm.requests.GetSchemasRequest;
 import com.dataloom.edm.requests.GetSchemasRequest.TypeDetails;
-import com.dataloom.edm.requests.PutSchemaRequest;
 import com.google.common.base.Optional;
 import com.google.common.collect.Sets;
 import com.kryptnostic.datastore.ServerUtil;
 import com.kryptnostic.datastore.exceptions.ResourceNotFoundException;
 import com.kryptnostic.datastore.services.ActionAuthorizationService;
 import com.kryptnostic.datastore.services.EdmManager;
+
 import com.kryptnostic.datastore.services.PermissionsService;
 
 @RestController
 public class EdmController implements EdmApi {
     @Inject
-    private EdmManager                 modelService;
+    private EdmManager modelService;
 
     @Inject
-    private PermissionsService         ps;
+    private PermissionsService ps;
 
     @Inject
     private ActionAuthorizationService authzService;
 
     @Override
     @RequestMapping(
-        method = RequestMethod.GET,
-        produces = MediaType.APPLICATION_JSON_VALUE )
+            method = RequestMethod.GET,
+            produces = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
     public EntityDataModel getEntityDataModel() {
         return modelService.getEntityDataModel();
@@ -114,21 +114,16 @@ public class EdmController implements EdmApi {
         return modelService.getSchemasInNamespace( namespace, EnumSet.allOf( TypeDetails.class ) );
     }
 
-    /*
-     * (non-Javadoc)
-     * @see com.kryptnostic.datastore.edm.controllers.EdmAPI#createSchema(java.lang.String,
-     * com.google.common.base.Optional)
-     */
     @Override
     @RequestMapping(
-        path = "/" + SCHEMA_BASE_PATH,
+        path = "/" + SCHEMA_BASE_PATH + "/" + NAMESPACE_PATH + "/" + NAME_PATH,
         method = RequestMethod.PUT,
         consumes = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
-    public Void putSchema( @RequestBody PutSchemaRequest request ) {
+    public Void createEmptySchema( @PathVariable( NAMESPACE ) String namespace, @PathVariable( NAME ) String name ) {
         modelService
                 .upsertSchema(
-                        new Schema().setNamespace( request.getNamespace() ).setName( request.getName() ) );
+                        new Schema().setNamespace( namespace ).setName( name ) );
         return null;
     }
 
@@ -166,9 +161,8 @@ public class EdmController implements EdmApi {
         method = RequestMethod.GET,
         produces = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
-    public Iterable<EntitySetWithPermissions> getEntitySets( @RequestParam(
-        value = IS_OWNER,
-        required = false ) Boolean isOwner ) {
+    public Iterable<EntitySetWithPermissions> getEntitySets(
+            @RequestParam( value = IS_OWNER, required = false ) Boolean isOwner ) {
         String username = authzService.getUsername();
         List<String> currentRoles = authzService.getRoles();
 
@@ -189,8 +183,8 @@ public class EdmController implements EdmApi {
                         .filter( entitySet -> !ownedSets.contains( entitySet.getName() ) )
                         .filter( entitySet -> authzService.getEntitySet( entitySet.getName() ) )
                         .map( entitySet -> new EntitySetWithPermissions().setEntitySet( entitySet )
-                                .setPermissions(
-                                        ps.getEntitySetAclsForUser( username, currentRoles, entitySet.getName() ) )
+                                .setPermissions( ps
+                                        .getEntitySetAclsForUser( username, currentRoles, entitySet.getName() ) )
                                 .setIsOwner( false ) )
                         .collect( Collectors.toList() );
             }

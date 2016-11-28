@@ -287,7 +287,7 @@ public class PermissionsController implements PermissionsApi {
     @ResponseStatus( HttpStatus.OK )
     public EnumSet<Permission> getEntitySetAclsForUser( @RequestParam( NAME ) String entitySetName ) {
         if ( authzService.getEntitySet( entitySetName ) ) {
-            return ps.getEntitySetAclsForUser( authzService.getUsername(), authzService.getRoles(), entitySetName );
+            return ps.getEntitySetAclsForUser( authzService.getUserId(), authzService.getRoles(), entitySetName );
         } else {
             throw new ResourceNotFoundException( "Entity Set not found." );
         }
@@ -301,7 +301,7 @@ public class PermissionsController implements PermissionsApi {
     public Map<FullQualifiedName, EnumSet<Permission>> getPropertyTypesInEntitySetAclsForUser(
             @RequestParam( NAME ) String entitySetName ) {
         if ( authzService.getEntitySet( entitySetName ) ) {
-            return ps.getPropertyTypesInEntitySetAclsForUser( authzService.getUsername(),
+            return ps.getPropertyTypesInEntitySetAclsForUser( authzService.getUserId(),
                     authzService.getRoles(),
                     entitySetName );
         } else {
@@ -317,7 +317,7 @@ public class PermissionsController implements PermissionsApi {
     public EnumSet<Permission> getEntityTypeAclsForUser(
             @RequestParam( NAMESPACE ) String entityTypeNamespace,
             @RequestParam( NAME ) String entityTypeName ) {
-        return ps.getEntityTypeAclsForUser( authzService.getUsername(),
+        return ps.getEntityTypeAclsForUser( authzService.getUserId(),
                 authzService.getRoles(),
                 new FullQualifiedName( entityTypeNamespace, entityTypeName ) );
     }
@@ -330,7 +330,7 @@ public class PermissionsController implements PermissionsApi {
     public Map<FullQualifiedName, EnumSet<Permission>> getPropertyTypesInEntityTypeAclsForUser(
             @RequestParam( NAMESPACE ) String entityTypeNamespace,
             @RequestParam( NAME ) String entityTypeName ) {
-        return ps.getPropertyTypesInEntityTypeAclsForUser( authzService.getUsername(),
+        return ps.getPropertyTypesInEntityTypeAclsForUser( authzService.getUserId(),
                 authzService.getRoles(),
                 new FullQualifiedName( entityTypeNamespace, entityTypeName ) );
     }
@@ -392,14 +392,14 @@ public class PermissionsController implements PermissionsApi {
     public Void addPermissionsRequestForPropertyTypesInEntitySet(
            @RequestBody Set<PropertyTypeInEntitySetAclRequest> requests ) {
         
-        String username = authzService.getUsername();
-        Principal userAsPrincipal = new Principal(PrincipalType.USER, username);
+        String userId = authzService.getUserId();
+        Principal userAsPrincipal = new Principal( PrincipalType.USER ).setId( userId );
         
         for ( PropertyTypeInEntitySetAclRequest request : requests ) {
             switch ( request.getAction() ) {
                 case REQUEST:
                     // if principal is missing, would assume that user is requesting permissions for himself
-                    ps.addPermissionsRequestForPropertyTypeInEntitySet( username,
+                    ps.addPermissionsRequestForPropertyTypeInEntitySet( userId,
                             ( request.getPrincipal() != null ) ? request.getPrincipal() : userAsPrincipal,
                             request.getName(),
                             request.getPropertyType(),
@@ -436,7 +436,7 @@ public class PermissionsController implements PermissionsApi {
     @ResponseStatus( HttpStatus.OK )
     public Iterable<PropertyTypeInEntitySetAclRequestWithRequestingUser> getAllReceivedRequestsForPermissions(
             @RequestParam( value = NAME, required = false ) String entitySetName ) {
-        String username = authzService.getUsername();
+        String userId = authzService.getUserId();
         
         if( entitySetName != null && !entitySetName.isEmpty() ){
             if( authzService.getAllReceivedRequestsForPermissions( entitySetName ) ){
@@ -445,7 +445,7 @@ public class PermissionsController implements PermissionsApi {
                 throw new ResourceNotFoundException("Entity Set Not Found.");
             }
         } else {
-            return ps.getAllReceivedRequestsForPermissionsOfUsername( username );
+            return ps.getAllReceivedRequestsForPermissionsOfUserId( userId );
         }
     }
     
@@ -457,12 +457,12 @@ public class PermissionsController implements PermissionsApi {
     @ResponseStatus( HttpStatus.OK )
     public Iterable<PropertyTypeInEntitySetAclRequestWithRequestingUser> getAllSentRequestsForPermissions(
             @RequestParam( value = NAME, required = false ) String entitySetName ) {
-        String username = authzService.getUsername();
+        String userId = authzService.getUserId();
         
         if( entitySetName != null && !entitySetName.isEmpty() ){
-            return ps.getAllSentRequestsForPermissions( username, entitySetName );
+            return ps.getAllSentRequestsForPermissions( userId, entitySetName );
         } else {
-            return ps.getAllSentRequestsForPermissions( username );
+            return ps.getAllSentRequestsForPermissions( userId );
         }
     }
 

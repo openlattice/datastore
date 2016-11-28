@@ -60,10 +60,9 @@ import retrofit2.Retrofit;
 
 public class PermissionsServiceTest {
 
-    protected static final Principal         ROLE_USER             = new Principal( PrincipalType.ROLE, "user" );
-    protected static final Principal         USER_USER             = new Principal(
-            PrincipalType.USER,
-            "support@kryptnostic.com" );
+    protected static final Principal         ROLE_USER             = new Principal( PrincipalType.ROLE ).setName( "user" );
+    protected static final Principal         USER_USER             = new Principal( PrincipalType.USER ).setId( "auth0|57e4b2d8d9d1d194778fd5b6" ).setName( "support@kryptnostic.com" );
+    protected static final Principal         USER_TEST             = new Principal( PrincipalType.USER ).setId( "auth0|582e16d13440cfa8448dff7f" ).setName( "hochung@kryptnostic.com" );
 
     protected static final String            NATION_NAMESPACE      = "us";
     protected static final FullQualifiedName NATION_SCHEMA         = new FullQualifiedName(
@@ -371,13 +370,13 @@ public class PermissionsServiceTest {
         // Expected: Listing all permissions given for the entity set
         ps.updateEntitySetsAcls(
                 ImmutableSet.of( new EntitySetAclRequest()
-                        .setPrincipal( new Principal( PrincipalType.ROLE, "ROLE_DISCOVER" ) ).setAction( Action.ADD )
+                        .setPrincipal( new Principal( PrincipalType.ROLE ).setName( "ROLE_DISCOVER" ) ).setAction( Action.ADD )
                         .setName( DYSTOPIANS ).setPermissions( EnumSet.of( Permission.DISCOVER ) ),
-                        new EntitySetAclRequest().setPrincipal( new Principal( PrincipalType.ROLE, "ROLE_READWRITE" ) )
+                        new EntitySetAclRequest().setPrincipal( new Principal( PrincipalType.ROLE ).setName( "ROLE_READWRITE" ) )
                                 .setAction( Action.ADD )
                                 .setName( DYSTOPIANS )
                                 .setPermissions( EnumSet.of( Permission.READ, Permission.WRITE ) ),
-                        new EntitySetAclRequest().setPrincipal( new Principal( PrincipalType.USER, "USER_EVERYTHING" ) )
+                        new EntitySetAclRequest().setPrincipal( USER_TEST )
                                 .setAction( Action.ADD )
                                 .setName( DYSTOPIANS ).setPermissions(
                                         EnumSet.of( Permission.DISCOVER, Permission.READ, Permission.WRITE ) ) ) );

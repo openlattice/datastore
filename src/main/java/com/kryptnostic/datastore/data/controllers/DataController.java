@@ -235,7 +235,7 @@ public class DataController implements DataApi {
                         .collect( Collectors.toSet() );
                 entityTypesAndAuthorizedProperties.put( fqn,  authorizedPropertyFqns );
             } else {
-                logger.error( "GetAllEntitiesOfType for " + fqn + " failed for user " + authzService.getUsername() );
+                logger.error( "GetAllEntitiesOfType for " + fqn + " failed for user " + authzService.getUserId() );
             }
         }
         return dataService.readAllEntitiesOfSchema( entityTypesAndAuthorizedProperties );

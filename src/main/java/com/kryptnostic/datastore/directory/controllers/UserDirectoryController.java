@@ -14,12 +14,12 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.kryptnostic.datastore.services.Auth0UserBasic;
-import com.kryptnostic.datastore.services.UserDirectoryApi;
+import com.dataloom.directory.pojo.Auth0UserBasic;
+import com.dataloom.directory.UserDirectoryApi;
 import com.kryptnostic.datastore.services.UserDirectoryService;
 
 @RestController
-@RequestMapping( UserDirectoryApi.CONTROLLER )
+@RequestMapping( "/" + UserDirectoryApi.CONTROLLER )
 public class UserDirectoryController implements UserDirectoryApi {
 
     @Inject
@@ -27,7 +27,7 @@ public class UserDirectoryController implements UserDirectoryApi {
 
     @Override
     @RequestMapping(
-            path = UserDirectoryApi.USERS,
+            path = "/" +  UserDirectoryApi.USERS,
             method = RequestMethod.GET,
             produces = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
@@ -37,7 +37,7 @@ public class UserDirectoryController implements UserDirectoryApi {
 
     @Override
     @RequestMapping(
-            path = UserDirectoryApi.USERS + UserDirectoryApi.USER_ID_PATH,
+            path = "/" +  UserDirectoryApi.USERS + "/" +  UserDirectoryApi.USER_ID_PATH,
             method = RequestMethod.GET,
             produces = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
@@ -47,7 +47,7 @@ public class UserDirectoryController implements UserDirectoryApi {
 
     @Override
     @RequestMapping(
-            path = UserDirectoryApi.USERS + UserDirectoryApi.ROLES,
+            path = "/" +  UserDirectoryApi.USERS + "/" +  UserDirectoryApi.ROLES,
             method = RequestMethod.GET,
             produces = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
@@ -57,7 +57,7 @@ public class UserDirectoryController implements UserDirectoryApi {
 
     @Override
     @RequestMapping(
-            path = UserDirectoryApi.USERS + UserDirectoryApi.ROLES + UserDirectoryApi.ROLE_PATH,
+            path = "/" +  UserDirectoryApi.USERS + "/" +  UserDirectoryApi.ROLES + "/" +  UserDirectoryApi.ROLE_PATH,
             method = RequestMethod.GET,
             produces = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
@@ -67,7 +67,7 @@ public class UserDirectoryController implements UserDirectoryApi {
 
     @Override
     @RequestMapping(
-            path = UserDirectoryApi.USERS + UserDirectoryApi.ROLES + UserDirectoryApi.RESET + UserDirectoryApi.USER_ID_PATH,
+            path = "/" +  UserDirectoryApi.USERS + "/" +  UserDirectoryApi.ROLES + "/" +  UserDirectoryApi.RESET + "/" +  UserDirectoryApi.USER_ID_PATH,
             method = RequestMethod.PATCH,
             consumes = MediaType.APPLICATION_JSON_VALUE,
             produces = MediaType.APPLICATION_JSON_VALUE )

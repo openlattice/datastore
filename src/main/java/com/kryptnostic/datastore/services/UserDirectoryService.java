@@ -1,5 +1,6 @@
 package com.kryptnostic.datastore.services;
 
+import com.dataloom.directory.pojo.Auth0UserBasic;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import org.json.simple.JSONObject;
@@ -21,7 +22,7 @@ public class UserDirectoryService {
 
     public UserDirectoryService( String token ) {
         adapter = new RestAdapter.Builder()
-                .setEndpoint( "https://loom.auth0.com/api/v2" )
+                .setEndpoint( "https://loom.auth0.com/api/v2/" )
                 .setRequestInterceptor(
                         (RequestInterceptor) facade -> {
                             facade.addHeader( "Authorization", token );
@@ -35,30 +36,29 @@ public class UserDirectoryService {
 
     public Map<String, Auth0UserBasic> getAllUsers() {
         Map<String, Auth0UserBasic> res = Maps.newHashMap();
-        JSONObject[] response = auth0ManagementApi.getAllUsers();
+        JSONObject[] jsonObjects = auth0ManagementApi.getAllUsers();
 
-        for ( int i = 0; i < response.length; i++ ) {
-            String userId = (String) response[ i ].get( "user_id" );
-            String email = (String) response[ i ].get( "email" );
-            Map<Object, List<String>> app_metadata = (Map<Object, List<String>>) response[ i ].get( "app_metadata" );
-            if ( app_metadata == null ) {
-                app_metadata = Maps.newHashMap();
-            }
-            res.put( userId,
-                    new Auth0UserBasic( userId, email, app_metadata.getOrDefault( "roles", Lists.newArrayList() ) ) );
+        for ( int i = 0; i < jsonObjects.length; i++ ) {
+            Auth0UserBasic auth0UserBasic = parsingToPOJO( jsonObjects[i] );
+            res.put( auth0UserBasic.getUserId(), auth0UserBasic );
         }
         return res;
     }
 
     public Auth0UserBasic getUser( String userId ) {
-        JSONObject response = auth0ManagementApi.getUser( userId );
-        String user_id = (String) response.get( "user_id" );
-        String email = (String) response.get( "email" );
-        Map<Object, List<String>> app_metadata = (Map<Object, List<String>>) response.get( "app_metadata" );
+        JSONObject jsonObject = auth0ManagementApi.getUser( userId );
+        return parsingToPOJO( jsonObject );
+    }
+
+    private Auth0UserBasic parsingToPOJO( JSONObject jsonObject ){
+        String user_id = (String) jsonObject.get( "user_id" );
+        String email = (String) jsonObject.get( "email" );
+        String nickname = (String) jsonObject.get( "nickname" );
+        Map<Object, List<String>> app_metadata = (Map<Object, List<String>>) jsonObject.get( "app_metadata" );
         if ( app_metadata == null ) {
             app_metadata = Maps.newHashMap();
         }
-        return new Auth0UserBasic( userId, email, app_metadata.getOrDefault( "roles", Lists.newArrayList() ) );
+        return new Auth0UserBasic( user_id, email, nickname, app_metadata.getOrDefault( "roles", Lists.newArrayList() ) );
     }
 
     public Map<String, List<Auth0UserBasic>> getAllUsersGroupByRole() {

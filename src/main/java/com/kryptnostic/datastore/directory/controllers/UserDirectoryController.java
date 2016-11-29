@@ -72,7 +72,8 @@ public class UserDirectoryController implements UserDirectoryApi {
             consumes = MediaType.APPLICATION_JSON_VALUE,
             produces = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
-    public void resetRolesOfUser( @PathVariable( USER_ID ) String userId, @RequestBody List<String> roles ) {
+    public Void resetRolesOfUser( @PathVariable( USER_ID ) String userId, @RequestBody List<String> roles ) {
         userDirectoryService.resetRolesOfUser( userId, roles );
+        return null;
     }
 }

@@ -1,6 +1,12 @@
 package com.kryptnostic.datastore.services;
 
+import java.math.BigDecimal;
+import java.net.InetAddress;
+import java.nio.ByteBuffer;
+import java.text.DateFormat;
 import java.util.Collection;
+import java.util.Date;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -19,6 +25,7 @@ import com.dataloom.edm.internal.EntityType;
 import com.dataloom.edm.internal.PropertyType;
 import com.datastax.driver.core.BoundStatement;
 import com.datastax.driver.core.DataType;
+import com.datastax.driver.core.LocalDate;
 import com.datastax.driver.core.ResultSetFuture;
 import com.datastax.driver.core.Session;
 import com.datastax.driver.mapping.MappingManager;
@@ -174,19 +181,13 @@ public class DataService {
 
             obj.entries().stream().filter( e -> authorizedPropertyFqns.contains( e.getKey() ) ).forEach( e -> {
                 DataType dt = propertyDataTypeMap.get( e.getKey() );
-                Object propertyValue = e.getValue();
-                if ( dt.equals( DataType.bigint() ) ) {
-                    propertyValue = Long.valueOf( propertyValue.toString() );
-                } else if ( dt.equals( DataType.uuid() ) ) {
-                    // TODO Ho Chung: Added conversion back to UUID; haven't checked other types
-                    propertyValue = UUID.fromString( propertyValue.toString() );
-                }
-
+                Object propertyValue = CassandraEdmMapping.recoverJavaTypeFromCqlDataType( e.getValue(), dt );
+                
                 bindList[ cqm.mapping.get( e.getKey() ) ] = propertyValue;
             } );
-
+            
             BoundStatement bq = cqm.stmt.bind( bindList );
-
+            
             return session.executeAsync( bq );
         } ).collect( Collectors.toList() );
         

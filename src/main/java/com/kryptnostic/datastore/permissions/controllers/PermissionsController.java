@@ -24,6 +24,7 @@ import com.dataloom.authorization.requests.PermissionsInfo;
 import com.dataloom.authorization.requests.Principal;
 import com.dataloom.authorization.requests.PrincipalType;
 import com.dataloom.authorization.requests.PropertyTypeInEntitySetAclRemovalRequest;
+import com.dataloom.authorization.requests.PropertyTypeInEntitySetAclRequestWithRequestingUser;
 import com.dataloom.authorization.requests.PropertyTypeInEntityTypeAclRemovalRequest;
 import com.dataloom.authorization.requests.PropertyTypeInEntityTypeAclRequest;
 import com.dataloom.edm.requests.PropertyTypeInEntitySetAclRequest;
@@ -32,7 +33,6 @@ import com.kryptnostic.datastore.exceptions.ResourceNotFoundException;
 import com.kryptnostic.datastore.services.ActionAuthorizationService;
 import com.kryptnostic.datastore.services.PermissionsService;
 import com.kryptnostic.instrumentation.v1.exceptions.types.UnauthorizedException;
-
 
 @RestController
 public class PermissionsController implements PermissionsApi {
@@ -105,7 +105,7 @@ public class PermissionsController implements PermissionsApi {
                         break;
                 }
             }
-        }
+        }        
         return null;
     }
 
@@ -142,7 +142,7 @@ public class PermissionsController implements PermissionsApi {
                         break;
                 }
             }
-        }
+        }       
         return null;
     }
 
@@ -178,7 +178,7 @@ public class PermissionsController implements PermissionsApi {
                         break;
                 }
             }
-        }
+        }        
         return null;
     }
 
@@ -193,7 +193,7 @@ public class PermissionsController implements PermissionsApi {
             for ( FullQualifiedName entityTypeFqn : entityTypeFqns ) {
                 ps.removePermissionsForEntityType( entityTypeFqn );
             }
-        }
+        }        
         return null;
     }
 
@@ -208,7 +208,7 @@ public class PermissionsController implements PermissionsApi {
             for ( String entitySetName : entitySetNames ) {
                 ps.removePermissionsForEntitySet( entitySetName );
             }
-        }
+        }        
         return null;
     }
 
@@ -226,7 +226,7 @@ public class PermissionsController implements PermissionsApi {
                     ps.removePermissionsForPropertyTypeInEntityType( request.getType(), propertyTypeFqn );
                 }
             }
-        }
+        }        
         return null;
     }
 
@@ -241,7 +241,7 @@ public class PermissionsController implements PermissionsApi {
             for ( FullQualifiedName entityTypeFqn : entityTypeFqns ) {
                 ps.removePermissionsForPropertyTypeInEntityType( entityTypeFqn );
             }
-        }
+        }      
         return null;
     }
 
@@ -261,7 +261,7 @@ public class PermissionsController implements PermissionsApi {
                             propertyTypeFqn );
                 }
             }
-        }
+        }        
         return null;
     }
 
@@ -276,7 +276,7 @@ public class PermissionsController implements PermissionsApi {
             for ( String entitySetName : entitySetNames ) {
                 ps.removePermissionsForPropertyTypeInEntitySet( entitySetName );
             }
-        }
+        }        
         return null;
     }
 
@@ -408,7 +408,7 @@ public class PermissionsController implements PermissionsApi {
                 default:
                     break;
             }
-        }
+        }        
         return null;
     }
 
@@ -424,7 +424,7 @@ public class PermissionsController implements PermissionsApi {
         } else {
             //TODO write an error handler
             throw new UnauthorizedException();
-        }
+        }        
         return null;
     }
 
@@ -434,7 +434,7 @@ public class PermissionsController implements PermissionsApi {
         method = RequestMethod.GET,
         produces = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
-    public Iterable<PropertyTypeInEntitySetAclRequest> getAllReceivedRequestsForPermissions(
+    public Iterable<PropertyTypeInEntitySetAclRequestWithRequestingUser> getAllReceivedRequestsForPermissions(
             @RequestParam( value = NAME, required = false ) String entitySetName ) {
         String username = authzService.getUsername();
         
@@ -455,7 +455,7 @@ public class PermissionsController implements PermissionsApi {
         method = RequestMethod.GET,
         produces = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
-    public Iterable<PropertyTypeInEntitySetAclRequest> getAllSentRequestsForPermissions(
+    public Iterable<PropertyTypeInEntitySetAclRequestWithRequestingUser> getAllSentRequestsForPermissions(
             @RequestParam( value = NAME, required = false ) String entitySetName ) {
         String username = authzService.getUsername();
         

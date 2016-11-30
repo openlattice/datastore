@@ -2,6 +2,7 @@ package com.kryptnostic.datastore.data.controllers;
 
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -13,6 +14,8 @@ import javax.servlet.http.HttpServletResponse;
 import javax.ws.rs.BadRequestException;
 
 import org.apache.olingo.commons.api.edm.FullQualifiedName;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -22,6 +25,7 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.client.HttpServerErrorException;
 
 import com.dataloom.data.DataApi;
 import com.dataloom.data.requests.CreateEntityRequest;
@@ -30,6 +34,7 @@ import com.dataloom.edm.internal.EntityType;
 import com.google.common.collect.Multimap;
 import com.kryptnostic.datastore.constants.CustomMediaType;
 import com.kryptnostic.datastore.constants.DatastoreConstants;
+import com.kryptnostic.datastore.exceptions.ResourceNotFoundException;
 import com.kryptnostic.datastore.services.ActionAuthorizationService;
 import com.kryptnostic.datastore.services.DataService;
 import com.kryptnostic.datastore.services.EdmManager;
@@ -37,6 +42,7 @@ import com.kryptnostic.datastore.services.EdmManager;
 @RestController
 @RequestMapping( "/" + DataApi.CONTROLLER )
 public class DataController implements DataApi {
+    private static final Logger logger = LoggerFactory.getLogger( DataController.class );
     // TODO: Move to DataApi
     // TODO: Make spring handling case insensitive to follow correct Java style.
     public static enum FileType {
@@ -140,14 +146,15 @@ public class DataController implements DataApi {
     @Override
     public Iterable<Multimap<FullQualifiedName, Object>> getAllEntitiesOfType(
             FullQualifiedName fqn ) {
-        if ( authzService.getAllEntitiesOfType( fqn ) ) {
+        if( dms.checkEntityTypeExists( fqn ) && authzService.getAllEntitiesOfType( fqn ) ){
             EntityType entityType = dms.getEntityType( fqn );
             Set<FullQualifiedName> authorizedPropertyFqns = entityType.getProperties().stream()
                     .filter( propertyTypeFqn -> authzService.readPropertyTypeInEntityType( fqn, propertyTypeFqn ) )
                     .collect( Collectors.toSet() );
             return dataService.readAllEntitiesOfType( fqn, authorizedPropertyFqns );
+        } else {
+            throw new ResourceNotFoundException( "Entity Type not found.");
         }
-        return null;
     }
 
     @RequestMapping(
@@ -219,15 +226,17 @@ public class DataController implements DataApi {
     public Iterable<Iterable<Multimap<FullQualifiedName, Object>>> getAllEntitiesOfTypes(
             List<FullQualifiedName> fqns ) {
         Map<FullQualifiedName, Collection<FullQualifiedName>> entityTypesAndAuthorizedProperties = new HashMap<>();
-
-        for ( FullQualifiedName fqn : fqns ) {
+        
+        for( FullQualifiedName fqn : fqns ){
             EntityType entityType = dms.getEntityType( fqn );
-            if ( authzService.getAllEntitiesOfType( fqn ) ) {
+            if( dms.checkEntityTypeExists( fqn ) && authzService.getAllEntitiesOfType( fqn ) ){
                 Set<FullQualifiedName> authorizedPropertyFqns = entityType.getProperties().stream()
                         .filter( propertyTypeFqn -> authzService.readPropertyTypeInEntityType( fqn, propertyTypeFqn ) )
                         .collect( Collectors.toSet() );
-                entityTypesAndAuthorizedProperties.put( fqn, authorizedPropertyFqns );
-            } // TODO log error messages if user doesn't have privilege to read some types
+                entityTypesAndAuthorizedProperties.put( fqn,  authorizedPropertyFqns );
+            } else {
+                logger.error( "GetAllEntitiesOfType for " + fqn + " failed for user " + authzService.getUsername() );
+            }
         }
         return dataService.readAllEntitiesOfSchema( entityTypesAndAuthorizedProperties );
     }
@@ -259,9 +268,16 @@ public class DataController implements DataApi {
         } else {
             authorizedToWrite = authzService.createEntityOfEntityType( createEntityRequest.getEntityType() );
         }
+        
+        if( authorizedToWrite ){
+            EntityType entityType;
+            
+            try{
+                entityType = dms.getEntityType( createEntityRequest.getEntityType() );
+            } catch( IllegalArgumentException e ){
+                throw new BadRequestException( e.getMessage() );
+            }
 
-        if ( authorizedToWrite ) {
-            EntityType entityType = dms.getEntityType( createEntityRequest.getEntityType() );
             Set<FullQualifiedName> authorizedPropertyFqns;
 
             if ( entitySetNamePresent ) {
@@ -275,8 +291,12 @@ public class DataController implements DataApi {
                                 .writePropertyTypeInEntityType( createEntityRequest.getEntityType(), propertyTypeFqn ) )
                         .collect( Collectors.toSet() );
             }
-
-            dataService.createEntityData( createEntityRequest, authorizedPropertyFqns );
+            
+            try{
+                dataService.createEntityData( createEntityRequest, authorizedPropertyFqns );
+            } catch (Exception e ){
+                throw new HttpServerErrorException( HttpStatus.INTERNAL_SERVER_ERROR, e.getMessage() ); 
+            }
         }
         return null;
     }

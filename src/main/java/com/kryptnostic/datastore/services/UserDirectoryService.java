@@ -22,7 +22,7 @@ public class UserDirectoryService {
 
     public UserDirectoryService( String token ) {
         adapter = new RestAdapter.Builder()
-                .setEndpoint( "https://loom.auth0.com/api/v2/" )
+                .setEndpoint( "https://loom.auth0.com/api/v2" )
                 .setRequestInterceptor(
                         (RequestInterceptor) facade -> {
                             facade.addHeader( "Authorization", token );

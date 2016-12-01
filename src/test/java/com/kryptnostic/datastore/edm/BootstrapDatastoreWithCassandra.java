@@ -5,9 +5,10 @@ import java.util.concurrent.Semaphore;
 
 import org.apache.olingo.commons.api.edm.EdmPrimitiveTypeKind;
 import org.apache.olingo.commons.api.edm.FullQualifiedName;
-import org.junit.AfterClass;
 import org.junit.Assert;
 
+import com.dataloom.authorization.requests.Principal;
+import com.dataloom.authorization.requests.PrincipalType;
 import com.dataloom.edm.internal.EntityType;
 import com.dataloom.edm.internal.PropertyType;
 import com.google.common.collect.ImmutableSet;
@@ -51,7 +52,9 @@ public class BootstrapDatastoreWithCassandra {
     protected static final String               ENTITY_TYPE_EXISTS_MSG        = "Entity type of same name already exists.";
     protected static final String               ENTITY_SET_EXISTS_MSG        = "Entity set already exists.";
     protected static final String               SCHEMA_EXISTS_MSG        = "Failed to create schema.";
-    
+    protected static final Principal            principal                = new Principal(
+            PrincipalType.USER,
+            "tests|blahblah" );
     public static void init() {
         if ( initLock.tryAcquire() ) {
             ds.intercrop( PODS.toArray( new Class<?>[ 0 ] ) );
@@ -110,7 +113,7 @@ public class BootstrapDatastoreWithCassandra {
                         new FullQualifiedName( NAMESPACE, EMPLOYEE_DEPT ),
                         new FullQualifiedName( NAMESPACE, SALARY ) ) );
         try{
-            dms.createEntityType( metadataLevel );
+            dms.createEntityType( principal , metadataLevel );
         } catch ( IllegalArgumentException e ){
             //Only acceptable exception is entity type already exists
             Assert.assertEquals( ENTITY_TYPE_EXISTS_MSG, e.getMessage() );
@@ -124,7 +127,7 @@ public class BootstrapDatastoreWithCassandra {
                         new FullQualifiedName( NAMESPACE, EMPLOYEE_DEPT ),
                         new FullQualifiedName( NAMESPACE, SALARY ) ) );
         try{
-            dms.createEntityType( metadataLevelMars );
+            dms.createEntityType( principal , metadataLevelMars );
         } catch ( IllegalArgumentException e ){
             //Only acceptable exception is entity type already exists
             Assert.assertEquals( ENTITY_TYPE_EXISTS_MSG, e.getMessage() );
@@ -139,7 +142,7 @@ public class BootstrapDatastoreWithCassandra {
                         new FullQualifiedName( NAMESPACE, EMPLOYEE_DEPT ),
                         new FullQualifiedName( NAMESPACE, SALARY ) ) );
         try{
-            dms.createEntityType( metadataLevelSaturn );
+            dms.createEntityType( principal , metadataLevelSaturn );
         } catch ( IllegalArgumentException e ){
             //Only acceptable exception is entity type already exists
             Assert.assertEquals( ENTITY_TYPE_EXISTS_MSG, e.getMessage() );

@@ -4,6 +4,7 @@ import digital.loom.rhizome.authentication.Auth0Pod;
 import org.apache.olingo.commons.api.edm.EdmPrimitiveTypeKind;
 import org.apache.olingo.commons.api.edm.FullQualifiedName;
 
+import com.dataloom.authorization.Principals;
 import com.dataloom.data.serializers.FullQualifedNameJacksonDeserializer;
 import com.dataloom.data.serializers.FullQualifedNameJacksonSerializer;
 import com.dataloom.edm.internal.EntityType;
@@ -27,16 +28,16 @@ import com.kryptnostic.rhizome.registries.ObjectMapperRegistry;
 
 public class Datastore extends BaseRhizomeServer {
     @Deprecated
-    public static final String ES_PRODUCTS_NAME = "Products";
-    public static final Class<?>[] webPods       = new Class<?>[] { DatastoreServletsPod.class,
+    public static final String     ES_PRODUCTS_NAME = "Products";
+    public static final Class<?>[] webPods          = new Class<?>[] { DatastoreServletsPod.class,
             DataStoreSecurityPod.class, };
-    public static final Class<?>[] rhizomePods   = new Class<?>[] {
+    public static final Class<?>[] rhizomePods      = new Class<?>[] {
             CassandraPod.class,
             BaseSerializersPod.class,
             RegistryBasedHazelcastInstanceConfigurationPod.class,
-            Auth0Pod.class};
-            
-    public static final Class<?>[] datastorePods = new Class<?>[] {
+            Auth0Pod.class };
+
+    public static final Class<?>[] datastorePods    = new Class<?>[] {
             DatastoreServicesPod.class,
             DatastoreTypeCodecsPod.class, DatastoreStreamSerializersPod.class
     };
@@ -66,7 +67,6 @@ public class Datastore extends BaseRhizomeServer {
                 KryptnosticEdmProvider.NAMESPACE,
                 ET_PRODUCT_NAME );
 
-
         dms.createPropertyType( new PropertyType().setNamespace( KryptnosticEdmProvider.NAMESPACE ).setName( "ID" )
                 .setDatatype( EdmPrimitiveTypeKind.Int32 ).setMultiplicity( 0 ) );
         dms.createPropertyType( new PropertyType().setNamespace( KryptnosticEdmProvider.NAMESPACE ).setName( "Name" )
@@ -82,7 +82,7 @@ public class Datastore extends BaseRhizomeServer {
                         new FullQualifiedName( KryptnosticEdmProvider.NAMESPACE, "Name" ),
                         new FullQualifiedName( KryptnosticEdmProvider.NAMESPACE, "Description" ) ) );
 
-        dms.createEntityType( product );
+        dms.createEntityType( Principals.getCurrentUser(), product );
         dms.createEntitySet( ET_PRODUCT_FQN, ES_PRODUCTS_NAME, null );
         dms.createEntitySet( new FullQualifiedName( KryptnosticEdmProvider.NAMESPACE, "metadataLevel" ),
                 "metadataLevels",

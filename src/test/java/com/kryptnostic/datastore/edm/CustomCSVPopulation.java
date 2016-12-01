@@ -42,6 +42,8 @@ import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import com.dataloom.authorization.requests.Principal;
+import com.dataloom.authorization.requests.PrincipalType;
 import com.dataloom.edm.internal.EntityType;
 import com.dataloom.edm.internal.PropertyType;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -87,7 +89,9 @@ public class CustomCSVPopulation {
 
     // Random
     public static Map<String, Supplier>      RandomGenerator     = new HashMap<>();
-
+    public static final Principal            principal           = new Principal(
+            PrincipalType.USER,
+            "tests|blahblah" );
     // Partition Key Count
     public static int                        partitionKey        = 0;
 
@@ -295,7 +299,7 @@ public class CustomCSVPopulation {
             entityType.setProperties( setPropertyTypesFQN );
 
             // Create Entity Type in database
-            dms.createEntityType( entityType );
+            dms.createEntityType( principal, entityType );
 
             // Update list of custom Entity Types
             EntityTypesList.add( entityTypeName );
@@ -447,7 +451,7 @@ public class CustomCSVPopulation {
         bwAverage.close();
     }
 
-    //@BeforeClass
+    // @BeforeClass
     public static void PopulateWithData() throws Exception {
         // Perhaps drop keyspace to make things cleaner
         loadDefaultPropertyTypes();
@@ -478,14 +482,14 @@ public class CustomCSVPopulation {
         System.out.println( "TEST STARTS" );
     }
 
-    //@Test
+    // @Test
     public void TestGetAllEntitiesOfType() throws IOException {
         // Time getAllEntitiesOfType 10 times
         timeGetAllEntitiesOfType( 10 );
         // Go to src/test/resources/{allResult.text, averageResult.txt} for test results.
     }
 
-    //@AfterClass
+    // @AfterClass
     public static void PlowingUnder() {
         ds.plowUnder();
         System.out.println( "TEST DONE" );

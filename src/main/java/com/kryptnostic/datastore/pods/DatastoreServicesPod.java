@@ -23,10 +23,10 @@ import com.kryptnostic.rhizome.registries.ObjectMapperRegistry;
 public class DatastoreServicesPod {
 
     @Inject
-    private HazelcastInstance hazelcastInstance;
+    private HazelcastInstance  hazelcastInstance;
 
     @Inject
-    private Session           session;
+    private Session            session;
 
     @Inject
     private Auth0Configuration auth0Configuration;
@@ -44,6 +44,7 @@ public class DatastoreServicesPod {
     @Bean
     public CassandraTableManager tableManager() {
         return new CassandraTableManager(
+                hazelcastInstance,
                 DatastoreConstants.KEYSPACE,
                 session,
                 mappingManager() );
@@ -53,15 +54,15 @@ public class DatastoreServicesPod {
     public PermissionsService permissionsService() {
         return new PermissionsService( session, mappingManager(), tableManager() );
     }
-    
+
     @Bean
-    public ActionAuthorizationService authzService(){
+    public ActionAuthorizationService authzService() {
         return new ActionAuthorizationService( permissionsService() );
     }
-    
+
     @Bean
     public EdmManager dataModelService() {
-        return new EdmService( session, mappingManager(), tableManager(), permissionsService() );
+        return new EdmService( session, hazelcastInstance, mappingManager(), tableManager(), permissionsService() );
     }
 
     @Bean
@@ -82,7 +83,7 @@ public class DatastoreServicesPod {
     }
 
     @Bean
-    public DataService dataService(){
+    public DataService dataService() {
         return new DataService(
                 DatastoreConstants.KEYSPACE,
                 hazelcastInstance,
@@ -90,8 +91,7 @@ public class DatastoreServicesPod {
                 session,
                 tableManager(),
                 storage(),
-                mappingManager()
-        );
+                mappingManager() );
     }
 
     @Bean

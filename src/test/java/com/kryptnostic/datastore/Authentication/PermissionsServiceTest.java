@@ -179,13 +179,13 @@ public class PermissionsServiceTest {
                 ImmutableSet.of( new EntityTypeAclRequest().setPrincipal( ROLE_USER ).setAction( Action.ADD )
                         .setType( NATION_CITIZENS ).setPermissions( EnumSet.of( Permission.ALTER ) ) ) );
 
+        edmApi.deleteEntityType( NATION_CITIZENS.getNamespace(), NATION_CITIZENS.getName() );
+
         // Delete
         edmApi.deletePropertyType( EMPLOYEE_ID.getNamespace(), EMPLOYEE_ID.getName() );
         edmApi.deletePropertyType( LIFE_EXPECTANCY.getNamespace(), LIFE_EXPECTANCY.getName() );
         edmApi.deletePropertyType( ADDRESS.getNamespace(), ADDRESS.getName() );
         edmApi.deletePropertyType( POSITION.getNamespace(), POSITION.getName() );
-
-        edmApi.deleteEntityType( NATION_CITIZENS.getNamespace(), NATION_CITIZENS.getName() );
 
         System.err.println( "*****And the nation fell out of sight..*****" );
         System.err.println( "*****Test ends!*****" );

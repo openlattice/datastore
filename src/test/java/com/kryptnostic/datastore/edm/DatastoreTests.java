@@ -384,11 +384,24 @@ public class DatastoreTests extends BootstrapDatastoreWithCassandra {
                 ImmutableSet.of( new FullQualifiedName( NAMESPACE, EMPLOYEE_EYEBROW_LENGTH ) ) );
     }
 
-    // @Test
+    @Test
     public void populateEmployeeCsvViaDataService() throws IOException {
         // Populate data of entity type EMPLOYEE, via DataService
         DataService dataService = ds.getContext().getBean( DataService.class );
-
+        final int NUMBER_OF_ENTITY_SETS = 10;
+        final String ENTITY_SET_NAME_PREFIX = "Employees_set_";
+        
+        for(int i = 0; i < NUMBER_OF_ENTITY_SETS; i++){
+            try{
+                dms.createEntitySet( ENTITY_TYPE,
+                        ENTITY_SET_NAME_PREFIX,
+                        "The entity set " + i + " title" );
+            } catch ( IllegalArgumentException e ){
+                //Only acceptable exception is entity type already exists
+                Assert.assertEquals( ENTITY_SET_EXISTS_MSG, e.getMessage() );
+            }
+        }
+        
         Random rand = new Random();
 
         FullQualifiedName EMPLOYEE_ID_FQN = new FullQualifiedName( NAMESPACE, EMPLOYEE_ID );
@@ -427,13 +440,21 @@ public class DatastoreTests extends BootstrapDatastoreWithCassandra {
                     entities.add( entity );
                 } else {
                     CreateEntityRequest createEntityRequest = new CreateEntityRequest(
-                            Optional.of( "Employees_set_" + rand.nextInt( 10 ) ),
+                            Optional.of( ENTITY_SET_NAME_PREFIX + rand.nextInt( NUMBER_OF_ENTITY_SETS ) ),
+                            ENTITY_TYPE,
+                            entities,
+                            Optional.absent(),
+                            Optional.absent() );
+                    
+                    CreateEntityRequest createEntityRequest2 = new CreateEntityRequest(
+                            Optional.of( ENTITY_SET_NAME ),
                             ENTITY_TYPE,
                             entities,
                             Optional.absent(),
                             Optional.absent() );
 
                     dataService.createEntityData( createEntityRequest, authorizedProperties );
+                    dataService.createEntityData( createEntityRequest2, authorizedProperties );
 
                     entities = new HashSet<>();
                     count = 0;

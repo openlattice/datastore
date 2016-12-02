@@ -61,8 +61,8 @@ import retrofit2.Retrofit;
 public class PermissionsServiceTest {
 
     protected static final Principal         ROLE_USER             = new Principal( PrincipalType.ROLE ).setName( "user" );
-    protected static final Principal         USER_USER             = new Principal( PrincipalType.USER ).setId( "auth0|57e4b2d8d9d1d194778fd5b6" ).setName( "support@kryptnostic.com" );
-    protected static final Principal         USER_TEST             = new Principal( PrincipalType.USER ).setId( "auth0|582e16d13440cfa8448dff7f" ).setName( "hochung@kryptnostic.com" );
+    protected static final Principal         USER_USER             = new Principal( PrincipalType.USER ).setId( "auth0|57e4b2d8d9d1d194778fd5b6" );
+    protected static final Principal         USER_TEST             = new Principal( PrincipalType.USER ).setId( "auth0|582e16d13440cfa8448dff7f" );
 
     protected static final String            NATION_NAMESPACE      = "us";
     protected static final FullQualifiedName NATION_SCHEMA         = new FullQualifiedName(
@@ -172,7 +172,7 @@ public class PermissionsServiceTest {
         System.err.println( "*********************" );
     }
 
-    @AfterClass 
+    @AfterClass
     public static void cleanUp() {
         // Give permissions
         ps.updateEntityTypesAcls(
@@ -953,9 +953,9 @@ public class PermissionsServiceTest {
 
         // Add permissions request
         permissionsService.addPermissionsRequestForPropertyTypeInEntitySet(
-                "redditUser1", ROLE_USER, CATE, ADDRESS, EnumSet.of( Permission.READ ) );
+                USER_TEST.getId(), ROLE_USER, CATE, ADDRESS, EnumSet.of( Permission.READ ) );
         permissionsService.addPermissionsRequestForPropertyTypeInEntitySet(
-                "redditUser314",
+                USER_TEST.getId(),
                 USER_USER,
                 DOGE,
                 LIFE_EXPECTANCY,

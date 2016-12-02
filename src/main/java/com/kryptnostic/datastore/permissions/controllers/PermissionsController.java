@@ -33,7 +33,6 @@ import com.google.common.collect.Iterables;
 import com.kryptnostic.datastore.exceptions.ResourceNotFoundException;
 import com.kryptnostic.datastore.services.ActionAuthorizationService;
 import com.kryptnostic.datastore.services.PermissionsService;
-import com.kryptnostic.datastore.services.UserDirectoryService;
 import com.kryptnostic.datastore.util.PermissionsResultsAdapter;
 import com.kryptnostic.instrumentation.v1.exceptions.types.UnauthorizedException;
 

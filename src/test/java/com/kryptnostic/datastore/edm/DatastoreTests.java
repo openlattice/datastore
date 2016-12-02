@@ -384,7 +384,7 @@ public class DatastoreTests extends BootstrapDatastoreWithCassandra {
                 ImmutableSet.of( new FullQualifiedName( NAMESPACE, EMPLOYEE_EYEBROW_LENGTH ) ) );
     }
 
-    @Test
+    //@Test
     public void populateEmployeeCsvViaDataService() throws IOException {
         // Populate data of entity type EMPLOYEE, via DataService
         DataService dataService = ds.getContext().getBean( DataService.class );

@@ -13,6 +13,8 @@ import javax.inject.Inject;
 import javax.servlet.http.HttpServletResponse;
 import javax.ws.rs.BadRequestException;
 
+import com.google.common.collect.Sets;
+import org.apache.http.HttpResponse;
 import org.apache.olingo.commons.api.edm.FullQualifiedName;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -38,6 +40,8 @@ import com.kryptnostic.datastore.exceptions.ResourceNotFoundException;
 import com.kryptnostic.datastore.services.ActionAuthorizationService;
 import com.kryptnostic.datastore.services.DataService;
 import com.kryptnostic.datastore.services.EdmManager;
+import retrofit2.http.Body;
+import retrofit2.http.Path;
 
 @RestController
 @RequestMapping( "/" + DataApi.CONTROLLER )
@@ -96,6 +100,49 @@ public class DataController implements DataApi {
         if ( authzService.getAllEntitiesOfEntitySet( entitySetName ) ) {
             EntityType entityType = dms.getEntityType( entityTypeNamespace, entityTypeName );
             Set<FullQualifiedName> authorizedPropertyFqns = entityType.getProperties().stream()
+                    .filter( propertyTypeFqn -> authzService.readPropertyTypeInEntitySet( entitySetName,
+                            propertyTypeFqn ) )
+                    .collect( Collectors.toSet() );
+            return dataService.getAllEntitiesOfEntitySet( entitySetName,
+                    entityTypeNamespace,
+                    entityTypeName,
+                    authorizedPropertyFqns );
+        }
+        return null;
+    }
+
+    @RequestMapping(
+            path = "/" + DataApi.ENTITY_DATA + "/" + DataApi.NAME_SPACE_PATH + "/" + DataApi.TYPE_NAME_PATH + "/" + DataApi.NAME_PATH + "/" + DataApi.SELECTED,
+            method = RequestMethod.PUT,
+            consumes = MediaType.APPLICATION_JSON_VALUE,
+            produces = { MediaType.APPLICATION_JSON_VALUE, CustomMediaType.TEXT_CSV_VALUE } )
+    @ResponseStatus( HttpStatus.OK )
+    public Iterable<Multimap<FullQualifiedName, Object>> getSelectedEntitiesOfEntitySet(
+            @PathVariable( NAME ) String entitySetName,
+            @PathVariable( NAME_SPACE ) String entityTypeNamespace,
+            @PathVariable( TYPE_NAME ) String entityTypeName,
+            @RequestParam(
+                    value = DatastoreConstants.FILE_TYPE,
+                    required = false ) FileType fileType,
+            @RequestBody Set<FullQualifiedName> selectedProperties,
+            HttpServletResponse response ) {
+        String fileName = entitySetName + "_selected";
+        setContentDisposition( response, fileName, fileType );
+        setDownloadContentType( response, fileType );
+        return getSelectedEntitiesOfEntitySet( entitySetName, entityTypeNamespace, entityTypeName, selectedProperties );
+    }
+
+    @Override
+    public Iterable<Multimap<FullQualifiedName, Object>> getSelectedEntitiesOfEntitySet(
+            String entitySetName,
+            String entityTypeNamespace,
+            String entityTypeName,
+            Set<FullQualifiedName> selectedProperties ) {
+
+        if ( authzService.getAllEntitiesOfEntitySet( entitySetName ) ) {
+            EntityType entityType = dms.getEntityType( entityTypeNamespace, entityTypeName );
+            Set<FullQualifiedName> targetPropertyFqns = Sets.intersection( entityType.getProperties(), selectedProperties );
+            Set<FullQualifiedName> authorizedPropertyFqns = targetPropertyFqns.stream()
                     .filter( propertyTypeFqn -> authzService.readPropertyTypeInEntitySet( entitySetName,
                             propertyTypeFqn ) )
                     .collect( Collectors.toSet() );
@@ -201,6 +248,44 @@ public class DataController implements DataApi {
     @Override
     public Iterable<Multimap<FullQualifiedName, Object>> getAllEntitiesOfType( String namespace, String name ) {
         return getAllEntitiesOfType( new FullQualifiedName( namespace, name ) );
+    }
+
+    @RequestMapping(
+            path = "/" + DataApi.ENTITY_DATA + "/" + DataApi.NAME_SPACE_PATH + "/" + DataApi.NAME_PATH + "/" + DataApi.SELECTED,
+            method = RequestMethod.PUT,
+            consumes = MediaType.APPLICATION_JSON_VALUE,
+            produces = { MediaType.APPLICATION_JSON_VALUE, CustomMediaType.TEXT_CSV_VALUE } )
+    @ResponseStatus( HttpStatus.OK )
+    public Iterable<Multimap<FullQualifiedName, Object>> getSelectedEntitiesOfType(
+            @PathVariable( NAME_SPACE ) String namespace,
+            @PathVariable( NAME ) String name,
+            @RequestParam(
+                    value = DatastoreConstants.FILE_TYPE,
+                    required = false ) FileType fileType,
+            HttpServletResponse response,
+            @RequestBody Set<FullQualifiedName> selectedProperties ) {
+        String fileName = namespace + "_" + name + "_selected";
+        setContentDisposition( response, fileName, fileType );
+        setDownloadContentType( response, fileType );
+        return getSelectedEntitiesOfType( namespace, name, selectedProperties );
+    }
+
+    @Override
+    public Iterable<Multimap<FullQualifiedName, Object>> getSelectedEntitiesOfType(
+            String namespace, String name, Set<FullQualifiedName> selectedProperties ) {
+        FullQualifiedName fqn = new FullQualifiedName( namespace, name );
+        if( dms.checkEntityTypeExists( fqn ) && authzService.getAllEntitiesOfType( fqn ) ){
+            EntityType entityType = dms.getEntityType( fqn );
+            Set<FullQualifiedName> targetPropertyFqns = Sets.intersection( entityType.getProperties(), selectedProperties );
+
+            Set<FullQualifiedName> authorizedPropertyFqns = targetPropertyFqns.stream()
+                    .filter( propertyTypeFqn -> authzService.readPropertyTypeInEntityType( fqn, propertyTypeFqn ) )
+                    .collect( Collectors.toSet() );
+
+            return dataService.readAllEntitiesOfType( fqn, authorizedPropertyFqns );
+        } else {
+            throw new ResourceNotFoundException( "Entity Type not found.");
+        }
     }
 
     @RequestMapping(

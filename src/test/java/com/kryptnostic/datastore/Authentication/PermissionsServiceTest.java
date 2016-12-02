@@ -10,6 +10,7 @@ import java.util.concurrent.TimeUnit;
 import javax.ws.rs.NotFoundException;
 
 import org.apache.commons.lang3.RandomStringUtils;
+import org.apache.commons.lang3.tuple.Pair;
 import org.apache.olingo.commons.api.edm.EdmPrimitiveTypeKind;
 import org.apache.olingo.commons.api.edm.FullQualifiedName;
 import org.junit.AfterClass;
@@ -22,6 +23,8 @@ import org.slf4j.LoggerFactory;
 
 import com.auth0.Auth0;
 import com.auth0.authentication.AuthenticationAPIClient;
+import com.auth0.authentication.result.Authentication;
+import com.auth0.authentication.result.Credentials;
 import com.dataloom.authorization.requests.Action;
 import com.dataloom.authorization.requests.EntitySetAclRequest;
 import com.dataloom.authorization.requests.EntityTypeAclRequest;
@@ -60,22 +63,25 @@ import retrofit2.Retrofit;
 
 public class PermissionsServiceTest {
 
-    protected static final Principal         ROLE_USER             = new Principal( PrincipalType.ROLE ).setName( "user" );
-    protected static final Principal         USER_USER             = new Principal( PrincipalType.USER ).setId( "auth0|57e4b2d8d9d1d194778fd5b6" );
-    protected static final Principal         USER_TEST             = new Principal( PrincipalType.USER ).setId( "auth0|582e16d13440cfa8448dff7f" );
+    protected static final Principal         ROLE_USER             = new Principal( PrincipalType.ROLE )
+            .setName( "user" );
+    protected static final Principal         USER_USER             = new Principal( PrincipalType.USER )
+            .setId( "auth0|57e4b2d8d9d1d194778fd5b6" );
+    protected static final Principal         USER_TEST             = new Principal( PrincipalType.USER )
+            .setId( "auth0|582e16d13440cfa8448dff7f" );
 
     protected static final String            NATION_NAMESPACE      = "us";
     protected static final FullQualifiedName NATION_SCHEMA         = new FullQualifiedName(
             NATION_NAMESPACE,
-            "schema" );                                                                                          // schema
+            "schema" );                                                                                         // schema
 
     protected static final FullQualifiedName NATION_CITIZENS       = new FullQualifiedName(
             NATION_NAMESPACE,
-            "citizens" );                                                                                        // entity
-                                                                                                                 // type
-    protected static final String            NATION_SECRET_SERVICE = "secret_service";                           // entity
-                                                                                                                 // set
-                                                                                                                 // name
+            "citizens" );                                                                                       // entity
+                                                                                                                // type
+    protected static final String            NATION_SECRET_SERVICE = "secret_service";                          // entity
+                                                                                                                // set
+                                                                                                                // name
 
     protected static final FullQualifiedName EMPLOYEE_ID           = new FullQualifiedName(
             NATION_NAMESPACE,
@@ -83,21 +89,21 @@ public class PermissionsServiceTest {
 
     protected static final FullQualifiedName LIFE_EXPECTANCY       = new FullQualifiedName(
             NATION_NAMESPACE,
-            "life_expectancy" );                                                                                 // property
-                                                                                                                 // type
+            "life_expectancy" );                                                                                // property
+                                                                                                                // type
     protected static final FullQualifiedName ADDRESS               = new FullQualifiedName(
             NATION_NAMESPACE,
-            "address" );                                                                                         // property
-                                                                                                                 // type
+            "address" );                                                                                        // property
+                                                                                                                // type
     protected static final FullQualifiedName POSITION              = new FullQualifiedName(
             NATION_NAMESPACE,
-            "position" );                                                                                        // property
-                                                                                                                 // type
+            "position" );                                                                                       // property
+                                                                                                                // type
 
     protected static final FullQualifiedName SPIED_ON              = new FullQualifiedName(
             NATION_NAMESPACE,
-            "spied_on" );                                                                                        // property
-                                                                                                                 // type
+            "spied_on" );                                                                                       // property
+                                                                                                                // type
 
     private static final Logger              logger                = LoggerFactory.getLogger( Auth0Test.class );
     protected static final Datastore         ds                    = new Datastore();
@@ -112,13 +118,16 @@ public class PermissionsServiceTest {
 
     protected static Retrofit                dataServiceRestAdapter;
 
+    protected static String                  currentUserId;
+
     @BeforeClass
     public static void init() throws Exception {
         ds.start( "local", "cassandra" );
         configuration = ds.getContext().getBean( Auth0Configuration.class );
         auth0 = new Auth0( configuration.getClientId(), configuration.getDomain() );
         client = auth0.newAuthenticationAPIClient();
-        String jwtToken = AuthenticationTest.authenticate().getLeft().getIdToken();
+        Pair<Credentials, Authentication> auth = AuthenticationTest.authenticate();
+        String jwtToken = auth.getLeft().getIdToken();
         OkHttpClient httpClient = new OkHttpClient();
         httpClient.setConnectTimeout( 60, TimeUnit.SECONDS );
         httpClient.setReadTimeout( 60, TimeUnit.SECONDS );
@@ -129,6 +138,8 @@ public class PermissionsServiceTest {
         ps = dataServiceRestAdapter.create( PermissionsApi.class );
         edmService = ds.getContext().getBean( EdmService.class );
         permissionsService = ds.getContext().getBean( PermissionsService.class );
+        
+        currentUserId = auth.getRight().getProfile().getId();
     }
 
     @Test
@@ -218,13 +229,13 @@ public class PermissionsServiceTest {
                         POSITION ) );
         edmApi.postEntityType( citizens );
 
-        try{
+        try {
             // God creates entity set Secret Service
             EntitySet secretService = new EntitySet().setType( NATION_CITIZENS )
                     .setName( NATION_SECRET_SERVICE )
                     .setTitle( "Every nation would have one" );
             edmService.createEntitySet( secretService );
-        } catch ( IllegalArgumentException e ){
+        } catch ( IllegalArgumentException e ) {
             // This would happen if entity set already exists
             System.err.println( e );
         }
@@ -370,9 +381,11 @@ public class PermissionsServiceTest {
         // Expected: Listing all permissions given for the entity set
         ps.updateEntitySetsAcls(
                 ImmutableSet.of( new EntitySetAclRequest()
-                        .setPrincipal( new Principal( PrincipalType.ROLE ).setName( "ROLE_DISCOVER" ) ).setAction( Action.ADD )
+                        .setPrincipal( new Principal( PrincipalType.ROLE ).setName( "ROLE_DISCOVER" ) )
+                        .setAction( Action.ADD )
                         .setName( DYSTOPIANS ).setPermissions( EnumSet.of( Permission.DISCOVER ) ),
-                        new EntitySetAclRequest().setPrincipal( new Principal( PrincipalType.ROLE ).setName( "ROLE_READWRITE" ) )
+                        new EntitySetAclRequest()
+                                .setPrincipal( new Principal( PrincipalType.ROLE ).setName( "ROLE_READWRITE" ) )
                                 .setAction( Action.ADD )
                                 .setName( DYSTOPIANS )
                                 .setPermissions( EnumSet.of( Permission.READ, Permission.WRITE ) ),
@@ -438,12 +451,12 @@ public class PermissionsServiceTest {
                         POSITION,
                         LIFE_EXPECTANCY ) );
 
-//        // Test 1.67: Read data from entity type - should be able to read all data.
-//        System.err.println( " -- READ TEST 1 --" );
-//        Iterable<Multimap<FullQualifiedName, Object>> result1 = dataApi.getAllEntitiesOfType( NATION_CITIZENS );
-//        for ( Multimap<FullQualifiedName, Object> entity : result1 ) {
-//            System.err.println( entity );
-//        }
+        // // Test 1.67: Read data from entity type - should be able to read all data.
+        // System.err.println( " -- READ TEST 1 --" );
+        // Iterable<Multimap<FullQualifiedName, Object>> result1 = dataApi.getAllEntitiesOfType( NATION_CITIZENS );
+        // for ( Multimap<FullQualifiedName, Object> entity : result1 ) {
+        // System.err.println( entity );
+        // }
 
         // Cleanup: remove WRITE rights for User.
         ps.updatePropertyTypeInEntityTypeAcls( ImmutableSet.of(
@@ -480,12 +493,12 @@ public class PermissionsServiceTest {
                         POSITION,
                         LIFE_EXPECTANCY ) );
 
-//        // Test 2.67: Read data - should be able to read all data, but only EMPLOYEE_ID and ADDRESS are non-null.
-//        System.err.println( " -- READ TEST 2 --" );
-//        Iterable<Multimap<FullQualifiedName, Object>> result2 = dataApi.getAllEntitiesOfType( NATION_CITIZENS );
-//        for ( Multimap<FullQualifiedName, Object> entity : result2 ) {
-//            System.err.println( entity );
-//        }
+        // // Test 2.67: Read data - should be able to read all data, but only EMPLOYEE_ID and ADDRESS are non-null.
+        // System.err.println( " -- READ TEST 2 --" );
+        // Iterable<Multimap<FullQualifiedName, Object>> result2 = dataApi.getAllEntitiesOfType( NATION_CITIZENS );
+        // for ( Multimap<FullQualifiedName, Object> entity : result2 ) {
+        // System.err.println( entity );
+        // }
         // Cleanup: remove WRITE rights for User.
         ps.updatePropertyTypeInEntityTypeAcls( ImmutableSet.of(
                 new PropertyTypeInEntityTypeAclRequest().setPrincipal( principal ).setAction( Action.REMOVE )
@@ -547,12 +560,12 @@ public class PermissionsServiceTest {
                         POSITION,
                         LIFE_EXPECTANCY ) );
 
-//        // Test 3.67: Read data - should be unable to read LIFE_EXPECTANCY.
-//        System.err.println( " -- READ TEST 3 --" );
-//        Iterable<Multimap<FullQualifiedName, Object>> result3 = dataApi.getAllEntitiesOfType( NATION_CITIZENS );
-//        for ( Multimap<FullQualifiedName, Object> entity : result3 ) {
-//            System.err.println( entity );
-//        }
+        // // Test 3.67: Read data - should be unable to read LIFE_EXPECTANCY.
+        // System.err.println( " -- READ TEST 3 --" );
+        // Iterable<Multimap<FullQualifiedName, Object>> result3 = dataApi.getAllEntitiesOfType( NATION_CITIZENS );
+        // for ( Multimap<FullQualifiedName, Object> entity : result3 ) {
+        // System.err.println( entity );
+        // }
 
         // Cleanup: remove WRITE rights for User.
 
@@ -589,13 +602,13 @@ public class PermissionsServiceTest {
                         POSITION,
                         LIFE_EXPECTANCY ) );
 
-//        // Test 4.67: Read data - should be able to read (EMPLOYEE_ID, ADDRESS, POSITION), but only EMPLOYEE_ID and
-//        // ADDRESS are non-null.
-//        System.err.println( " -- READ TEST 4 --" );
-//        Iterable<Multimap<FullQualifiedName, Object>> result4 = dataApi.getAllEntitiesOfType( NATION_CITIZENS );
-//        for ( Multimap<FullQualifiedName, Object> entity : result4 ) {
-//            System.err.println( entity );
-//        }
+        // // Test 4.67: Read data - should be able to read (EMPLOYEE_ID, ADDRESS, POSITION), but only EMPLOYEE_ID and
+        // // ADDRESS are non-null.
+        // System.err.println( " -- READ TEST 4 --" );
+        // Iterable<Multimap<FullQualifiedName, Object>> result4 = dataApi.getAllEntitiesOfType( NATION_CITIZENS );
+        // for ( Multimap<FullQualifiedName, Object> entity : result4 ) {
+        // System.err.println( entity );
+        // }
 
         // Cleanup: remove WRITE rights for Citizen.
         ps.updatePropertyTypeInEntityTypeAcls( ImmutableSet.of(
@@ -666,13 +679,13 @@ public class PermissionsServiceTest {
                         POSITION,
                         LIFE_EXPECTANCY ) );
 
-//        // Test 1.67: Read data from entity type - should be able to read all data.
-//        System.err.println( " -- READ TEST 1 --" );
-//        Iterable<Multimap<FullQualifiedName, Object>> result1 = dataApi.getAllEntitiesOfEntitySet(
-//                NATION_SECRET_SERVICE, NATION_CITIZENS.getNamespace(), NATION_CITIZENS.getName() );
-//        for ( Multimap<FullQualifiedName, Object> entity : result1 ) {
-//            System.err.println( entity );
-//        }
+        // // Test 1.67: Read data from entity type - should be able to read all data.
+        // System.err.println( " -- READ TEST 1 --" );
+        // Iterable<Multimap<FullQualifiedName, Object>> result1 = dataApi.getAllEntitiesOfEntitySet(
+        // NATION_SECRET_SERVICE, NATION_CITIZENS.getNamespace(), NATION_CITIZENS.getName() );
+        // for ( Multimap<FullQualifiedName, Object> entity : result1 ) {
+        // System.err.println( entity );
+        // }
 
         // Cleanup: remove WRITE rights for User.
         ps.updatePropertyTypeInEntitySetAcls( ImmutableSet.of(
@@ -709,13 +722,13 @@ public class PermissionsServiceTest {
                         POSITION,
                         LIFE_EXPECTANCY ) );
 
-//        // Test 2.67: Read data - should be able to read all data, but only EMPLOYEE_ID and ADDRESS are non-null.
-//        System.err.println( " -- READ TEST 2 --" );
-//        Iterable<Multimap<FullQualifiedName, Object>> result2 = dataApi.getAllEntitiesOfEntitySet(
-//                NATION_SECRET_SERVICE, NATION_CITIZENS.getNamespace(), NATION_CITIZENS.getName() );
-//        for ( Multimap<FullQualifiedName, Object> entity : result2 ) {
-//            System.err.println( entity );
-//        }
+        // // Test 2.67: Read data - should be able to read all data, but only EMPLOYEE_ID and ADDRESS are non-null.
+        // System.err.println( " -- READ TEST 2 --" );
+        // Iterable<Multimap<FullQualifiedName, Object>> result2 = dataApi.getAllEntitiesOfEntitySet(
+        // NATION_SECRET_SERVICE, NATION_CITIZENS.getNamespace(), NATION_CITIZENS.getName() );
+        // for ( Multimap<FullQualifiedName, Object> entity : result2 ) {
+        // System.err.println( entity );
+        // }
 
         // Cleanup: remove WRITE rights for User.
         ps.updatePropertyTypeInEntitySetAcls( ImmutableSet.of(
@@ -777,13 +790,13 @@ public class PermissionsServiceTest {
                         POSITION,
                         LIFE_EXPECTANCY ) );
 
-//        // Test 3.67: Read data - should be unable to read LIFE_EXPECTANCY.
-//        System.err.println( " -- READ TEST 3 --" );
-//        Iterable<Multimap<FullQualifiedName, Object>> result3 = dataApi.getAllEntitiesOfEntitySet(
-//                NATION_SECRET_SERVICE, NATION_CITIZENS.getNamespace(), NATION_CITIZENS.getName() );
-//        for ( Multimap<FullQualifiedName, Object> entity : result3 ) {
-//            System.err.println( entity );
-//        }
+        // // Test 3.67: Read data - should be unable to read LIFE_EXPECTANCY.
+        // System.err.println( " -- READ TEST 3 --" );
+        // Iterable<Multimap<FullQualifiedName, Object>> result3 = dataApi.getAllEntitiesOfEntitySet(
+        // NATION_SECRET_SERVICE, NATION_CITIZENS.getNamespace(), NATION_CITIZENS.getName() );
+        // for ( Multimap<FullQualifiedName, Object> entity : result3 ) {
+        // System.err.println( entity );
+        // }
 
         // Cleanup: remove WRITE rights for User.
 
@@ -820,14 +833,14 @@ public class PermissionsServiceTest {
                         POSITION,
                         LIFE_EXPECTANCY ) );
 
-//        // Test 4.67: Read data - should be able to read (EMPLOYEE_ID, ADDRESS, POSITION), but only EMPLOYEE_ID and
-//        // ADDRESS are non-null.
-//        System.err.println( " -- READ TEST 4 --" );
-//        Iterable<Multimap<FullQualifiedName, Object>> result4 = dataApi.getAllEntitiesOfEntitySet(
-//                NATION_SECRET_SERVICE, NATION_CITIZENS.getNamespace(), NATION_CITIZENS.getName() );
-//        for ( Multimap<FullQualifiedName, Object> entity : result4 ) {
-//            System.err.println( entity );
-//        }
+        // // Test 4.67: Read data - should be able to read (EMPLOYEE_ID, ADDRESS, POSITION), but only EMPLOYEE_ID and
+        // // ADDRESS are non-null.
+        // System.err.println( " -- READ TEST 4 --" );
+        // Iterable<Multimap<FullQualifiedName, Object>> result4 = dataApi.getAllEntitiesOfEntitySet(
+        // NATION_SECRET_SERVICE, NATION_CITIZENS.getNamespace(), NATION_CITIZENS.getName() );
+        // for ( Multimap<FullQualifiedName, Object> entity : result4 ) {
+        // System.err.println( entity );
+        // }
         // Cleanup: remove WRITE rights for Citizen.
         ps.updatePropertyTypeInEntitySetAcls( ImmutableSet.of(
                 new PropertyTypeInEntitySetAclRequest().setPrincipal( principal ).setAction( Action.REMOVE )
@@ -914,11 +927,11 @@ public class PermissionsServiceTest {
                         .setName( MUJERES ).setPropertyType( ADDRESS )
                         .setPermissions( EnumSet.of( Permission.READ, Permission.WRITE ) ) ) );
 
-        System.err.println( "--- TEST FOR GETTING ALL SENT REQUEST --- " );
-        System.err.println( ps.getAllSentRequestsForPermissions( null ) );
+        System.err.println( "--- TEST FOR GETTING ALL SENT REQUEST BEFORE DECORATION --- " );
+        System.err.println( permissionsService.getAllSentRequestsForPermissions( currentUserId ) );
 
-        System.err.println( "--- TEST FOR GETTING SENT REQUEST FOR HOMBRES --- " );
-        System.err.println( ps.getAllSentRequestsForPermissions( HOMBRES ) );
+        System.err.println( "--- TEST FOR GETTING SENT REQUEST FOR HOMBRES BEFORE DECORATION --- " );
+        System.err.println( permissionsService.getAllSentRequestsForPermissions( currentUserId, HOMBRES ) );
 
         System.err.println( "---TEST 2---" );
         // Test 2: Citizen removes Request for Hombres
@@ -927,11 +940,11 @@ public class PermissionsServiceTest {
         ps.getAllSentRequestsForPermissions( HOMBRES )
                 .forEach( request -> ps.removePermissionsRequestForEntitySet( request.getRequest().getRequestId() ) );
 
-        System.err.println( "--- TEST FOR GETTING ALL SENT REQUEST --- " );
-        System.err.println( ps.getAllSentRequestsForPermissions( null ) );
+        System.err.println( "--- TEST FOR GETTING ALL SENT REQUEST BEFORE DECORATION --- " );
+        System.err.println( permissionsService.getAllSentRequestsForPermissions( currentUserId ) );
 
-        System.err.println( "--- TEST FOR GETTING SENT REQUEST FOR HOMBRES --- " );
-        System.err.println( ps.getAllSentRequestsForPermissions( HOMBRES ) );
+        System.err.println( "--- TEST FOR GETTING SENT REQUEST FOR HOMBRES BEFORE DECORATION --- " );
+        System.err.println( permissionsService.getAllSentRequestsForPermissions( currentUserId, HOMBRES ) );
 
         System.err.println( "---TEST 3---" );
         // Test 3: Citizens create Entity Sets Cate, Doge. A few request accesses were made to them.
@@ -961,15 +974,15 @@ public class PermissionsServiceTest {
                 LIFE_EXPECTANCY,
                 EnumSet.of( Permission.READ, Permission.WRITE, Permission.DISCOVER ) );
 
-        System.err.println( "--- TEST FOR GETTING ALL RECEIVED REQUEST --- " );
-        System.err.println( ps.getAllReceivedRequestsForPermissions( null ) );
+        System.err.println( "--- TEST FOR GETTING ALL RECEIVED REQUEST BEFORE DECORATION --- " );
+        System.err.println( permissionsService.getAllReceivedRequestsForPermissionsOfUserId( currentUserId ) );
 
-        System.err.println( "--- TEST FOR GETTING RECEIVED REQUEST FOR CATE --- " );
-        System.err.println( ps.getAllReceivedRequestsForPermissions( CATE ) );
+        System.err.println( "--- TEST FOR GETTING RECEIVED REQUEST FOR CATE BEFORE DECORATION --- " );
+        System.err.println( permissionsService.getAllReceivedRequestsForPermissionsOfEntitySet( CATE ) );
 
-        System.err.println( "--- TEST FOR GETTING RECEIVED REQUEST FOR HOMBRES --- " );
+        System.err.println( "--- TEST FOR GETTING RECEIVED REQUEST FOR HOMBRES BEFORE DECORATION --- " );
         try {
-            System.err.println( ps.getAllReceivedRequestsForPermissions( HOMBRES ) );
+            System.err.println( permissionsService.getAllReceivedRequestsForPermissionsOfEntitySet( HOMBRES ) );
         } catch ( Exception e ) {
             // 404 thrown by ExceptionHandler would be caught by retrofit, so it's NotFoundException rather than custom
             // ResourceNotFoundException

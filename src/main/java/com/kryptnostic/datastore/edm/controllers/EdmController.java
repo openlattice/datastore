@@ -133,8 +133,7 @@ public class EdmController implements EdmApi {
     @Override
     @RequestMapping(
         path = "/" + SCHEMA_BASE_PATH + "/" + NAMESPACE_PATH + "/" + NAME_PATH,
-        method = RequestMethod.PUT,
-        consumes = MediaType.APPLICATION_JSON_VALUE )
+        method = RequestMethod.PUT )
     @ResponseStatus( HttpStatus.OK )
     public Void createEmptySchema( @PathVariable( NAMESPACE ) String namespace, @PathVariable( NAME ) String name ) {
         modelService
@@ -288,7 +287,7 @@ public class EdmController implements EdmApi {
     @ResponseStatus( HttpStatus.OK )
     public Void putEntityType( @RequestBody EntityType entityType ) {
         try{
-            modelService.createEntityType( Optional.fromNullable( authzService.getUsername() ), entityType );
+            modelService.upsertEntityType( Optional.fromNullable( authzService.getUsername() ), entityType );
         } catch ( IllegalArgumentException e){
             throw new BadRequestException( e.getMessage() );
         }

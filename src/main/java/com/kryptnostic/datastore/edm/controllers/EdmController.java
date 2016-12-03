@@ -155,7 +155,7 @@ public class EdmController implements EdmApi {
         
         for ( EntitySet entitySet : entitySets ) {
               try{
-                  modelService.createEntitySet( Optional.fromNullable( authzService.getUsername() ), entitySet );
+                  modelService.createEntitySet( Optional.fromNullable( authzService.getUserId() ), entitySet );
               } catch ( IllegalArgumentException e){
                   badRequests.put( entitySet.getName(), e.getMessage() );
               } catch ( IllegalStateException e){
@@ -193,16 +193,16 @@ public class EdmController implements EdmApi {
     @ResponseStatus( HttpStatus.OK )
     public Iterable<EntitySetWithPermissions> getEntitySets(
             @RequestParam( value = IS_OWNER, required = false ) Boolean isOwner ) {
-        String username = authzService.getUsername();
+        String userId = authzService.getUserId();
         List<String> currentRoles = authzService.getRoles();
 
-        Set<String> ownedSets = Sets.newHashSet( modelService.getEntitySetNamesUserOwns( username ) );
+        Set<String> ownedSets = Sets.newHashSet( modelService.getEntitySetNamesUserOwns( userId ) );
 
         if ( isOwner != null ) {
             if ( isOwner ) {
                 // isOwner = true -> return all entity sets owned
                 EnumSet<Permission> allPermissions = EnumSet.allOf( Permission.class );
-                return StreamSupport.stream( modelService.getEntitySetsUserOwns( username ).spliterator(), false )
+                return StreamSupport.stream( modelService.getEntitySetsUserOwns( userId ).spliterator(), false )
                         .map( entitySet -> new EntitySetWithPermissions().setEntitySet( entitySet )
                                 .setPermissions( allPermissions )
                                 .setIsOwner( true ) )
@@ -214,7 +214,7 @@ public class EdmController implements EdmApi {
                         .filter( entitySet -> authzService.getEntitySet( entitySet.getName() ) )
                         .map( entitySet -> new EntitySetWithPermissions().setEntitySet( entitySet )
                                 .setPermissions( ps
-                                        .getEntitySetAclsForUser( username, currentRoles, entitySet.getName() ) )
+                                        .getEntitySetAclsForUser( userId, currentRoles, entitySet.getName() ) )
                                 .setIsOwner( false ) )
                         .collect( Collectors.toList() );
             }
@@ -223,7 +223,7 @@ public class EdmController implements EdmApi {
             return StreamSupport.stream( modelService.getEntitySets().spliterator(), false )
                     .filter( entitySet -> authzService.getEntitySet( entitySet.getName() ) )
                     .map( entitySet -> new EntitySetWithPermissions().setEntitySet( entitySet )
-                            .setPermissions( ps.getEntitySetAclsForUser( username, currentRoles, entitySet.getName() ) )
+                            .setPermissions( ps.getEntitySetAclsForUser( userId, currentRoles, entitySet.getName() ) )
                             .setIsOwner( ownedSets.contains( entitySet.getName() ) ) )
                     .collect( Collectors.toList() );
         }
@@ -287,7 +287,7 @@ public class EdmController implements EdmApi {
     @ResponseStatus( HttpStatus.OK )
     public Void putEntityType( @RequestBody EntityType entityType ) {
         try{
-            modelService.upsertEntityType( Optional.fromNullable( authzService.getUsername() ), entityType );
+            modelService.createEntityType( Optional.fromNullable( authzService.getUserId() ), entityType );
         } catch ( IllegalArgumentException e){
             throw new BadRequestException( e.getMessage() );
         }
@@ -355,7 +355,7 @@ public class EdmController implements EdmApi {
         consumes = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
     public Void postEntityType( @RequestBody EntityType objectType ) {
-        modelService.createEntityType( Optional.fromNullable( authzService.getUsername() ), objectType );
+        modelService.createEntityType( Optional.fromNullable( authzService.getUserId() ), objectType );
         return null;
     }
 

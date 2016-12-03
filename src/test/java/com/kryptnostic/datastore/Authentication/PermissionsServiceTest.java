@@ -994,9 +994,9 @@ public class PermissionsServiceTest {
 
     private void requestAccessCleanup() {
         // Remove unattended PermissionsRequest to avoid pollution.
-        ps.getAllSentRequestsForPermissions( null )
+        permissionsService.getAllSentRequestsForPermissions( currentUserId )
                 .forEach( request -> ps.removePermissionsRequestForEntitySet( request.getRequest().getRequestId() ) );
-        ps.getAllReceivedRequestsForPermissions( null )
+        permissionsService.getAllReceivedRequestsForPermissionsOfUserId( currentUserId )
                 .forEach( request -> ps.removePermissionsRequestForEntitySet( request.getRequest().getRequestId() ) );
     }
 }

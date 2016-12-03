@@ -69,14 +69,14 @@ public class DataController implements DataApi {
     }
 
     @RequestMapping(
-        path = "/" + DataApi.ENTITY_DATA + "/" + DataApi.NAME_SPACE_PATH + "/" + DataApi.TYPE_NAME_PATH + "/" + DataApi.NAME_PATH,
+        path = "/" + DataApi.ENTITY_DATA + "/" + DataApi.NAME_SPACE_PATH + "/" + DataApi.NAME_PATH + "/" + DataApi.SET_NAME_PATH,
         method = RequestMethod.GET,
         produces = { MediaType.APPLICATION_JSON_VALUE, CustomMediaType.TEXT_CSV_VALUE } )
     @ResponseStatus( HttpStatus.OK )
     public Iterable<Multimap<FullQualifiedName, Object>> getAllEntitiesOfEntitySet(
-            @PathVariable( NAME ) String entitySetName,
+            @PathVariable( SET_NAME ) String entitySetName,
             @PathVariable( NAME_SPACE ) String entityTypeNamespace,
-            @PathVariable( TYPE_NAME ) String entityTypeName,
+            @PathVariable( NAME ) String entityTypeName,
             @RequestParam(
                 value = DatastoreConstants.FILE_TYPE,
                 required = false ) FileType fileType,
@@ -108,15 +108,15 @@ public class DataController implements DataApi {
     }
 
     @RequestMapping(
-            path = "/" + DataApi.ENTITY_DATA + "/" + DataApi.NAME_SPACE_PATH + "/" + DataApi.TYPE_NAME_PATH + "/" + DataApi.NAME_PATH + "/" + DataApi.SELECTED,
+            path = "/" + DataApi.ENTITY_DATA + "/" + DataApi.NAME_SPACE_PATH + "/" + DataApi.NAME_PATH + "/" + DataApi.SET_NAME_PATH + "/" + DataApi.SELECTED,
             method = RequestMethod.PUT,
             consumes = MediaType.APPLICATION_JSON_VALUE,
             produces = { MediaType.APPLICATION_JSON_VALUE, CustomMediaType.TEXT_CSV_VALUE } )
     @ResponseStatus( HttpStatus.OK )
     public Iterable<Multimap<FullQualifiedName, Object>> getSelectedEntitiesOfEntitySet(
-            @PathVariable( NAME ) String entitySetName,
+            @PathVariable( SET_NAME ) String entitySetName,
             @PathVariable( NAME_SPACE ) String entityTypeNamespace,
-            @PathVariable( TYPE_NAME ) String entityTypeName,
+            @PathVariable( NAME ) String entityTypeName,
             @RequestParam(
                     value = DatastoreConstants.FILE_TYPE,
                     required = false ) FileType fileType,

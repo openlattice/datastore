@@ -937,7 +937,7 @@ public class PermissionsServiceTest {
         // Test 2: Citizen removes Request for Hombres
         // Expected: Citizens' sent request list should have only Mujeres
 
-        ps.getAllSentRequestsForPermissions( HOMBRES )
+        permissionsService.getAllSentRequestsForPermissions( currentUserId, HOMBRES )
                 .forEach( request -> ps.removePermissionsRequestForEntitySet( request.getRequest().getRequestId() ) );
 
         System.err.println( "--- TEST FOR GETTING ALL SENT REQUEST BEFORE DECORATION --- " );

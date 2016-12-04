@@ -114,10 +114,10 @@ public class BootstrapDatastoreWithCassandra {
                         new FullQualifiedName( NAMESPACE, EMPLOYEE_NAME ),
                         new FullQualifiedName( NAMESPACE, EMPLOYEE_DEPT ),
                         new FullQualifiedName( NAMESPACE, SALARY ) ) );
-        try {
-            dms.createEntityType( principal, metadataLevel );
-        } catch ( IllegalArgumentException e ) {
-            // Only acceptable exception is entity type already exists
+        try{
+            dms.createEntityType( principal , metadataLevel );
+        } catch ( IllegalArgumentException e ){
+            //Only acceptable exception is entity type already exists
             Assert.assertEquals( ENTITY_TYPE_EXISTS_MSG, e.getMessage() );
         }
 
@@ -128,10 +128,10 @@ public class BootstrapDatastoreWithCassandra {
                         new FullQualifiedName( NAMESPACE, EMPLOYEE_NAME ),
                         new FullQualifiedName( NAMESPACE, EMPLOYEE_DEPT ),
                         new FullQualifiedName( NAMESPACE, SALARY ) ) );
-        try {
-            dms.createEntityType( principal, metadataLevelMars );
-        } catch ( IllegalArgumentException e ) {
-            // Only acceptable exception is entity type already exists
+        try{
+            dms.createEntityType( principal , metadataLevelMars );
+        } catch ( IllegalArgumentException e ){
+            //Only acceptable exception is entity type already exists
             Assert.assertEquals( ENTITY_TYPE_EXISTS_MSG, e.getMessage() );
         }
 
@@ -143,10 +143,10 @@ public class BootstrapDatastoreWithCassandra {
                         new FullQualifiedName( NAMESPACE, EMPLOYEE_NAME ),
                         new FullQualifiedName( NAMESPACE, EMPLOYEE_DEPT ),
                         new FullQualifiedName( NAMESPACE, SALARY ) ) );
-        try {
-            dms.createEntityType( principal, metadataLevelSaturn );
-        } catch ( IllegalArgumentException e ) {
-            // Only acceptable exception is entity type already exists
+        try{
+            dms.createEntityType( principal , metadataLevelSaturn );
+        } catch ( IllegalArgumentException e ){
+            //Only acceptable exception is entity type already exists
             Assert.assertEquals( ENTITY_TYPE_EXISTS_MSG, e.getMessage() );
         }
 

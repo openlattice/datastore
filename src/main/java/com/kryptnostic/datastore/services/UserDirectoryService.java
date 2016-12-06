@@ -1,45 +1,68 @@
 package com.kryptnostic.datastore.services;
 
+import com.dataloom.client.LoomCallAdapterFactory;
+import com.dataloom.client.LoomJacksonConverterFactory;
 import com.dataloom.directory.pojo.Auth0UserBasic;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.kryptnostic.datastore.exceptions.BadRequestException;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.Response;
+import okhttp3.logging.HttpLoggingInterceptor;
 import org.json.simple.JSONObject;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.http.MediaType;
-import retrofit.RequestInterceptor;
-import retrofit.RestAdapter;
+import retrofit2.Retrofit;
 
 import java.util.List;
 import java.util.Map;
 
 public class UserDirectoryService {
 
-    private static final Logger logger = LoggerFactory.getLogger( UserDirectoryService.class );
-
-    private RestAdapter        adapter;
+    private Retrofit           retrofit;
     private Auth0ManagementApi auth0ManagementApi;
 
     public UserDirectoryService( String token ) {
-        adapter = new RestAdapter.Builder()
-                .setEndpoint( "https://loom.auth0.com/api/v2" )
-                .setRequestInterceptor(
-                        (RequestInterceptor) facade -> {
-                            facade.addHeader( "Authorization", "Bearer " + token );
-                            facade.addHeader( "Content-Type", MediaType.APPLICATION_JSON_VALUE );
-                        } )
-                .setLogLevel( RestAdapter.LogLevel.FULL )
-                .setLog( msg -> logger.debug( msg.replaceAll( "%", "[percent]" ) ) )
+
+        OkHttpClient.Builder httpClient = new OkHttpClient.Builder();
+
+        httpClient.addInterceptor( ( chain ) -> {
+            Request original = chain.request();
+
+            Request request = original.newBuilder()
+                    .header( "Authorization", "Bearer " + token )
+                    .header( "Content-Type", MediaType.APPLICATION_JSON_VALUE )
+                    .method( original.method(), original.body() )
+                    .build();
+
+            Response response = chain.proceed( request );
+
+            return response;
+
+        } );
+
+        HttpLoggingInterceptor loggingInterceptor = new HttpLoggingInterceptor();
+        loggingInterceptor.setLevel( HttpLoggingInterceptor.Level.BODY );
+        httpClient.addInterceptor( loggingInterceptor );
+
+        retrofit = new Retrofit.Builder()
+                .baseUrl( "https://loom.auth0.com/api/v2/" )
+                .client( httpClient.build() )
+                .addConverterFactory( new LoomJacksonConverterFactory() )
+                .addCallAdapterFactory( new LoomCallAdapterFactory() )
                 .build();
-        auth0ManagementApi = adapter.create( Auth0ManagementApi.class );
+        auth0ManagementApi = retrofit.create( Auth0ManagementApi.class );
     }
 
     public Map<String, Auth0UserBasic> getAllUsers() {
         Map<String, Auth0UserBasic> res = Maps.newHashMap();
         JSONObject[] jsonObjects = auth0ManagementApi.getAllUsers();
+        if ( jsonObjects == null ) {
+            System.err.println( "Nothing!" );
+        }
 
         for ( int i = 0; i < jsonObjects.length; i++ ) {
-            Auth0UserBasic auth0UserBasic = parsingToPOJO( jsonObjects[i] );
+            Auth0UserBasic auth0UserBasic = parsingToPOJO( jsonObjects[ i ] );
             res.put( auth0UserBasic.getUserId(), auth0UserBasic );
         }
         return res;
@@ -47,10 +70,13 @@ public class UserDirectoryService {
 
     public Auth0UserBasic getUser( String userId ) {
         JSONObject jsonObject = auth0ManagementApi.getUser( userId );
+        if ( jsonObject == null ) {
+            throw new BadRequestException( "User does not exist!" );
+        }
         return parsingToPOJO( jsonObject );
     }
 
-    private Auth0UserBasic parsingToPOJO( JSONObject jsonObject ){
+    private Auth0UserBasic parsingToPOJO( JSONObject jsonObject ) {
         String user_id = (String) jsonObject.get( "user_id" );
         String email = (String) jsonObject.get( "email" );
         String nickname = (String) jsonObject.get( "nickname" );
@@ -58,7 +84,10 @@ public class UserDirectoryService {
         if ( app_metadata == null ) {
             app_metadata = Maps.newHashMap();
         }
-        return new Auth0UserBasic( user_id, email, nickname, app_metadata.getOrDefault( "roles", Lists.newArrayList() ) );
+        return new Auth0UserBasic( user_id,
+                email,
+                nickname,
+                app_metadata.getOrDefault( "roles", Lists.newArrayList() ) );
     }
 
     public Map<String, List<Auth0UserBasic>> getAllUsersGroupByRole() {

@@ -57,9 +57,6 @@ public class UserDirectoryService {
     public Map<String, Auth0UserBasic> getAllUsers() {
         Map<String, Auth0UserBasic> res = Maps.newHashMap();
         JSONObject[] jsonObjects = auth0ManagementApi.getAllUsers();
-        if ( jsonObjects == null ) {
-            System.err.println( "Nothing!" );
-        }
 
         for ( int i = 0; i < jsonObjects.length; i++ ) {
             Auth0UserBasic auth0UserBasic = parsingToPOJO( jsonObjects[ i ] );

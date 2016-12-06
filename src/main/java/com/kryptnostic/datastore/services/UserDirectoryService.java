@@ -1,17 +1,11 @@
 package com.kryptnostic.datastore.services;
 
-import com.dataloom.client.LoomCallAdapterFactory;
-import com.dataloom.client.LoomJacksonConverterFactory;
+import com.dataloom.client.RetrofitFactory;
 import com.dataloom.directory.pojo.Auth0UserBasic;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.kryptnostic.datastore.exceptions.BadRequestException;
-import okhttp3.OkHttpClient;
-import okhttp3.Request;
-import okhttp3.Response;
-import okhttp3.logging.HttpLoggingInterceptor;
 import org.json.simple.JSONObject;
-import org.springframework.http.MediaType;
 import retrofit2.Retrofit;
 
 import java.util.List;
@@ -23,34 +17,7 @@ public class UserDirectoryService {
     private Auth0ManagementApi auth0ManagementApi;
 
     public UserDirectoryService( String token ) {
-
-        OkHttpClient.Builder httpClient = new OkHttpClient.Builder();
-
-        httpClient.addInterceptor( ( chain ) -> {
-            Request original = chain.request();
-
-            Request request = original.newBuilder()
-                    .header( "Authorization", "Bearer " + token )
-                    .header( "Content-Type", MediaType.APPLICATION_JSON_VALUE )
-                    .method( original.method(), original.body() )
-                    .build();
-
-            Response response = chain.proceed( request );
-
-            return response;
-
-        } );
-
-        HttpLoggingInterceptor loggingInterceptor = new HttpLoggingInterceptor();
-        loggingInterceptor.setLevel( HttpLoggingInterceptor.Level.BODY );
-        httpClient.addInterceptor( loggingInterceptor );
-
-        retrofit = new Retrofit.Builder()
-                .baseUrl( "https://loom.auth0.com/api/v2/" )
-                .client( httpClient.build() )
-                .addConverterFactory( new LoomJacksonConverterFactory() )
-                .addCallAdapterFactory( new LoomCallAdapterFactory() )
-                .build();
+        retrofit = RetrofitFactory.newClient( "https://loom.auth0.com/api/v2/", () -> token );
         auth0ManagementApi = retrofit.create( Auth0ManagementApi.class );
     }
 

@@ -19,8 +19,8 @@ public class DataStoreSecurityPod extends Auth0SecurityPod {
     protected void authorizeRequests( HttpSecurity http ) throws Exception {
         http.authorizeRequests()
                 .antMatchers( HttpMethod.OPTIONS ).permitAll()
-                .antMatchers( "/ontology/admin/**" ).hasAnyAuthority( "admin", "ADMIN" )
-                .antMatchers( "/odata/**" ).hasAnyAuthority( "user", "USER" )
-                .antMatchers( "/ontology/**" ).hasAnyAuthority( "user", "USER" );
+                .antMatchers( "/ontology/data/**" ).hasAnyAuthority( "user", "USER" )
+                .antMatchers( "/ontology/**" ).hasAnyAuthority( "admin", "ADMIN" )
+                .antMatchers( "/odata/**" ).hasAnyAuthority( "admin", "ADMIN" );
     }
 }

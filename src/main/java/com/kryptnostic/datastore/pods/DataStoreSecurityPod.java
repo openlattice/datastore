@@ -21,6 +21,6 @@ public class DataStoreSecurityPod extends Auth0SecurityPod {
                 .antMatchers( HttpMethod.OPTIONS ).permitAll()
                 .antMatchers( "/ontology/data/**" ).hasAnyAuthority( "user", "USER" )
                 .antMatchers( "/ontology/**" ).hasAnyAuthority( "admin", "ADMIN" )
-                .antMatchers( "/odata/**" ).hasAnyAuthority( "admin", "ADMIN" );
+                .antMatchers( "/odata/**" ).hasAnyAuthority( "user", "USER" );
     }
 }

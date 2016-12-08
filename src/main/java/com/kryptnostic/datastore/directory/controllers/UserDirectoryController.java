@@ -47,7 +47,7 @@ public class UserDirectoryController implements UserDirectoryApi {
 
     @Override
     @RequestMapping(
-            path = "/" +  UserDirectoryApi.USERS + "/" +  UserDirectoryApi.ROLES,
+            path = "/" +  UserDirectoryApi.ROLES,
             method = RequestMethod.GET,
             produces = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
@@ -57,7 +57,7 @@ public class UserDirectoryController implements UserDirectoryApi {
 
     @Override
     @RequestMapping(
-            path = "/" +  UserDirectoryApi.USERS + "/" +  UserDirectoryApi.ROLES + "/" +  UserDirectoryApi.ROLE_PATH,
+            path = "/" +  UserDirectoryApi.ROLES + "/" +  UserDirectoryApi.ROLE_PATH,
             method = RequestMethod.GET,
             produces = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
@@ -67,7 +67,7 @@ public class UserDirectoryController implements UserDirectoryApi {
 
     @Override
     @RequestMapping(
-            path = "/" +  UserDirectoryApi.USERS + "/" +  UserDirectoryApi.ROLES + "/" +  UserDirectoryApi.RESET + "/" +  UserDirectoryApi.USER_ID_PATH,
+            path = "/" +  UserDirectoryApi.ROLES + "/" +  UserDirectoryApi.RESET + "/" +  UserDirectoryApi.USER_ID_PATH,
             method = RequestMethod.PATCH,
             consumes = MediaType.APPLICATION_JSON_VALUE,
             produces = MediaType.APPLICATION_JSON_VALUE )

@@ -36,14 +36,12 @@ import com.dataloom.edm.internal.PropertyType;
 import com.dataloom.edm.internal.Schema;
 import com.dataloom.edm.requests.GetSchemasRequest;
 import com.dataloom.edm.requests.GetSchemasRequest.TypeDetails;
-import com.google.common.base.Optional;
 import com.google.common.collect.Sets;
 import com.kryptnostic.datastore.ServerUtil;
 import com.kryptnostic.datastore.exceptions.BadRequestException;
 import com.kryptnostic.datastore.exceptions.ResourceNotFoundException;
 import com.kryptnostic.datastore.services.ActionAuthorizationService;
 import com.kryptnostic.datastore.services.EdmManager;
-
 import com.kryptnostic.datastore.services.PermissionsService;
 
 @RestController
@@ -196,16 +194,16 @@ public class EdmController implements EdmApi {
             @RequestParam(
                 value = IS_OWNER,
                 required = false ) Boolean isOwner ) {
-        String username = authzService.getUsername();
+        String userId = authzService.getUserId();
         List<String> currentRoles = authzService.getRoles();
 
-        Set<String> ownedSets = Sets.newHashSet( modelService.getEntitySetNamesUserOwns( username ) );
+        Set<String> ownedSets = Sets.newHashSet( modelService.getEntitySetNamesUserOwns( userId ) );
 
         if ( isOwner != null ) {
             if ( isOwner ) {
                 // isOwner = true -> return all entity sets owned
                 EnumSet<Permission> allPermissions = EnumSet.allOf( Permission.class );
-                return StreamSupport.stream( modelService.getEntitySetsUserOwns( username ).spliterator(), false )
+                return StreamSupport.stream( modelService.getEntitySetsUserOwns( userId ).spliterator(), false )
                         .map( entitySet -> new EntitySetWithPermissions().setEntitySet( entitySet )
                                 .setPermissions( allPermissions )
                                 .setIsOwner( true ) )
@@ -217,7 +215,7 @@ public class EdmController implements EdmApi {
                         .filter( entitySet -> authzService.getEntitySet( entitySet.getName() ) )
                         .map( entitySet -> new EntitySetWithPermissions().setEntitySet( entitySet )
                                 .setPermissions( ps
-                                        .getEntitySetAclsForUser( username, currentRoles, entitySet.getName() ) )
+                                        .getEntitySetAclsForUser( userId, currentRoles, entitySet.getName() ) )
                                 .setIsOwner( false ) )
                         .collect( Collectors.toList() );
             }
@@ -226,7 +224,7 @@ public class EdmController implements EdmApi {
             return StreamSupport.stream( modelService.getEntitySets().spliterator(), false )
                     .filter( entitySet -> authzService.getEntitySet( entitySet.getName() ) )
                     .map( entitySet -> new EntitySetWithPermissions().setEntitySet( entitySet )
-                            .setPermissions( ps.getEntitySetAclsForUser( username, currentRoles, entitySet.getName() ) )
+                            .setPermissions( ps.getEntitySetAclsForUser( userId, currentRoles, entitySet.getName() ) )
                             .setIsOwner( ownedSets.contains( entitySet.getName() ) ) )
                     .collect( Collectors.toList() );
         }

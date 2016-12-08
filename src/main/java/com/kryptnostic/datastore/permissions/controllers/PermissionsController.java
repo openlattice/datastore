@@ -29,9 +29,11 @@ import com.dataloom.authorization.requests.PropertyTypeInEntityTypeAclRemovalReq
 import com.dataloom.authorization.requests.PropertyTypeInEntityTypeAclRequest;
 import com.dataloom.edm.requests.PropertyTypeInEntitySetAclRequest;
 import com.dataloom.permissions.PermissionsApi;
+import com.google.common.collect.Iterables;
 import com.kryptnostic.datastore.exceptions.ResourceNotFoundException;
 import com.kryptnostic.datastore.services.ActionAuthorizationService;
 import com.kryptnostic.datastore.services.PermissionsService;
+import com.kryptnostic.datastore.util.PermissionsResultsAdapter;
 import com.kryptnostic.instrumentation.v1.exceptions.types.UnauthorizedException;
 
 @RestController
@@ -42,6 +44,9 @@ public class PermissionsController implements PermissionsApi {
 
     @Inject
     private ActionAuthorizationService authzService;
+
+    @Inject
+    private PermissionsResultsAdapter  adapter;
 
     @Override
     @RequestMapping(
@@ -105,7 +110,7 @@ public class PermissionsController implements PermissionsApi {
                         break;
                 }
             }
-        }        
+        }
         return null;
     }
 
@@ -142,7 +147,7 @@ public class PermissionsController implements PermissionsApi {
                         break;
                 }
             }
-        }       
+        }
         return null;
     }
 
@@ -178,7 +183,7 @@ public class PermissionsController implements PermissionsApi {
                         break;
                 }
             }
-        }        
+        }
         return null;
     }
 
@@ -193,7 +198,7 @@ public class PermissionsController implements PermissionsApi {
             for ( FullQualifiedName entityTypeFqn : entityTypeFqns ) {
                 ps.removePermissionsForEntityType( entityTypeFqn );
             }
-        }        
+        }
         return null;
     }
 
@@ -208,7 +213,7 @@ public class PermissionsController implements PermissionsApi {
             for ( String entitySetName : entitySetNames ) {
                 ps.removePermissionsForEntitySet( entitySetName );
             }
-        }        
+        }
         return null;
     }
 
@@ -226,7 +231,7 @@ public class PermissionsController implements PermissionsApi {
                     ps.removePermissionsForPropertyTypeInEntityType( request.getType(), propertyTypeFqn );
                 }
             }
-        }        
+        }
         return null;
     }
 
@@ -241,7 +246,7 @@ public class PermissionsController implements PermissionsApi {
             for ( FullQualifiedName entityTypeFqn : entityTypeFqns ) {
                 ps.removePermissionsForPropertyTypeInEntityType( entityTypeFqn );
             }
-        }      
+        }
         return null;
     }
 
@@ -261,7 +266,7 @@ public class PermissionsController implements PermissionsApi {
                             propertyTypeFqn );
                 }
             }
-        }        
+        }
         return null;
     }
 
@@ -276,7 +281,7 @@ public class PermissionsController implements PermissionsApi {
             for ( String entitySetName : entitySetNames ) {
                 ps.removePermissionsForPropertyTypeInEntitySet( entitySetName );
             }
-        }        
+        }
         return null;
     }
 
@@ -287,7 +292,7 @@ public class PermissionsController implements PermissionsApi {
     @ResponseStatus( HttpStatus.OK )
     public EnumSet<Permission> getEntitySetAclsForUser( @RequestParam( NAME ) String entitySetName ) {
         if ( authzService.getEntitySet( entitySetName ) ) {
-            return ps.getEntitySetAclsForUser( authzService.getUsername(), authzService.getRoles(), entitySetName );
+            return ps.getEntitySetAclsForUser( authzService.getUserId(), authzService.getRoles(), entitySetName );
         } else {
             throw new ResourceNotFoundException( "Entity Set not found." );
         }
@@ -301,7 +306,7 @@ public class PermissionsController implements PermissionsApi {
     public Map<FullQualifiedName, EnumSet<Permission>> getPropertyTypesInEntitySetAclsForUser(
             @RequestParam( NAME ) String entitySetName ) {
         if ( authzService.getEntitySet( entitySetName ) ) {
-            return ps.getPropertyTypesInEntitySetAclsForUser( authzService.getUsername(),
+            return ps.getPropertyTypesInEntitySetAclsForUser( authzService.getUserId(),
                     authzService.getRoles(),
                     entitySetName );
         } else {
@@ -317,7 +322,7 @@ public class PermissionsController implements PermissionsApi {
     public EnumSet<Permission> getEntityTypeAclsForUser(
             @RequestParam( NAMESPACE ) String entityTypeNamespace,
             @RequestParam( NAME ) String entityTypeName ) {
-        return ps.getEntityTypeAclsForUser( authzService.getUsername(),
+        return ps.getEntityTypeAclsForUser( authzService.getUserId(),
                 authzService.getRoles(),
                 new FullQualifiedName( entityTypeNamespace, entityTypeName ) );
     }
@@ -330,7 +335,7 @@ public class PermissionsController implements PermissionsApi {
     public Map<FullQualifiedName, EnumSet<Permission>> getPropertyTypesInEntityTypeAclsForUser(
             @RequestParam( NAMESPACE ) String entityTypeNamespace,
             @RequestParam( NAME ) String entityTypeName ) {
-        return ps.getPropertyTypesInEntityTypeAclsForUser( authzService.getUsername(),
+        return ps.getPropertyTypesInEntityTypeAclsForUser( authzService.getUserId(),
                 authzService.getRoles(),
                 new FullQualifiedName( entityTypeNamespace, entityTypeName ) );
     }
@@ -342,7 +347,7 @@ public class PermissionsController implements PermissionsApi {
     @ResponseStatus( HttpStatus.OK )
     public Iterable<PermissionsInfo> getEntitySetAclsForOwner( @RequestParam( NAME ) String entitySetName ) {
         if ( authzService.getEntitySetAclsForOwner( entitySetName ) ) {
-            return ps.getEntitySetAclsForOwner( entitySetName );
+            return Iterables.transform( ps.getEntitySetAclsForOwner( entitySetName ), adapter::mapUserIdToName );
         } else {
             // TODO to write a new handler
             throw new UnauthorizedException();
@@ -365,7 +370,7 @@ public class PermissionsController implements PermissionsApi {
             throw new UnauthorizedException();
         }
     }
-    
+
     @Override
     @RequestMapping(
         path = "/" + CONTROLLER + "/" + ENTITY_SETS_BASE_PATH + "/" + OWNER_PATH + "/" + PROPERTY_TYPE_BASE_PATH,
@@ -376,7 +381,8 @@ public class PermissionsController implements PermissionsApi {
             @RequestParam( NAME ) String entitySetName,
             @RequestBody FullQualifiedName propertyTypeFqn ) {
         if ( authzService.getEntitySetAclsForOwner( entitySetName ) ) {
-            return ps.getPropertyTypesInEntitySetAclsForOwner( entitySetName, propertyTypeFqn );
+            return Iterables.transform( ps.getPropertyTypesInEntitySetAclsForOwner( entitySetName, propertyTypeFqn ),
+                    adapter::mapUserIdToName );
         } else {
             // TODO to write a new handler
             throw new UnauthorizedException();
@@ -390,16 +396,16 @@ public class PermissionsController implements PermissionsApi {
         consumes = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
     public Void addPermissionsRequestForPropertyTypesInEntitySet(
-           @RequestBody Set<PropertyTypeInEntitySetAclRequest> requests ) {
-        
-        String username = authzService.getUsername();
-        Principal userAsPrincipal = new Principal(PrincipalType.USER, username);
-        
+            @RequestBody Set<PropertyTypeInEntitySetAclRequest> requests ) {
+
+        String userId = authzService.getUserId();
+        Principal userAsPrincipal = new Principal( PrincipalType.USER, userId );
+
         for ( PropertyTypeInEntitySetAclRequest request : requests ) {
             switch ( request.getAction() ) {
                 case REQUEST:
                     // if principal is missing, would assume that user is requesting permissions for himself
-                    ps.addPermissionsRequestForPropertyTypeInEntitySet( username,
+                    ps.addPermissionsRequestForPropertyTypeInEntitySet( userId,
                             ( request.getPrincipal() != null ) ? request.getPrincipal() : userAsPrincipal,
                             request.getName(),
                             request.getPropertyType(),
@@ -408,7 +414,7 @@ public class PermissionsController implements PermissionsApi {
                 default:
                     break;
             }
-        }        
+        }
         return null;
     }
 
@@ -419,12 +425,12 @@ public class PermissionsController implements PermissionsApi {
     @ResponseStatus( HttpStatus.OK )
     public Void removePermissionsRequestForEntitySet(
             @RequestParam( REQUEST_ID ) UUID id ) {
-        if( authzService.removePermissionsRequestForEntitySet( id ) ){
+        if ( authzService.removePermissionsRequestForEntitySet( id ) ) {
             ps.removePermissionsRequestForEntitySet( id );
         } else {
-            //TODO write an error handler
+            // TODO write an error handler
             throw new UnauthorizedException();
-        }        
+        }
         return null;
     }
 
@@ -435,20 +441,24 @@ public class PermissionsController implements PermissionsApi {
         produces = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
     public Iterable<PropertyTypeInEntitySetAclRequestWithRequestingUser> getAllReceivedRequestsForPermissions(
-            @RequestParam( value = NAME, required = false ) String entitySetName ) {
-        String username = authzService.getUsername();
-        
-        if( entitySetName != null && !entitySetName.isEmpty() ){
-            if( authzService.getAllReceivedRequestsForPermissions( entitySetName ) ){
-                return ps.getAllReceivedRequestsForPermissionsOfEntitySet( entitySetName );
+            @RequestParam(
+                value = NAME,
+                required = false ) String entitySetName ) {
+        String userId = authzService.getUserId();
+
+        if ( entitySetName != null && !entitySetName.isEmpty() ) {
+            if ( authzService.getAllReceivedRequestsForPermissions( entitySetName ) ) {
+                return Iterables.transform( ps.getAllReceivedRequestsForPermissionsOfEntitySet( entitySetName ),
+                        adapter::mapUserIdToName );
             } else {
-                throw new ResourceNotFoundException("Entity Set Not Found.");
+                throw new ResourceNotFoundException( "Entity Set Not Found." );
             }
         } else {
-            return ps.getAllReceivedRequestsForPermissionsOfUsername( username );
+            return Iterables.transform( ps.getAllReceivedRequestsForPermissionsOfUserId( userId ),
+                    adapter::mapUserIdToName );
         }
     }
-    
+
     @Override
     @RequestMapping(
         path = "/" + CONTROLLER + "/" + ENTITY_SETS_BASE_PATH + "/" + REQUEST_PERMISSIONS_PATH,
@@ -456,13 +466,16 @@ public class PermissionsController implements PermissionsApi {
         produces = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
     public Iterable<PropertyTypeInEntitySetAclRequestWithRequestingUser> getAllSentRequestsForPermissions(
-            @RequestParam( value = NAME, required = false ) String entitySetName ) {
-        String username = authzService.getUsername();
-        
-        if( entitySetName != null && !entitySetName.isEmpty() ){
-            return ps.getAllSentRequestsForPermissions( username, entitySetName );
+            @RequestParam(
+                value = NAME,
+                required = false ) String entitySetName ) {
+        String userId = authzService.getUserId();
+
+        if ( entitySetName != null && !entitySetName.isEmpty() ) {
+            return Iterables.transform( ps.getAllSentRequestsForPermissions( userId, entitySetName ),
+                    adapter::mapUserIdToName );
         } else {
-            return ps.getAllSentRequestsForPermissions( username );
+            return Iterables.transform( ps.getAllSentRequestsForPermissions( userId ), adapter::mapUserIdToName );
         }
     }
 

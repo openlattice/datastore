@@ -15,6 +15,8 @@ import com.datastax.driver.mapping.MappingManager;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.hazelcast.core.HazelcastInstance;
 import com.kryptnostic.datastore.cassandra.CassandraStorage;
+import com.kryptnostic.datastore.services.UserDirectoryService;
+import com.kryptnostic.datastore.util.PermissionsResultsAdapter;
 import com.kryptnostic.rhizome.pods.CassandraPod;
 import com.kryptnostic.rhizome.registries.ObjectMapperRegistry;
 
@@ -102,6 +104,11 @@ public class DatastoreServicesPod {
     @Bean
     public UserDirectoryService userDirectoryService() {
         return new UserDirectoryService( auth0Configuration.getToken() );
+    }
+    
+    @Bean
+    public PermissionsResultsAdapter permissionsResultsAdapter() {
+        return new PermissionsResultsAdapter( hazelcastInstance, userDirectoryService() );
     }
 
 }

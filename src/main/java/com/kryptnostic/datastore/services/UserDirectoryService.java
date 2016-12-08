@@ -25,7 +25,7 @@ public class UserDirectoryService {
                 .setEndpoint( "https://loom.auth0.com/api/v2" )
                 .setRequestInterceptor(
                         (RequestInterceptor) facade -> {
-                            facade.addHeader( "Authorization", token );
+                            facade.addHeader( "Authorization", "Bearer " + token );
                             facade.addHeader( "Content-Type", MediaType.APPLICATION_JSON_VALUE );
                         } )
                 .setLogLevel( RestAdapter.LogLevel.FULL )

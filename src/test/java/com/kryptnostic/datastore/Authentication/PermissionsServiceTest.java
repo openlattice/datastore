@@ -10,6 +10,7 @@ import java.util.concurrent.TimeUnit;
 import javax.ws.rs.NotFoundException;
 
 import org.apache.commons.lang3.RandomStringUtils;
+import org.apache.commons.lang3.tuple.Pair;
 import org.apache.olingo.commons.api.edm.EdmPrimitiveTypeKind;
 import org.apache.olingo.commons.api.edm.FullQualifiedName;
 import org.junit.AfterClass;
@@ -21,6 +22,8 @@ import org.slf4j.LoggerFactory;
 
 import com.auth0.Auth0;
 import com.auth0.authentication.AuthenticationAPIClient;
+import com.auth0.authentication.result.Authentication;
+import com.auth0.authentication.result.Credentials;
 import com.dataloom.authorization.requests.Action;
 import com.dataloom.authorization.requests.EntitySetAclRequest;
 import com.dataloom.authorization.requests.EntityTypeAclRequest;
@@ -60,7 +63,10 @@ public class PermissionsServiceTest {
     protected static final Principal         ROLE_USER             = new Principal( PrincipalType.ROLE, "user" );
     protected static final Principal         USER_USER             = new Principal(
             PrincipalType.USER,
-            "support@kryptnostic.com" );
+            "auth0|57e4b2d8d9d1d194778fd5b6" );
+    protected static final Principal         USER_TEST             = new Principal(
+            PrincipalType.USER,
+            "auth0|582e16d13440cfa8448dff7f" );
 
     protected static final String            NATION_NAMESPACE      = "us";
     protected static final FullQualifiedName NATION_SCHEMA         = new FullQualifiedName(
@@ -110,13 +116,16 @@ public class PermissionsServiceTest {
 
     protected static Retrofit                dataServiceRestAdapter;
 
+    protected static String                  currentUserId;
+
     @BeforeClass
     public static void init() throws Exception {
         ds.start( "local", "cassandra" );
         configuration = ds.getContext().getBean( Auth0Configuration.class );
         auth0 = new Auth0( configuration.getClientId(), configuration.getDomain() );
         client = auth0.newAuthenticationAPIClient();
-        String jwtToken = AuthenticationTest.authenticate().getLeft().getIdToken();
+        Pair<Credentials, Authentication> auth = AuthenticationTest.authenticate();
+        String jwtToken = auth.getLeft().getIdToken();
         OkHttpClient httpClient = new OkHttpClient();
         httpClient.setConnectTimeout( 60, TimeUnit.SECONDS );
         httpClient.setReadTimeout( 60, TimeUnit.SECONDS );
@@ -127,6 +136,8 @@ public class PermissionsServiceTest {
         ps = dataServiceRestAdapter.create( PermissionsApi.class );
         edmService = ds.getContext().getBean( EdmService.class );
         permissionsService = ds.getContext().getBean( PermissionsService.class );
+
+        currentUserId = auth.getRight().getProfile().getId();
     }
 
     @Test
@@ -368,13 +379,15 @@ public class PermissionsServiceTest {
         // Expected: Listing all permissions given for the entity set
         ps.updateEntitySetsAcls(
                 ImmutableSet.of( new EntitySetAclRequest()
-                        .setPrincipal( new Principal( PrincipalType.ROLE, "ROLE_DISCOVER" ) ).setAction( Action.ADD )
+                        .setPrincipal( new Principal( PrincipalType.ROLE, "ROLE_DISCOVER" ) )
+                        .setAction( Action.ADD )
                         .setName( DYSTOPIANS ).setPermissions( EnumSet.of( Permission.DISCOVER ) ),
-                        new EntitySetAclRequest().setPrincipal( new Principal( PrincipalType.ROLE, "ROLE_READWRITE" ) )
+                        new EntitySetAclRequest()
+                                .setPrincipal( new Principal( PrincipalType.ROLE, "ROLE_READWRITE" ) )
                                 .setAction( Action.ADD )
                                 .setName( DYSTOPIANS )
                                 .setPermissions( EnumSet.of( Permission.READ, Permission.WRITE ) ),
-                        new EntitySetAclRequest().setPrincipal( new Principal( PrincipalType.USER, "USER_EVERYTHING" ) )
+                        new EntitySetAclRequest().setPrincipal( USER_TEST )
                                 .setAction( Action.ADD )
                                 .setName( DYSTOPIANS ).setPermissions(
                                         EnumSet.of( Permission.DISCOVER, Permission.READ, Permission.WRITE ) ) ) );
@@ -912,24 +925,24 @@ public class PermissionsServiceTest {
                         .setName( MUJERES ).setPropertyType( ADDRESS )
                         .setPermissions( EnumSet.of( Permission.READ, Permission.WRITE ) ) ) );
 
-        System.err.println( "--- TEST FOR GETTING ALL SENT REQUEST --- " );
-        System.err.println( ps.getAllSentRequestsForPermissions( null ) );
+        System.err.println( "--- TEST FOR GETTING ALL SENT REQUEST BEFORE DECORATION --- " );
+        System.err.println( permissionsService.getAllSentRequestsForPermissions( currentUserId ) );
 
-        System.err.println( "--- TEST FOR GETTING SENT REQUEST FOR HOMBRES --- " );
-        System.err.println( ps.getAllSentRequestsForPermissions( HOMBRES ) );
+        System.err.println( "--- TEST FOR GETTING SENT REQUEST FOR HOMBRES BEFORE DECORATION --- " );
+        System.err.println( permissionsService.getAllSentRequestsForPermissions( currentUserId, HOMBRES ) );
 
         System.err.println( "---TEST 2---" );
         // Test 2: Citizen removes Request for Hombres
         // Expected: Citizens' sent request list should have only Mujeres
 
-        ps.getAllSentRequestsForPermissions( HOMBRES )
+        permissionsService.getAllSentRequestsForPermissions( currentUserId, HOMBRES )
                 .forEach( request -> ps.removePermissionsRequestForEntitySet( request.getRequest().getRequestId() ) );
 
-        System.err.println( "--- TEST FOR GETTING ALL SENT REQUEST --- " );
-        System.err.println( ps.getAllSentRequestsForPermissions( null ) );
+        System.err.println( "--- TEST FOR GETTING ALL SENT REQUEST BEFORE DECORATION --- " );
+        System.err.println( permissionsService.getAllSentRequestsForPermissions( currentUserId ) );
 
-        System.err.println( "--- TEST FOR GETTING SENT REQUEST FOR HOMBRES --- " );
-        System.err.println( ps.getAllSentRequestsForPermissions( HOMBRES ) );
+        System.err.println( "--- TEST FOR GETTING SENT REQUEST FOR HOMBRES BEFORE DECORATION --- " );
+        System.err.println( permissionsService.getAllSentRequestsForPermissions( currentUserId, HOMBRES ) );
 
         System.err.println( "---TEST 3---" );
         // Test 3: Citizens create Entity Sets Cate, Doge. A few request accesses were made to them.
@@ -951,23 +964,23 @@ public class PermissionsServiceTest {
 
         // Add permissions request
         permissionsService.addPermissionsRequestForPropertyTypeInEntitySet(
-                "redditUser1", ROLE_USER, CATE, ADDRESS, EnumSet.of( Permission.READ ) );
+                USER_TEST.getId(), ROLE_USER, CATE, ADDRESS, EnumSet.of( Permission.READ ) );
         permissionsService.addPermissionsRequestForPropertyTypeInEntitySet(
-                "redditUser314",
+                USER_TEST.getId(),
                 USER_USER,
                 DOGE,
                 LIFE_EXPECTANCY,
                 EnumSet.of( Permission.READ, Permission.WRITE, Permission.DISCOVER ) );
 
-        System.err.println( "--- TEST FOR GETTING ALL RECEIVED REQUEST --- " );
-        System.err.println( ps.getAllReceivedRequestsForPermissions( null ) );
+        System.err.println( "--- TEST FOR GETTING ALL RECEIVED REQUEST BEFORE DECORATION --- " );
+        System.err.println( permissionsService.getAllReceivedRequestsForPermissionsOfUserId( currentUserId ) );
 
-        System.err.println( "--- TEST FOR GETTING RECEIVED REQUEST FOR CATE --- " );
-        System.err.println( ps.getAllReceivedRequestsForPermissions( CATE ) );
+        System.err.println( "--- TEST FOR GETTING RECEIVED REQUEST FOR CATE BEFORE DECORATION --- " );
+        System.err.println( permissionsService.getAllReceivedRequestsForPermissionsOfEntitySet( CATE ) );
 
-        System.err.println( "--- TEST FOR GETTING RECEIVED REQUEST FOR HOMBRES --- " );
+        System.err.println( "--- TEST FOR GETTING RECEIVED REQUEST FOR HOMBRES BEFORE DECORATION --- " );
         try {
-            System.err.println( ps.getAllReceivedRequestsForPermissions( HOMBRES ) );
+            System.err.println( permissionsService.getAllReceivedRequestsForPermissionsOfEntitySet( HOMBRES ) );
         } catch ( Exception e ) {
             // 404 thrown by ExceptionHandler would be caught by retrofit, so it's NotFoundException rather than custom
             // ResourceNotFoundException
@@ -979,9 +992,9 @@ public class PermissionsServiceTest {
 
     private void requestAccessCleanup() {
         // Remove unattended PermissionsRequest to avoid pollution.
-        ps.getAllSentRequestsForPermissions( null )
+        permissionsService.getAllSentRequestsForPermissions( currentUserId )
                 .forEach( request -> ps.removePermissionsRequestForEntitySet( request.getRequest().getRequestId() ) );
-        ps.getAllReceivedRequestsForPermissions( null )
+        permissionsService.getAllReceivedRequestsForPermissionsOfUserId( currentUserId )
                 .forEach( request -> ps.removePermissionsRequestForEntitySet( request.getRequest().getRequestId() ) );
     }
 }

@@ -401,7 +401,7 @@ public class DatastoreTests extends BootstrapDatastoreWithCassandra {
         
         for(int i = 0; i < NUMBER_OF_ENTITY_SETS; i++){
             try{
-                dms.createEntitySet( ENTITY_TYPE,
+                dms.createEntitySet( principal, ENTITY_TYPE,
                         ENTITY_SET_NAME_PREFIX + i,
                         "The entity set " + i + " title" );
             } catch ( IllegalArgumentException e ){

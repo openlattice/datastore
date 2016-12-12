@@ -7,13 +7,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.ObjectError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 
 import com.kryptnostic.datastore.exceptions.BatchExceptions;
-
-import org.springframework.validation.ObjectError;
+import com.kryptnostic.datastore.exceptions.ForbiddenException;
 
 /**
  * Created by yao on 9/20/16.
@@ -67,7 +67,14 @@ public class DataStoreExceptionHandler {
     @ExceptionHandler( BatchExceptions.class )
     public ResponseEntity<ErrorsDTO> handleBatchExceptions( BatchExceptions e ) {
         logger.error( ERROR_MSG, e );
-        return new ResponseEntity<ErrorsDTO>( e.getErrors(), HttpStatus.MULTI_STATUS );
+        return new ResponseEntity<ErrorsDTO>( e.getErrors(), e.getStatusCode() );
     }
 
+    @ExceptionHandler( ForbiddenException.class )
+    public ResponseEntity<ErrorDTO> handleUnauthorizedExceptions( ForbiddenException e ) {
+        logger.error( ERROR_MSG, e );
+        return new ResponseEntity<ErrorDTO>(
+                new ErrorDTO( e.getClass().getName(), e.getMessage() ),
+                HttpStatus.UNAUTHORIZED );
+    }
 }

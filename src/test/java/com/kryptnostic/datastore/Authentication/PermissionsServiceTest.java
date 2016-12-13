@@ -183,7 +183,7 @@ public class PermissionsServiceTest {
         System.err.println( "*********************" );
     }
 
-    @AfterClass
+    @Ignore
     public static void cleanUp() {
         // Give permissions
         ps.updateEntityTypesAcls(
@@ -328,17 +328,19 @@ public class PermissionsServiceTest {
         System.err.println( "***Entity Set Test starts***" );
 
         System.err.println( "--- Test 1 ---" );
+        
+        int currentNum = Iterables.size( edmApi.getEntitySets( null ) );
         // Test 1: Citizen is given the DISCOVER permission for Secret Service; and the right got removed after.
         // Expected: RandomGuy can see the metadata for Secret Service; and cannot after.
         ps.updateEntitySetsAcls(
                 ImmutableSet.of( new EntitySetAclRequest().setPrincipal( principal ).setAction( Action.ADD )
                         .setName( NATION_SECRET_SERVICE ).setPermissions( EnumSet.of( Permission.DISCOVER ) ) ) );
-        Assert.assertNotEquals( 0, Iterables.size( edmApi.getEntitySets( null ) ) );
+        Assert.assertEquals( currentNum + 1, Iterables.size( edmApi.getEntitySets( null ) ) );
 
         ps.updateEntitySetsAcls(
                 ImmutableSet.of( new EntitySetAclRequest().setPrincipal( principal ).setAction( Action.REMOVE )
                         .setName( NATION_SECRET_SERVICE ).setPermissions( EnumSet.of( Permission.DISCOVER ) ) ) );
-        Assert.assertEquals( 0, Iterables.size( edmApi.getEntitySets( null ) ) );
+        Assert.assertEquals( currentNum, Iterables.size( edmApi.getEntitySets( null ) ) );
 
         // Setup: Citizen creates a new entity set in NATION_CITIZENS.
         String DYSTOPIANS = "dystopians";

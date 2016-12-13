@@ -20,7 +20,6 @@ import org.springframework.web.servlet.config.annotation.ContentNegotiationConfi
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurationSupport;
 
-import com.dataloom.edm.validation.ConstraintValidatorFactoryImpl;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.kryptnostic.datastore.constants.CustomMediaType;
 import com.kryptnostic.datastore.constants.DatastoreConstants;
@@ -83,10 +82,6 @@ public class DataStoreMvcPod extends WebMvcConfigurationSupport {
         
         LocalValidatorFactoryBean validatorFactoryBean = new LocalValidatorFactoryBean();
         validatorFactoryBean.setValidationMessageSource( messageSource );
-        validatorFactoryBean.afterPropertiesSet();
-        
-        ValidatorContext validatorContext = validatorFactoryBean.usingContext();
-        validatorFactoryBean.setConstraintValidatorFactory( new ConstraintValidatorFactoryImpl( validatorContext ) );
         
         return validatorFactoryBean;
     }

@@ -1,7 +1,6 @@
 package com.kryptnostic.datastore.util;
 
 import java.util.List;
-import java.util.NoSuchElementException;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -14,6 +13,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 
 import com.kryptnostic.datastore.exceptions.BatchExceptions;
 import com.kryptnostic.datastore.exceptions.ForbiddenException;
+import com.kryptnostic.datastore.exceptions.ResourceNotFoundException;
 
 /**
  * Created by yao on 9/20/16.
@@ -23,7 +23,7 @@ public class DataStoreExceptionHandler {
     private static final Logger logger    = LoggerFactory.getLogger( DataStoreExceptionHandler.class );
     private static final String ERROR_MSG = "";
 
-    @ExceptionHandler( { NullPointerException.class, NoSuchElementException.class } )
+    @ExceptionHandler( { NullPointerException.class, ResourceNotFoundException.class } )
     public ResponseEntity<ErrorDTO> handleNotFoundException( Exception e ) {
         logger.error( ERROR_MSG, e );
         return new ResponseEntity<ErrorDTO>(

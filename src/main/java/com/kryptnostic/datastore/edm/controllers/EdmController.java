@@ -11,6 +11,7 @@ import java.util.stream.StreamSupport;
 import javax.inject.Inject;
 import javax.validation.ConstraintViolation;
 import javax.validation.Valid;
+import javax.validation.groups.Default;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.olingo.commons.api.edm.FullQualifiedName;
@@ -37,11 +38,13 @@ import com.dataloom.edm.internal.Schema;
 import com.dataloom.edm.requests.GetSchemasRequest;
 import com.dataloom.edm.requests.GetSchemasRequest.TypeDetails;
 import com.dataloom.edm.validation.ValidateFullQualifiedName;
+import com.dataloom.edm.validation.tags.Extended;
 import com.google.common.base.Optional;
 import com.google.common.collect.Sets;
 import com.kryptnostic.datastore.ServerUtil;
 import com.kryptnostic.datastore.exceptions.BatchExceptions;
 import com.kryptnostic.datastore.exceptions.ForbiddenException;
+import com.kryptnostic.datastore.exceptions.ResourceNotFoundException;
 import com.kryptnostic.datastore.services.ActionAuthorizationService;
 import com.kryptnostic.datastore.services.EdmManager;
 import com.kryptnostic.datastore.services.PermissionsService;
@@ -90,17 +93,25 @@ public class EdmController implements EdmApi {
         consumes = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
     public Iterable<Schema> getSchemas( @RequestBody @Valid GetSchemasRequest request ) {
+        Iterable<Schema> results;
+
         if ( request.getNamespace().isPresent() && StringUtils.isNotBlank( request.getNamespace().get() ) ) {
             if ( request.getName().isPresent() && StringUtils.isNotBlank( request.getName().get() ) ) {
-                return Arrays.asList( modelService.getSchema( request.getNamespace().get(),
+                results = Arrays.asList( modelService.getSchema( request.getNamespace().get(),
                         request.getName().get(),
                         request.getLoadDetails() ) );
             } else {
-                return modelService.getSchemasInNamespace( request.getNamespace().get(),
+                results = modelService.getSchemasInNamespace( request.getNamespace().get(),
                         request.getLoadDetails() );
             }
         } else {
-            return modelService.getSchemas( request.getLoadDetails() );
+            results = modelService.getSchemas( request.getLoadDetails() );
+        }
+
+        if ( results != null ) {
+            return results;
+        } else {
+            throw new ResourceNotFoundException();
         }
     }
 
@@ -112,7 +123,12 @@ public class EdmController implements EdmApi {
     public Schema getSchemaContents(
             @PathVariable( NAMESPACE ) String namespace,
             @PathVariable( NAME ) String name ) {
-        return modelService.getSchema( namespace, name, EnumSet.allOf( TypeDetails.class ) );
+        Schema result = modelService.getSchema( namespace, name, EnumSet.allOf( TypeDetails.class ) );
+        if( result != null ){
+            return result;
+        } else {
+            throw new ResourceNotFoundException();
+        }
     }
 
     @Override
@@ -146,7 +162,7 @@ public class EdmController implements EdmApi {
 
         // TODO Cascade validation not working. Temporarily workaround as follows.
         for ( EntitySet entitySet : entitySets ) {
-            Set<ConstraintViolation<EntitySet>> validationErrors = validator.validate( entitySet );
+            Set<ConstraintViolation<EntitySet>> validationErrors = validator.validate( entitySet, Default.class, Extended.class );
             if ( !validationErrors.isEmpty() ) {
                 for ( ConstraintViolation<EntitySet> error : validationErrors ) {
                     dto.addError( IllegalArgumentException.class.getName(), entitySet.getName(), error.getMessage() );
@@ -183,7 +199,7 @@ public class EdmController implements EdmApi {
 
         // TODO Cascade validation not working. Temporarily workaround as follows.
         for ( EntitySet entitySet : entitySets ) {
-            Set<ConstraintViolation<EntitySet>> validationErrors = validator.validate( entitySet );
+            Set<ConstraintViolation<EntitySet>> validationErrors = validator.validate( entitySet, Default.class, Extended.class );
             if ( !validationErrors.isEmpty() ) {
                 for ( ConstraintViolation<EntitySet> error : validationErrors ) {
                     dto.addError( IllegalArgumentException.class.getName(), entitySet.getName(), error.getMessage() );

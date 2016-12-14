@@ -73,6 +73,7 @@ public class UserDirectoryController implements UserDirectoryApi {
             produces = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
     public Void resetRolesOfUser( @PathVariable( USER_ID ) String userId, @RequestBody List<String> roles ) {
+        //TODO skipping validation check for now
         userDirectoryService.resetRolesOfUser( userId, roles );
         return null;
     }

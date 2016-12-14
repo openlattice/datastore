@@ -80,6 +80,7 @@ public class DataStoreMvcPod extends WebMvcConfigurationSupport {
         
         LocalValidatorFactoryBean validatorFactoryBean = new LocalValidatorFactoryBean();
         validatorFactoryBean.setValidationMessageSource( messageSource );
+
         return validatorFactoryBean;
     }
     

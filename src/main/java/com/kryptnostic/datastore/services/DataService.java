@@ -92,22 +92,22 @@ public class DataService {
     public Iterable<Multimap<FullQualifiedName, Object>> readAllEntitiesOfType(
             FullQualifiedName fqn,
             Collection<FullQualifiedName> authorizedPropertyFqns ) {
-        try {
             List<PropertyType> properties = authorizedPropertyFqns.stream()
                     .map( propertyTypeFqn -> dms.getPropertyType( propertyTypeFqn ) )
                     .collect( Collectors.toList() );
-
-            QueryResult result = executor
-                    .submit( ConductorCall
-                            .wrap( Lambdas.getAllEntitiesOfType( fqn, properties ) ) )
-                    .get();
-
+            
+            QueryResult result;
+            try {
+                result = executor
+                        .submit( ConductorCall
+                                .wrap( Lambdas.getAllEntitiesOfType( fqn, properties ) ) )
+                        .get();
+            } catch ( InterruptedException | ExecutionException e ) {
+                logger.error( "Failed to retrieve data for entity type " + fqn + ".", e );
+                throw new IllegalStateException( "Failed to retrieve data for entity type " + fqn );
+            }
+            
             return Iterables.transform( result, row -> ResultSetAdapterFactory.mapRowToObject( row, properties ) );
-
-        } catch ( InterruptedException | ExecutionException e ) {
-            e.printStackTrace();
-        }
-        return null;
     }
 
     /**
@@ -225,17 +225,19 @@ public class DataService {
     // skipping it for now.
     public Iterable<UUID> getFilteredEntities(
             LookupEntitiesRequest lookupEntitiesRequest ) {
+        QueryResult result;
+        
         try {
-            QueryResult result = executor
+            result = executor
                     .submit( ConductorCall
                             .wrap( Lambdas.getFilteredEntities( lookupEntitiesRequest ) ) )
                     .get();
-            return Iterables.transform( result, row -> ResultSetAdapterFactory.mapRowToUUID( row ) );
-
         } catch ( InterruptedException | ExecutionException e ) {
-            e.printStackTrace();
+            logger.error( "Failed to retrieve filtered entities." , e );
+            throw new IllegalStateException( "Failed to retrieve filtered entities." );
         }
-        return null;
+        
+        return Iterables.transform( result, row -> ResultSetAdapterFactory.mapRowToUUID( row ) );
     }
 
     @Deprecated
@@ -256,21 +258,23 @@ public class DataService {
             Collection<FullQualifiedName> authorizedPropertyFqns ) {
         Iterable<Multimap<FullQualifiedName, Object>> result = Lists.newArrayList();
         FullQualifiedName entityTypeFqn = new FullQualifiedName( entityTypeNamespace, entityTypeName );
-        try {
-            List<PropertyType> properties = authorizedPropertyFqns.stream()
-                    .map( propertyTypeFqn -> dms.getPropertyType( propertyTypeFqn ) )
-                    .collect( Collectors.toList() );
 
-            QueryResult qr = executor
+        List<PropertyType> properties = authorizedPropertyFqns.stream()
+                .map( propertyTypeFqn -> dms.getPropertyType( propertyTypeFqn ) )
+                .collect( Collectors.toList() );
+
+        QueryResult qr;
+        try {
+            qr = executor
                     .submit( ConductorCall
                             .wrap( Lambdas.getAllEntitiesOfEntitySet( entityTypeFqn, entitySetName, properties ) ) )
                     .get();
-
-            result = Iterables.transform( qr, row -> ResultSetAdapterFactory.mapRowToObject( row, properties ) );
-            return result;
         } catch ( InterruptedException | ExecutionException e ) {
-            logger.error( e.getMessage() );
+            logger.error( "Failed to retrieve data for entity set " + entitySetName + ".", e );
+            throw new IllegalStateException( "Failed to retrieve data for entity set " + entitySetName + "." );
         }
-        return null;
+        
+        result = Iterables.transform( qr, row -> ResultSetAdapterFactory.mapRowToObject( row, properties ) );
+        return result;
     }
 }

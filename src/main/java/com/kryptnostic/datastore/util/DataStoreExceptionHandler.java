@@ -26,31 +26,34 @@ public class DataStoreExceptionHandler {
     @ExceptionHandler( { NullPointerException.class, ResourceNotFoundException.class } )
     public ResponseEntity<ErrorDTO> handleNotFoundException( Exception e ) {
         logger.error( ERROR_MSG, e );
-        return new ResponseEntity<ErrorDTO>(
-                new ErrorDTO( e.getClass().getName(), e.getMessage() ),
-                HttpStatus.NOT_FOUND );
+        if( e.getMessage() != null ){
+            return new ResponseEntity<ErrorDTO>(
+                    new ErrorDTO( e.getClass().getSimpleName(), e.getMessage() ),
+                    HttpStatus.NOT_FOUND );
+        }
+        return new ResponseEntity<ErrorDTO>( HttpStatus.NOT_FOUND );
     }
 
     @ExceptionHandler( IllegalArgumentException.class )
     public ResponseEntity<ErrorDTO> handleIllegalArgumentException( Exception e ) {
         logger.error( ERROR_MSG, e );
         return new ResponseEntity<ErrorDTO>(
-                new ErrorDTO( e.getClass().getName(), e.getMessage() ),
+                new ErrorDTO( "IllegalArgumentException", e.getMessage() ),
                 HttpStatus.BAD_REQUEST );
     }
 
     @ExceptionHandler( MethodArgumentNotValidException.class )
     public ResponseEntity<ErrorsDTO> handleMethodArgumentNotValidException( MethodArgumentNotValidException e ) {
         logger.error( ERROR_MSG, e );
-        ErrorsDTO dto = processErrors( e.getBindingResult().getAllErrors() );
+        ErrorsDTO dto = processErrors( "MethodArgumentNotValidException", e.getBindingResult().getAllErrors() );
         return new ResponseEntity<ErrorsDTO>( dto, HttpStatus.BAD_REQUEST );
     }
 
-    private ErrorsDTO processErrors( List<ObjectError> errors ) {
+    private ErrorsDTO processErrors( String errorType, List<ObjectError> errors ) {
         ErrorsDTO dto = new ErrorsDTO();
 
         for ( ObjectError error : errors ) {
-            dto.addError( error.getObjectName(), error.getDefaultMessage() );
+            dto.addError( errorType, error.getObjectName(), error.getDefaultMessage() );
         }
 
         return dto;
@@ -60,7 +63,7 @@ public class DataStoreExceptionHandler {
     public ResponseEntity<ErrorDTO> handleIllegalStateException( Exception e ) {
         logger.error( ERROR_MSG, e );
         return new ResponseEntity<ErrorDTO>(
-                new ErrorDTO( e.getClass().getName(), e.getMessage() ),
+                new ErrorDTO( "IllegalStateException", e.getMessage() ),
                 HttpStatus.INTERNAL_SERVER_ERROR );
     }
 
@@ -74,7 +77,15 @@ public class DataStoreExceptionHandler {
     public ResponseEntity<ErrorDTO> handleUnauthorizedExceptions( ForbiddenException e ) {
         logger.error( ERROR_MSG, e );
         return new ResponseEntity<ErrorDTO>(
-                new ErrorDTO( e.getClass().getName(), e.getMessage() ),
+                new ErrorDTO( "ForbiddenException", e.getMessage() ),
                 HttpStatus.UNAUTHORIZED );
+    }
+    
+    @ExceptionHandler( Exception.class )
+    public ResponseEntity<ErrorDTO> handleOtherExceptions( Exception e ) {
+        logger.error( ERROR_MSG, e );
+        return new ResponseEntity<ErrorDTO>(
+                new ErrorDTO( e.getClass().getSimpleName(), e.getMessage() ),
+                HttpStatus.INTERNAL_SERVER_ERROR );
     }
 }

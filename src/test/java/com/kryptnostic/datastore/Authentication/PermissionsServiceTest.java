@@ -183,7 +183,7 @@ public class PermissionsServiceTest {
         System.err.println( "*********************" );
     }
 
-    @Ignore
+    @AfterClass
     public static void cleanUp() {
         // Give permissions
         ps.updateEntityTypesAcls(

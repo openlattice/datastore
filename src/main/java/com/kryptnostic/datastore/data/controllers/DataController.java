@@ -13,7 +13,6 @@ import javax.servlet.http.HttpServletResponse;
 import javax.validation.Valid;
 import javax.ws.rs.BadRequestException;
 
-import com.google.common.collect.Sets;
 import org.apache.olingo.commons.api.edm.FullQualifiedName;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -26,7 +25,6 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.client.HttpServerErrorException;
 
 import com.dataloom.data.DataApi;
 import com.dataloom.data.requests.CreateEntityRequest;
@@ -34,9 +32,9 @@ import com.dataloom.data.requests.LookupEntitiesRequest;
 import com.dataloom.edm.internal.EntityType;
 import com.dataloom.edm.validation.ValidateFullQualifiedName;
 import com.google.common.collect.Multimap;
+import com.google.common.collect.Sets;
 import com.kryptnostic.datastore.constants.CustomMediaType;
 import com.kryptnostic.datastore.constants.DatastoreConstants;
-import com.kryptnostic.datastore.exceptions.ResourceNotFoundException;
 import com.kryptnostic.datastore.exceptions.BatchExceptions;
 import com.kryptnostic.datastore.exceptions.ForbiddenException;
 import com.kryptnostic.datastore.services.ActionAuthorizationService;
@@ -100,6 +98,8 @@ public class DataController implements DataApi {
 
         if ( authzService.getAllEntitiesOfEntitySet( entitySetName ) ) {
             EntityType entityType = dms.getEntityType( entityTypeNamespace, entityTypeName );
+            dms.ensureEntitySetExists( entityType.getTypename(), entitySetName );
+            
             Set<FullQualifiedName> authorizedPropertyFqns = entityType.getProperties().stream()
                     .filter( propertyTypeFqn -> authzService.readPropertyTypeInEntitySet( entitySetName,
                             propertyTypeFqn ) )
@@ -144,6 +144,9 @@ public class DataController implements DataApi {
 
         if ( authzService.getAllEntitiesOfEntitySet( entitySetName ) ) {
             EntityType entityType = dms.getEntityType( entityTypeNamespace, entityTypeName );
+            dms.ensureEntitySetExists( entityType.getTypename(), entitySetName );
+            
+            //This automatically ignores non-existing property types
             Set<FullQualifiedName> targetPropertyFqns = Sets.intersection( entityType.getProperties(), selectedProperties );
             Set<FullQualifiedName> authorizedPropertyFqns = targetPropertyFqns.stream()
                     .filter( propertyTypeFqn -> authzService.readPropertyTypeInEntitySet( entitySetName,
@@ -320,7 +323,7 @@ public class DataController implements DataApi {
         ErrorsDTO dto = new ErrorsDTO();
         for( FullQualifiedName fqn : fqns ){
             EntityType entityType = dms.getEntityType( fqn );
-            if( dms.checkEntityTypeExists( fqn ) && authzService.getAllEntitiesOfType( fqn ) ){
+            if( authzService.getAllEntitiesOfType( fqn ) ){
                 Set<FullQualifiedName> authorizedPropertyFqns = entityType.getProperties().stream()
                         .filter( propertyTypeFqn -> authzService.readPropertyTypeInEntityType( fqn, propertyTypeFqn ) )
                         .collect( Collectors.toSet() );

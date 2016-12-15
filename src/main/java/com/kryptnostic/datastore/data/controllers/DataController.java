@@ -10,9 +10,9 @@ import java.util.stream.Collectors;
 
 import javax.inject.Inject;
 import javax.servlet.http.HttpServletResponse;
+import javax.validation.Valid;
 import javax.ws.rs.BadRequestException;
 
-import com.google.common.collect.Sets;
 import org.apache.olingo.commons.api.edm.FullQualifiedName;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -25,19 +25,22 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.client.HttpServerErrorException;
 
 import com.dataloom.data.DataApi;
 import com.dataloom.data.requests.CreateEntityRequest;
 import com.dataloom.data.requests.LookupEntitiesRequest;
 import com.dataloom.edm.internal.EntityType;
+import com.dataloom.edm.validation.ValidateFullQualifiedName;
 import com.google.common.collect.Multimap;
+import com.google.common.collect.Sets;
 import com.kryptnostic.datastore.constants.CustomMediaType;
 import com.kryptnostic.datastore.constants.DatastoreConstants;
-import com.kryptnostic.datastore.exceptions.ResourceNotFoundException;
+import com.kryptnostic.datastore.exceptions.BatchExceptions;
+import com.kryptnostic.datastore.exceptions.ForbiddenException;
 import com.kryptnostic.datastore.services.ActionAuthorizationService;
 import com.kryptnostic.datastore.services.DataService;
 import com.kryptnostic.datastore.services.EdmManager;
+import com.kryptnostic.datastore.util.ErrorsDTO;
 
 @RestController
 @RequestMapping( "/" + DataApi.CONTROLLER )
@@ -95,6 +98,8 @@ public class DataController implements DataApi {
 
         if ( authzService.getAllEntitiesOfEntitySet( entitySetName ) ) {
             EntityType entityType = dms.getEntityType( entityTypeNamespace, entityTypeName );
+            dms.ensureEntitySetExists( entityType.getTypename(), entitySetName );
+            
             Set<FullQualifiedName> authorizedPropertyFqns = entityType.getProperties().stream()
                     .filter( propertyTypeFqn -> authzService.readPropertyTypeInEntitySet( entitySetName,
                             propertyTypeFqn ) )
@@ -103,8 +108,9 @@ public class DataController implements DataApi {
                     entityTypeNamespace,
                     entityTypeName,
                     authorizedPropertyFqns );
+        } else {
+            throw new ForbiddenException();
         }
-        return null;
     }
 
     @RequestMapping(
@@ -120,8 +126,9 @@ public class DataController implements DataApi {
             @RequestParam(
                     value = DatastoreConstants.FILE_TYPE,
                     required = false ) FileType fileType,
-            @RequestBody Set<FullQualifiedName> selectedProperties,
+            @RequestBody @Valid Set<@ValidateFullQualifiedName FullQualifiedName> selectedProperties,
             HttpServletResponse response ) {
+        // TODO Cascade validation not working.
         String fileName = entitySetName + "_selected";
         setContentDisposition( response, fileName, fileType );
         setDownloadContentType( response, fileType );
@@ -137,6 +144,9 @@ public class DataController implements DataApi {
 
         if ( authzService.getAllEntitiesOfEntitySet( entitySetName ) ) {
             EntityType entityType = dms.getEntityType( entityTypeNamespace, entityTypeName );
+            dms.ensureEntitySetExists( entityType.getTypename(), entitySetName );
+            
+            //This automatically ignores non-existing property types
             Set<FullQualifiedName> targetPropertyFqns = Sets.intersection( entityType.getProperties(), selectedProperties );
             Set<FullQualifiedName> authorizedPropertyFqns = targetPropertyFqns.stream()
                     .filter( propertyTypeFqn -> authzService.readPropertyTypeInEntitySet( entitySetName,
@@ -146,8 +156,9 @@ public class DataController implements DataApi {
                     entityTypeNamespace,
                     entityTypeName,
                     authorizedPropertyFqns );
+        } else {
+            throw new ForbiddenException();
         }
-        return null;
     }
 
     private static void setDownloadContentType( HttpServletResponse response, FileType fileType ) {
@@ -175,7 +186,7 @@ public class DataController implements DataApi {
         produces = { MediaType.APPLICATION_JSON_VALUE, CustomMediaType.TEXT_CSV_VALUE } )
     @ResponseStatus( HttpStatus.OK )
     public Iterable<Multimap<FullQualifiedName, Object>> getAllEntitiesOfType(
-            @RequestBody FullQualifiedName fqn,
+            @RequestBody @ValidateFullQualifiedName FullQualifiedName fqn,
             @RequestParam(
                 value = DatastoreConstants.FILE_TYPE,
                 required = false ) FileType fileType,
@@ -196,7 +207,7 @@ public class DataController implements DataApi {
                     .collect( Collectors.toSet() );
             return dataService.readAllEntitiesOfType( fqn, authorizedPropertyFqns );
         } else {
-            throw new ResourceNotFoundException( "Entity Type not found.");
+            throw new ForbiddenException();
         }
     }
 
@@ -259,7 +270,8 @@ public class DataController implements DataApi {
                     value = DatastoreConstants.FILE_TYPE,
                     required = false ) FileType fileType,
             HttpServletResponse response,
-            @RequestBody Set<FullQualifiedName> selectedProperties ) {
+            @RequestBody @Valid Set<@ValidateFullQualifiedName FullQualifiedName> selectedProperties ) {
+        // TODO Cascade validation not working.
         String fileName = namespace + "_" + name + "_selected";
         setContentDisposition( response, fileName, fileType );
         setDownloadContentType( response, fileType );
@@ -280,7 +292,7 @@ public class DataController implements DataApi {
 
             return dataService.readAllEntitiesOfType( fqn, authorizedPropertyFqns );
         } else {
-            throw new ResourceNotFoundException( "Entity Type not found.");
+            throw new ForbiddenException();
         }
     }
 
@@ -291,7 +303,7 @@ public class DataController implements DataApi {
         produces = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
     public Iterable<Iterable<Multimap<FullQualifiedName, Object>>> getAllEntitiesOfTypes(
-            @RequestBody List<FullQualifiedName> fqns,
+            @RequestBody @Valid List<@ValidateFullQualifiedName FullQualifiedName> fqns,
             @RequestParam(
                 value = DatastoreConstants.FILE_TYPE,
                 required = false ) FileType fileType,
@@ -308,16 +320,22 @@ public class DataController implements DataApi {
             List<FullQualifiedName> fqns ) {
         Map<FullQualifiedName, Collection<FullQualifiedName>> entityTypesAndAuthorizedProperties = new HashMap<>();
         
+        ErrorsDTO dto = new ErrorsDTO();
         for( FullQualifiedName fqn : fqns ){
             EntityType entityType = dms.getEntityType( fqn );
-            if( dms.checkEntityTypeExists( fqn ) && authzService.getAllEntitiesOfType( fqn ) ){
+            if( authzService.getAllEntitiesOfType( fqn ) ){
                 Set<FullQualifiedName> authorizedPropertyFqns = entityType.getProperties().stream()
                         .filter( propertyTypeFqn -> authzService.readPropertyTypeInEntityType( fqn, propertyTypeFqn ) )
                         .collect( Collectors.toSet() );
                 entityTypesAndAuthorizedProperties.put( fqn,  authorizedPropertyFqns );
             } else {
                 logger.error( "GetAllEntitiesOfType for " + fqn + " failed for user " + authzService.getUserId() );
+                dto.addError( ForbiddenException.class.getName(), fqn.toString(), ForbiddenException.message );
             }
+        }
+        
+        if ( !dto.isEmpty() ) {
+            throw new BatchExceptions( dto, HttpStatus.BAD_REQUEST );
         }
         return dataService.readAllEntitiesOfSchema( entityTypesAndAuthorizedProperties );
     }
@@ -329,7 +347,8 @@ public class DataController implements DataApi {
         consumes = MediaType.APPLICATION_JSON_VALUE,
         produces = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
-    public Iterable<UUID> getFilteredEntities( @RequestBody LookupEntitiesRequest lookupEntitiesRequest ) {
+    public Iterable<UUID> getFilteredEntities( @RequestBody @Valid LookupEntitiesRequest lookupEntitiesRequest ) {
+        //TODO need to find a good way to validate keys in a map 
         return dataService.getFilteredEntities( lookupEntitiesRequest );
     }
 
@@ -353,12 +372,8 @@ public class DataController implements DataApi {
         if( authorizedToWrite ){
             EntityType entityType;
             
-            try{
-                entityType = dms.getEntityType( createEntityRequest.getEntityType() );
-            } catch( IllegalArgumentException e ){
-                throw new BadRequestException( e.getMessage() );
-            }
-
+            entityType = dms.getEntityType( createEntityRequest.getEntityType() );
+            
             Set<FullQualifiedName> authorizedPropertyFqns;
 
             if ( entitySetNamePresent ) {
@@ -373,11 +388,9 @@ public class DataController implements DataApi {
                         .collect( Collectors.toSet() );
             }
             
-            try{
-                dataService.createEntityData( createEntityRequest, authorizedPropertyFqns );
-            } catch (Exception e ){
-                throw new HttpServerErrorException( HttpStatus.INTERNAL_SERVER_ERROR, e.getMessage() ); 
-            }
+            dataService.createEntityData( createEntityRequest, authorizedPropertyFqns );
+        } else {
+            throw new ForbiddenException();
         }
         return null;
     }
@@ -400,6 +413,7 @@ public class DataController implements DataApi {
         produces = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
     public Map<String, String> getIntegrationScript( @RequestBody Set<String> urls ) {
+        //TODO skipping validation check for now - default @URL won't allow URLs without schema, may affect shuttle java.
         return dataService.getIntegrationScriptForUrl( urls );
     }
 
@@ -410,6 +424,7 @@ public class DataController implements DataApi {
         consumes = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
     public Void createIntegrationScript( @RequestBody Map<String, String> integrationScripts ) {
+        //TODO skipping validation check for now
         dataService.createIntegrationScript( integrationScripts );
         return null;
     }

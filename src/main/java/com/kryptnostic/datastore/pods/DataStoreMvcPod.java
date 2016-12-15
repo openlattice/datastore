@@ -4,13 +4,16 @@ import java.util.List;
 
 import javax.inject.Inject;
 
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.FilterType;
+import org.springframework.context.support.ResourceBundleMessageSource;
 import org.springframework.http.MediaType;
 import org.springframework.http.converter.HttpMessageConverter;
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
 import org.springframework.scheduling.annotation.EnableAsync;
+import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean;
 import org.springframework.web.servlet.config.annotation.ContentNegotiationConfigurer;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurationSupport;
@@ -68,5 +71,21 @@ public class DataStoreMvcPod extends WebMvcConfigurationSupport {
                 .mediaType( "csv", CustomMediaType.TEXT_CSV )
                 .mediaType( "json", MediaType.APPLICATION_JSON )
                 .defaultContentType( MediaType.APPLICATION_JSON );
+    }
+
+    @Bean
+    public LocalValidatorFactoryBean validator(){
+        ResourceBundleMessageSource messageSource = new ResourceBundleMessageSource();
+        messageSource.setBasename( "ValidationMessages" );
+        
+        LocalValidatorFactoryBean validatorFactoryBean = new LocalValidatorFactoryBean();
+        validatorFactoryBean.setValidationMessageSource( messageSource );
+
+        return validatorFactoryBean;
+    }
+    
+    @Override
+    public org.springframework.validation.Validator getValidator() {              
+        return validator();
     }
 }

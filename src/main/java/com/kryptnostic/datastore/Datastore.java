@@ -8,6 +8,7 @@ import com.dataloom.data.serializers.FullQualifedNameJacksonDeserializer;
 import com.dataloom.data.serializers.FullQualifedNameJacksonSerializer;
 import com.dataloom.edm.internal.EntityType;
 import com.dataloom.edm.internal.PropertyType;
+import com.fasterxml.jackson.databind.SerializationFeature;
 import com.google.common.collect.ImmutableSet;
 import com.kryptnostic.conductor.rpc.UUIDs.ACLs;
 import com.kryptnostic.datastore.odata.KryptnosticEdmProvider;
@@ -44,6 +45,7 @@ public class Datastore extends BaseRhizomeServer {
     static {
         ObjectMapperRegistry.foreach( FullQualifedNameJacksonSerializer::registerWithMapper );
         ObjectMapperRegistry.foreach( FullQualifedNameJacksonDeserializer::registerWithMapper );
+        ObjectMapperRegistry.foreach( mapper -> mapper.disable( SerializationFeature.WRITE_DATES_AS_TIMESTAMPS ) );
     }
 
     public Datastore( Class<?>... pods ) {

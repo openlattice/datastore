@@ -132,6 +132,10 @@ public class CustomCSVPopulation {
         public Object getRandom() throws Exception {
             return randomGenCallable.call();
         }
+
+        public FullQualifiedName getFqn() {
+            return new FullQualifiedName( NAMESPACE, name );
+        }
     }
 
     public static void loadDefaultPropertyTypes() {
@@ -252,8 +256,7 @@ public class CustomCSVPopulation {
 
     public static void createPropertyTypes() {
         for ( CustomPropertyType type : propertyTypesList ) {
-            dms.createPropertyType( new PropertyType().setNamespace( NAMESPACE ).setName( type.getName() )
-                    .setDatatype( type.getDataType() ).setMultiplicity( 0 ) );
+            dms.createPropertyType( new PropertyType(type.getFqn(),ImmutableSet.of(), type.getDataType() ) );
         }
     }
 
@@ -269,20 +272,16 @@ public class CustomCSVPopulation {
         for ( int i = 0; i < numEntityTypes; i++ ) {
             // Entity Type of 10-character names
             String entityTypeName = RandomStringUtils.randomAlphabetic( 10 );
-
-            EntityType entityType = new EntityType().setNamespace( NAMESPACE )
-                    .setName( entityTypeName )
-                    .setKey( ImmutableSet.of( new FullQualifiedName( NAMESPACE, "key" ) ) );
-            // Add property types to entity type
-
             Set<FullQualifiedName> setPropertyTypesFQN = new HashSet<FullQualifiedName>();
             for ( CustomPropertyType propertyType : propertyTypesList ) {
                 setPropertyTypesFQN.add( new FullQualifiedName( NAMESPACE, propertyType.getName() ) );
             }
-            entityType.setProperties( setPropertyTypesFQN );
+
+            EntityType entityType = new EntityType(new FullQualifiedName( NAMESPACE ,entityTypeName ),ImmutableSet.of(),ImmutableSet.of( new FullQualifiedName( NAMESPACE, "key" ) ), setPropertyTypesFQN );
+            // Add property types to entity type
 
             // Create Entity Type in database
-            dms.createEntityType( principal, entityType );
+            dms.createEntityType( entityType );
 
             // Update list of custom Entity Types
             EntityTypesList.add( entityTypeName );

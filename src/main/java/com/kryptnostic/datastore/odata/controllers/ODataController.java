@@ -20,31 +20,35 @@ import com.hazelcast.core.HazelcastInstance;
 import com.kryptnostic.datastore.odata.KryptnosticEdmProvider;
 import com.kryptnostic.datastore.odata.KryptnosticEntityCollectionProcessor;
 import com.kryptnostic.datastore.odata.KryptnosticEntityProcessor;
+import com.kryptnostic.datastore.services.CassandraSchemaManager;
 import com.kryptnostic.datastore.services.DatasourceManager;
 import com.kryptnostic.datastore.services.EdmManager;
 import com.kryptnostic.datastore.services.ODataStorageService;
 
 @Controller
 public class ODataController {
-    private static final Logger logger = LoggerFactory.getLogger( ODataController.class );
+    private static final Logger    logger = LoggerFactory.getLogger( ODataController.class );
     @Inject
-    private HazelcastInstance   hazelcast;
+    private HazelcastInstance      hazelcast;
 
     @Inject
-    private EdmManager          dms;
+    private EdmManager             dms;
 
     @Inject
-    private ODataStorageService storage;
+    private CassandraSchemaManager schemaManager;
 
     @Inject
-    private DatasourceManager   dsm;
+    private ODataStorageService    storage;
+
+    @Inject
+    private DatasourceManager      dsm;
 
     @RequestMapping( { "", "/*" } )
     public void handleOData( HttpServletRequest req, HttpServletResponse resp ) throws ServletException {
         try {
             // create odata handler and configure it with CsdlEdmProvider and Processor
             OData odata = OData.newInstance();
-            ServiceMetadata edm = odata.createServiceMetadata( new KryptnosticEdmProvider( dms ),
+            ServiceMetadata edm = odata.createServiceMetadata( new KryptnosticEdmProvider( dms, schemaManager ),
                     new ArrayList<EdmxReference>() );
             ODataHttpHandler handler = odata.createHandler( edm );
             handler.register( new KryptnosticEntityCollectionProcessor( storage ) );

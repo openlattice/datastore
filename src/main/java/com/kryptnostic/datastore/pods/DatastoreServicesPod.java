@@ -48,13 +48,17 @@ public class DatastoreServicesPod {
         return new CassandraTableManager(
                 hazelcastInstance,
                 DatastoreConstants.KEYSPACE,
-                session,
-                mappingManager() );
+                session );
     }
 
     @Bean
     public PermissionsService permissionsService() {
         return new PermissionsService( session, mappingManager(), tableManager() );
+    }
+
+    @Bean
+    public CassandraEntitySetManager entitySetManager() {
+        return new CassandraEntitySetManager( session, DatastoreConstants.KEYSPACE );
     }
 
     @Bean
@@ -64,7 +68,7 @@ public class DatastoreServicesPod {
 
     @Bean
     public EdmManager dataModelService() {
-        return new EdmService( session, hazelcastInstance, mappingManager(), tableManager(), permissionsService() );
+        return new EdmService( session, hazelcastInstance, tableManager(), entitySetManager(), permissionsService() );
     }
 
     @Bean
@@ -105,7 +109,7 @@ public class DatastoreServicesPod {
     public UserDirectoryService userDirectoryService() {
         return new UserDirectoryService( auth0Configuration.getToken() );
     }
-    
+
     @Bean
     public PermissionsResultsAdapter permissionsResultsAdapter() {
         return new PermissionsResultsAdapter( hazelcastInstance, userDirectoryService() );

@@ -28,7 +28,7 @@ public final class Transformers {
 
             CsdlEntityType entityType = new CsdlEntityType();
 
-            entityType.setName( objectType.getName() );
+            entityType.setName( objectType.getType().getName() );
 
             entityType.setKey( objectType.getKey().stream()
                     .map( name -> new CsdlPropertyRef().setName( name.getName() ) ).collect( Collectors.toList() ) );

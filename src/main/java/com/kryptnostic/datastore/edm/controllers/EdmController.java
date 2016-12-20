@@ -1,6 +1,5 @@
 package com.kryptnostic.datastore.edm.controllers;
 
-import java.util.Arrays;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
@@ -34,20 +33,24 @@ import com.dataloom.edm.internal.EntityType;
 import com.dataloom.edm.internal.EntityTypeWithDetails;
 import com.dataloom.edm.internal.PropertyType;
 import com.dataloom.edm.internal.Schema;
-import com.dataloom.edm.requests.GetSchemasRequest;
 import com.dataloom.edm.requests.GetSchemasRequest.TypeDetails;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
-import com.kryptnostic.datastore.ServerUtil;
 import com.kryptnostic.datastore.exceptions.BadRequestException;
 import com.kryptnostic.datastore.exceptions.ResourceNotFoundException;
 import com.kryptnostic.datastore.services.ActionAuthorizationService;
+import com.kryptnostic.datastore.services.CassandraSchemaManager;
 import com.kryptnostic.datastore.services.EdmManager;
 import com.kryptnostic.datastore.services.PermissionsService;
 
 @RestController
 public class EdmController implements EdmApi {
+
     @Inject
     private EdmManager                 modelService;
+
+    @Inject
+    private CassandraSchemaManager     schemaManager;
 
     @Inject
     private PermissionsService         ps;
@@ -74,32 +77,18 @@ public class EdmController implements EdmApi {
         method = RequestMethod.GET )
     @ResponseStatus( HttpStatus.OK )
     public Iterable<Schema> getSchemas() {
-        return ServerUtil.wrapForJackson( modelService.getSchemas() );
+        return schemaManager.getAllSchemas();
     }
 
     @Override
     @RequestMapping(
-        path = "/" + SCHEMA_BASE_PATH,
-        method = RequestMethod.POST,
+        path = "/" + SCHEMA_BASE_PATH + "/" + NAMESPACE_PATH,
+        method = RequestMethod.GET,
         consumes = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
-    public Iterable<Schema> getSchemas( @RequestBody GetSchemasRequest request ) {
-        try {
-            if ( request.getNamespace().isPresent() ) {
-                if ( request.getName().isPresent() ) {
-                    return Arrays.asList( modelService.getSchema( request.getNamespace().get(),
-                            request.getName().get(),
-                            request.getLoadDetails() ) );
-                } else {
-                    return modelService.getSchemasInNamespace( request.getNamespace().get(),
-                            request.getLoadDetails() );
-                }
-            } else {
-                return modelService.getSchemas( request.getLoadDetails() );
-            }
-        } catch ( IllegalArgumentException e ) {
-            throw new BadRequestException( e.getMessage() );
-        }
+    public Iterable<Schema> getSchemas( @PathVariable( NAMESPACE ) String namespace ) {
+        return schemaManager.getSchemasInNamespace( namespace );
+
     }
 
     @Override
@@ -122,11 +111,17 @@ public class EdmController implements EdmApi {
         path = "/" + SCHEMA_BASE_PATH + "/" + NAMESPACE_PATH )
     @ResponseStatus( HttpStatus.OK )
     public Iterable<Schema> getSchemasInNamespace( @PathVariable( NAMESPACE ) String namespace ) {
-        try {
-            return modelService.getSchemasInNamespace( namespace, EnumSet.allOf( TypeDetails.class ) );
-        } catch ( IllegalArgumentException e ) {
-            throw new BadRequestException( e.getMessage() );
-        }
+        return schemaManager.getSchemasInNamespace( namespace );
+    }
+
+    @Override
+    @RequestMapping(
+        path = "/" + SCHEMA_BASE_PATH,
+        method = RequestMethod.POST )
+    @ResponseStatus( HttpStatus.OK )
+    public Void createSchemaIfNotExists( @RequestBody Schema schema ) {
+        schemaManager.upsertSchema( schema );
+        return null;
     }
 
     @Override
@@ -135,9 +130,7 @@ public class EdmController implements EdmApi {
         method = RequestMethod.PUT )
     @ResponseStatus( HttpStatus.OK )
     public Void createEmptySchema( @PathVariable( NAMESPACE ) String namespace, @PathVariable( NAME ) String name ) {
-        modelService
-                .upsertSchema(
-                        new Schema().setNamespace( namespace ).setName( name ) );
+        schemaManager.upsertSchemas( ImmutableSet.of( new FullQualifiedName( namespace, name ) ) );
         return null;
     }
 
@@ -288,7 +281,7 @@ public class EdmController implements EdmApi {
     @ResponseStatus( HttpStatus.OK )
     public Void putEntityType( @RequestBody EntityType entityType ) {
         try {
-            modelService.createEntityType( Principals.getCurrentUser(), entityType );
+            modelService.createEntityType( entityType );
         } catch ( IllegalArgumentException e ) {
             throw new BadRequestException( e.getMessage() );
         }
@@ -356,7 +349,7 @@ public class EdmController implements EdmApi {
         consumes = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
     public Void postEntityType( @RequestBody EntityType objectType ) {
-        modelService.createEntityType( Principals.getCurrentUser(), objectType );
+        modelService.createEntityType( objectType );
         return null;
     }
 

@@ -48,6 +48,7 @@ import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.SetMultimap;
+import com.kryptnostic.conductor.rpc.UUIDs;
 import com.kryptnostic.datastore.Datastore;
 import com.kryptnostic.datastore.services.EdmService;
 import com.kryptnostic.datastore.services.PermissionsService;
@@ -202,25 +203,24 @@ public class PermissionsServiceTest {
 
     private void createTypes() {
         // Create property types Employee-id, Address, Position, Life expectancy
-        PropertyType employeeId = new PropertyType().setNamespace( NATION_NAMESPACE )
-                .setName( EMPLOYEE_ID.getName() )
-                .setDatatype( EdmPrimitiveTypeKind.Guid ).setMultiplicity( 0 );
-        PropertyType lifeExpectancy = new PropertyType().setNamespace( NATION_NAMESPACE )
-                .setName( LIFE_EXPECTANCY.getName() )
-                .setDatatype( EdmPrimitiveTypeKind.Int32 ).setMultiplicity( 0 );
-        PropertyType address = new PropertyType().setNamespace( NATION_NAMESPACE ).setName( ADDRESS.getName() )
-                .setDatatype( EdmPrimitiveTypeKind.String ).setMultiplicity( 0 );
-        PropertyType position = new PropertyType().setNamespace( NATION_NAMESPACE ).setName( POSITION.getName() )
-                .setDatatype( EdmPrimitiveTypeKind.String ).setMultiplicity( 0 );
+        PropertyType employeeId = new PropertyType( EMPLOYEE_ID, ImmutableSet.of(), EdmPrimitiveTypeKind.Guid );
+        PropertyType lifeExpectancy = new PropertyType(
+                LIFE_EXPECTANCY,
+                ImmutableSet.of(),
+                EdmPrimitiveTypeKind.Int32 );
+        PropertyType address = new PropertyType( ADDRESS, ImmutableSet.of(), EdmPrimitiveTypeKind.String );
+        PropertyType position = new PropertyType( POSITION, ImmutableSet.of(), EdmPrimitiveTypeKind.String );
         edmApi.createPropertyType( employeeId );
         edmApi.createPropertyType( lifeExpectancy );
         edmApi.createPropertyType( address );
         edmApi.createPropertyType( position );
 
         // creates entity type Citizen
-        EntityType citizens = new EntityType().setNamespace( NATION_NAMESPACE ).setName( NATION_CITIZENS.getName() )
-                .setKey( ImmutableSet.of( EMPLOYEE_ID ) )
-                .setProperties( ImmutableSet.of(
+        EntityType citizens = new EntityType(
+                NATION_CITIZENS,
+                ImmutableSet.of(),
+                ImmutableSet.of( EMPLOYEE_ID ),
+                ImmutableSet.of(
                         EMPLOYEE_ID,
                         LIFE_EXPECTANCY,
                         ADDRESS,
@@ -229,9 +229,11 @@ public class PermissionsServiceTest {
 
         try {
             // God creates entity set Secret Service
-            EntitySet secretService = new EntitySet().setType( NATION_CITIZENS )
-                    .setName( NATION_SECRET_SERVICE )
-                    .setTitle( "Every nation would have one" );
+            EntitySet secretService = new EntitySet(
+                    NATION_CITIZENS,
+                    NATION_SECRET_SERVICE,
+                    "Every nation would have one",
+                    ImmutableSet.of() );
             edmService.createEntitySet( USER_USER, secretService );
         } catch ( IllegalArgumentException e ) {
             // This would happen if entity set already exists
@@ -259,8 +261,7 @@ public class PermissionsServiceTest {
                         .setType( NATION_CITIZENS ).setPermissions( EnumSet.of( Permission.ALTER ) ) ) );
 
         // Current setting is everyone can create types
-        PropertyType spiedOn = new PropertyType().setNamespace( NATION_NAMESPACE ).setName( SPIED_ON.getName() )
-                .setDatatype( EdmPrimitiveTypeKind.Boolean ).setMultiplicity( 0 );
+        PropertyType spiedOn = new PropertyType( SPIED_ON, ImmutableSet.of(), EdmPrimitiveTypeKind.Boolean );
         edmApi.createPropertyType( spiedOn );
 
         edmApi.addPropertyTypesToEntityType( NATION_CITIZENS.getNamespace(),
@@ -305,18 +306,23 @@ public class PermissionsServiceTest {
         edmApi.deletePropertyType( SPIED_ON.getNamespace(), SPIED_ON.getName() );
 
         // create the entity type and entity set back
-        EntityType citizens = new EntityType().setNamespace( NATION_NAMESPACE ).setName( NATION_CITIZENS.getName() )
-                .setKey( ImmutableSet.of( EMPLOYEE_ID ) )
-                .setProperties( ImmutableSet.of( EMPLOYEE_ID,
+        EntityType citizens = new EntityType(
+                NATION_CITIZENS,
+                ImmutableSet.of(),
+                ImmutableSet.of( EMPLOYEE_ID ),
+                ImmutableSet.of( EMPLOYEE_ID,
                         LIFE_EXPECTANCY,
                         ADDRESS,
                         POSITION ) );
         edmApi.postEntityType( citizens );
 
         // God creates entity set Secret Service
-        EntitySet secretService = new EntitySet().setType( NATION_CITIZENS )
-                .setName( NATION_SECRET_SERVICE )
-                .setTitle( "Every nation would have one" );
+        EntitySet secretService = new EntitySet(
+                NATION_CITIZENS,
+                NATION_SECRET_SERVICE,
+                "Every nation would have one",
+                ImmutableSet.of() );
+
         edmService.createEntitySet( USER_USER, secretService );
 
         System.err.println( " *** Entity Type Test Clean Up Finished *** " );
@@ -341,9 +347,11 @@ public class PermissionsServiceTest {
         // Setup: Citizen creates a new entity set in NATION_CITIZENS.
         String DYSTOPIANS = "dystopians";
 
-        EntitySet dystopians = new EntitySet().setType( NATION_CITIZENS )
-                .setName( DYSTOPIANS )
-                .setTitle( "We could be in one now" );
+        EntitySet dystopians = new EntitySet(
+                NATION_CITIZENS,
+                DYSTOPIANS,
+                "We could be in one now",
+                ImmutableSet.of() );
         edmApi.postEntitySets( ImmutableSet.of( dystopians ) );
 
         // Test 2: Check Citizen's permissions for the entity set.
@@ -882,11 +890,10 @@ public class PermissionsServiceTest {
         }
 
         CreateEntityRequest createEntityRequest = new CreateEntityRequest(
-                entitySetName,
+                entitySetName.get(),
                 entityTypeFqn,
                 entities,
-                Optional.absent(),
-                Optional.absent() );
+                UUIDs.Syncs.BASE.getSyncId() );
 
         dataApi.createEntityData( createEntityRequest );
     }
@@ -899,12 +906,16 @@ public class PermissionsServiceTest {
         String HOMBRES = "hombres";
         String MUJERES = "mujeres";
 
-        EntitySet hombres = new EntitySet().setType( NATION_CITIZENS )
-                .setName( HOMBRES )
-                .setTitle( "Every nation would have some" );
-        EntitySet mujeres = new EntitySet().setType( NATION_CITIZENS )
-                .setName( MUJERES )
-                .setTitle( "Every nation would have some" );
+        EntitySet hombres = new EntitySet(
+                NATION_CITIZENS,
+                HOMBRES,
+                "Every nation would have some",
+                ImmutableSet.of() );
+        EntitySet mujeres = new EntitySet(
+                NATION_CITIZENS,
+                MUJERES,
+                "Every nation would have some",
+                ImmutableSet.of() );
         edmService.createEntitySet( USER_USER, hombres );
         edmService.createEntitySet( USER_USER, mujeres );
 
@@ -951,12 +962,9 @@ public class PermissionsServiceTest {
         String CATE = "kryptocate";
         String DOGE = "kryptodoge";
 
-        EntitySet cate = new EntitySet().setType( NATION_CITIZENS )
-                .setName( CATE )
-                .setTitle( "Every reddit would have some" );
-        EntitySet doge = new EntitySet().setType( NATION_CITIZENS )
-                .setName( DOGE )
-                .setTitle( "Every reddit would have some" );
+        EntitySet cate = new EntitySet( NATION_CITIZENS, CATE, "Every reddit would have some", ImmutableSet.of() );
+        EntitySet doge = new EntitySet( NATION_CITIZENS, DOGE, "Every reddit would have some", ImmutableSet.of() );
+
         edmApi.postEntitySets( ImmutableSet.of( cate, doge ) );
         // Sanity check for ownership
         System.err.println( "--- SANITY TEST FOR OWNERSHIP OF CATE AND DOGE --- " );

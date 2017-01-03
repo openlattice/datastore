@@ -23,6 +23,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.client.HttpServerErrorException;
 
+import com.dataloom.authorization.AclKey;
 import com.dataloom.authorization.Principals;
 import com.dataloom.authorization.requests.Permission;
 import com.dataloom.edm.EdmApi;
@@ -33,13 +34,13 @@ import com.dataloom.edm.internal.EntityType;
 import com.dataloom.edm.internal.EntityTypeWithDetails;
 import com.dataloom.edm.internal.PropertyType;
 import com.dataloom.edm.internal.Schema;
-import com.dataloom.edm.requests.GetSchemasRequest.TypeDetails;
+import com.dataloom.edm.requests.EdmRequest;
+import com.dataloom.edm.schemas.manager.HazelcastSchemaManager;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import com.kryptnostic.datastore.exceptions.BadRequestException;
 import com.kryptnostic.datastore.exceptions.ResourceNotFoundException;
 import com.kryptnostic.datastore.services.ActionAuthorizationService;
-import com.kryptnostic.datastore.services.CassandraSchemaManager;
 import com.kryptnostic.datastore.services.EdmManager;
 import com.kryptnostic.datastore.services.PermissionsService;
 
@@ -50,7 +51,7 @@ public class EdmController implements EdmApi {
     private EdmManager                 modelService;
 
     @Inject
-    private CassandraSchemaManager     schemaManager;
+    private HazelcastSchemaManager     schemaManager;
 
     @Inject
     private PermissionsService         ps;
@@ -99,11 +100,7 @@ public class EdmController implements EdmApi {
     public Schema getSchemaContents(
             @PathVariable( NAMESPACE ) String namespace,
             @PathVariable( NAME ) String name ) {
-        try {
-            return modelService.getSchema( namespace, name, EnumSet.allOf( TypeDetails.class ) );
-        } catch ( IllegalArgumentException e ) {
-            throw new BadRequestException( e.getMessage() );
-        }
+        return schemaManager.getSchema( namespace, name );
     }
 
     @Override
@@ -120,7 +117,7 @@ public class EdmController implements EdmApi {
         method = RequestMethod.POST )
     @ResponseStatus( HttpStatus.OK )
     public Void createSchemaIfNotExists( @RequestBody Schema schema ) {
-        schemaManager.upsertSchema( schema );
+        schemaManager.createOrUpdateSchemas( schema );
         return null;
     }
 
@@ -241,7 +238,7 @@ public class EdmController implements EdmApi {
         path = "/" + ENTITY_SETS_BASE_PATH + "/" + NAME_PATH,
         method = RequestMethod.POST )
     @ResponseStatus( HttpStatus.OK )
-    public Void assignEntityToEntitySet( String entitySetName, Set<UUID> entityIds ) {
+    public Void assignEntitiesToEntitySet( String entitySetName, Set<UUID> entityIds ) {
         if ( modelService.checkEntitySetExists( entitySetName ) &&
                 authzService.assignEntityToEntitySet( entitySetName ) ) {
             try {
@@ -330,15 +327,34 @@ public class EdmController implements EdmApi {
 
     @Override
     @RequestMapping(
-        path = "/" + SCHEMA_BASE_PATH + "/" + NAMESPACE_PATH + "/" + NAME_PATH + "/" + DELETE_ENTITY_TYPES_PATH,
-        method = RequestMethod.DELETE,
+        path = "/" + SCHEMA_BASE_PATH + "/" + NAMESPACE_PATH + "/" + NAME_PATH,
+        method = RequestMethod.PATCH,
         consumes = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
-    public Void removeEntityTypeFromSchema(
+    public Void updateSchema(
             @PathVariable( NAMESPACE ) String namespace,
             @PathVariable( NAME ) String name,
-            @RequestBody Set<FullQualifiedName> objectTypes ) {
-        modelService.removeEntityTypesFromSchema( namespace, name, objectTypes );
+            @RequestBody EdmRequest request ) {
+        Set<FullQualifiedName> types = request.getFqns();
+        Set<UUID> uuids = modelService.getAclKeys( types ).stream().filter( aclKey -> aclKey != null )
+                .map( AclKey::getId ).collect( Collectors.toSet() );
+        switch ( request.getAction() ) {
+            case ADD:
+                schemaManager.addEntityTypesToSchema( uuids, new FullQualifiedName( namespace, name ) );
+                break;
+            case REMOVE:
+                schemaManager.removeEntityTypesFromSchema( uuids, new FullQualifiedName( namespace, name ) );
+                break;
+            case REPLACE:
+                Schema schema = schemaManager.getSchema( namespace, name );
+                Set<FullQualifiedName> existing = ImmutableSet
+                        .copyOf( Sets.union( schema.getEntityTypes(), schema.getPropertyTypes() ) );
+                Set<FullQualifiedName> typesToAdd = Sets.difference( types, existing );
+                Set<FullQualifiedName> typesToRemove = Sets.difference( existing, types );
+                schemaManager.removeEntityTypesFromSchema( entityTypeUuids, schemaName );
+                schemaManager.deleteSchema( schemaNames );
+                break;
+        }
         return null;
     }
 

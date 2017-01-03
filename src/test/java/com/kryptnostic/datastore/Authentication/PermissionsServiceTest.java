@@ -232,8 +232,7 @@ public class PermissionsServiceTest {
             EntitySet secretService = new EntitySet(
                     NATION_CITIZENS,
                     NATION_SECRET_SERVICE,
-                    "Every nation would have one",
-                    ImmutableSet.of() );
+                    "Every nation would have one" );
             edmService.createEntitySet( USER_USER, secretService );
         } catch ( IllegalArgumentException e ) {
             // This would happen if entity set already exists
@@ -320,8 +319,7 @@ public class PermissionsServiceTest {
         EntitySet secretService = new EntitySet(
                 NATION_CITIZENS,
                 NATION_SECRET_SERVICE,
-                "Every nation would have one",
-                ImmutableSet.of() );
+                "Every nation would have one" );
 
         edmService.createEntitySet( USER_USER, secretService );
 

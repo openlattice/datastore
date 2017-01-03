@@ -16,11 +16,11 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestMapping;
 
+import com.dataloom.edm.schemas.manager.HazelcastSchemaManager;
 import com.hazelcast.core.HazelcastInstance;
 import com.kryptnostic.datastore.odata.KryptnosticEdmProvider;
 import com.kryptnostic.datastore.odata.KryptnosticEntityCollectionProcessor;
 import com.kryptnostic.datastore.odata.KryptnosticEntityProcessor;
-import com.kryptnostic.datastore.services.CassandraSchemaManager;
 import com.kryptnostic.datastore.services.DatasourceManager;
 import com.kryptnostic.datastore.services.EdmManager;
 import com.kryptnostic.datastore.services.ODataStorageService;
@@ -35,7 +35,7 @@ public class ODataController {
     private EdmManager             dms;
 
     @Inject
-    private CassandraSchemaManager schemaManager;
+    private HazelcastSchemaManager schemaManager;
 
     @Inject
     private ODataStorageService    storage;

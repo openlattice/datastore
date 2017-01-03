@@ -46,8 +46,8 @@ import com.dataloom.data.requests.CreateEntityRequest;
 import com.dataloom.edm.internal.EntitySet;
 import com.dataloom.edm.internal.EntityType;
 import com.dataloom.edm.internal.PropertyType;
+import com.dataloom.edm.schemas.manager.HazelcastSchemaManager;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.base.Optional;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -61,7 +61,6 @@ import com.kryptnostic.datastore.converters.IterableCsvHttpMessageConverter;
 import com.kryptnostic.datastore.odata.KryptnosticEdmProvider;
 import com.kryptnostic.datastore.odata.Transformers;
 import com.kryptnostic.datastore.odata.Transformers.EntityTypeTransformer;
-import com.kryptnostic.datastore.services.CassandraSchemaManager;
 import com.kryptnostic.datastore.services.DataService;
 import com.kryptnostic.datastore.services.EdmManager;
 import com.kryptnostic.datastore.services.EdmService;
@@ -220,7 +219,7 @@ public class DatastoreTests extends BootstrapDatastoreWithCassandra {
 
         ODataStorageService esc = ds.getContext().getBean( ODataStorageService.class );
         EdmManager dms = ds.getContext().getBean( EdmManager.class );
-        CassandraSchemaManager schemaMgr = ds.getContext().getBean( CassandraSchemaManager.class );
+        HazelcastSchemaManager schemaMgr = ds.getContext().getBean( HazelcastSchemaManager.class );
         KryptnosticEdmProvider provider = new KryptnosticEdmProvider( dms, schemaMgr );
         Edm edm = new EdmProviderImpl( provider );
 
@@ -237,7 +236,7 @@ public class DatastoreTests extends BootstrapDatastoreWithCassandra {
         EdmEntityType edmEntityType = new EdmEntityTypeImpl( edm, ENTITY_TYPE, csdlEntityType );
 
         CsdlEntitySet csdlEntitySet = Transformers.transform(
-                new EntitySet( ENTITY_TYPE, ENTITY_SET_NAME, ENTITY_SET_NAME, ImmutableSet.of() ) );
+                new EntitySet( ENTITY_TYPE, ENTITY_SET_NAME, ENTITY_SET_NAME ) );
         EdmEntitySet edmEntitySet = new EdmEntitySetImpl( edm, edmEntityContainer, csdlEntitySet );
 
         try {
@@ -257,7 +256,7 @@ public class DatastoreTests extends BootstrapDatastoreWithCassandra {
         EdmManager dms = ds.getContext().getBean( EdmManager.class );
 
         try {
-            dms.createPropertyType( new PropertyType(
+            dms.createPropertyTypeIfNotExists( new PropertyType(
                     new FullQualifiedName( NAMESPACE, EMPLOYEE_COUNTRY ),
                     ImmutableSet.of(),
                     EdmPrimitiveTypeKind.String ) );
@@ -268,7 +267,7 @@ public class DatastoreTests extends BootstrapDatastoreWithCassandra {
         ;
 
         try {
-            dms.createPropertyType(
+            dms.createPropertyTypeIfNotExists(
                     new PropertyType(
                             new FullQualifiedName( NAMESPACE, EMPLOYEE_WEIGHT ),
                             ImmutableSet.of(),
@@ -319,7 +318,7 @@ public class DatastoreTests extends BootstrapDatastoreWithCassandra {
 
         EdmManager dms = ds.getContext().getBean( EdmManager.class );
         try {
-            dms.createPropertyType( new PropertyType(
+            dms.createPropertyTypeIfNotExists( new PropertyType(
                     new FullQualifiedName( NAMESPACE, EMPLOYEE_TOENAIL_LENGTH ),
                     ImmutableSet.of(),
                     EdmPrimitiveTypeKind.Int32 ) );
@@ -329,7 +328,7 @@ public class DatastoreTests extends BootstrapDatastoreWithCassandra {
         }
 
         try {
-            dms.createPropertyType( new PropertyType(
+            dms.createPropertyTypeIfNotExists( new PropertyType(
                     new FullQualifiedName( NAMESPACE, EMPLOYEE_FINGERNAIL_LENGTH ),
                     ImmutableSet.of(),
                     EdmPrimitiveTypeKind.Int32 ) );

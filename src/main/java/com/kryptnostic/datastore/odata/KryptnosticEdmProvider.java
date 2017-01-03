@@ -18,10 +18,10 @@ import org.slf4j.LoggerFactory;
 import com.dataloom.edm.internal.EntitySet;
 import com.dataloom.edm.internal.EntityType;
 import com.dataloom.edm.internal.Schema;
+import com.dataloom.edm.schemas.manager.HazelcastSchemaManager;
 import com.google.common.base.Predicates;
 import com.google.common.collect.Iterables;
 import com.kryptnostic.datastore.odata.Transformers.EntityTypeTransformer;
-import com.kryptnostic.datastore.services.CassandraSchemaManager;
 import com.kryptnostic.datastore.services.EdmManager;
 
 import jersey.repackaged.com.google.common.collect.Lists;
@@ -35,10 +35,10 @@ public class KryptnosticEdmProvider extends CsdlAbstractEdmProvider {
             NAMESPACE,
             CONTAINER_NAME );
     private final EdmManager             dms;
-    private final CassandraSchemaManager schemaManager;
+    private final HazelcastSchemaManager schemaManager;
     private final EntityTypeTransformer  ett;
 
-    public KryptnosticEdmProvider( EdmManager dms, CassandraSchemaManager schemaManager) {
+    public KryptnosticEdmProvider( EdmManager dms, HazelcastSchemaManager schemaManager) {
         this.dms = dms;
         this.schemaManager = schemaManager;
         this.ett = new EntityTypeTransformer( dms );

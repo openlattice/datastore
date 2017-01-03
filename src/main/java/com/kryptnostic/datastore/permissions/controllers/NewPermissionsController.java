@@ -6,6 +6,7 @@ import javax.inject.Inject;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseStatus;
@@ -33,7 +34,7 @@ public class NewPermissionsController implements NewPermissionsApi {
         consumes = MediaType.APPLICATION_JSON_VALUE,
         produces = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
-    public Acl updateAcl( AclData req ) {
+    public Acl updateAcl( @RequestBody AclData req ) {
         List<AclKey> aclKey = req.getAcl().getAclKey();
         if ( !authz.checkIfUserIsOwner( aclKey, Principals.getCurrentUser() ) ) {
             throw new ForbiddenException(
@@ -69,7 +70,7 @@ public class NewPermissionsController implements NewPermissionsApi {
         consumes = MediaType.APPLICATION_JSON_VALUE,
         produces = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
-    public Acl getAcl( List<AclKey> aclKey ) {
+    public Acl getAcl( @RequestBody List<AclKey> aclKey ) {
         if ( !authz.checkIfUserIsOwner( aclKey, Principals.getCurrentUser() ) ) {
             throw new ForbiddenException(
                     "Only owner of a securable object can access other users' access rights." );

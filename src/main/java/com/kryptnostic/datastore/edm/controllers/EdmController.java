@@ -179,9 +179,17 @@ public class EdmController implements EdmApi {
         produces = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
     public Void putEntitySets( @RequestBody Set<EntitySet> entitySets ) {
+
         entitySets.forEach( entitySet -> {
-            modelService.upsertEntitySet( entitySet );
+            if ( modelService.checkEntitySetExists( entitySet.getName() ) ) {
+                if ( authzService.alterEntitySet( entitySet.getName() ) ) {
+                        modelService.upsertEntitySet( entitySet );
+                }
+            } else {
+                    modelService.createEntitySet( Optional.of( authzService.getUserId() ), entitySet );
+            }
         } );
+
         return null;
     }
 

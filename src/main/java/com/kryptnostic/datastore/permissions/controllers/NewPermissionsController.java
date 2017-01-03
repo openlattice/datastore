@@ -18,6 +18,7 @@ import com.dataloom.authorization.AclKey;
 import com.dataloom.authorization.HazelcastAuthorizationService;
 import com.dataloom.authorization.NewPermissionsApi;
 import com.dataloom.authorization.Principals;
+import com.kryptnostic.datastore.exceptions.ForbiddenException;
 
 @RestController
 public class NewPermissionsController implements NewPermissionsApi {
@@ -35,7 +36,7 @@ public class NewPermissionsController implements NewPermissionsApi {
     public Acl updateAcl( AclData req ) {
         List<AclKey> aclKey = req.getAclKey();
         if ( !authz.checkIfUserIsOwner( aclKey, Principals.getCurrentUser() ) ) {
-            throw new UnauthorizedException(
+            throw new ForbiddenException(
                     "Only owner of a securable object can modify other users' access rights." );
         }
 
@@ -70,7 +71,7 @@ public class NewPermissionsController implements NewPermissionsApi {
     @ResponseStatus( HttpStatus.OK )
     public Acl getAcl( List<AclKey> aclKey ) {
         if ( !authz.checkIfUserIsOwner( aclKey, Principals.getCurrentUser() ) ) {
-            throw new UnauthorizedException(
+            throw new ForbiddenException(
                     "Only owner of a securable object can access other users' access rights." );
         }
         return authz.getAllSecurableObjectPermissions( aclKey );

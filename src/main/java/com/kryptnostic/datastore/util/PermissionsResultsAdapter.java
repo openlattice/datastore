@@ -38,5 +38,4 @@ public class PermissionsResultsAdapter {
             return username;
         }
     }
-
 }

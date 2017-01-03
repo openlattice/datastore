@@ -34,7 +34,7 @@ public class NewPermissionsController implements NewPermissionsApi {
         produces = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
     public Acl updateAcl( AclData req ) {
-        List<AclKey> aclKey = req.getAclKey();
+        List<AclKey> aclKey = req.getAcl().getAclKey();
         if ( !authz.checkIfUserIsOwner( aclKey, Principals.getCurrentUser() ) ) {
             throw new ForbiddenException(
                     "Only owner of a securable object can modify other users' access rights." );
@@ -42,17 +42,17 @@ public class NewPermissionsController implements NewPermissionsApi {
 
         switch ( req.getAction() ) {
             case ADD:
-                for ( Ace ace : req.getAces() ) {
+                for ( Ace ace : req.getAcl().getAces() ) {
                     authz.addPermission( aclKey, ace.getPrincipal(), ace.getPermissions() );
                 }
                 break;
             case SET:
-                for ( Ace ace : req.getAces() ) {
+                for ( Ace ace : req.getAcl().getAces() ) {
                     authz.setPermission( aclKey, ace.getPrincipal(), ace.getPermissions() );
                 }
                 break;
             case REMOVE:
-                for ( Ace ace : req.getAces() ) {
+                for ( Ace ace : req.getAcl().getAces() ) {
                     authz.removePermission( aclKey, ace.getPrincipal(), ace.getPermissions() );
                 }
                 break;

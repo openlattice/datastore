@@ -335,8 +335,9 @@ public class EdmController implements EdmApi {
             @PathVariable( NAMESPACE ) String namespace,
             @PathVariable( NAME ) String name,
             @RequestBody EdmRequest request ) {
-        Set<FullQualifiedName> types = request.getFqns();
-        Set<UUID> uuids = modelService.getAclKeys( types ).stream().filter( aclKey -> aclKey != null )
+        Schema schema = request.getSchema();
+        Set<UUID> propertyTypes = request.getFqns();
+        Set<UUID> entityTypes = modelService.getAclKeys( types ).stream().filter( aclKey -> aclKey != null )
                 .map( AclKey::getId ).collect( Collectors.toSet() );
         switch ( request.getAction() ) {
             case ADD:

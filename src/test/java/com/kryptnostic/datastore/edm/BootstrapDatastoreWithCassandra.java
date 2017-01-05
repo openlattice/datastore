@@ -72,7 +72,7 @@ public class BootstrapDatastoreWithCassandra {
 
     private static void setupDatamodel() {
         try {
-            dms.createPropertyType( new PropertyType(
+            dms.createPropertyTypeIfNotExists( new PropertyType(
                     new FullQualifiedName( NAMESPACE, EMPLOYEE_ID ),
                     ImmutableSet.of(),
                     EdmPrimitiveTypeKind.Guid ) );
@@ -81,7 +81,7 @@ public class BootstrapDatastoreWithCassandra {
             Assert.assertEquals( PROPERTY_TYPE_EXISTS_MSG, e.getMessage() );
         }
         try {
-            dms.createPropertyType( new PropertyType(
+            dms.createPropertyTypeIfNotExists( new PropertyType(
                     new FullQualifiedName( NAMESPACE, EMPLOYEE_TITLE ),
                     ImmutableSet.of(),
                     EdmPrimitiveTypeKind.String ) );
@@ -90,7 +90,7 @@ public class BootstrapDatastoreWithCassandra {
             Assert.assertEquals( PROPERTY_TYPE_EXISTS_MSG, e.getMessage() );
         }
         try {
-            dms.createPropertyType( new PropertyType(
+            dms.createPropertyTypeIfNotExists( new PropertyType(
                     new FullQualifiedName( NAMESPACE, EMPLOYEE_NAME ),
                     ImmutableSet.of(),
                     EdmPrimitiveTypeKind.String ) );
@@ -99,7 +99,7 @@ public class BootstrapDatastoreWithCassandra {
             Assert.assertEquals( PROPERTY_TYPE_EXISTS_MSG, e.getMessage() );
         }
         try {
-            dms.createPropertyType( new PropertyType(
+            dms.createPropertyTypeIfNotExists( new PropertyType(
                     new FullQualifiedName( NAMESPACE, EMPLOYEE_DEPT ),
                     ImmutableSet.of(),
                     EdmPrimitiveTypeKind.String ) );
@@ -108,7 +108,7 @@ public class BootstrapDatastoreWithCassandra {
             Assert.assertEquals( PROPERTY_TYPE_EXISTS_MSG, e.getMessage() );
         }
         try {
-            dms.createPropertyType( new PropertyType(
+            dms.createPropertyTypeIfNotExists( new PropertyType(
                     new FullQualifiedName( NAMESPACE, SALARY ),
                     ImmutableSet.of(),
                     EdmPrimitiveTypeKind.Int64 ) );

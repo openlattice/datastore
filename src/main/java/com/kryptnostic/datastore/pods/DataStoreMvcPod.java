@@ -56,7 +56,7 @@ public class DataStoreMvcPod extends WebMvcConfigurationSupport {
     protected void addCorsMappings( CorsRegistry registry ) {
         registry
                 .addMapping( "/**" )
-                .allowedMethods( "GET", "POST", "PUT", "DELETE", "OPTIONS" )
+                .allowedMethods( "GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH" )
                 .allowedOrigins( "*" );
         super.addCorsMappings( registry );
     }

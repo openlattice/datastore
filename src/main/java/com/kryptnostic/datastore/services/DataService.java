@@ -21,7 +21,6 @@ import com.datastax.driver.core.BoundStatement;
 import com.datastax.driver.core.DataType;
 import com.datastax.driver.core.ResultSetFuture;
 import com.datastax.driver.core.Session;
-import com.datastax.driver.mapping.MappingManager;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
@@ -37,7 +36,6 @@ import com.kryptnostic.conductor.rpc.Lambdas;
 import com.kryptnostic.conductor.rpc.QueryResult;
 import com.kryptnostic.conductor.rpc.ResultSetAdapterFactory;
 import com.kryptnostic.datastore.cassandra.CassandraEdmMapping;
-import com.kryptnostic.datastore.cassandra.CassandraStorage;
 import com.kryptnostic.datastore.services.CassandraTableManager.PreparedStatementMapping;
 
 public class DataService {
@@ -45,7 +43,6 @@ public class DataService {
     private static final Logger          logger = LoggerFactory
             .getLogger( DataService.class );
     private final EdmManager             dms;
-    private final CassandraTableManager  tableManager;
     private final Session                session;
     private final DurableExecutorService executor;
     private final IMap<String, String>   urlToIntegrationScripts;
@@ -54,12 +51,8 @@ public class DataService {
             String keyspace,
             HazelcastInstance hazelcast,
             EdmManager dms,
-            Session session,
-            CassandraTableManager tableManager,
-            CassandraStorage storage,
-            MappingManager mm ) {
+            Session session ) {
         this.dms = dms;
-        this.tableManager = tableManager;
         this.session = session;
         // TODO: Configure executor service.
         this.executor = hazelcast.getDurableExecutorService( "default" );
@@ -150,12 +143,12 @@ public class DataService {
         Set<SetMultimap<FullQualifiedName, Object>> propertyValues = createEntityRequest.getPropertyValues();
         UUID syncId = createEntityRequest.getSyncId();
         String entitySetName = createEntityRequest.getEntitySetName();
-      
+
         PreparedStatementMapping cqm = tableManager.getInsertEntityPreparedStatement( entityFqn,
                 authorizedPropertyFqns,
                 createEntityRequest.getEntitySetName() );
 
-        Object[] bindList =  new Object[ 4 + cqm.mapping.size() ];
+        Object[] bindList = new Object[ 4 + cqm.mapping.size() ];
         List<ResultSetFuture> results = propertyValues.stream().map( obj -> {
             UUID entityId = UUID.randomUUID();
 
@@ -167,19 +160,19 @@ public class DataService {
             obj.entries().stream().filter( e -> authorizedPropertyFqns.contains( e.getKey() ) ).forEach( e -> {
                 DataType dt = propertyDataTypeMap.get( e.getKey() );
                 Object propertyValue = CassandraEdmMapping.recoverJavaTypeFromCqlDataType( e.getValue(), dt );
-                
+
                 bindList[ cqm.mapping.get( e.getKey() ) ] = propertyValue;
             } );
-            
+
             BoundStatement bq = cqm.stmt.bind( bindList );
-            
+
             return session.executeAsync( bq );
         } ).collect( Collectors.toList() );
-        
+
         try {
             Futures.allAsList( results ).get();
         } catch ( InterruptedException | ExecutionException e ) {
-            logger.error( "Error writing data." ,  e );
+            logger.error( "Error writing data.", e );
         }
         /*
          * PreparedStatement createQuery = Preconditions.checkNotNull( tableManager.getInsertEntityPreparedStatement(

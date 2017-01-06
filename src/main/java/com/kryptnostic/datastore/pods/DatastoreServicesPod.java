@@ -10,7 +10,7 @@ import com.dataloom.authorization.AuthorizationManager;
 import com.dataloom.authorization.AuthorizationQueryService;
 import com.dataloom.authorization.HazelcastAuthorizationService;
 import com.dataloom.edm.internal.DatastoreConstants;
-import com.dataloom.edm.properties.CassandraEntityTypeManager;
+import com.dataloom.edm.properties.CassandraTypeManager;
 import com.dataloom.edm.schemas.SchemaQueryService;
 import com.dataloom.edm.schemas.cassandra.CassandraSchemaQueryService;
 import com.dataloom.edm.schemas.manager.HazelcastSchemaManager;
@@ -75,8 +75,8 @@ public class DatastoreServicesPod {
     }
 
     @Bean
-    public CassandraEntityTypeManager entityTypeManager() {
-        return new CassandraEntityTypeManager( DatastoreConstants.KEYSPACE, session );
+    public CassandraTypeManager entityTypeManager() {
+        return new CassandraTypeManager( DatastoreConstants.KEYSPACE, session );
     }
 
     @Bean

@@ -225,7 +225,7 @@ public class PermissionsServiceTest {
                         LIFE_EXPECTANCY,
                         ADDRESS,
                         POSITION ) );
-        edmApi.postEntityType( citizens );
+        edmApi.createEntityType( citizens );
 
         try {
             // God creates entity set Secret Service
@@ -313,7 +313,7 @@ public class PermissionsServiceTest {
                         LIFE_EXPECTANCY,
                         ADDRESS,
                         POSITION ) );
-        edmApi.postEntityType( citizens );
+        edmApi.createEntityType( citizens );
 
         // God creates entity set Secret Service
         EntitySet secretService = new EntitySet(
@@ -350,7 +350,7 @@ public class PermissionsServiceTest {
                 DYSTOPIANS,
                 "We could be in one now",
                 ImmutableSet.of() );
-        edmApi.postEntitySets( ImmutableSet.of( dystopians ) );
+        edmApi.createEntitySets( ImmutableSet.of( dystopians ) );
 
         // Test 2: Check Citizen's permissions for the entity set.
         // Expected: Citizen has all permissions for the entity set.
@@ -963,7 +963,7 @@ public class PermissionsServiceTest {
         EntitySet cate = new EntitySet( NATION_CITIZENS, CATE, "Every reddit would have some", ImmutableSet.of() );
         EntitySet doge = new EntitySet( NATION_CITIZENS, DOGE, "Every reddit would have some", ImmutableSet.of() );
 
-        edmApi.postEntitySets( ImmutableSet.of( cate, doge ) );
+        edmApi.createEntitySets( ImmutableSet.of( cate, doge ) );
         // Sanity check for ownership
         System.err.println( "--- SANITY TEST FOR OWNERSHIP OF CATE AND DOGE --- " );
         System.err.println( edmApi.getEntitySets( null ) );

@@ -1,5 +1,9 @@
 package com.kryptnostic.datastore.services;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.ObjectOutputStream;
+import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -8,7 +12,6 @@ import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.StringUtils;
-import org.apache.olingo.commons.api.edm.FullQualifiedName;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -29,7 +32,6 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.SetMultimap;
 import com.google.common.util.concurrent.Futures;
 import com.kryptnostic.conductor.rpc.odata.Tables;
-import com.kryptnostic.datastore.cassandra.CassandraEdmMapping;
 import com.kryptnostic.datastore.cassandra.CassandraPropertyReader;
 import com.kryptnostic.datastore.cassandra.CommonColumns;
 import com.kryptnostic.datastore.cassandra.RowAdapters;
@@ -62,21 +64,21 @@ public class CassandraDataManager {
         this.writeDataQuery = prepareWriteDataQuery( session, idLookupTableDefinitions );
     }
 
-    public Iterable<SetMultimap<FullQualifiedName, Object>> getEntitySetData(
-            String entitySetName,
+    public Iterable<SetMultimap<UUID, Object>> getEntitySetData(
+            UUID entitySetId,
             Set<UUID> syncIds,
             Map<UUID, CassandraPropertyReader> authorizedPropertyTypes ) {
         Set<UUID> authorizedProperties = authorizedPropertyTypes.keySet();
-        Iterable<String> entityIds = getEntityIds( entitySetName, syncIds );
+        Iterable<String> entityIds = getEntityIds( entitySetId, syncIds );
         Iterable<ResultSetFuture> entityFutures = Iterables
                 .transform( entityIds, entityId -> asyncLoadEntity( entityId, syncIds, authorizedProperties ) );
         Iterable<ResultSet> entityRows = Iterables.transform( entityFutures, ResultSetFuture::getUninterruptibly );
         return Iterables.transform( entityRows, rs -> RowAdapters.entity( rs, authorizedPropertyTypes ) );
     }
 
-    public Iterable<String> getEntityIds( String entitySetName, Set<UUID> syncIds ) {
+    public Iterable<String> getEntityIds( UUID entitySetId, Set<UUID> syncIds ) {
         BoundStatement boundEntityIdsQuery = entityIdsQuery.bind()
-                .setString( CommonColumns.ENTITY_SETS.cql(), entitySetName )
+                .setUUID( CommonColumns.ENTITY_SET_ID.cql(), entitySetId )
                 .setSet( CommonColumns.SYNCIDS.cql(), syncIds );
         ResultSet entityIds = session.execute( boundEntityIdsQuery );
         return Iterables.filter( Iterables.transform( entityIds, RowAdapters::entityId ), StringUtils::isNotBlank );
@@ -89,28 +91,33 @@ public class CassandraDataManager {
                 .setSet( CommonColumns.PROPERTY_TYPE_ID.cql(), authorizedProperties ) );
     }
 
-    public void createEntityData( CreateEntityRequest req, Map<UUID, DataType> authorizedPropertiesWithDt ) {
+    public void createEntityData( CreateEntityRequest req, Set<UUID> authorizedProperties ) {
         Set<Entity> entities = req.getEntities();
         UUID syncId = req.getSyncId();
-        String entitySetName = req.getEntitySetName();
-        Set<UUID> authorizedProperties = authorizedPropertiesWithDt.keySet();
+        UUID entitySetId = req.getEntitySetId();
 
         List<ResultSetFuture> results = entities.stream().map( entity -> {
             BatchStatement batch = new BatchStatement();
 
             batch.add( writeIdLookupQuery.bind().setUUID( CommonColumns.SYNCIDS.cql(), syncId )
-                    .setString( CommonColumns.ENTITY_SET.cql(), entitySetName )
+                    .setUUID( CommonColumns.ENTITY_SET_ID.cql(), entitySetId )
                     .setString( CommonColumns.ENTITYID.cql(), entity.getId() ) );
 
             SetMultimap<UUID, Object> propertyValues = entity.getPropertyValues();
 
-            propertyValues.entries().stream().filter( e -> authorizedProperties.contains( e.getKey() ) ).forEach( e -> {
-                batch.add( writeDataQuery.bind( CassandraEdmMapping.recoverJavaTypeFromCqlDataType( e.getValue(),
-                        authorizedPropertiesWithDt.get( e.getKey() ) ) )
-                        .setString( CommonColumns.ENTITYID.cql(), entity.getId() )
-                        .setUUID( CommonColumns.SYNCIDS.cql(), syncId )
-                        .setUUID( CommonColumns.PROPERTY_TYPE_ID.cql(), e.getKey() ) );
-            } );
+            propertyValues.entries().stream().filter( entry -> authorizedProperties.contains( entry.getKey() ) )
+                    .forEach( entry -> {
+                        try {
+                            batch.add( writeDataQuery.bind()
+                                    .setBytes( VALUE_COLUMN.cql(), serialize( entry.getValue() ) )
+                                    .setString( CommonColumns.ENTITYID.cql(), entity.getId() )
+                                    .setUUID( CommonColumns.SYNCIDS.cql(), syncId )
+                                    .setUUID( CommonColumns.PROPERTY_TYPE_ID.cql(), entry.getKey() ) );
+                        } catch ( IOException e ) {
+                            // TODO Auto-generated catch block
+                            logger.debug( "Serialization error for " + entry );
+                        }
+                    } );
 
             return session.executeAsync( batch );
         } ).collect( Collectors.toList() );
@@ -145,7 +152,7 @@ public class CassandraDataManager {
     }
 
     private static Update.Where writeDataQuery( CassandraTableBuilder ctb ) {
-        //WARNING: Keep VALUE_COLUMN bindMarker at the first spot - currently createEntityData depends on that
+        // WARNING: Keep VALUE_COLUMN bindMarker at the first spot - currently createEntityData depends on that
         return QueryBuilder.update( ctb.getKeyspace().get(), ctb.getName() )
                 .with( QueryBuilder.set( VALUE_COLUMN.cql(), QueryBuilder.bindMarker() ) )
                 .where( QueryBuilder.eq( CommonColumns.ENTITYID.cql(), QueryBuilder.bindMarker() ) )
@@ -164,7 +171,7 @@ public class CassandraDataManager {
         return session.prepare( QueryBuilder
                 .select( CommonColumns.ENTITYID.cql() )
                 .from( keyspace, Tables.ENTITY_ID_LOOKUP.getName() )
-                .where( QueryBuilder.eq( CommonColumns.ENTITY_SET.cql(), QueryBuilder.bindMarker() ) )
+                .where( QueryBuilder.eq( CommonColumns.ENTITY_SET_ID.cql(), QueryBuilder.bindMarker() ) )
                 .and( QueryBuilder.in( CommonColumns.SYNCIDS.cql(), QueryBuilder.bindMarker() ) ) );
     }
 
@@ -181,7 +188,7 @@ public class CassandraDataManager {
     private static CassandraTableBuilder defineIdLookupTables( String keyspace ) {
         return new CassandraTableBuilder( keyspace, Tables.ENTITY_ID_LOOKUP.name() )
                 .ifNotExists()
-                .partitionKey( CommonColumns.SYNCIDS, CommonColumns.ENTITY_SET )
+                .partitionKey( CommonColumns.SYNCIDS, CommonColumns.ENTITY_SET_ID )
                 .clusteringColumns( CommonColumns.ENTITYID );
     }
 
@@ -192,4 +199,16 @@ public class CassandraDataManager {
                 .clusteringColumns( CommonColumns.SYNCIDS, CommonColumns.PROPERTY_TYPE_ID, VALUE_COLUMN );
     }
 
+    /**
+     * Serialization Utils
+     * @throws IOException 
+     */
+    private static ByteBuffer serialize( Object obj ) throws IOException {
+        try ( ByteArrayOutputStream b = new ByteArrayOutputStream() ) {
+            try ( ObjectOutputStream o = new ObjectOutputStream( b ) ) {
+                o.writeObject( obj );
+            }
+            return ByteBuffer.wrap( b.toByteArray() );
+        }
+    }
 }

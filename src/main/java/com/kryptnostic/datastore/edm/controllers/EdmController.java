@@ -12,6 +12,7 @@ import java.util.stream.StreamSupport;
 import javax.inject.Inject;
 
 import org.apache.olingo.commons.api.edm.FullQualifiedName;
+import org.spark_project.guava.collect.Maps;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -24,6 +25,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.client.HttpServerErrorException;
 
 import com.dataloom.authorization.AclKey;
+import com.dataloom.authorization.AuthorizationManager;
 import com.dataloom.authorization.Principals;
 import com.dataloom.authorization.requests.Permission;
 import com.dataloom.edm.EdmApi;
@@ -40,24 +42,19 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import com.kryptnostic.datastore.exceptions.BadRequestException;
 import com.kryptnostic.datastore.exceptions.ResourceNotFoundException;
-import com.kryptnostic.datastore.services.ActionAuthorizationService;
 import com.kryptnostic.datastore.services.EdmManager;
-import com.kryptnostic.datastore.services.PermissionsService;
 
 @RestController
 public class EdmController implements EdmApi {
 
     @Inject
-    private EdmManager                 modelService;
+    private EdmManager             modelService;
 
     @Inject
-    private HazelcastSchemaManager     schemaManager;
+    private HazelcastSchemaManager schemaManager;
 
     @Inject
-    private PermissionsService         ps;
-
-    @Inject
-    private ActionAuthorizationService authzService;
+    private AuthorizationManager   authorizations;
 
     @Override
     @RequestMapping(
@@ -138,13 +135,15 @@ public class EdmController implements EdmApi {
         consumes = MediaType.APPLICATION_JSON_VALUE,
         produces = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
-    public Void postEntitySets( @RequestBody Set<EntitySet> entitySets ) {
+    public Map<String, UUID> createEntitySets( @RequestBody Set<EntitySet> entitySets ) {
         Map<String, String> badRequests = new HashMap<>();
         Map<String, String> failedRequests = new HashMap<>();
-
+        Map<String, UUID> createdEntitySets = Maps.newHashMapWithExpectedSize( entitySets.size() );
+        // TODO: Add access check to make sure user can create entity sets.
         for ( EntitySet entitySet : entitySets ) {
             try {
                 modelService.createEntitySet( Principals.getCurrentUser(), entitySet );
+                createdEntitySets.put( entitySet.getName(), entitySet.getId() );
             } catch ( IllegalArgumentException e ) {
                 badRequests.put( entitySet.getName(), e.getMessage() );
             } catch ( IllegalStateException e ) {
@@ -158,66 +157,6 @@ public class EdmController implements EdmApi {
             throw new HttpServerErrorException( HttpStatus.INTERNAL_SERVER_ERROR, failedRequests.toString() );
         }
         return null;
-    }
-
-    @Override
-    @RequestMapping(
-        path = "/" + ENTITY_SETS_BASE_PATH,
-        method = RequestMethod.PUT,
-        consumes = MediaType.APPLICATION_JSON_VALUE,
-        produces = MediaType.APPLICATION_JSON_VALUE )
-    @ResponseStatus( HttpStatus.OK )
-    public Void putEntitySets( @RequestBody Set<EntitySet> entitySets ) {
-        entitySets.forEach( entitySet -> {
-            modelService.upsertEntitySet( entitySet );
-        } );
-        return null;
-    }
-
-    @Override
-    @RequestMapping(
-        path = "/" + ENTITY_SETS_BASE_PATH,
-        method = RequestMethod.GET,
-        produces = MediaType.APPLICATION_JSON_VALUE )
-    @ResponseStatus( HttpStatus.OK )
-    public Iterable<EntitySetWithPermissions> getEntitySets(
-            @RequestParam(
-                value = IS_OWNER,
-                required = false ) Boolean isOwner ) {
-        String userId = authzService.getUserId();
-        List<String> currentRoles = authzService.getRoles();
-
-        Set<String> ownedSets = Sets.newHashSet( modelService.getEntitySetNamesUserOwns( userId ) );
-
-        if ( isOwner != null ) {
-            if ( isOwner ) {
-                // isOwner = true -> return all entity sets owned
-                EnumSet<Permission> allPermissions = EnumSet.allOf( Permission.class );
-                return StreamSupport.stream( modelService.getEntitySetsUserOwns( userId ).spliterator(), false )
-                        .map( entitySet -> new EntitySetWithPermissions().setEntitySet( entitySet )
-                                .setPermissions( allPermissions )
-                                .setIsOwner( true ) )
-                        .collect( Collectors.toList() );
-            } else {
-                // isOwner = false -> return all entity sets not owned, with permissions
-                return StreamSupport.stream( modelService.getEntitySets().spliterator(), false )
-                        .filter( entitySet -> !ownedSets.contains( entitySet.getName() ) )
-                        .filter( entitySet -> authzService.getEntitySet( entitySet.getName() ) )
-                        .map( entitySet -> new EntitySetWithPermissions().setEntitySet( entitySet )
-                                .setPermissions( ps
-                                        .getEntitySetAclsForUser( userId, currentRoles, entitySet.getName() ) )
-                                .setIsOwner( false ) )
-                        .collect( Collectors.toList() );
-            }
-        } else {
-            // No query parameter -> return all entity sets
-            return StreamSupport.stream( modelService.getEntitySets().spliterator(), false )
-                    .filter( entitySet -> authzService.getEntitySet( entitySet.getName() ) )
-                    .map( entitySet -> new EntitySetWithPermissions().setEntitySet( entitySet )
-                            .setPermissions( ps.getEntitySetAclsForUser( userId, currentRoles, entitySet.getName() ) )
-                            .setIsOwner( ownedSets.contains( entitySet.getName() ) ) )
-                    .collect( Collectors.toList() );
-        }
     }
 
     @Override
@@ -365,7 +304,7 @@ public class EdmController implements EdmApi {
         method = RequestMethod.POST,
         consumes = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
-    public Void postEntityType( @RequestBody EntityType objectType ) {
+    public Void createEntityType( @RequestBody EntityType objectType ) {
         modelService.createEntityType( objectType );
         return null;
     }
@@ -404,41 +343,25 @@ public class EdmController implements EdmApi {
         method = RequestMethod.POST,
         consumes = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
-    public Void createPropertyType( @RequestBody PropertyType propertyType ) {
+    public UUID createPropertyType( @RequestBody PropertyType propertyType ) {
         try {
-            modelService.createPropertyType( propertyType );
+            modelService.createPropertyType(` propertyType );
+            return propertyType.getId();
         } catch ( IllegalStateException e ) {
             throw new HttpServerErrorException( HttpStatus.INTERNAL_SERVER_ERROR, e.getMessage() );
         }
         return null;
     }
 
-    /*
-     * (non-Javadoc)
-     * @see com.kryptnostic.datastore.edm.controllers.EdmAPI#createPropertyType(java.lang.String, java.lang.String,
-     * java.lang.String, com.kryptnostic.types.ObjectType)
-     */
     @Override
     @RequestMapping(
-        path = "/" + PROPERTY_TYPE_BASE_PATH,
-        method = RequestMethod.PUT )
-    @ResponseStatus( HttpStatus.OK )
-    public Void putPropertyType( @RequestBody PropertyType propertyType ) {
-        modelService.createPropertyType( propertyType );
-        return null;
-    }
-
-    @Override
-    @RequestMapping(
-        path = "/" + PROPERTY_TYPE_BASE_PATH + "/" + NAMESPACE_PATH + "/" + NAME_PATH,
+        path = "/" + PROPERTY_TYPE_BASE_PATH + "/" + ID_PATH,
         method = RequestMethod.DELETE )
     @ResponseStatus( HttpStatus.OK )
     public Void deletePropertyType(
-            @PathVariable( NAMESPACE ) String namespace,
-            @PathVariable( NAME ) String name ) {
+            @PathVariable( NAMESPACE ) UUID propertyTypeId ) {
         try {
-            FullQualifiedName propertyTypeFqn = new FullQualifiedName( namespace, name );
-            modelService.deletePropertyType( propertyTypeFqn );
+            modelService.deletePropertyType( propertyTypeId );
         } catch ( IllegalStateException e ) {
             throw new HttpServerErrorException( HttpStatus.INTERNAL_SERVER_ERROR, e.getMessage() );
         }

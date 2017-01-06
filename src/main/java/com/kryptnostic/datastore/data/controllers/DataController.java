@@ -44,7 +44,6 @@ import com.google.common.collect.Sets;
 import com.kryptnostic.datastore.constants.CustomMediaType;
 import com.kryptnostic.datastore.constants.DatastoreConstants;
 import com.kryptnostic.datastore.exceptions.ResourceNotFoundException;
-import com.kryptnostic.datastore.services.ActionAuthorizationService;
 import com.kryptnostic.datastore.services.DataService;
 import com.kryptnostic.datastore.services.EdmManager;
 
@@ -65,9 +64,6 @@ public class DataController implements DataApi {
 
     @Inject
     private DataService                dataService;
-
-    @Inject
-    private ActionAuthorizationService authzService;
 
     @Inject
     private AuthorizationManager       authz;

@@ -35,6 +35,7 @@ import org.apache.olingo.commons.core.edm.EdmEntitySetImpl;
 import org.apache.olingo.commons.core.edm.EdmEntityTypeImpl;
 import org.apache.olingo.commons.core.edm.EdmProviderImpl;
 import org.apache.olingo.server.api.ODataApplicationException;
+import org.joda.time.DateTime;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -586,7 +587,7 @@ public class DatastoreTests extends BootstrapDatastoreWithCassandra {
                         + ( 1 + rand.nextInt( 28 ) );
                 break;
             case DateTimeOffset:
-                value = Instant.now().toString();
+                value = DateTime.now().toString();
                 break;
             case Decimal:
                 value = new BigDecimal( Math.random() );

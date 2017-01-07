@@ -1,6 +1,5 @@
 package com.kryptnostic.datastore.pods;
 
-import java.time.Instant;
 import java.util.EnumSet;
 import java.util.Set;
 import java.util.UUID;
@@ -14,10 +13,12 @@ import com.dataloom.authorization.AclKey;
 import com.dataloom.authorization.requests.Permission;
 import com.datastax.driver.core.TypeCodec;
 import com.datastax.driver.extras.codecs.enums.EnumNameCodec;
-import com.datastax.driver.extras.codecs.jdk8.InstantCodec;
+import com.datastax.driver.extras.codecs.joda.LocalDateCodec;
+import com.datastax.driver.extras.codecs.joda.LocalTimeCodec;
 import com.kryptnostic.conductor.codecs.AclKeyTypeCodec;
 import com.kryptnostic.conductor.codecs.EnumSetTypeCodec;
 import com.kryptnostic.conductor.codecs.FullQualifiedNameTypeCodec;
+import com.kryptnostic.conductor.codecs.TimestampDateTimeTypeCodec;
 
 @Configuration
 public class DatastoreTypeCodecsPod {
@@ -46,9 +47,18 @@ public class DatastoreTypeCodecsPod {
         return new AclKeyTypeCodec();
     }
     
+    public TimestampDateTimeTypeCodec timestampDateTimeTypeCodec(){
+        return TimestampDateTimeTypeCodec.getInstance();
+    }
+
     @Bean
-    public TypeCodec<Instant> instantCodec() {
-        return InstantCodec.instance;
+    public LocalDateCodec jodaLocalDateCodec(){
+        return LocalDateCodec.instance;
+    }
+
+    @Bean
+    public LocalTimeCodec jodaLocalTimeCodec(){
+        return LocalTimeCodec.instance;
     }
 
     @Bean

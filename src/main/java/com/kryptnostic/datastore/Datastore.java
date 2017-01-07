@@ -2,6 +2,7 @@ package com.kryptnostic.datastore;
 
 import com.dataloom.data.serializers.FullQualifedNameJacksonDeserializer;
 import com.dataloom.data.serializers.FullQualifedNameJacksonSerializer;
+import com.fasterxml.jackson.databind.SerializationFeature;
 import com.kryptnostic.datastore.pods.DataStoreSecurityPod;
 import com.kryptnostic.datastore.pods.DatastoreServicesPod;
 import com.kryptnostic.datastore.pods.DatastoreServletsPod;
@@ -37,6 +38,7 @@ public class Datastore extends BaseRhizomeServer {
     static {
         ObjectMapperRegistry.foreach( FullQualifedNameJacksonSerializer::registerWithMapper );
         ObjectMapperRegistry.foreach( FullQualifedNameJacksonDeserializer::registerWithMapper );
+        ObjectMapperRegistry.foreach( mapper -> mapper.disable( SerializationFeature.WRITE_DATES_AS_TIMESTAMPS ) );
     }
 
     public Datastore( Class<?>... pods ) {

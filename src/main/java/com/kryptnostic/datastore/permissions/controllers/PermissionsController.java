@@ -20,16 +20,17 @@ import com.dataloom.authorization.Acl;
 import com.dataloom.authorization.AclData;
 import com.dataloom.authorization.AclKey;
 import com.dataloom.authorization.AuthorizationManager;
-import com.dataloom.authorization.NewPermissionsApi;
+import com.dataloom.authorization.PermissionsApi;
 import com.dataloom.authorization.Principals;
 import com.dataloom.authorization.requests.Permission;
 import com.dataloom.authorization.requests.Principal;
+import com.kryptnostic.datastore.exceptions.ForbiddenException;
 
 @RestController
-public class PermissionsController implements NewPermissionsApi {
-    private static final Logger       logger = LoggerFactory.getLogger( PermissionsController.class );
+public class PermissionsController implements PermissionsApi {
+    private static final Logger  logger = LoggerFactory.getLogger( PermissionsController.class );
     @Inject
-    private AuthorizationManager      authorizations;
+    private AuthorizationManager authorizations;
 
     @Override
     @RequestMapping(
@@ -67,12 +68,12 @@ public class PermissionsController implements NewPermissionsApi {
                                     ace.getPermissions() ) );
                     break;
                 default:
-                    logger.error( "Invalid action {} specified for request." , req.getAction() );
+                    logger.error( "Invalid action {} specified for request.", req.getAction() );
                     throw new HttpServerErrorException( HttpStatus.BAD_REQUEST, "Invalid action specified." );
             }
 
         }
-        return null;
+        throw new ForbiddenException( "Only owner of a securable object can access other users' access rights." );
     }
 
     @Override

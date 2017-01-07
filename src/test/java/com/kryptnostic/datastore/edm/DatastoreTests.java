@@ -58,7 +58,7 @@ import com.kryptnostic.conductor.rpc.UUIDs;
 import com.kryptnostic.conductor.rpc.UUIDs.ACLs;
 import com.kryptnostic.conductor.rpc.UUIDs.Syncs;
 import com.kryptnostic.datastore.converters.IterableCsvHttpMessageConverter;
-import com.kryptnostic.datastore.odata.KryptnosticEdmProvider;
+import com.kryptnostic.datastore.odata.LoomEdmProvider;
 import com.kryptnostic.datastore.odata.Transformers;
 import com.kryptnostic.datastore.odata.Transformers.EntityTypeTransformer;
 import com.kryptnostic.datastore.services.DataService;
@@ -220,7 +220,7 @@ public class DatastoreTests extends BootstrapDatastoreWithCassandra {
         ODataStorageService esc = ds.getContext().getBean( ODataStorageService.class );
         EdmManager dms = ds.getContext().getBean( EdmManager.class );
         HazelcastSchemaManager schemaMgr = ds.getContext().getBean( HazelcastSchemaManager.class );
-        KryptnosticEdmProvider provider = new KryptnosticEdmProvider( dms, schemaMgr );
+        LoomEdmProvider provider = new LoomEdmProvider( dms, schemaMgr );
         Edm edm = new EdmProviderImpl( provider );
 
         CsdlEntityContainerInfo info = new CsdlEntityContainerInfo().setContainerName( ENTITY_TYPE );

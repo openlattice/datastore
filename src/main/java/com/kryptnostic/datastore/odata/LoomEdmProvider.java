@@ -26,9 +26,15 @@ import com.kryptnostic.datastore.services.EdmManager;
 
 import jersey.repackaged.com.google.common.collect.Lists;
 
-public class KryptnosticEdmProvider extends CsdlAbstractEdmProvider {
+/**
+ * Loom Entity Data Model provider.
+ * 
+ * @author Matthew Tamayo-Rios &lt;matthew@kryptnostic.com&gt;
+ *
+ */
+public class LoomEdmProvider extends CsdlAbstractEdmProvider {
     private static final Logger          logger         = LoggerFactory
-            .getLogger( KryptnosticEdmProvider.class );
+            .getLogger( LoomEdmProvider.class );
     public static final String           NAMESPACE      = "OData.Demo";
     public final String                  CONTAINER_NAME = "Container";
     public final FullQualifiedName       CONTAINER      = new FullQualifiedName(
@@ -38,7 +44,7 @@ public class KryptnosticEdmProvider extends CsdlAbstractEdmProvider {
     private final HazelcastSchemaManager schemaManager;
     private final EntityTypeTransformer  ett;
 
-    public KryptnosticEdmProvider( EdmManager dms, HazelcastSchemaManager schemaManager) {
+    public LoomEdmProvider( EdmManager dms, HazelcastSchemaManager schemaManager ) {
         this.dms = dms;
         this.schemaManager = schemaManager;
         this.ett = new EntityTypeTransformer( dms );
@@ -71,7 +77,7 @@ public class KryptnosticEdmProvider extends CsdlAbstractEdmProvider {
 
     public List<CsdlSchema> getSchemas() throws ODataException {
         List<CsdlSchema> schemas = new ArrayList<CsdlSchema>();
-        
+
         for ( Schema schemaMetadata : schemaManager.getAllSchemas() ) {
             CsdlSchema schema = new CsdlSchema();
             String namespace = schemaMetadata.getFqn().getNamespace();
@@ -79,7 +85,7 @@ public class KryptnosticEdmProvider extends CsdlAbstractEdmProvider {
             List<CsdlEntityType> entityTypes = schemaMetadata.getEntityTypes().parallelStream()
                     .map( fqn -> {
                         try {
-                            return getEntityType( fqn );
+                            return getEntityType( fqn.getType() );
                         } catch ( ODataException e ) {
                             logger.error( "Unable to get entity type for FQN={}", fqn );
                             return null;

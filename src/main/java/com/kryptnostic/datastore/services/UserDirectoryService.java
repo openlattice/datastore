@@ -1,17 +1,19 @@
 package com.kryptnostic.datastore.services;
 
-import com.dataloom.client.RetrofitFactory;
-import com.dataloom.directory.pojo.Auth0UserBasic;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-import org.json.simple.JSONObject;
-import retrofit2.Retrofit;
-
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+
+import org.spark_project.guava.collect.ImmutableMap;
+
+import com.dataloom.client.RetrofitFactory;
+import com.dataloom.directory.pojo.Auth0UserBasic;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+
+import retrofit2.Retrofit;
 
 public class UserDirectoryService {
 
@@ -56,11 +58,8 @@ public class UserDirectoryService {
     }
 
     public void resetRolesOfUser( String userId, List<String> roleList ) {
-        JSONObject app_metadata = new JSONObject();
-        JSONObject roles = new JSONObject();
-        roles.put( "roles", roleList );
-        app_metadata.put( "app_metadata", roles );
-        auth0ManagementApi.resetRolesOfUser( userId, app_metadata );
+        auth0ManagementApi.resetRolesOfUser( userId,
+                ImmutableMap.of( "app_metadata", ImmutableMap.of( "roles", roleList ) ) );
     }
 
 }

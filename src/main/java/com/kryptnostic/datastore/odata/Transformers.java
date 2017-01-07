@@ -31,12 +31,14 @@ public final class Transformers {
             entityType.setName( objectType.getType().getName() );
 
             entityType.setKey( objectType.getKey().stream()
-                    .map( name -> new CsdlPropertyRef().setName( name.getName() ) ).collect( Collectors.toList() ) );
+                    .map( dms::getPropertyType )
+                    .map( k -> new CsdlPropertyRef().setName( k.getType().getName() ) )
+                    .collect( Collectors.toList() ) );
             entityType.setProperties(
                     objectType.getProperties().stream()
-                            .map( ( prop ) -> new CsdlProperty().setName( prop.getName() )
-                                    .setType(
-                                            dms.getPropertyType( prop ).getDatatype().getFullQualifiedName() ) )
+                            .map( dms::getPropertyType )
+                            .map( ( prop ) -> new CsdlProperty().setName( prop.getType().getName() )
+                                    .setType( prop.getType() ) )
                             .collect( Collectors.toList() ) );
             return entityType;
         }

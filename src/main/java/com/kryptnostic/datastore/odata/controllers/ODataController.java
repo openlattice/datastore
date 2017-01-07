@@ -18,7 +18,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 
 import com.dataloom.edm.schemas.manager.HazelcastSchemaManager;
 import com.hazelcast.core.HazelcastInstance;
-import com.kryptnostic.datastore.odata.KryptnosticEdmProvider;
+import com.kryptnostic.datastore.odata.LoomEdmProvider;
 import com.kryptnostic.datastore.odata.KryptnosticEntityCollectionProcessor;
 import com.kryptnostic.datastore.odata.KryptnosticEntityProcessor;
 import com.kryptnostic.datastore.services.DatasourceManager;
@@ -48,7 +48,7 @@ public class ODataController {
         try {
             // create odata handler and configure it with CsdlEdmProvider and Processor
             OData odata = OData.newInstance();
-            ServiceMetadata edm = odata.createServiceMetadata( new KryptnosticEdmProvider( dms, schemaManager ),
+            ServiceMetadata edm = odata.createServiceMetadata( new LoomEdmProvider( dms, schemaManager ),
                     new ArrayList<EdmxReference>() );
             ODataHttpHandler handler = odata.createHandler( edm );
             handler.register( new KryptnosticEntityCollectionProcessor( storage ) );

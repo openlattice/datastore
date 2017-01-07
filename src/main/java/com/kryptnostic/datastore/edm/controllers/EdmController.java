@@ -1,13 +1,9 @@
 package com.kryptnostic.datastore.edm.controllers;
 
-import java.util.EnumSet;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
 
 import javax.inject.Inject;
 
@@ -19,21 +15,16 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.client.HttpServerErrorException;
 
-import com.dataloom.authorization.AclKey;
 import com.dataloom.authorization.AuthorizationManager;
 import com.dataloom.authorization.Principals;
-import com.dataloom.authorization.requests.Permission;
 import com.dataloom.edm.EdmApi;
 import com.dataloom.edm.EntityDataModel;
 import com.dataloom.edm.internal.EntitySet;
-import com.dataloom.edm.internal.EntitySetWithPermissions;
 import com.dataloom.edm.internal.EntityType;
-import com.dataloom.edm.internal.EntityTypeWithDetails;
 import com.dataloom.edm.internal.PropertyType;
 import com.dataloom.edm.internal.Schema;
 import com.dataloom.edm.requests.EdmRequest;
@@ -42,21 +33,23 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import com.kryptnostic.datastore.exceptions.BadRequestException;
 import com.kryptnostic.datastore.exceptions.ResourceNotFoundException;
+import com.kryptnostic.datastore.services.CassandraEntitySetManager;
 import com.kryptnostic.datastore.services.EdmManager;
-
-import retrofit2.http.GET;
 
 @RestController
 public class EdmController implements EdmApi {
 
     @Inject
-    private EdmManager             modelService;
+    private EdmManager                modelService;
 
     @Inject
-    private HazelcastSchemaManager schemaManager;
+    private HazelcastSchemaManager    schemaManager;
 
     @Inject
-    private AuthorizationManager   authorizations;
+    private AuthorizationManager      authorizations;
+
+    @Inject
+    private CassandraEntitySetManager entitySetManager;
 
     @Override
     @RequestMapping(
@@ -163,65 +156,32 @@ public class EdmController implements EdmApi {
 
     @Override
     @RequestMapping(
-        path = "/" + ENTITY_SETS_BASE_PATH + "/" + NAME_PATH,
-        method = RequestMethod.GET,
-        produces = MediaType.APPLICATION_JSON_VALUE )
+        path = "/" + ENTITY_SETS_BASE_PATH,
+        method = RequestMethod.GET )
     @ResponseStatus( HttpStatus.OK )
-    public EntitySet getEntitySet( @PathVariable( NAME ) String entitySetName ) {
-        if ( modelService.checkEntitySetExists( entitySetName ) && authzService.getEntitySet( entitySetName ) ) {
-            return modelService.getEntitySet( entitySetName );
-        }
-        return null;
+    public Iterable<EntitySet> getEntitySets() {
+        return entitySetManager.getAllEntitySets();
     }
 
     @Override
     @RequestMapping(
-        path = "/" + ENTITY_SETS_BASE_PATH + "/" + NAME_PATH,
-        method = RequestMethod.POST )
+        path = "/" + ENTITY_SETS_BASE_PATH + "/" + ID_PATH,
+        method = RequestMethod.GET )
     @ResponseStatus( HttpStatus.OK )
-    public Void assignEntitiesToEntitySet( String entitySetName, Set<UUID> entityIds ) {
-        if ( modelService.checkEntitySetExists( entitySetName ) &&
-                authzService.assignEntityToEntitySet( entitySetName ) ) {
-            try {
-                for ( UUID entityId : entityIds ) {
-                    modelService.assignEntityToEntitySet( entityId, entitySetName );
-                }
-            } catch ( IllegalStateException e ) {
-                throw new HttpServerErrorException( HttpStatus.INTERNAL_SERVER_ERROR, e.getMessage() );
-            }
-        }
-        return null;
+    public EntitySet getEntitySet( @PathVariable( ID ) UUID entitySetId ) {
+        return modelService.getEntitySet( entitySetId );
     }
 
     @Override
     @RequestMapping(
-        path = "/" + ENTITY_SETS_BASE_PATH + "/" + NAME_PATH,
+        path = "/" + ENTITY_SETS_BASE_PATH + "/" + ID_PATH,
         method = RequestMethod.DELETE )
     @ResponseStatus( HttpStatus.OK )
-    public Void deleteEntitySet( String entitySetName ) {
+    public Void deleteEntitySet( @PathVariable( ID ) UUID entitySetName ) {
         try {
             modelService.deleteEntitySet( entitySetName );
         } catch ( IllegalStateException e ) {
             throw new HttpServerErrorException( HttpStatus.INTERNAL_SERVER_ERROR, e.getMessage() );
-        }
-        return null;
-    }
-
-    /*
-     * (non-Javadoc)
-     * @see com.kryptnostic.datastore.edm.controllers.EdmAPI#createObjectType(java.lang.String, java.lang.String,
-     * java.lang.String, com.kryptnostic.types.ObjectType)
-     */
-    @Override
-    @RequestMapping(
-        path = "/" + ENTITY_TYPE_BASE_PATH,
-        method = RequestMethod.PUT )
-    @ResponseStatus( HttpStatus.OK )
-    public Void putEntityType( @RequestBody EntityType entityType ) {
-        try {
-            modelService.createEntityType( entityType );
-        } catch ( IllegalArgumentException e ) {
-            throw new BadRequestException( e.getMessage() );
         }
         return null;
     }
@@ -238,36 +198,6 @@ public class EdmController implements EdmApi {
 
     @Override
     @RequestMapping(
-        path = "/" + ENTITY_TYPE_BASE_PATH + "/" + DETAILS_PATH,
-        method = RequestMethod.GET,
-        produces = MediaType.APPLICATION_JSON_VALUE )
-    @ResponseStatus( HttpStatus.OK )
-    public Iterable<EntityTypeWithDetails> getEntityTypesWithDetails() {
-        return StreamSupport.stream( modelService.getEntityTypes().spliterator(), false )
-                .map( entityType -> new EntityTypeWithDetails(
-                        entityType,
-                        entityType.getProperties().stream()
-                                .collect(
-                                        Collectors.toMap( fqn -> fqn, fqn -> modelService.getPropertyType( fqn ) ) ) ) )
-                .collect( Collectors.toSet() );
-    }
-
-    @Override
-    @RequestMapping(
-        path = "/" + SCHEMA_BASE_PATH + "/" + NAMESPACE_PATH + "/" + NAME_PATH + "/" + ADD_ENTITY_TYPES_PATH,
-        method = RequestMethod.PUT,
-        consumes = MediaType.APPLICATION_JSON_VALUE )
-    @ResponseStatus( HttpStatus.OK )
-    public Void addEntityTypesToSchema(
-            @PathVariable( NAMESPACE ) String namespace,
-            @PathVariable( NAME ) String name,
-            @RequestBody Set<FullQualifiedName> entityTypes ) {
-        modelService.addEntityTypesToSchema( namespace, name, entityTypes );
-        return null;
-    }
-
-    @Override
-    @RequestMapping(
         path = "/" + SCHEMA_BASE_PATH + "/" + NAMESPACE_PATH + "/" + NAME_PATH,
         method = RequestMethod.PATCH,
         consumes = MediaType.APPLICATION_JSON_VALUE )
@@ -278,10 +208,10 @@ public class EdmController implements EdmApi {
             @RequestBody EdmRequest request ) {
         final Set<UUID> propertyTypes = request.getPropertyTypes();
         final Set<UUID> entityTypes = request.getEntityTypes();
-              final FullQualifiedName schemaName = new FullQualifiedName( namespace, name );  
+        final FullQualifiedName schemaName = new FullQualifiedName( namespace, name );
         switch ( request.getAction() ) {
             case ADD:
-                schemaManager.addEntityTypesToSchema( entityTypes,  schemaName);
+                schemaManager.addEntityTypesToSchema( entityTypes, schemaName );
                 schemaManager.removePropertyTypesFromSchema( propertyTypes, schemaName );
                 break;
             case REMOVE:
@@ -291,15 +221,14 @@ public class EdmController implements EdmApi {
             case REPLACE:
                 final Set<UUID> existingPropertyTypes = schemaManager.getAllPropertyTypesInSchema( schemaName );
                 final Set<UUID> existingEntityTypes = schemaManager.getAllEntityTypesInSchema( schemaName );
-                
+
                 final Set<UUID> propertyTypesToAdd = Sets.difference( propertyTypes, existingPropertyTypes );
-                final Set<UUID> propertyTypesToRemove = Sets.difference( existingPropertyTypes, propertyTypes);
+                final Set<UUID> propertyTypesToRemove = Sets.difference( existingPropertyTypes, propertyTypes );
                 schemaManager.removePropertyTypesFromSchema( propertyTypesToRemove, schemaName );
                 schemaManager.addPropertyTypesToSchema( propertyTypesToAdd, schemaName );
-                
-                
+
                 final Set<UUID> entityTypesToAdd = Sets.difference( entityTypes, existingEntityTypes );
-                final Set<UUID> entityTypesToRemove = Sets.difference( existingEntityTypes, entityTypes);
+                final Set<UUID> entityTypesToRemove = Sets.difference( existingEntityTypes, entityTypes );
                 schemaManager.removeEntityTypesFromSchema( entityTypesToAdd, schemaName );
                 schemaManager.addEntityTypesToSchema( entityTypesToRemove, schemaName );
                 break;
@@ -320,15 +249,25 @@ public class EdmController implements EdmApi {
 
     @Override
     @RequestMapping(
-        path = "/" + ENTITY_TYPE_BASE_PATH + "/" + NAMESPACE_PATH + "/" + NAME_PATH,
+        path = "/" + ENTITY_TYPE_BASE_PATH + "/" + ID_PATH,
         method = RequestMethod.GET )
     @ResponseStatus( HttpStatus.OK )
-    public EntityType getEntityType( @PathVariable( NAMESPACE ) String namespace, @PathVariable( NAME ) String name ) {
+    public EntityType getEntityType( @PathVariable( ID ) UUID entityTypeId ) {
         try {
-            return modelService.getEntityType( namespace, name );
+            return modelService.getEntityType( entityTypeId );
         } catch ( NullPointerException e ) {
             throw new ResourceNotFoundException( e.getMessage() );
         }
+    }
+
+    @Override
+    @RequestMapping(
+        path = "/" + ENTITY_TYPE_BASE_PATH + "/" + ID_PATH,
+        method = RequestMethod.PATCH )
+    @ResponseStatus( HttpStatus.OK )
+    public Void updatePropertyTypesInEntityType( UUID entityTypeId, Set<UUID> request ) {
+        // TODO Auto-generated method stub
+        return null;
     }
 
     @Override
@@ -368,7 +307,6 @@ public class EdmController implements EdmApi {
         } catch ( IllegalStateException e ) {
             throw new HttpServerErrorException( HttpStatus.INTERNAL_SERVER_ERROR, e.getMessage() );
         }
-        return null;
     }
 
     @Override
@@ -412,78 +350,6 @@ public class EdmController implements EdmApi {
         } catch ( NullPointerException e ) {
             throw new ResourceNotFoundException( "Property type not found." );
         }
-    }
-
-    @Override
-    @RequestMapping(
-        path = "/" + ENTITY_TYPE_BASE_PATH + "/" + NAMESPACE_PATH + "/" + NAME_PATH + "/" + ADD_PROPERTY_TYPES_PATH,
-        method = RequestMethod.PUT,
-        consumes = MediaType.APPLICATION_JSON_VALUE )
-    @ResponseStatus( HttpStatus.OK )
-    public Void addPropertyTypesToEntityType(
-            @PathVariable( NAMESPACE ) String namespace,
-            @PathVariable( NAME ) String name,
-            @RequestBody Set<FullQualifiedName> properties ) {
-        try {
-            modelService.addPropertyTypesToEntityType( namespace, name, properties );
-        } catch ( IllegalArgumentException e ) {
-            throw new BadRequestException( e.getMessage() );
-        }
-        return null;
-    }
-
-    @Override
-    @RequestMapping(
-        path = "/" + ENTITY_TYPE_BASE_PATH + "/" + NAMESPACE_PATH + "/" + NAME_PATH + "/" + DELETE_PROPERTY_TYPES_PATH,
-        method = RequestMethod.DELETE,
-        consumes = MediaType.APPLICATION_JSON_VALUE )
-    @ResponseStatus( HttpStatus.OK )
-    public Void removePropertyTypesFromEntityType(
-            @PathVariable( NAMESPACE ) String namespace,
-            @PathVariable( NAME ) String name,
-            @RequestBody Set<FullQualifiedName> properties ) {
-        try {
-            modelService.removePropertyTypesFromEntityType( namespace, name, properties );
-        } catch ( IllegalStateException e ) {
-            throw new HttpServerErrorException( HttpStatus.INTERNAL_SERVER_ERROR, e.getMessage() );
-        }
-        return null;
-    }
-
-    @Override
-    @RequestMapping(
-        path = "/" + SCHEMA_BASE_PATH + "/" + NAMESPACE_PATH + "/" + NAME_PATH + "/" + ADD_PROPERTY_TYPES_PATH,
-        method = RequestMethod.PUT,
-        consumes = MediaType.APPLICATION_JSON_VALUE )
-    @ResponseStatus( HttpStatus.OK )
-    public Void addPropertyTypesToSchema(
-            @PathVariable( NAMESPACE ) String namespace,
-            @PathVariable( NAME ) String name,
-            @RequestBody Set<FullQualifiedName> properties ) {
-        try {
-            modelService.addPropertyTypesToSchema( namespace, name, properties );
-        } catch ( IllegalStateException e ) {
-            throw new HttpServerErrorException( HttpStatus.INTERNAL_SERVER_ERROR, e.getMessage() );
-        }
-        return null;
-    }
-
-    @Override
-    @RequestMapping(
-        path = "/" + SCHEMA_BASE_PATH + "/" + NAMESPACE_PATH + "/" + NAME_PATH + "/" + DELETE_PROPERTY_TYPES_PATH,
-        method = RequestMethod.DELETE,
-        consumes = MediaType.APPLICATION_JSON_VALUE )
-    @ResponseStatus( HttpStatus.OK )
-    public Void removePropertyTypesFromSchema(
-            @PathVariable( NAMESPACE ) String namespace,
-            @PathVariable( NAME ) String name,
-            @RequestBody Set<FullQualifiedName> properties ) {
-        try {
-            modelService.removePropertyTypesFromSchema( namespace, name, properties );
-        } catch ( IllegalStateException e ) {
-            throw new HttpServerErrorException( HttpStatus.INTERNAL_SERVER_ERROR, e.getMessage() );
-        }
-        return null;
     }
 
 }

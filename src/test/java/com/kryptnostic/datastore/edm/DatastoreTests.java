@@ -9,8 +9,6 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.math.BigDecimal;
 import java.time.Instant;
-import java.time.LocalTime;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -45,23 +43,23 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpOutputMessage;
 import org.springframework.http.converter.HttpMessageNotWritableException;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.base.Optional;
 import com.dataloom.data.requests.CreateEntityRequest;
 import com.dataloom.edm.internal.EntitySet;
 import com.dataloom.edm.internal.EntityType;
 import com.dataloom.edm.internal.PropertyType;
+import com.dataloom.edm.schemas.manager.HazelcastSchemaManager;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.SetMultimap;
 import com.kryptnostic.conductor.rpc.Employee;
+import com.kryptnostic.conductor.rpc.UUIDs;
 import com.kryptnostic.conductor.rpc.UUIDs.ACLs;
 import com.kryptnostic.conductor.rpc.UUIDs.Syncs;
 import com.kryptnostic.datastore.converters.IterableCsvHttpMessageConverter;
-import com.kryptnostic.datastore.exceptions.BadRequestException;
-import com.kryptnostic.datastore.odata.KryptnosticEdmProvider;
+import com.kryptnostic.datastore.odata.LoomEdmProvider;
 import com.kryptnostic.datastore.odata.Transformers;
 import com.kryptnostic.datastore.odata.Transformers.EntityTypeTransformer;
 import com.kryptnostic.datastore.services.DataService;
@@ -222,22 +220,24 @@ public class DatastoreTests extends BootstrapDatastoreWithCassandra {
 
         ODataStorageService esc = ds.getContext().getBean( ODataStorageService.class );
         EdmManager dms = ds.getContext().getBean( EdmManager.class );
-        KryptnosticEdmProvider provider = new KryptnosticEdmProvider( dms );
+        HazelcastSchemaManager schemaMgr = ds.getContext().getBean( HazelcastSchemaManager.class );
+        LoomEdmProvider provider = new LoomEdmProvider( dms, schemaMgr );
         Edm edm = new EdmProviderImpl( provider );
 
         CsdlEntityContainerInfo info = new CsdlEntityContainerInfo().setContainerName( ENTITY_TYPE );
         EdmEntityContainer edmEntityContainer = new EdmEntityContainerImpl( edm, provider, info );
 
         CsdlEntityType csdlEntityType = new EntityTypeTransformer( dms ).transform(
-                new EntityType()
-                        .setName( ENTITY_TYPE.getName() )
-                        .setNamespace( ENTITY_TYPE.getNamespace() )
-                        .setProperties( properties )
-                        .setKey( ImmutableSet.of() ) );
+                new EntityType(
+                        ENTITY_TYPE,
+                        ImmutableSet.of(),
+                        ImmutableSet.of(),
+                        properties ) );
+
         EdmEntityType edmEntityType = new EdmEntityTypeImpl( edm, ENTITY_TYPE, csdlEntityType );
 
         CsdlEntitySet csdlEntitySet = Transformers.transform(
-                new EntitySet().setName( ENTITY_SET_NAME ).setTitle( ENTITY_SET_NAME ).setType( ENTITY_TYPE ) );
+                new EntitySet( ENTITY_TYPE, ENTITY_SET_NAME, ENTITY_SET_NAME ) );
         EdmEntitySet edmEntitySet = new EdmEntitySetImpl( edm, edmEntityContainer, csdlEntitySet );
 
         try {
@@ -250,28 +250,34 @@ public class DatastoreTests extends BootstrapDatastoreWithCassandra {
 
     @Test
     public void testAddPropertyTypeToEntityType() {
-    	//Desired result: Properties EMPLOYEE_COUNTRY, EMPLOYEE_WEIGHT are added to ENTITY_TYPE (Employees)
-        final String EMPLOYEE_COUNTRY= "employee_country";
-        final String EMPLOYEE_WEIGHT= "employee_weight";
-        
+        // Desired result: Properties EMPLOYEE_COUNTRY, EMPLOYEE_WEIGHT are added to ENTITY_TYPE (Employees)
+        final String EMPLOYEE_COUNTRY = "employee_country";
+        final String EMPLOYEE_WEIGHT = "employee_weight";
+
         EdmManager dms = ds.getContext().getBean( EdmManager.class );
 
-        try{
-            dms.createPropertyType( new PropertyType().setNamespace( NAMESPACE ).setName( EMPLOYEE_COUNTRY )
-                    .setDatatype( EdmPrimitiveTypeKind.String ).setMultiplicity( 0 ) );
-        } catch ( IllegalArgumentException e ){
-            //Only acceptable exception is property type already exists
-            Assert.assertEquals( PROPERTY_TYPE_EXISTS_MSG, e.getMessage() );
-        };
-        
-        try{
-            dms.createPropertyType( new PropertyType().setNamespace( NAMESPACE ).setName( EMPLOYEE_WEIGHT )
-                    .setDatatype( EdmPrimitiveTypeKind.Int32 ).setMultiplicity( 0 ) );
-        } catch ( IllegalArgumentException e ){
-            //Only acceptable exception is property type already exists
+        try {
+            dms.createPropertyTypeIfNotExists( new PropertyType(
+                    new FullQualifiedName( NAMESPACE, EMPLOYEE_COUNTRY ),
+                    ImmutableSet.of(),
+                    EdmPrimitiveTypeKind.String ) );
+        } catch ( IllegalArgumentException e ) {
+            // Only acceptable exception is property type already exists
             Assert.assertEquals( PROPERTY_TYPE_EXISTS_MSG, e.getMessage() );
         }
-        
+        ;
+
+        try {
+            dms.createPropertyTypeIfNotExists(
+                    new PropertyType(
+                            new FullQualifiedName( NAMESPACE, EMPLOYEE_WEIGHT ),
+                            ImmutableSet.of(),
+                            EdmPrimitiveTypeKind.Int32 ) );
+        } catch ( IllegalArgumentException e ) {
+            // Only acceptable exception is property type already exists
+            Assert.assertEquals( PROPERTY_TYPE_EXISTS_MSG, e.getMessage() );
+        }
+
         Set<FullQualifiedName> properties = new HashSet<>();
         properties.add( new FullQualifiedName( NAMESPACE, EMPLOYEE_COUNTRY ) );
         properties.add( new FullQualifiedName( NAMESPACE, EMPLOYEE_WEIGHT ) );
@@ -290,8 +296,9 @@ public class DatastoreTests extends BootstrapDatastoreWithCassandra {
 
         dms.addPropertyTypesToEntityType( ENTITY_TYPE.getNamespace(), ENTITY_TYPE.getName(), properties );
     }
-    
-    @Test(expected=IllegalArgumentException.class)
+
+    @Test(
+        expected = IllegalArgumentException.class )
     public void testAddPhantomPropertyTypeToEntityType() {
         // Action: Add Property EMPLOYEE_HEIGHT to ENTITY_TYPE (Employees)
         // Desired result: Since property does not exist, Bad Request Exception should be thrown
@@ -310,23 +317,27 @@ public class DatastoreTests extends BootstrapDatastoreWithCassandra {
         final String EMPLOYEE_TOENAIL_LENGTH = "employee-toenail-length";
         final String EMPLOYEE_FINGERNAIL_LENGTH = "employee-fingernail-length";
 
-    	EdmManager dms = ds.getContext().getBean( EdmManager.class );
-        try { 
-        	dms.createPropertyType( new PropertyType().setNamespace( NAMESPACE ).setName( EMPLOYEE_TOENAIL_LENGTH )
-                    .setDatatype( EdmPrimitiveTypeKind.Int32 ).setMultiplicity( 0 ) );    	
-        } catch ( IllegalArgumentException e ){
-            //Only acceptable exception is property type already exists
-            Assert.assertEquals( PROPERTY_TYPE_EXISTS_MSG, e.getMessage() );
-        }
-        
+        EdmManager dms = ds.getContext().getBean( EdmManager.class );
         try {
-        	dms.createPropertyType( new PropertyType().setNamespace( NAMESPACE ).setName( EMPLOYEE_FINGERNAIL_LENGTH )
-                    .setDatatype( EdmPrimitiveTypeKind.Int32 ).setMultiplicity( 0 ) );    	
-        } catch ( IllegalArgumentException e ){
-            //Only acceptable exception is property type already exists
+            dms.createPropertyTypeIfNotExists( new PropertyType(
+                    new FullQualifiedName( NAMESPACE, EMPLOYEE_TOENAIL_LENGTH ),
+                    ImmutableSet.of(),
+                    EdmPrimitiveTypeKind.Int32 ) );
+        } catch ( IllegalArgumentException e ) {
+            // Only acceptable exception is property type already exists
             Assert.assertEquals( PROPERTY_TYPE_EXISTS_MSG, e.getMessage() );
         }
-        //Add new property to Schema
+
+        try {
+            dms.createPropertyTypeIfNotExists( new PropertyType(
+                    new FullQualifiedName( NAMESPACE, EMPLOYEE_FINGERNAIL_LENGTH ),
+                    ImmutableSet.of(),
+                    EdmPrimitiveTypeKind.Int32 ) );
+        } catch ( IllegalArgumentException e ) {
+            // Only acceptable exception is property type already exists
+            Assert.assertEquals( PROPERTY_TYPE_EXISTS_MSG, e.getMessage() );
+        }
+        // Add new property to Schema
         Set<FullQualifiedName> newProperties = new HashSet<>();
         newProperties.add( new FullQualifiedName( NAMESPACE, EMPLOYEE_TOENAIL_LENGTH ) );
         newProperties.add( new FullQualifiedName( NAMESPACE, EMPLOYEE_FINGERNAIL_LENGTH ) );
@@ -346,36 +357,46 @@ public class DatastoreTests extends BootstrapDatastoreWithCassandra {
         } catch ( Throwable t ) {
             caught = t;
         }
-        assertNotNull(caught);
-        assertSame(IllegalArgumentException.class, caught.getClass());
+        assertNotNull( caught );
+        assertSame( IllegalArgumentException.class, caught.getClass() );
     }
 
     @Test
-    public void removePropertyTypes(){
-    	//Action: Add Property EMPLOYEE_HAIRLENGTH to ENTITY_TYPE (Employees), and EMPLOYEE_EYEBROW_LENGTH to Schema, then remove them
-    	//Desired result: Schemas and Entity_Types tables should look the same as before, without any trace of EMPLOYEE_HAIRLENGTH and EMPLOYEE_EYEBROW_LENGTH
-    	//                Property_Types and lookup table should be updated.
-    	final String EMPLOYEE_HAIR_LENGTH = "employee_hair_length";
-    	final String EMPLOYEE_EYEBROW_LENGTH = "employee_eyebrow_length";
-    	
-    	EdmManager dms = ds.getContext().getBean( EdmManager.class );
-    	try{
-            dms.createPropertyType( new PropertyType().setNamespace( NAMESPACE ).setName( EMPLOYEE_HAIR_LENGTH )
-                    .setDatatype( EdmPrimitiveTypeKind.Int32 ).setMultiplicity( 0 ) );    
-    	} catch ( IllegalArgumentException e ){
-            //Only acceptable exception is property type already exists
+    public void removePropertyTypes() {
+        // Action: Add Property EMPLOYEE_HAIRLENGTH to ENTITY_TYPE (Employees), and EMPLOYEE_EYEBROW_LENGTH to Schema,
+        // then remove them
+        // Desired result: Schemas and Entity_Types tables should look the same as before, without any trace of
+        // EMPLOYEE_HAIRLENGTH and EMPLOYEE_EYEBROW_LENGTH
+        // Property_Types and lookup table should be updated.
+        final String EMPLOYEE_HAIR_LENGTH = "employee_hair_length";
+        final String EMPLOYEE_EYEBROW_LENGTH = "employee_eyebrow_length";
+
+        EdmManager dms = ds.getContext().getBean( EdmManager.class );
+        try {
+            dms.createPropertyType( new PropertyType(
+                    new FullQualifiedName( NAMESPACE, EMPLOYEE_HAIR_LENGTH ),
+                    ImmutableSet.of(),
+                    EdmPrimitiveTypeKind.Int32 ) );
+        } catch ( IllegalArgumentException e ) {
+            // Only acceptable exception is property type already exists
             Assert.assertEquals( PROPERTY_TYPE_EXISTS_MSG, e.getMessage() );
         }
-    	
-    	try{
-            dms.createPropertyType( new PropertyType().setNamespace( NAMESPACE ).setName( EMPLOYEE_EYEBROW_LENGTH )
-                    .setDatatype( EdmPrimitiveTypeKind.Int32 ).setMultiplicity( 0 ) );    
-    	} catch ( IllegalArgumentException e ){
-            //Only acceptable exception is property type already exists
+
+        try {
+            dms.createPropertyType( new PropertyType(
+                    new FullQualifiedName( NAMESPACE, EMPLOYEE_EYEBROW_LENGTH ),
+                    ImmutableSet.of(),
+                    EdmPrimitiveTypeKind.Int32 ) );
+        } catch ( IllegalArgumentException e ) {
+            // Only acceptable exception is property type already exists
             Assert.assertEquals( PROPERTY_TYPE_EXISTS_MSG, e.getMessage() );
         }
-        dms.addPropertyTypesToEntityType(ENTITY_TYPE.getNamespace(), ENTITY_TYPE.getName(), ImmutableSet.of( new FullQualifiedName(NAMESPACE, EMPLOYEE_HAIR_LENGTH) ) );
-        dms.addPropertyTypesToSchema(NAMESPACE, SCHEMA_NAME, ImmutableSet.of( new FullQualifiedName(NAMESPACE, EMPLOYEE_EYEBROW_LENGTH) ) );
+        dms.addPropertyTypesToEntityType( ENTITY_TYPE.getNamespace(),
+                ENTITY_TYPE.getName(),
+                ImmutableSet.of( new FullQualifiedName( NAMESPACE, EMPLOYEE_HAIR_LENGTH ) ) );
+        dms.addPropertyTypesToSchema( NAMESPACE,
+                SCHEMA_NAME,
+                ImmutableSet.of( new FullQualifiedName( NAMESPACE, EMPLOYEE_EYEBROW_LENGTH ) ) );
 
         dms.removePropertyTypesFromEntityType( ENTITY_TYPE.getNamespace(),
                 ENTITY_TYPE.getName(),
@@ -385,24 +406,25 @@ public class DatastoreTests extends BootstrapDatastoreWithCassandra {
                 ImmutableSet.of( new FullQualifiedName( NAMESPACE, EMPLOYEE_EYEBROW_LENGTH ) ) );
     }
 
-    //@Test
+    // @Test
     public void populateEmployeeCsvViaDataService() throws IOException {
         // Populate data of entity type EMPLOYEE, via DataService
         DataService dataService = ds.getContext().getBean( DataService.class );
         final int NUMBER_OF_ENTITY_SETS = 10;
         final String ENTITY_SET_NAME_PREFIX = "Employees_set_";
-        
-        for(int i = 0; i < NUMBER_OF_ENTITY_SETS; i++){
-            try{
-                dms.createEntitySet( ENTITY_TYPE,
+
+        for ( int i = 0; i < NUMBER_OF_ENTITY_SETS; i++ ) {
+            try {
+                dms.createEntitySet( principal,
+                        ENTITY_TYPE,
                         ENTITY_SET_NAME_PREFIX + i,
                         "The entity set " + i + " title" );
-            } catch ( IllegalArgumentException e ){
-                //Only acceptable exception is entity type already exists
+            } catch ( IllegalArgumentException e ) {
+                // Only acceptable exception is entity type already exists
                 Assert.assertEquals( ENTITY_SET_EXISTS_MSG, e.getMessage() );
             }
         }
-        
+
         Random rand = new Random();
 
         FullQualifiedName EMPLOYEE_ID_FQN = new FullQualifiedName( NAMESPACE, EMPLOYEE_ID );
@@ -441,18 +463,16 @@ public class DatastoreTests extends BootstrapDatastoreWithCassandra {
                     entities.add( entity );
                 } else {
                     CreateEntityRequest createEntityRequest = new CreateEntityRequest(
-                            Optional.of( ENTITY_SET_NAME_PREFIX + rand.nextInt( NUMBER_OF_ENTITY_SETS ) ),
+                            ENTITY_SET_NAME_PREFIX + rand.nextInt( NUMBER_OF_ENTITY_SETS ),
                             ENTITY_TYPE,
                             entities,
-                            Optional.absent(),
-                            Optional.absent() );
-                    
+                            UUIDs.Syncs.BASE.getSyncId() );
+
                     CreateEntityRequest createEntityRequest2 = new CreateEntityRequest(
-                            Optional.of( ENTITY_SET_NAME ),
+                            ENTITY_SET_NAME,
                             ENTITY_TYPE,
                             entities,
-                            Optional.absent(),
-                            Optional.absent() );
+                            UUIDs.Syncs.BASE.getSyncId() );
 
                     dataService.createEntityData( createEntityRequest, authorizedProperties );
                     dataService.createEntityData( createEntityRequest2, authorizedProperties );
@@ -468,25 +488,28 @@ public class DatastoreTests extends BootstrapDatastoreWithCassandra {
     public void testWriteDifferentDataTypes() throws IOException {
         DataService dataService = ds.getContext().getBean( DataService.class );
 
-        FullQualifiedName entityTypeFqn = new FullQualifiedName( NAMESPACE, "datawritetest_" + RandomStringUtils.randomAlphanumeric( 10 ).toLowerCase() );
+        FullQualifiedName entityTypeFqn = new FullQualifiedName(
+                NAMESPACE,
+                "datawritetest_" + RandomStringUtils.randomAlphanumeric( 10 ).toLowerCase() );
         // Testing all the property types supported by CassandraEdmMapping::getCassandraType
-        Map<FullQualifiedName, EdmPrimitiveTypeKind> propertyTypeMap = createEntityTypeAndPropertyTypes( entityTypeFqn, ImmutableSet.of(
-                EdmPrimitiveTypeKind.Binary,
-                EdmPrimitiveTypeKind.Boolean,
-                EdmPrimitiveTypeKind.Byte,
-                EdmPrimitiveTypeKind.Date,
-                EdmPrimitiveTypeKind.DateTimeOffset,
-                EdmPrimitiveTypeKind.Decimal,
-                EdmPrimitiveTypeKind.Double,
-                EdmPrimitiveTypeKind.Duration,
-                EdmPrimitiveTypeKind.Guid,
-                EdmPrimitiveTypeKind.Int16,
-                EdmPrimitiveTypeKind.Int32,
-                EdmPrimitiveTypeKind.Int64,
-                EdmPrimitiveTypeKind.String,
-                EdmPrimitiveTypeKind.SByte,
-                EdmPrimitiveTypeKind.Single,
-                EdmPrimitiveTypeKind.TimeOfDay ) );
+        Map<FullQualifiedName, EdmPrimitiveTypeKind> propertyTypeMap = createEntityTypeAndPropertyTypes( entityTypeFqn,
+                ImmutableSet.of(
+                        EdmPrimitiveTypeKind.Binary,
+                        EdmPrimitiveTypeKind.Boolean,
+                        EdmPrimitiveTypeKind.Byte,
+                        EdmPrimitiveTypeKind.Date,
+                        EdmPrimitiveTypeKind.DateTimeOffset,
+                        EdmPrimitiveTypeKind.Decimal,
+                        EdmPrimitiveTypeKind.Double,
+                        EdmPrimitiveTypeKind.Duration,
+                        EdmPrimitiveTypeKind.Guid,
+                        EdmPrimitiveTypeKind.Int16,
+                        EdmPrimitiveTypeKind.Int32,
+                        EdmPrimitiveTypeKind.Int64,
+                        EdmPrimitiveTypeKind.String,
+                        EdmPrimitiveTypeKind.SByte,
+                        EdmPrimitiveTypeKind.Single,
+                        EdmPrimitiveTypeKind.TimeOfDay ) );
 
         writeRandomData( dataService, entityTypeFqn, propertyTypeMap, 10 );
     }
@@ -499,50 +522,56 @@ public class DatastoreTests extends BootstrapDatastoreWithCassandra {
         String prefix = "property_";
         String propertyName;
         Map<FullQualifiedName, EdmPrimitiveTypeKind> propertyTypeMap = new HashMap<>();
-        
+
         for ( EdmPrimitiveTypeKind edmType : edmTypes ) {
-            propertyName = prefix + edmType.toString().toLowerCase() + "_" + RandomStringUtils.randomAlphanumeric( 10 ).toLowerCase();
-            dms.createPropertyType( new PropertyType().setNamespace( NAMESPACE ).setName( propertyName )
-                    .setDatatype( edmType ).setMultiplicity( 0 ) );
+            propertyName = prefix + edmType.toString().toLowerCase() + "_"
+                    + RandomStringUtils.randomAlphanumeric( 10 ).toLowerCase();
+            dms.createPropertyType(
+                    new PropertyType( new FullQualifiedName( NAMESPACE, propertyName ), ImmutableSet.of(), edmType ) );
             propertyTypeMap.put( new FullQualifiedName( NAMESPACE, propertyName ), edmType );
         }
 
-        EntityType entityType = new EntityType().setNamespace( entityTypeFqn.getNamespace() )
-                .setName( entityTypeFqn.getName() )
-                .setKey( ImmutableSet.of(propertyTypeMap.keySet().iterator().next()) )
-                .setProperties( propertyTypeMap.keySet() );
+        EntityType entityType = new EntityType(
+                entityTypeFqn,
+                ImmutableSet.of(),
+                ImmutableSet.of( propertyTypeMap.keySet().iterator().next() ),
+                propertyTypeMap.keySet() );
         dms.createEntityType( entityType );
-        
+
         return propertyTypeMap;
     }
-    
-    private void writeRandomData( DataService dataService, FullQualifiedName entityTypeFqn, Map<FullQualifiedName, EdmPrimitiveTypeKind> propertyTypeMap, int n){
+
+    private void writeRandomData(
+            DataService dataService,
+            FullQualifiedName entityTypeFqn,
+            Map<FullQualifiedName, EdmPrimitiveTypeKind> propertyTypeMap,
+            int n ) {
         Random rand = new Random();
         Set<SetMultimap<FullQualifiedName, Object>> entities = new HashSet<>();
-        
-        for(int i = 0; i < n; i++){
+
+        for ( int i = 0; i < n; i++ ) {
             SetMultimap<FullQualifiedName, Object> entity = HashMultimap.create();
-            for( Map.Entry<FullQualifiedName, EdmPrimitiveTypeKind> entry : propertyTypeMap.entrySet() ){
-                entity.put( entry.getKey(), generateValueOfType(rand, entry.getValue()) );
+            for ( Map.Entry<FullQualifiedName, EdmPrimitiveTypeKind> entry : propertyTypeMap.entrySet() ) {
+                entity.put( entry.getKey(), generateValueOfType( rand, entry.getValue() ) );
             }
             entities.add( entity );
         }
-        
+
         CreateEntityRequest createEntityRequest = new CreateEntityRequest(
-                Optional.absent(),
+                ENTITY_SET_NAME,
                 entityTypeFqn,
                 entities,
-                Optional.absent(),
-                Optional.absent() );
-        
+                UUIDs.Syncs.BASE.getSyncId() );
+
         dataService.createEntityData( createEntityRequest, propertyTypeMap.keySet() );
 
     }
-    
-    private Object generateValueOfType( Random rand, EdmPrimitiveTypeKind edmType ){
-        //Following http://docs.oasis-open.org/odata/odata/v4.0/errata03/os/complete/part3-csdl/odata-v4.0-errata03-os-part3-csdl-complete.html#_Toc453752517
+
+    private Object generateValueOfType( Random rand, EdmPrimitiveTypeKind edmType ) {
+        // Following
+        // http://docs.oasis-open.org/odata/odata/v4.0/errata03/os/complete/part3-csdl/odata-v4.0-errata03-os-part3-csdl-complete.html#_Toc453752517
         Object value;
-        switch ( edmType) {
+        switch ( edmType ) {
             case Binary:
                 value = RandomStringUtils.randomAlphanumeric( 10 );
                 break;
@@ -554,25 +583,27 @@ public class DatastoreTests extends BootstrapDatastoreWithCassandra {
                 value = rand.nextInt( 8 );
                 break;
             case Date:
-                value = (1000 + rand.nextInt(2000)) + "-" + (1+rand.nextInt(12)) + "-" + (1+rand.nextInt(28));
+                value = ( 1000 + rand.nextInt( 2000 ) ) + "-" + ( 1 + rand.nextInt( 12 ) ) + "-"
+                        + ( 1 + rand.nextInt( 28 ) );
                 break;
             case DateTimeOffset:
                 value = DateTime.now().toString();
                 break;
             case Decimal:
-                value = new BigDecimal(Math.random());
+                value = new BigDecimal( Math.random() );
                 break;
             case Double:
                 value = rand.nextDouble();
                 break;
             case Duration:
-                value = rand.nextInt( ) + "d" + rand.nextInt(24) + "h" + rand.nextInt(60) + "m" + rand.nextInt(60) + "m";
+                value = rand.nextInt() + "d" + rand.nextInt( 24 ) + "h" + rand.nextInt( 60 ) + "m" + rand.nextInt( 60 )
+                        + "m";
                 break;
             case Guid:
                 value = UUID.randomUUID();
                 break;
             case Int16:
-                value = (short) rand.nextInt(Short.MAX_VALUE + 1);
+                value = (short) rand.nextInt( Short.MAX_VALUE + 1 );
                 break;
             case Int32:
                 value = rand.nextInt();
@@ -584,27 +615,28 @@ public class DatastoreTests extends BootstrapDatastoreWithCassandra {
                 value = RandomStringUtils.randomAlphanumeric( 10 );
                 break;
             case SByte:
-                value = rand.nextInt(256) - 128;
+                value = rand.nextInt( 256 ) - 128;
                 break;
             case Single:
                 value = rand.nextFloat();
                 break;
             case TimeOfDay:
-                value = rand.nextInt(24) + ":" + rand.nextInt(60) + ":" + rand.nextInt(60) + "." + rand.nextInt(1000);
+                value = rand.nextInt( 24 ) + ":" + rand.nextInt( 60 ) + ":" + rand.nextInt( 60 ) + "."
+                        + rand.nextInt( 1000 );
                 break;
             default:
                 value = RandomStringUtils.randomAlphanumeric( 10 );
                 break;
         }
-        
-        //Pretend that Jackson parsed this from user input
+
+        // Pretend that Jackson parsed this from user input
         ObjectMapper mapper = new ObjectMapper();
         String serialized;
         Object deserialized = null;
         try {
             serialized = mapper.writeValueAsString( value );
-            //Pretend we are doing raw data binding
-            deserialized = mapper.readValue( serialized, Object.class );            
+            // Pretend we are doing raw data binding
+            deserialized = mapper.readValue( serialized, Object.class );
         } catch ( Exception e ) {
             // TODO Auto-generated catch block
             e.printStackTrace();

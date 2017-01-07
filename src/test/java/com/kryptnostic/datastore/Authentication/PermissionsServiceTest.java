@@ -16,7 +16,6 @@ import org.apache.olingo.commons.api.edm.FullQualifiedName;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -48,10 +47,9 @@ import com.google.common.base.Optional;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Multimap;
 import com.google.common.collect.SetMultimap;
+import com.kryptnostic.conductor.rpc.UUIDs;
 import com.kryptnostic.datastore.Datastore;
-import com.kryptnostic.datastore.services.DataService;
 import com.kryptnostic.datastore.services.EdmService;
 import com.kryptnostic.datastore.services.PermissionsService;
 import com.squareup.okhttp.OkHttpClient;
@@ -63,25 +61,26 @@ import retrofit2.Retrofit;
 
 public class PermissionsServiceTest {
 
-    protected static final Principal         ROLE_USER             = new Principal( PrincipalType.ROLE )
-            .setName( "user" );
-    protected static final Principal         USER_USER             = new Principal( PrincipalType.USER )
-            .setId( "auth0|57e4b2d8d9d1d194778fd5b6" );
-    protected static final Principal         USER_TEST             = new Principal( PrincipalType.USER )
-            .setId( "auth0|582e16d13440cfa8448dff7f" );
+    protected static final Principal         ROLE_USER             = new Principal( PrincipalType.ROLE, "user" );
+    protected static final Principal         USER_USER             = new Principal(
+            PrincipalType.USER,
+            "auth0|57e4b2d8d9d1d194778fd5b6" );
+    protected static final Principal         USER_TEST             = new Principal(
+            PrincipalType.USER,
+            "auth0|582e16d13440cfa8448dff7f" );
 
     protected static final String            NATION_NAMESPACE      = "us";
     protected static final FullQualifiedName NATION_SCHEMA         = new FullQualifiedName(
             NATION_NAMESPACE,
-            "schema" );                                                                                         // schema
+            "schema" );                                                                                          // schema
 
     protected static final FullQualifiedName NATION_CITIZENS       = new FullQualifiedName(
             NATION_NAMESPACE,
-            "citizens" );                                                                                       // entity
-                                                                                                                // type
-    protected static final String            NATION_SECRET_SERVICE = "secret_service";                          // entity
-                                                                                                                // set
-                                                                                                                // name
+            "citizens" );                                                                                        // entity
+                                                                                                                 // type
+    protected static final String            NATION_SECRET_SERVICE = "secret_service";                           // entity
+                                                                                                                 // set
+                                                                                                                 // name
 
     protected static final FullQualifiedName EMPLOYEE_ID           = new FullQualifiedName(
             NATION_NAMESPACE,
@@ -89,21 +88,21 @@ public class PermissionsServiceTest {
 
     protected static final FullQualifiedName LIFE_EXPECTANCY       = new FullQualifiedName(
             NATION_NAMESPACE,
-            "life_expectancy" );                                                                                // property
-                                                                                                                // type
+            "life_expectancy" );                                                                                 // property
+                                                                                                                 // type
     protected static final FullQualifiedName ADDRESS               = new FullQualifiedName(
             NATION_NAMESPACE,
-            "address" );                                                                                        // property
-                                                                                                                // type
+            "address" );                                                                                         // property
+                                                                                                                 // type
     protected static final FullQualifiedName POSITION              = new FullQualifiedName(
             NATION_NAMESPACE,
-            "position" );                                                                                       // property
-                                                                                                                // type
+            "position" );                                                                                        // property
+                                                                                                                 // type
 
     protected static final FullQualifiedName SPIED_ON              = new FullQualifiedName(
             NATION_NAMESPACE,
-            "spied_on" );                                                                                       // property
-                                                                                                                // type
+            "spied_on" );                                                                                        // property
+                                                                                                                 // type
 
     private static final Logger              logger                = LoggerFactory.getLogger( Auth0Test.class );
     protected static final Datastore         ds                    = new Datastore();
@@ -138,7 +137,7 @@ public class PermissionsServiceTest {
         ps = dataServiceRestAdapter.create( PermissionsApi.class );
         edmService = ds.getContext().getBean( EdmService.class );
         permissionsService = ds.getContext().getBean( PermissionsService.class );
-        
+
         currentUserId = auth.getRight().getProfile().getId();
     }
 
@@ -204,37 +203,37 @@ public class PermissionsServiceTest {
 
     private void createTypes() {
         // Create property types Employee-id, Address, Position, Life expectancy
-        PropertyType employeeId = new PropertyType().setNamespace( NATION_NAMESPACE )
-                .setName( EMPLOYEE_ID.getName() )
-                .setDatatype( EdmPrimitiveTypeKind.Guid ).setMultiplicity( 0 );
-        PropertyType lifeExpectancy = new PropertyType().setNamespace( NATION_NAMESPACE )
-                .setName( LIFE_EXPECTANCY.getName() )
-                .setDatatype( EdmPrimitiveTypeKind.Int32 ).setMultiplicity( 0 );
-        PropertyType address = new PropertyType().setNamespace( NATION_NAMESPACE ).setName( ADDRESS.getName() )
-                .setDatatype( EdmPrimitiveTypeKind.String ).setMultiplicity( 0 );
-        PropertyType position = new PropertyType().setNamespace( NATION_NAMESPACE ).setName( POSITION.getName() )
-                .setDatatype( EdmPrimitiveTypeKind.String ).setMultiplicity( 0 );
+        PropertyType employeeId = new PropertyType( EMPLOYEE_ID, ImmutableSet.of(), EdmPrimitiveTypeKind.Guid );
+        PropertyType lifeExpectancy = new PropertyType(
+                LIFE_EXPECTANCY,
+                ImmutableSet.of(),
+                EdmPrimitiveTypeKind.Int32 );
+        PropertyType address = new PropertyType( ADDRESS, ImmutableSet.of(), EdmPrimitiveTypeKind.String );
+        PropertyType position = new PropertyType( POSITION, ImmutableSet.of(), EdmPrimitiveTypeKind.String );
         edmApi.createPropertyType( employeeId );
         edmApi.createPropertyType( lifeExpectancy );
         edmApi.createPropertyType( address );
         edmApi.createPropertyType( position );
 
         // creates entity type Citizen
-        EntityType citizens = new EntityType().setNamespace( NATION_NAMESPACE ).setName( NATION_CITIZENS.getName() )
-                .setKey( ImmutableSet.of( EMPLOYEE_ID ) )
-                .setProperties( ImmutableSet.of(
+        EntityType citizens = new EntityType(
+                NATION_CITIZENS,
+                ImmutableSet.of(),
+                ImmutableSet.of( EMPLOYEE_ID ),
+                ImmutableSet.of(
                         EMPLOYEE_ID,
                         LIFE_EXPECTANCY,
                         ADDRESS,
                         POSITION ) );
-        edmApi.postEntityType( citizens );
+        edmApi.createEntityType( citizens );
 
         try {
             // God creates entity set Secret Service
-            EntitySet secretService = new EntitySet().setType( NATION_CITIZENS )
-                    .setName( NATION_SECRET_SERVICE )
-                    .setTitle( "Every nation would have one" );
-            edmService.createEntitySet( secretService );
+            EntitySet secretService = new EntitySet(
+                    NATION_CITIZENS,
+                    NATION_SECRET_SERVICE,
+                    "Every nation would have one" );
+            edmService.createEntitySet( USER_USER, secretService );
         } catch ( IllegalArgumentException e ) {
             // This would happen if entity set already exists
             System.err.println( e );
@@ -261,8 +260,7 @@ public class PermissionsServiceTest {
                         .setType( NATION_CITIZENS ).setPermissions( EnumSet.of( Permission.ALTER ) ) ) );
 
         // Current setting is everyone can create types
-        PropertyType spiedOn = new PropertyType().setNamespace( NATION_NAMESPACE ).setName( SPIED_ON.getName() )
-                .setDatatype( EdmPrimitiveTypeKind.Boolean ).setMultiplicity( 0 );
+        PropertyType spiedOn = new PropertyType( SPIED_ON, ImmutableSet.of(), EdmPrimitiveTypeKind.Boolean );
         edmApi.createPropertyType( spiedOn );
 
         edmApi.addPropertyTypesToEntityType( NATION_CITIZENS.getNamespace(),
@@ -307,19 +305,23 @@ public class PermissionsServiceTest {
         edmApi.deletePropertyType( SPIED_ON.getNamespace(), SPIED_ON.getName() );
 
         // create the entity type and entity set back
-        EntityType citizens = new EntityType().setNamespace( NATION_NAMESPACE ).setName( NATION_CITIZENS.getName() )
-                .setKey( ImmutableSet.of( EMPLOYEE_ID ) )
-                .setProperties( ImmutableSet.of( EMPLOYEE_ID,
+        EntityType citizens = new EntityType(
+                NATION_CITIZENS,
+                ImmutableSet.of(),
+                ImmutableSet.of( EMPLOYEE_ID ),
+                ImmutableSet.of( EMPLOYEE_ID,
                         LIFE_EXPECTANCY,
                         ADDRESS,
                         POSITION ) );
-        edmApi.postEntityType( citizens );
+        edmApi.createEntityType( citizens );
 
         // God creates entity set Secret Service
-        EntitySet secretService = new EntitySet().setType( NATION_CITIZENS )
-                .setName( NATION_SECRET_SERVICE )
-                .setTitle( "Every nation would have one" );
-        edmService.createEntitySet( secretService );
+        EntitySet secretService = new EntitySet(
+                NATION_CITIZENS,
+                NATION_SECRET_SERVICE,
+                "Every nation would have one" );
+
+        edmService.createEntitySet( USER_USER, secretService );
 
         System.err.println( " *** Entity Type Test Clean Up Finished *** " );
     }
@@ -343,10 +345,12 @@ public class PermissionsServiceTest {
         // Setup: Citizen creates a new entity set in NATION_CITIZENS.
         String DYSTOPIANS = "dystopians";
 
-        EntitySet dystopians = new EntitySet().setType( NATION_CITIZENS )
-                .setName( DYSTOPIANS )
-                .setTitle( "We could be in one now" );
-        edmApi.postEntitySets( ImmutableSet.of( dystopians ) );
+        EntitySet dystopians = new EntitySet(
+                NATION_CITIZENS,
+                DYSTOPIANS,
+                "We could be in one now",
+                ImmutableSet.of() );
+        edmApi.createEntitySets( ImmutableSet.of( dystopians ) );
 
         // Test 2: Check Citizen's permissions for the entity set.
         // Expected: Citizen has all permissions for the entity set.
@@ -381,11 +385,11 @@ public class PermissionsServiceTest {
         // Expected: Listing all permissions given for the entity set
         ps.updateEntitySetsAcls(
                 ImmutableSet.of( new EntitySetAclRequest()
-                        .setPrincipal( new Principal( PrincipalType.ROLE ).setName( "ROLE_DISCOVER" ) )
+                        .setPrincipal( new Principal( PrincipalType.ROLE, "ROLE_DISCOVER" ) )
                         .setAction( Action.ADD )
                         .setName( DYSTOPIANS ).setPermissions( EnumSet.of( Permission.DISCOVER ) ),
                         new EntitySetAclRequest()
-                                .setPrincipal( new Principal( PrincipalType.ROLE ).setName( "ROLE_READWRITE" ) )
+                                .setPrincipal( new Principal( PrincipalType.ROLE, "ROLE_READWRITE" ) )
                                 .setAction( Action.ADD )
                                 .setName( DYSTOPIANS )
                                 .setPermissions( EnumSet.of( Permission.READ, Permission.WRITE ) ),
@@ -884,11 +888,10 @@ public class PermissionsServiceTest {
         }
 
         CreateEntityRequest createEntityRequest = new CreateEntityRequest(
-                entitySetName,
+                entitySetName.get(),
                 entityTypeFqn,
                 entities,
-                Optional.absent(),
-                Optional.absent() );
+                UUIDs.Syncs.BASE.getSyncId() );
 
         dataApi.createEntityData( createEntityRequest );
     }
@@ -901,14 +904,18 @@ public class PermissionsServiceTest {
         String HOMBRES = "hombres";
         String MUJERES = "mujeres";
 
-        EntitySet hombres = new EntitySet().setType( NATION_CITIZENS )
-                .setName( HOMBRES )
-                .setTitle( "Every nation would have some" );
-        EntitySet mujeres = new EntitySet().setType( NATION_CITIZENS )
-                .setName( MUJERES )
-                .setTitle( "Every nation would have some" );
-        edmService.createEntitySet( hombres );
-        edmService.createEntitySet( mujeres );
+        EntitySet hombres = new EntitySet(
+                NATION_CITIZENS,
+                HOMBRES,
+                "Every nation would have some",
+                ImmutableSet.of() );
+        EntitySet mujeres = new EntitySet(
+                NATION_CITIZENS,
+                MUJERES,
+                "Every nation would have some",
+                ImmutableSet.of() );
+        edmService.createEntitySet( USER_USER, hombres );
+        edmService.createEntitySet( USER_USER, mujeres );
 
         ps.updateEntitySetsAcls(
                 ImmutableSet.of( new EntitySetAclRequest().setPrincipal( ROLE_USER ).setAction( Action.ADD )
@@ -953,13 +960,10 @@ public class PermissionsServiceTest {
         String CATE = "kryptocate";
         String DOGE = "kryptodoge";
 
-        EntitySet cate = new EntitySet().setType( NATION_CITIZENS )
-                .setName( CATE )
-                .setTitle( "Every reddit would have some" );
-        EntitySet doge = new EntitySet().setType( NATION_CITIZENS )
-                .setName( DOGE )
-                .setTitle( "Every reddit would have some" );
-        edmApi.postEntitySets( ImmutableSet.of( cate, doge ) );
+        EntitySet cate = new EntitySet( NATION_CITIZENS, CATE, "Every reddit would have some", ImmutableSet.of() );
+        EntitySet doge = new EntitySet( NATION_CITIZENS, DOGE, "Every reddit would have some", ImmutableSet.of() );
+
+        edmApi.createEntitySets( ImmutableSet.of( cate, doge ) );
         // Sanity check for ownership
         System.err.println( "--- SANITY TEST FOR OWNERSHIP OF CATE AND DOGE --- " );
         System.err.println( edmApi.getEntitySets( null ) );

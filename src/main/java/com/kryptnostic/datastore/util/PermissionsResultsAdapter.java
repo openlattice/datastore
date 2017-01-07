@@ -1,8 +1,6 @@
 package com.kryptnostic.datastore.util;
 
 import com.dataloom.authorization.requests.PermissionsInfo;
-import com.dataloom.authorization.requests.Principal;
-import com.dataloom.authorization.requests.PrincipalType;
 import com.dataloom.authorization.requests.PropertyTypeInEntitySetAclRequestWithRequestingUser;
 import com.hazelcast.core.HazelcastInstance;
 import com.hazelcast.core.IMap;
@@ -22,15 +20,12 @@ public class PermissionsResultsAdapter {
 
     public PropertyTypeInEntitySetAclRequestWithRequestingUser mapUserIdToName(
             PropertyTypeInEntitySetAclRequestWithRequestingUser req ) {
-        addUsernameToPrincipal( req.getRequest().getPrincipal() );
         req.setRequestingUser( getUsernameFromId( req.getRequestingUser() ) );
 
         return req;
     }
 
     public PermissionsInfo mapUserIdToName( PermissionsInfo req ) {
-        addUsernameToPrincipal( req.getPrincipal() );
-
         return req;
     }
 
@@ -43,12 +38,4 @@ public class PermissionsResultsAdapter {
             return username;
         }
     }
-
-    private void addUsernameToPrincipal( Principal principal ) {
-        if ( principal.getType() == PrincipalType.USER ) {
-            String username = getUsernameFromId( principal.getId() );
-            principal.setName( username );
-        }
-    }
-
 }

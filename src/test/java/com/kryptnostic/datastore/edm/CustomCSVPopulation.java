@@ -1,35 +1,22 @@
 package com.kryptnostic.datastore.edm;
 
 import java.io.BufferedOutputStream;
-import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileOutputStream;
-import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
-import java.math.BigInteger;
-import java.net.HttpURLConnection;
-import java.net.MalformedURLException;
-import java.net.ProtocolException;
-import java.net.URL;
-import java.nio.file.Files;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
-import java.util.Scanner;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Function;
 import java.util.function.Supplier;
 
 import org.apache.commons.lang3.RandomStringUtils;
@@ -38,10 +25,9 @@ import org.apache.olingo.commons.api.data.Property;
 import org.apache.olingo.commons.api.data.ValueType;
 import org.apache.olingo.commons.api.edm.EdmPrimitiveTypeKind;
 import org.apache.olingo.commons.api.edm.FullQualifiedName;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.Test;
 
+import com.dataloom.authorization.requests.Principal;
+import com.dataloom.authorization.requests.PrincipalType;
 import com.dataloom.edm.internal.EntityType;
 import com.dataloom.edm.internal.PropertyType;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -51,7 +37,6 @@ import com.fasterxml.jackson.databind.ObjectWriter;
 import com.fasterxml.jackson.dataformat.csv.CsvMapper;
 import com.fasterxml.jackson.dataformat.csv.CsvParser;
 import com.fasterxml.jackson.dataformat.csv.CsvSchema;
-import com.fasterxml.jackson.dataformat.csv.CsvSchema.ColumnType;
 import com.google.common.base.Stopwatch;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
@@ -87,7 +72,9 @@ public class CustomCSVPopulation {
 
     // Random
     public static Map<String, Supplier>      RandomGenerator     = new HashMap<>();
-
+    public static final Principal            principal           = new Principal(
+            PrincipalType.USER,
+            "tests|blahblah" );
     // Partition Key Count
     public static int                        partitionKey        = 0;
 
@@ -144,6 +131,10 @@ public class CustomCSVPopulation {
 
         public Object getRandom() throws Exception {
             return randomGenCallable.call();
+        }
+
+        public FullQualifiedName getFqn() {
+            return new FullQualifiedName( NAMESPACE, name );
         }
     }
 
@@ -265,8 +256,7 @@ public class CustomCSVPopulation {
 
     public static void createPropertyTypes() {
         for ( CustomPropertyType type : propertyTypesList ) {
-            dms.createPropertyType( new PropertyType().setNamespace( NAMESPACE ).setName( type.getName() )
-                    .setDatatype( type.getDataType() ).setMultiplicity( 0 ) );
+            dms.createPropertyType( new PropertyType(type.getFqn(),ImmutableSet.of(), type.getDataType() ) );
         }
     }
 
@@ -282,17 +272,13 @@ public class CustomCSVPopulation {
         for ( int i = 0; i < numEntityTypes; i++ ) {
             // Entity Type of 10-character names
             String entityTypeName = RandomStringUtils.randomAlphabetic( 10 );
-
-            EntityType entityType = new EntityType().setNamespace( NAMESPACE )
-                    .setName( entityTypeName )
-                    .setKey( ImmutableSet.of( new FullQualifiedName( NAMESPACE, "key" ) ) );
-            // Add property types to entity type
-
             Set<FullQualifiedName> setPropertyTypesFQN = new HashSet<FullQualifiedName>();
             for ( CustomPropertyType propertyType : propertyTypesList ) {
                 setPropertyTypesFQN.add( new FullQualifiedName( NAMESPACE, propertyType.getName() ) );
             }
-            entityType.setProperties( setPropertyTypesFQN );
+
+            EntityType entityType = new EntityType(new FullQualifiedName( NAMESPACE ,entityTypeName ),ImmutableSet.of(),ImmutableSet.of( new FullQualifiedName( NAMESPACE, "key" ) ), setPropertyTypesFQN );
+            // Add property types to entity type
 
             // Create Entity Type in database
             dms.createEntityType( entityType );
@@ -304,7 +290,7 @@ public class CustomCSVPopulation {
             for ( int j = 0; j < numEntitySets; j++ ) {
                 String entitySetName = RandomStringUtils.randomAlphabetic( 10 );
                 // Create entity set
-                dms.createEntitySet(
+                dms.createEntitySet( principal,
                         new FullQualifiedName( NAMESPACE, entityTypeName ),
                         entitySetName,
                         "Random Entity Set " + entitySetName );
@@ -447,7 +433,7 @@ public class CustomCSVPopulation {
         bwAverage.close();
     }
 
-    //@BeforeClass
+    // @BeforeClass
     public static void PopulateWithData() throws Exception {
         // Perhaps drop keyspace to make things cleaner
         loadDefaultPropertyTypes();
@@ -478,14 +464,14 @@ public class CustomCSVPopulation {
         System.out.println( "TEST STARTS" );
     }
 
-    //@Test
+    // @Test
     public void TestGetAllEntitiesOfType() throws IOException {
         // Time getAllEntitiesOfType 10 times
         timeGetAllEntitiesOfType( 10 );
         // Go to src/test/resources/{allResult.text, averageResult.txt} for test results.
     }
 
-    //@AfterClass
+    // @AfterClass
     public static void PlowingUnder() {
         ds.plowUnder();
         System.out.println( "TEST DONE" );

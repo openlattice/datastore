@@ -1,7 +1,9 @@
 package com.kryptnostic.datastore.services;
 
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.nio.ByteBuffer;
 import java.util.List;
@@ -27,8 +29,9 @@ import com.datastax.driver.core.Session;
 import com.datastax.driver.core.querybuilder.Insert;
 import com.datastax.driver.core.querybuilder.QueryBuilder;
 import com.datastax.driver.core.querybuilder.Select;
-import com.datastax.driver.core.querybuilder.Update;
+import com.datastax.driver.core.utils.Bytes;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Maps;
 import com.google.common.collect.SetMultimap;
 import com.google.common.util.concurrent.Futures;
 import com.kryptnostic.conductor.rpc.odata.Tables;
@@ -60,26 +63,29 @@ public class CassandraDataManager {
 
         this.entitySetQuery = prepareEntitySetQuery( session, dataTableDefinitions );
         this.entityIdsQuery = prepareEntityIdsQuery( keyspace, session );
-        this.writeIdLookupQuery = prepareWriteIdLookupQuery( session, dataTableDefinitions );
-        this.writeDataQuery = prepareWriteDataQuery( session, idLookupTableDefinitions );
+        this.writeIdLookupQuery = prepareWriteQuery( session, idLookupTableDefinitions );
+        this.writeDataQuery = prepareWriteQuery( session, dataTableDefinitions );
     }
 
-    public Iterable<SetMultimap<UUID, Object>> getEntitySetData(
+    public Iterable<Entity> getEntitySetData(
             UUID entitySetId,
             Set<UUID> syncIds,
             Map<UUID, CassandraPropertyReader> authorizedPropertyTypes ) {
         Set<UUID> authorizedProperties = authorizedPropertyTypes.keySet();
         Iterable<String> entityIds = getEntityIds( entitySetId, syncIds );
-        Iterable<ResultSetFuture> entityFutures = Iterables
-                .transform( entityIds, entityId -> asyncLoadEntity( entityId, syncIds, authorizedProperties ) );
-        Iterable<ResultSet> entityRows = Iterables.transform( entityFutures, ResultSetFuture::getUninterruptibly );
-        return Iterables.transform( entityRows, rs -> RowAdapters.entity( rs, authorizedPropertyTypes ) );
+        Map<String, ResultSetFuture> entityFutures = Maps.toMap( entityIds,
+                entityId -> asyncLoadEntity( entityId, syncIds, authorizedProperties ) );
+        Map<String, ResultSet> entityRows = Maps.transformValues( entityFutures, ResultSetFuture::getUninterruptibly );
+        return Iterables.transform( entityRows.entrySet(),
+                entry -> new Entity(
+                        entry.getKey(),
+                        RowAdapters.entity( entry.getValue(), authorizedPropertyTypes ) ) );
     }
 
     public Iterable<String> getEntityIds( UUID entitySetId, Set<UUID> syncIds ) {
         BoundStatement boundEntityIdsQuery = entityIdsQuery.bind()
-                .setUUID( CommonColumns.ENTITY_SET_ID.cql(), entitySetId )
-                .setSet( CommonColumns.SYNCIDS.cql(), syncIds );
+                .setSet( CommonColumns.SYNCID.cql(), syncIds )
+                .setUUID( CommonColumns.ENTITY_SET_ID.cql(), entitySetId );
         ResultSet entityIds = session.execute( boundEntityIdsQuery );
         return Iterables.filter( Iterables.transform( entityIds, RowAdapters::entityId ), StringUtils::isNotBlank );
     }
@@ -87,7 +93,7 @@ public class CassandraDataManager {
     private ResultSetFuture asyncLoadEntity( String entityId, Set<UUID> syncIds, Set<UUID> authorizedProperties ) {
         return session.executeAsync( entitySetQuery.bind()
                 .setString( CommonColumns.ENTITYID.cql(), entityId )
-                .setSet( CommonColumns.SYNCIDS.cql(), syncIds )
+                .setSet( CommonColumns.SYNCID.cql(), syncIds )
                 .setSet( CommonColumns.PROPERTY_TYPE_ID.cql(), authorizedProperties ) );
     }
 
@@ -99,7 +105,7 @@ public class CassandraDataManager {
         List<ResultSetFuture> results = entities.stream().map( entity -> {
             BatchStatement batch = new BatchStatement();
 
-            batch.add( writeIdLookupQuery.bind().setUUID( CommonColumns.SYNCIDS.cql(), syncId )
+            batch.add( writeIdLookupQuery.bind().setUUID( CommonColumns.SYNCID.cql(), syncId )
                     .setUUID( CommonColumns.ENTITY_SET_ID.cql(), entitySetId )
                     .setString( CommonColumns.ENTITYID.cql(), entity.getId() ) );
 
@@ -111,11 +117,10 @@ public class CassandraDataManager {
                             batch.add( writeDataQuery.bind()
                                     .setBytes( VALUE_COLUMN.cql(), serialize( entry.getValue() ) )
                                     .setString( CommonColumns.ENTITYID.cql(), entity.getId() )
-                                    .setUUID( CommonColumns.SYNCIDS.cql(), syncId )
+                                    .setUUID( CommonColumns.SYNCID.cql(), syncId )
                                     .setUUID( CommonColumns.PROPERTY_TYPE_ID.cql(), entry.getKey() ) );
                         } catch ( IOException e ) {
-                            // TODO Auto-generated catch block
-                            logger.debug( "Serialization error for " + entry );
+                            logger.error( "Serialization error when writing entry " + entry );
                         }
                     } );
 
@@ -135,36 +140,22 @@ public class CassandraDataManager {
         return session.prepare( entitySetQuery( ctb ) );
     }
 
-    private static PreparedStatement prepareWriteIdLookupQuery(
+    private static PreparedStatement prepareWriteQuery(
             Session session,
             CassandraTableBuilder ctb ) {
-        return session.prepare( writeIdLookupQuery( ctb ) );
+        return session.prepare( writeQuery( ctb ) );
     }
 
-    private static PreparedStatement prepareWriteDataQuery(
-            Session session,
-            CassandraTableBuilder ctb ) {
-        return session.prepare( writeDataQuery( ctb ) );
-    }
-
-    private static Insert writeIdLookupQuery( CassandraTableBuilder ctb ) {
-        return ctb.buildStoreQuery().ifNotExists();
-    }
-
-    private static Update.Where writeDataQuery( CassandraTableBuilder ctb ) {
-        // WARNING: Keep VALUE_COLUMN bindMarker at the first spot - currently createEntityData depends on that
-        return QueryBuilder.update( ctb.getKeyspace().get(), ctb.getName() )
-                .with( QueryBuilder.set( VALUE_COLUMN.cql(), QueryBuilder.bindMarker() ) )
-                .where( QueryBuilder.eq( CommonColumns.ENTITYID.cql(), QueryBuilder.bindMarker() ) )
-                .and( QueryBuilder.eq( CommonColumns.SYNCIDS.cql(), CommonColumns.SYNCIDS.bindMarker() ) )
-                .and( QueryBuilder.eq( CommonColumns.PROPERTY_TYPE_ID.cql(), QueryBuilder.bindMarker() ) );
+    private static Insert writeQuery( CassandraTableBuilder ctb ) {
+        // return ctb.buildStoreQuery().ifNotExists();
+        return ctb.buildStoreQuery();
     }
 
     private static Select.Where entitySetQuery( CassandraTableBuilder ctb ) {
         return ctb.buildLoadAllQuery().where( QueryBuilder
                 .eq( CommonColumns.ENTITYID.cql(), CommonColumns.ENTITYID.bindMarker() ) )
-                .and( QueryBuilder.in( CommonColumns.SYNCIDS.cql(), QueryBuilder.bindMarker() ) )
-                .and( QueryBuilder.in( CommonColumns.PROPERTY_TYPE_ID.cql(), QueryBuilder.bindMarker() ) );
+                .and( QueryBuilder.in( CommonColumns.SYNCID.cql(), CommonColumns.SYNCID.bindMarker() ) )
+                .and( QueryBuilder.in( CommonColumns.PROPERTY_TYPE_ID.cql(), CommonColumns.PROPERTY_TYPE_ID.bindMarker() ) );
     }
 
     private static PreparedStatement prepareEntityIdsQuery( String keyspace, Session session ) {
@@ -172,7 +163,7 @@ public class CassandraDataManager {
                 .select( CommonColumns.ENTITYID.cql() )
                 .from( keyspace, Tables.ENTITY_ID_LOOKUP.getName() )
                 .where( QueryBuilder.eq( CommonColumns.ENTITY_SET_ID.cql(), QueryBuilder.bindMarker() ) )
-                .and( QueryBuilder.in( CommonColumns.SYNCIDS.cql(), QueryBuilder.bindMarker() ) ) );
+                .and( QueryBuilder.in( CommonColumns.SYNCID.cql(), CommonColumns.SYNCID.bindMarker() ) ) );
     }
 
     private static void prepareTables(
@@ -186,29 +177,38 @@ public class CassandraDataManager {
     }
 
     private static CassandraTableBuilder defineIdLookupTables( String keyspace ) {
-        return new CassandraTableBuilder( keyspace, Tables.ENTITY_ID_LOOKUP.name() )
+        return new CassandraTableBuilder( keyspace, Tables.ENTITY_ID_LOOKUP.getName() )
                 .ifNotExists()
-                .partitionKey( CommonColumns.SYNCIDS, CommonColumns.ENTITY_SET_ID )
+                .partitionKey( CommonColumns.SYNCID, CommonColumns.ENTITY_SET_ID )
                 .clusteringColumns( CommonColumns.ENTITYID );
     }
 
     private static CassandraTableBuilder defineDataTables( String keyspace ) {
-        return new CassandraTableBuilder( keyspace, Tables.DATA.name() )
+        return new CassandraTableBuilder( keyspace, Tables.DATA.getName() )
                 .ifNotExists()
                 .partitionKey( CommonColumns.ENTITYID )
-                .clusteringColumns( CommonColumns.SYNCIDS, CommonColumns.PROPERTY_TYPE_ID, VALUE_COLUMN );
+                .clusteringColumns( CommonColumns.SYNCID, CommonColumns.PROPERTY_TYPE_ID, VALUE_COLUMN );
     }
 
     /**
      * Serialization Utils
-     * @throws IOException 
+     * 
+     * @throws IOException
      */
-    private static ByteBuffer serialize( Object obj ) throws IOException {
+    public static ByteBuffer serialize( Object obj ) throws IOException {
         try ( ByteArrayOutputStream b = new ByteArrayOutputStream() ) {
             try ( ObjectOutputStream o = new ObjectOutputStream( b ) ) {
                 o.writeObject( obj );
             }
             return ByteBuffer.wrap( b.toByteArray() );
+        }
+    }
+
+    public static Object deserialize( ByteBuffer buf ) throws IOException, ClassNotFoundException {
+        try ( ByteArrayInputStream b = new ByteArrayInputStream( Bytes.getArray( buf ) ) ) {
+            try ( ObjectInputStream i = new ObjectInputStream( b ) ) {
+                return i.readObject();
+            }
         }
     }
 }

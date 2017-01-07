@@ -5,7 +5,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 import javax.inject.Inject;
 import javax.servlet.http.HttpServletResponse;
@@ -25,17 +24,15 @@ import com.dataloom.authorization.Principals;
 import com.dataloom.authorization.SecurableObjectType;
 import com.dataloom.authorization.requests.Permission;
 import com.dataloom.data.NewDataApi;
+import com.dataloom.data.internal.Entity;
 import com.dataloom.data.requests.CreateEntityRequest;
 import com.dataloom.data.requests.GetEntitySetRequest;
-import com.datastax.driver.core.DataType;
 import com.google.common.base.Optional;
 import com.google.common.collect.SetMultimap;
 import com.google.common.collect.Sets;
-import com.kryptnostic.datastore.cassandra.CassandraEdmMapping;
 import com.kryptnostic.datastore.cassandra.CassandraPropertyReader;
 import com.kryptnostic.datastore.constants.CustomMediaType;
 import com.kryptnostic.datastore.constants.DatastoreConstants;
-import com.kryptnostic.datastore.data.controllers.DataController.FileType;
 import com.kryptnostic.datastore.exceptions.ForbiddenException;
 import com.kryptnostic.datastore.services.CassandraDataManager;
 import com.kryptnostic.datastore.services.EdmService;
@@ -47,7 +44,7 @@ public class NewDataController implements NewDataApi {
         json,
         csv;
     }
-    
+
     @Inject
     private EdmService             dms;
 
@@ -61,36 +58,50 @@ public class NewDataController implements NewDataApi {
     private EdmAuthorizationHelper authzHelper;
 
     @RequestMapping(
-            path = { "/" + CONTROLLER + "/" + ENTITY_DATA + "/" + SET_ID_PATH },
-            method = RequestMethod.GET,
-            produces = { MediaType.APPLICATION_JSON_VALUE, CustomMediaType.TEXT_CSV_VALUE } )
-    public Iterable<SetMultimap<UUID, Object>> getEntitySetData( @PathVariable( SET_ID ) UUID entitySetId, 
+        path = { "/" + CONTROLLER + "/" + ENTITY_DATA + "/" + SET_ID_PATH },
+        method = RequestMethod.GET,
+        produces = { MediaType.APPLICATION_JSON_VALUE, CustomMediaType.TEXT_CSV_VALUE } )
+    public Iterable<Entity> getEntitySetData(
+            @PathVariable( SET_ID ) UUID entitySetId,
             @RequestParam(
-                    value = DatastoreConstants.FILE_TYPE,
-                    required = false ) FileType fileType,
-                HttpServletResponse response ) {
+                value = DatastoreConstants.FILE_TYPE,
+                required = false ) FileType fileType,
+            HttpServletResponse response ) {
         setContentDisposition( response, entitySetId.toString(), fileType );
         setDownloadContentType( response, fileType );
+        return getEntitySetData( entitySetId );
+    }
+
+    @Override
+    public Iterable<Entity> getEntitySetData( UUID entitySetId ) {
         return getEntitySetData( entitySetId, Optional.absent(), Optional.absent() );
     }
 
     @RequestMapping(
-            path = { "/" + CONTROLLER + "/" + ENTITY_DATA + "/" + SET_ID_PATH + "/" + GET_DATA_PATH },
-            method = RequestMethod.POST,
-            consumes = MediaType.APPLICATION_JSON_VALUE,
-            produces = { MediaType.APPLICATION_JSON_VALUE, CustomMediaType.TEXT_CSV_VALUE } )
-    public Iterable<SetMultimap<UUID, Object>> getEntitySetData( @PathVariable( SET_ID ) UUID entitySetId, 
+        path = { "/" + CONTROLLER + "/" + ENTITY_DATA + "/" + SET_ID_PATH + "/" + GET_DATA_PATH },
+        method = RequestMethod.POST,
+        consumes = MediaType.APPLICATION_JSON_VALUE,
+        produces = { MediaType.APPLICATION_JSON_VALUE, CustomMediaType.TEXT_CSV_VALUE } )
+    public Iterable<Entity> getEntitySetData(
+            @PathVariable( SET_ID ) UUID entitySetId,
             @RequestBody GetEntitySetRequest req,
             @RequestParam(
-                    value = DatastoreConstants.FILE_TYPE,
-                    required = false ) FileType fileType,
-                HttpServletResponse response ) {
+                value = DatastoreConstants.FILE_TYPE,
+                required = false ) FileType fileType,
+            HttpServletResponse response ) {
         setContentDisposition( response, entitySetId.toString(), fileType );
         setDownloadContentType( response, fileType );
+        return getEntitySetData( entitySetId, req );
+    }
+
+    @Override
+    public Iterable<Entity> getEntitySetData(
+            UUID entitySetId,
+            GetEntitySetRequest req ) {
         return getEntitySetData( entitySetId, req.getSyncIds(), req.getSelectedProperties() );
     }
 
-    private Iterable<SetMultimap<UUID, Object>> getEntitySetData(
+    private Iterable<Entity> getEntitySetData(
             UUID entitySetId,
             Optional<Set<UUID>> syncIds,
             Optional<Set<UUID>> selectedProperties ) {
@@ -100,17 +111,22 @@ public class NewDataController implements NewDataApi {
                 EnumSet.of( Permission.READ ) ) ) {
             Set<UUID> ids = syncIds.or( getLatestSyncIds() );
             Set<UUID> authorizedProperties;
-            if( selectedProperties.isPresent() ){
-                if( !authzHelper.getAllPropertiesOnEntitySet( entitySetId ).containsAll( selectedProperties.get() ) ){
-                    throw new IllegalArgumentException("Not all selected properties are property types of the entity set.");
+            if ( selectedProperties.isPresent() ) {
+                if ( !authzHelper.getAllPropertiesOnEntitySet( entitySetId ).containsAll( selectedProperties.get() ) ) {
+                    throw new IllegalArgumentException(
+                            "Not all selected properties are property types of the entity set." );
                 }
-                authorizedProperties = Sets.intersection( selectedProperties.get(), authzHelper.getAuthorizedPropertiesOnEntitySet( entitySetId, EnumSet.of( Permission.READ ) ) );
+                authorizedProperties = Sets.intersection( selectedProperties.get(),
+                        authzHelper.getAuthorizedPropertiesOnEntitySet( entitySetId, EnumSet.of( Permission.READ ) ) );
             } else {
-                authorizedProperties = authzHelper.getAuthorizedPropertiesOnEntitySet( entitySetId, EnumSet.of( Permission.READ ) );
+                authorizedProperties = authzHelper.getAuthorizedPropertiesOnEntitySet( entitySetId,
+                        EnumSet.of( Permission.READ ) );
             }
 
-            // TODO EdmService should expose Map<UUID, CassandraPropertyReader> as well, which is updated whenever property type is successfully created.
-            Map<UUID, CassandraPropertyReader> authorizedPropertyTypes = dms.getPropertyReaders().getAll( authorizedProperties );
+            // TODO EdmService should expose Map<UUID, CassandraPropertyReader> as well, which is updated whenever
+            // property type is successfully created.
+            Map<UUID, CassandraPropertyReader> authorizedPropertyTypes = dms.getPropertyReaders()
+                    .getAll( authorizedProperties );
             return cdm.getEntitySetData( entitySetId, ids, authorizedPropertyTypes );
 
         } else {
@@ -119,19 +135,21 @@ public class NewDataController implements NewDataApi {
     }
 
     @RequestMapping(
-            path = { "/" + CONTROLLER + "/" + ENTITY_DATA },
-            method = RequestMethod.POST,
-            consumes = MediaType.APPLICATION_JSON_VALUE )
+        path = { "/" + CONTROLLER + "/" + ENTITY_DATA },
+        method = RequestMethod.POST,
+        consumes = MediaType.APPLICATION_JSON_VALUE )
     public Void createEntityData( @RequestBody CreateEntityRequest req ) {
-        List<AclKey> sop = EdmAuthorizationHelper.getSecurableObjectPath( SecurableObjectType.EntitySet, req.getEntitySetId() );
+        List<AclKey> sop = EdmAuthorizationHelper.getSecurableObjectPath( SecurableObjectType.EntitySet,
+                req.getEntitySetId() );
         if ( authz.checkIfHasPermissions( sop,
                 Principals.getCurrentPrincipals(),
                 EnumSet.of( Permission.WRITE ) ) ) {
-            Set<UUID> authorizedProperties = authzHelper.getAuthorizedPropertiesOnEntitySet( req.getEntitySetId(), EnumSet.of( Permission.WRITE ) );
-            
+            Set<UUID> authorizedProperties = authzHelper.getAuthorizedPropertiesOnEntitySet( req.getEntitySetId(),
+                    EnumSet.of( Permission.WRITE ) );
+
             cdm.createEntityData( req, authorizedProperties );
         } else {
-            throw new ForbiddenException( "Insufficient permissions to write to the entity set or it doesn't exist." );            
+            throw new ForbiddenException( "Insufficient permissions to write to the entity set or it doesn't exist." );
         }
         return null;
     }
@@ -142,9 +160,9 @@ public class NewDataController implements NewDataApi {
     }
 
     /**
-     * Methods for setting http response header 
+     * Methods for setting http response header
      */
-    
+
     private static void setDownloadContentType( HttpServletResponse response, FileType fileType ) {
         if ( fileType == FileType.csv ) {
             response.setContentType( CustomMediaType.TEXT_CSV_VALUE );

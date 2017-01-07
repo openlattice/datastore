@@ -17,6 +17,7 @@ import com.dataloom.edm.schemas.manager.HazelcastSchemaManager;
 import com.datastax.driver.core.Session;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.hazelcast.core.HazelcastInstance;
+import com.kryptnostic.datastore.services.CassandraDataManager;
 import com.kryptnostic.datastore.services.CassandraEntitySetManager;
 import com.kryptnostic.datastore.services.DataService;
 import com.kryptnostic.datastore.services.DatasourceManager;
@@ -77,6 +78,11 @@ public class DatastoreServicesPod {
     @Bean
     public CassandraTypeManager entityTypeManager() {
         return new CassandraTypeManager( DatastoreConstants.KEYSPACE, session );
+    }
+    
+    @Bean
+    public CassandraDataManager cassandraDataManager() {
+        return new CassandraDataManager( DatastoreConstants.KEYSPACE, session );
     }
 
     @Bean

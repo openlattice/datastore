@@ -44,6 +44,8 @@ import com.kryptnostic.datastore.exceptions.BadRequestException;
 import com.kryptnostic.datastore.exceptions.ResourceNotFoundException;
 import com.kryptnostic.datastore.services.EdmManager;
 
+import retrofit2.http.GET;
+
 @RestController
 public class EdmController implements EdmApi {
 
@@ -274,25 +276,32 @@ public class EdmController implements EdmApi {
             @PathVariable( NAMESPACE ) String namespace,
             @PathVariable( NAME ) String name,
             @RequestBody EdmRequest request ) {
-        Schema schema = request.getSchema();
-        Set<UUID> propertyTypes = request.getFqns();
-        Set<UUID> entityTypes = modelService.getAclKeys( types ).stream().filter( aclKey -> aclKey != null )
-                .map( AclKey::getId ).collect( Collectors.toSet() );
+        final Set<UUID> propertyTypes = request.getPropertyTypes();
+        final Set<UUID> entityTypes = request.getEntityTypes();
+              final FullQualifiedName schemaName = new FullQualifiedName( namespace, name );  
         switch ( request.getAction() ) {
             case ADD:
-                schemaManager.addEntityTypesToSchema( uuids, new FullQualifiedName( namespace, name ) );
+                schemaManager.addEntityTypesToSchema( entityTypes,  schemaName);
+                schemaManager.removePropertyTypesFromSchema( propertyTypes, schemaName );
                 break;
             case REMOVE:
-                schemaManager.removeEntityTypesFromSchema( uuids, new FullQualifiedName( namespace, name ) );
+                schemaManager.removeEntityTypesFromSchema( entityTypes, schemaName );
+                schemaManager.removePropertyTypesFromSchema( propertyTypes, schemaName );
                 break;
             case REPLACE:
-                Schema schema = schemaManager.getSchema( namespace, name );
-                Set<FullQualifiedName> existing = ImmutableSet
-                        .copyOf( Sets.union( schema.getEntityTypes(), schema.getPropertyTypes() ) );
-                Set<FullQualifiedName> typesToAdd = Sets.difference( types, existing );
-                Set<FullQualifiedName> typesToRemove = Sets.difference( existing, types );
-                schemaManager.removeEntityTypesFromSchema( entityTypeUuids, schemaName );
-                schemaManager.deleteSchema( schemaNames );
+                final Set<UUID> existingPropertyTypes = schemaManager.getAllPropertyTypesInSchema( schemaName );
+                final Set<UUID> existingEntityTypes = schemaManager.getAllEntityTypesInSchema( schemaName );
+                
+                final Set<UUID> propertyTypesToAdd = Sets.difference( propertyTypes, existingPropertyTypes );
+                final Set<UUID> propertyTypesToRemove = Sets.difference( existingPropertyTypes, propertyTypes);
+                schemaManager.removePropertyTypesFromSchema( propertyTypesToRemove, schemaName );
+                schemaManager.addPropertyTypesToSchema( propertyTypesToAdd, schemaName );
+                
+                
+                final Set<UUID> entityTypesToAdd = Sets.difference( entityTypes, existingEntityTypes );
+                final Set<UUID> entityTypesToRemove = Sets.difference( existingEntityTypes, entityTypes);
+                schemaManager.removeEntityTypesFromSchema( entityTypesToAdd, schemaName );
+                schemaManager.addEntityTypesToSchema( entityTypesToRemove, schemaName );
                 break;
         }
         return null;
@@ -304,9 +313,9 @@ public class EdmController implements EdmApi {
         method = RequestMethod.POST,
         consumes = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
-    public Void createEntityType( @RequestBody EntityType objectType ) {
-        modelService.createEntityType( objectType );
-        return null;
+    public UUID createEntityType( @RequestBody EntityType entityType ) {
+        modelService.createEntityType( entityType );
+        return entityType.getId();
     }
 
     @Override
@@ -324,17 +333,26 @@ public class EdmController implements EdmApi {
 
     @Override
     @RequestMapping(
-        path = "/" + ENTITY_TYPE_BASE_PATH + "/" + NAMESPACE_PATH + "/" + NAME_PATH,
+        path = "/" + ENTITY_TYPE_BASE_PATH + "/" + ID_PATH,
         method = RequestMethod.DELETE )
     @ResponseStatus( HttpStatus.OK )
-    public Void deleteEntityType( @PathVariable( NAMESPACE ) String namespace, @PathVariable( NAME ) String name ) {
+    public Void deleteEntityType( @PathVariable( ID ) UUID entityTypeId ) {
         try {
-            FullQualifiedName entityTypeFqn = new FullQualifiedName( namespace, name );
-            modelService.deleteEntityType( entityTypeFqn );
+            modelService.deleteEntityType( entityTypeId );
         } catch ( IllegalStateException e ) {
             throw new HttpServerErrorException( HttpStatus.INTERNAL_SERVER_ERROR, e.getMessage() );
         }
         return null;
+    }
+
+    @Override
+    @RequestMapping(
+        path = "/" + PROPERTY_TYPE_BASE_PATH,
+        method = RequestMethod.GET,
+        produces = MediaType.APPLICATION_JSON_VALUE )
+    @ResponseStatus( HttpStatus.OK )
+    public Iterable<PropertyType> getPropertyTypes() {
+        return modelService.getPropertyTypes();
     }
 
     @Override
@@ -345,7 +363,7 @@ public class EdmController implements EdmApi {
     @ResponseStatus( HttpStatus.OK )
     public UUID createPropertyType( @RequestBody PropertyType propertyType ) {
         try {
-            modelService.createPropertyType(` propertyType );
+            modelService.createPropertyTypeIfNotExists( propertyType );
             return propertyType.getId();
         } catch ( IllegalStateException e ) {
             throw new HttpServerErrorException( HttpStatus.INTERNAL_SERVER_ERROR, e.getMessage() );
@@ -370,15 +388,13 @@ public class EdmController implements EdmApi {
 
     @Override
     @RequestMapping(
-        path = "/" + PROPERTY_TYPE_BASE_PATH + "/" + NAMESPACE_PATH + "/" + NAME_PATH,
+        path = "/" + PROPERTY_TYPE_BASE_PATH + "/" + ID_PATH,
         method = RequestMethod.GET,
         produces = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
-    public PropertyType getPropertyType(
-            @PathVariable( NAMESPACE ) String namespace,
-            @PathVariable( NAME ) String name ) {
+    public PropertyType getPropertyType( @PathVariable( ID ) UUID propertyTypeId ) {
         try {
-            return modelService.getPropertyType( new FullQualifiedName( namespace, name ) );
+            return modelService.getPropertyType( propertyTypeId );
         } catch ( NullPointerException e ) {
             throw new ResourceNotFoundException( "Property type not found." );
         }
@@ -386,7 +402,7 @@ public class EdmController implements EdmApi {
 
     @Override
     @RequestMapping(
-        path = "/" + PROPERTY_TYPE_BASE_PATH + "/" + NAMESPACE_PATH,
+        path = "/" + NAMESPACE + "/" + NAMESPACE_PATH + "/" + PROPERTY_TYPE_BASE_PATH,
         method = RequestMethod.GET,
         produces = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
@@ -468,16 +484,6 @@ public class EdmController implements EdmApi {
             throw new HttpServerErrorException( HttpStatus.INTERNAL_SERVER_ERROR, e.getMessage() );
         }
         return null;
-    }
-
-    @Override
-    @RequestMapping(
-        path = "/" + PROPERTY_TYPE_BASE_PATH,
-        method = RequestMethod.GET,
-        produces = MediaType.APPLICATION_JSON_VALUE )
-    @ResponseStatus( HttpStatus.OK )
-    public Iterable<PropertyType> getPropertyTypes() {
-        return modelService.getPropertyTypes();
     }
 
 }

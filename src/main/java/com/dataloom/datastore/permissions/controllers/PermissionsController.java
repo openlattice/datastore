@@ -74,7 +74,7 @@ public class PermissionsController implements PermissionsApi, AuthorizingCompone
             }
             eventBus.post( req );
         } else {
-            throw new ForbiddenException( "Only owner of a securable object can access other users' access rights." );
+            throw new ForbiddenException( "The specified object is inaccessible." );
         }
         return null;
     }
@@ -85,7 +85,11 @@ public class PermissionsController implements PermissionsApi, AuthorizingCompone
         method = RequestMethod.GET,
         produces = MediaType.APPLICATION_JSON_VALUE )
     public Acl getAcl( List<UUID> aclKeys ) {
-        return authorizations.getAllSecurableObjectPermissions( aclKeys );
+        if ( isAuthorized( Permission.OWNER ).test( aclKeys ) ) {
+            return authorizations.getAllSecurableObjectPermissions( aclKeys );
+        } else {
+            throw new ForbiddenException( "The specified object is inaccessible." );
+        }
     }
 
     @Override

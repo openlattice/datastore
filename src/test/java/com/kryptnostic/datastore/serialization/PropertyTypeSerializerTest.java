@@ -9,14 +9,14 @@ import com.dataloom.data.serializers.FullQualifedNameJacksonSerializer;
 import com.dataloom.edm.internal.PropertyType;
 import com.google.common.collect.ImmutableSet;
 import com.kryptnostic.rhizome.hazelcast.serializers.BaseJacksonSerializationTest;
-import com.kryptnostic.rhizome.registries.ObjectMapperRegistry;
 
 public class PropertyTypeSerializerTest extends BaseJacksonSerializationTest<PropertyType> {
-
     @BeforeClass
     public static void configureSerializer() {
-        ObjectMapperRegistry.foreach( FullQualifedNameJacksonSerializer::registerWithMapper );
-        ObjectMapperRegistry.foreach( FullQualifedNameJacksonDeserializer::registerWithMapper );
+        FullQualifedNameJacksonSerializer.registerWithMapper( mapper );
+        FullQualifedNameJacksonDeserializer.registerWithMapper( mapper );
+        FullQualifedNameJacksonSerializer.registerWithMapper( smile );
+        FullQualifedNameJacksonDeserializer.registerWithMapper( smile );
     }
 
     @Override

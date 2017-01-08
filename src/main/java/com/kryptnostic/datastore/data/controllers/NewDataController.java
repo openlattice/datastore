@@ -17,7 +17,7 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.dataloom.authorization.AclKey;
+import com.dataloom.authorization.AclKeyPathFragment;
 import com.dataloom.authorization.AuthorizationManager;
 import com.dataloom.authorization.EdmAuthorizationHelper;
 import com.dataloom.authorization.Principals;
@@ -105,7 +105,7 @@ public class NewDataController implements NewDataApi {
             UUID entitySetId,
             Optional<Set<UUID>> syncIds,
             Optional<Set<UUID>> selectedProperties ) {
-        List<AclKey> sop = EdmAuthorizationHelper.getSecurableObjectPath( SecurableObjectType.EntitySet, entitySetId );
+        List<AclKeyPathFragment> sop = EdmAuthorizationHelper.getSecurableObjectPath( SecurableObjectType.EntitySet, entitySetId );
         if ( authz.checkIfHasPermissions( sop,
                 Principals.getCurrentPrincipals(),
                 EnumSet.of( Permission.READ ) ) ) {
@@ -139,7 +139,7 @@ public class NewDataController implements NewDataApi {
         method = RequestMethod.POST,
         consumes = MediaType.APPLICATION_JSON_VALUE )
     public Void createEntityData( @RequestBody CreateEntityRequest req ) {
-        List<AclKey> sop = EdmAuthorizationHelper.getSecurableObjectPath( SecurableObjectType.EntitySet,
+        List<AclKeyPathFragment> sop = EdmAuthorizationHelper.getSecurableObjectPath( SecurableObjectType.EntitySet,
                 req.getEntitySetId() );
         if ( authz.checkIfHasPermissions( sop,
                 Principals.getCurrentPrincipals(),

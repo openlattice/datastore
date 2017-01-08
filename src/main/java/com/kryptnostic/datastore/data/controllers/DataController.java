@@ -28,7 +28,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.client.HttpServerErrorException;
 
-import com.dataloom.authorization.AclKey;
+import com.dataloom.authorization.AclKeyPathFragment;
 import com.dataloom.authorization.AuthorizationManager;
 import com.dataloom.authorization.EdmAuthorizationHelper;
 import com.dataloom.authorization.Principals;
@@ -361,7 +361,7 @@ public class DataController implements DataApi {
     @ResponseStatus( HttpStatus.OK )
     public Void createEntityData( @RequestBody CreateEntityRequest createEntityRequest ) {
         EntitySet entitySet = dms.getEntitySet( createEntityRequest.getEntitySetName() );
-        AclKey entitySetAclKey = new AclKey( SecurableObjectType.EntitySet, entitySet.getId() );
+        AclKeyPathFragment entitySetAclKey = new AclKeyPathFragment( SecurableObjectType.EntitySet, entitySet.getId() );
 
         if ( authz.checkIfHasPermissions( Arrays.asList( entitySetAclKey ),
                 Principals.getCurrentPrincipals(),

@@ -9,7 +9,7 @@ import org.apache.olingo.commons.api.edm.FullQualifiedName;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-import com.dataloom.authorization.AclKey;
+import com.dataloom.authorization.AclKeyPathFragment;
 import com.dataloom.authorization.requests.Permission;
 import com.datastax.driver.core.TypeCodec;
 import com.datastax.driver.extras.codecs.enums.EnumNameCodec;
@@ -43,7 +43,7 @@ public class DatastoreTypeCodecsPod {
     }
     
     @Bean
-    public TypeCodec<AclKey> aclKeyCodec() {
+    public TypeCodec<AclKeyPathFragment> aclKeyCodec() {
         return new AclKeyTypeCodec();
     }
     

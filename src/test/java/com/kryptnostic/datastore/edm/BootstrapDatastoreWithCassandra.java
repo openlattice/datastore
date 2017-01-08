@@ -7,6 +7,7 @@ import org.apache.olingo.commons.api.edm.EdmPrimitiveTypeKind;
 import org.apache.olingo.commons.api.edm.FullQualifiedName;
 import org.junit.Assert;
 
+import com.dataloom.authorization.AuthorizationManager;
 import com.dataloom.authorization.requests.Principal;
 import com.dataloom.authorization.requests.PrincipalType;
 import com.dataloom.edm.internal.EntityType;
@@ -23,9 +24,8 @@ import com.kryptnostic.rhizome.pods.SparkPod;
 public class BootstrapDatastoreWithCassandra {
     public static final String                  NAMESPACE                = "testcsv";
     protected static EdmManager                 dms;
-    protected static PermissionsService         ps;
+    protected static AuthorizationManager       am;
     protected static DataService                dataService;
-    protected static ActionAuthorizationService authzService;
 
     protected static final Set<Class<?>>        PODS                     = Sets.newHashSet( SparkPod.class );
     protected static final DatastoreServices    ds                       = new DatastoreServices();
@@ -62,9 +62,8 @@ public class BootstrapDatastoreWithCassandra {
             ds.intercrop( PODS.toArray( new Class<?>[ 0 ] ) );
             ds.sprout( PROFILES.toArray( new String[ 0 ] ) );
             dms = ds.getContext().getBean( EdmManager.class );
-            ps = ds.getContext().getBean( PermissionsService.class );
+            am = ds.getContext().getBean( AuthorizationManager.class );
             dataService = ds.getContext().getBean( DataService.class );
-            authzService = ds.getContext().getBean( ActionAuthorizationService.class );
 
             setupDatamodel();
         }

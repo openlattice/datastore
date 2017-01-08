@@ -18,7 +18,7 @@ import org.springframework.web.client.HttpServerErrorException;
 
 import com.dataloom.authorization.Acl;
 import com.dataloom.authorization.AclData;
-import com.dataloom.authorization.AclKey;
+import com.dataloom.authorization.AclKeyPathFragment;
 import com.dataloom.authorization.AuthorizationManager;
 import com.dataloom.authorization.PermissionsApi;
 import com.dataloom.authorization.Principals;
@@ -43,7 +43,7 @@ public class PermissionsController implements PermissionsApi {
          */
 
         final Acl acl = req.getAcl();
-        final List<AclKey> aclKeys = acl.getAclKey();
+        final List<AclKeyPathFragment> aclKeys = acl.getAclKey();
         if ( isOwnerOrCanAlter( aclKeys ) ) {
             switch ( req.getAction() ) {
                 case ADD:
@@ -81,11 +81,11 @@ public class PermissionsController implements PermissionsApi {
         path = "/" + PERMISSIONS,
         method = RequestMethod.GET,
         produces = MediaType.APPLICATION_JSON_VALUE )
-    public Acl getAcl( List<AclKey> aclKeys ) {
+    public Acl getAcl( List<AclKeyPathFragment> aclKeys ) {
         return authorizations.getAllSecurableObjectPermissions( aclKeys );
     }
 
-    private boolean isOwnerOrCanAlter( List<AclKey> aclKeys ) {
+    private boolean isOwnerOrCanAlter( List<AclKeyPathFragment> aclKeys ) {
         Set<Principal> principals = Principals.getCurrentPrincipals();
         return authorizations.checkIfHasPermissions( aclKeys, principals, EnumSet.of( Permission.OWNER ) )
                 || authorizations.checkIfHasPermissions( aclKeys, principals, EnumSet.of( Permission.ALTER ) );

@@ -9,7 +9,6 @@ import com.kryptnostic.datastore.pods.DatastoreServletsPod;
 import com.kryptnostic.datastore.pods.DatastoreStreamSerializersPod;
 import com.kryptnostic.datastore.pods.DatastoreTypeCodecsPod;
 import com.kryptnostic.datastore.services.EdmManager;
-import com.kryptnostic.mapstores.pods.BaseSerializersPod;
 import com.kryptnostic.rhizome.configuration.websockets.BaseRhizomeServer;
 import com.kryptnostic.rhizome.core.RhizomeApplicationServer;
 import com.kryptnostic.rhizome.hazelcast.serializers.RhizomeUtils.Pods;
@@ -26,7 +25,6 @@ public class Datastore extends BaseRhizomeServer {
             DataStoreSecurityPod.class, };
     public static final Class<?>[] rhizomePods      = new Class<?>[] {
             CassandraPod.class,
-            BaseSerializersPod.class,
             RegistryBasedHazelcastInstanceConfigurationPod.class,
             Auth0Pod.class };
 

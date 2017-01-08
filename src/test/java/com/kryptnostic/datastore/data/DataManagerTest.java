@@ -4,24 +4,30 @@ import java.io.BufferedReader;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.RandomStringUtils;
+import org.apache.olingo.commons.api.edm.EdmPrimitiveTypeKind;
+import org.apache.olingo.commons.api.edm.FullQualifiedName;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
 
-import com.dataloom.data.internal.Entity;
-import com.dataloom.data.requests.CreateEntityRequest;
+import com.datastax.driver.core.ProtocolVersion;
 import com.datastax.driver.core.Row;
+import com.datastax.driver.core.TypeCodec;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Multimaps;
 import com.google.common.collect.SetMultimap;
 import com.google.common.collect.Sets;
 import com.kryptnostic.conductor.rpc.Employee;
@@ -45,28 +51,33 @@ public class DataManagerTest {
         cdm = ds.getContext().getBean( CassandraDataManager.class );
     }
 
-    @Test
+    //@Test
     public void testWriteAndRead() {
-        final UUID syncId = UUID.randomUUID();
         final UUID entitySetId = UUID.randomUUID();
+        final UUID syncId = UUID.randomUUID();
 
         Map<UUID, CassandraPropertyReader> readers = generateProperties( 5 );
         Set<UUID> properties = readers.keySet();
-        CreateEntityRequest req = generateData( syncId, entitySetId, 10, properties, 1 );
+        Map<UUID, EdmPrimitiveTypeKind> propertiesWithDataType = getDataTypeMapOfStringType( properties );
+        Map<String, SetMultimap<UUID, Object>> entities = generateData( 10, properties, 1 );
 
-        testWriteData( req, properties );
-        Set<Entity> result = testReadData( ImmutableSet.of( syncId ), entitySetId, readers );
+        testWriteData( entitySetId, syncId, entities, propertiesWithDataType );
+        Set<SetMultimap<FullQualifiedName, Object>> result = testReadData( ImmutableSet.of( syncId ),
+                entitySetId,
+                readers );
 
-        Assert.assertEquals( req.getEntities(), result );
+        Set<SetMultimap<FullQualifiedName, Object>> expected = convertGeneratedDataFromUuidToFqn( entities );
+        Assert.assertEquals( expected, result );
     }
 
-    @Ignore
+    @Test
     public void populateEmployeeCsv() throws FileNotFoundException, IOException {
         final UUID syncId = UUID.randomUUID();
         final UUID entitySetId = UUID.randomUUID();
         // Four property types: Employee Name, Title, Department, Salary
         Map<String, UUID> idLookup = getUUIDsForEmployeeCsvProperties();
         Map<UUID, CassandraPropertyReader> readers = getReadersForEmployeeCsv( idLookup );
+        Map<UUID, EdmPrimitiveTypeKind> propertiesWithDataType = getDataTypeEmployeeCsv( idLookup );
         Set<UUID> properties = readers.keySet();
 
         try ( FileReader fr = new FileReader( "src/test/resources/employees.csv" );
@@ -74,8 +85,8 @@ public class DataManagerTest {
 
             String line;
             int count = 0;
-            int paging_constant = 100;
-            Set<Entity> entities = new HashSet<>();
+            int paging_constant = 1000;
+            Map<String, SetMultimap<UUID, Object>> entities = new HashMap<>();
 
             while ( ( line = br.readLine() ) != null ) {
                 Employee employee = Employee.EmployeeCsvReader.getEmployee( line );
@@ -89,15 +100,11 @@ public class DataManagerTest {
                 entity.put( idLookup.get( "salary" ), employee.getSalary() );
 
                 if ( count++ < paging_constant ) {
-                    entities.add( new Entity( RandomStringUtils.randomAlphanumeric( 10 ), entity ) );
+                    entities.put( RandomStringUtils.randomAlphanumeric( 10 ), entity );
                 } else {
-                    CreateEntityRequest req = new CreateEntityRequest(
-                            syncId,
-                            entitySetId,
-                            entities );
-                    cdm.createEntityData( req, properties );
+                    cdm.createEntityData( entitySetId, syncId, entities, propertiesWithDataType );
 
-                    entities = new HashSet<>();
+                    entities = new HashMap<>();
                     count = 0;
                 }
             }
@@ -110,13 +117,20 @@ public class DataManagerTest {
         ds.getContext().getBean( "dropCassandraTestKeyspace", Runnable.class ).run();
     }
 
-    public void testWriteData( CreateEntityRequest req, Set<UUID> properties ) {
+    public void testWriteData(
+            UUID entitySetId,
+            UUID syncId,
+            Map<String, SetMultimap<UUID, Object>> entities,
+            Map<UUID, EdmPrimitiveTypeKind> propertiesWithDataType ) {
         System.out.println( "Writing Data..." );
-        cdm.createEntityData( req, properties );
+        cdm.createEntityData( entitySetId, syncId, entities, propertiesWithDataType );
         System.out.println( "Writing done." );
     }
 
-    public Set<Entity> testReadData( Set<UUID> syncIds, UUID entitySetId, Map<UUID, CassandraPropertyReader> readers ) {
+    public Set<SetMultimap<FullQualifiedName, Object>> testReadData(
+            Set<UUID> syncIds,
+            UUID entitySetId,
+            Map<UUID, CassandraPropertyReader> readers ) {
         return Sets.newHashSet( cdm.getEntitySetData( entitySetId, syncIds, readers ) );
     }
 
@@ -131,15 +145,13 @@ public class DataManagerTest {
         return readers;
     }
 
-    private CreateEntityRequest generateData(
-            UUID syncId,
-            UUID entitySetId,
+    private Map<String, SetMultimap<UUID, Object>> generateData(
             int numOfEntities,
             Set<UUID> properties,
             int multiplicityOfProperties ) {
         System.out.println( "Generating data..." );
 
-        final Set<Entity> entities = new HashSet<>();
+        final Map<String, SetMultimap<UUID, Object>> entities = new HashMap<>();
         for ( int i = 0; i < numOfEntities; i++ ) {
             String id = RandomStringUtils.randomAlphanumeric( 10 );
             SetMultimap<UUID, Object> propertyValues = HashMultimap.create();
@@ -152,12 +164,22 @@ public class DataManagerTest {
                     System.out.println( "Property: " + property + ", value generated: " + value );
                 }
             }
-            entities.add( new Entity( id, propertyValues ) );
+            entities.put( id, propertyValues );
         }
-        CreateEntityRequest req = new CreateEntityRequest( syncId, entitySetId, entities );
         System.out.println( "Data generated." );
+        return entities;
+    }
 
-        return req;
+    private Set<SetMultimap<FullQualifiedName, Object>> convertGeneratedDataFromUuidToFqn(
+            Map<String, SetMultimap<UUID, Object>> map ) {
+        Set<SetMultimap<FullQualifiedName, Object>> result = new HashSet<>();
+        for ( SetMultimap<UUID, Object> v : map.values() ) {
+            Map<FullQualifiedName, Collection<Object>> tmp = new HashMap<>();
+            SetMultimap<FullQualifiedName, Object> ans = Multimaps.newSetMultimap( tmp, HashSet::new );
+            v.asMap().entrySet().stream().forEach( e -> tmp.put( getFqnFromUuid( e.getKey() ), e.getValue() ) );
+            result.add( ans );
+        }
+        return result;
     }
 
     /**
@@ -165,29 +187,23 @@ public class DataManagerTest {
      */
 
     private CassandraPropertyReader getStringReader( UUID propertyId ) {
-        return new CassandraPropertyReader( propertyId, DataManagerTest::stdStringReader );
+        return new CassandraPropertyReader( getFqnFromUuid( propertyId ), DataManagerTest::stdStringReader );
+    }
+
+    private FullQualifiedName getFqnFromUuid( UUID propertyId ) {
+        return new FullQualifiedName( "test", propertyId.toString() );
     }
 
     private static String stdStringReader( Row row ) {
-        try {
-            return (String) CassandraDataManager.deserialize( row.getBytes( "value" ) );
-        } catch ( ClassNotFoundException | IOException e ) {
-            System.err.println( "Error in deserializing Row " + row );
-        }
-        return null;
+        return TypeCodec.varchar().deserialize( row.getBytes( "value" ), ProtocolVersion.NEWEST_SUPPORTED );
     }
 
     private CassandraPropertyReader getLongReader( UUID propertyId ) {
-        return new CassandraPropertyReader( propertyId, DataManagerTest::stdLongReader );
+        return new CassandraPropertyReader( getFqnFromUuid( propertyId ), DataManagerTest::stdLongReader );
     }
 
     private static Long stdLongReader( Row row ) {
-        try {
-            return (Long) CassandraDataManager.deserialize( row.getBytes( "value" ) );
-        } catch ( ClassNotFoundException | IOException e ) {
-            System.err.println( "Error in deserializing Row " + row );
-        }
-        return null;
+        return TypeCodec.counter().deserialize( row.getBytes( "value" ), ProtocolVersion.NEWEST_SUPPORTED );
     }
 
     private Map<UUID, CassandraPropertyReader> getReadersForEmployeeCsv( Map<String, UUID> idLookup ) {
@@ -199,6 +215,15 @@ public class DataManagerTest {
         return readers;
     }
 
+    private Map<UUID, EdmPrimitiveTypeKind> getDataTypeEmployeeCsv( Map<String, UUID> idLookup ) {
+        Map<UUID, EdmPrimitiveTypeKind> propertiesWithDataType = new HashMap<>();
+        propertiesWithDataType.put( idLookup.get( "name" ), EdmPrimitiveTypeKind.String );
+        propertiesWithDataType.put( idLookup.get( "title" ), EdmPrimitiveTypeKind.String );
+        propertiesWithDataType.put( idLookup.get( "dept" ), EdmPrimitiveTypeKind.String );
+        propertiesWithDataType.put( idLookup.get( "salary" ), EdmPrimitiveTypeKind.Int64 );
+        return propertiesWithDataType;
+    }
+
     private Map<String, UUID> getUUIDsForEmployeeCsvProperties() {
         Map<String, UUID> idLookup = new HashMap<>();
         idLookup.put( "name", UUID.randomUUID() );
@@ -208,4 +233,7 @@ public class DataManagerTest {
         return idLookup;
     }
 
+    private Map<UUID, EdmPrimitiveTypeKind> getDataTypeMapOfStringType( Set<UUID> properties ) {
+        return properties.stream().collect( Collectors.toMap( id -> id, id -> EdmPrimitiveTypeKind.String ) );
+    }
 }

@@ -9,6 +9,7 @@ import java.util.UUID;
 import javax.inject.Inject;
 import javax.servlet.http.HttpServletResponse;
 
+import org.apache.olingo.commons.api.edm.FullQualifiedName;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -17,15 +18,13 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.dataloom.authorization.AclKey;
+import com.dataloom.authorization.AclKeyPathFragment;
 import com.dataloom.authorization.AuthorizationManager;
 import com.dataloom.authorization.EdmAuthorizationHelper;
 import com.dataloom.authorization.Principals;
 import com.dataloom.authorization.SecurableObjectType;
 import com.dataloom.authorization.requests.Permission;
 import com.dataloom.data.NewDataApi;
-import com.dataloom.data.internal.Entity;
-import com.dataloom.data.requests.CreateEntityRequest;
 import com.dataloom.data.requests.GetEntitySetRequest;
 import com.google.common.base.Optional;
 import com.google.common.collect.SetMultimap;
@@ -61,7 +60,7 @@ public class NewDataController implements NewDataApi {
         path = { "/" + CONTROLLER + "/" + ENTITY_DATA + "/" + SET_ID_PATH },
         method = RequestMethod.GET,
         produces = { MediaType.APPLICATION_JSON_VALUE, CustomMediaType.TEXT_CSV_VALUE } )
-    public Iterable<Entity> getEntitySetData(
+    public Iterable<SetMultimap<FullQualifiedName, Object>> getEntitySetData(
             @PathVariable( SET_ID ) UUID entitySetId,
             @RequestParam(
                 value = DatastoreConstants.FILE_TYPE,
@@ -73,7 +72,7 @@ public class NewDataController implements NewDataApi {
     }
 
     @Override
-    public Iterable<Entity> getEntitySetData( UUID entitySetId ) {
+    public Iterable<SetMultimap<FullQualifiedName, Object>> getEntitySetData( UUID entitySetId ) {
         return getEntitySetData( entitySetId, Optional.absent(), Optional.absent() );
     }
 
@@ -82,7 +81,7 @@ public class NewDataController implements NewDataApi {
         method = RequestMethod.POST,
         consumes = MediaType.APPLICATION_JSON_VALUE,
         produces = { MediaType.APPLICATION_JSON_VALUE, CustomMediaType.TEXT_CSV_VALUE } )
-    public Iterable<Entity> getEntitySetData(
+    public Iterable<SetMultimap<FullQualifiedName, Object>> getEntitySetData(
             @PathVariable( SET_ID ) UUID entitySetId,
             @RequestBody GetEntitySetRequest req,
             @RequestParam(
@@ -95,17 +94,17 @@ public class NewDataController implements NewDataApi {
     }
 
     @Override
-    public Iterable<Entity> getEntitySetData(
+    public Iterable<SetMultimap<FullQualifiedName, Object>> getEntitySetData(
             UUID entitySetId,
             GetEntitySetRequest req ) {
         return getEntitySetData( entitySetId, req.getSyncIds(), req.getSelectedProperties() );
     }
 
-    private Iterable<Entity> getEntitySetData(
+    private Iterable<SetMultimap<FullQualifiedName, Object>> getEntitySetData(
             UUID entitySetId,
             Optional<Set<UUID>> syncIds,
             Optional<Set<UUID>> selectedProperties ) {
-        List<AclKey> sop = EdmAuthorizationHelper.getSecurableObjectPath( SecurableObjectType.EntitySet, entitySetId );
+        List<AclKeyPathFragment> sop = EdmAuthorizationHelper.getSecurableObjectPath( SecurableObjectType.EntitySet, entitySetId );
         if ( authz.checkIfHasPermissions( sop,
                 Principals.getCurrentPrincipals(),
                 EnumSet.of( Permission.READ ) ) ) {
@@ -138,16 +137,16 @@ public class NewDataController implements NewDataApi {
         path = { "/" + CONTROLLER + "/" + ENTITY_DATA },
         method = RequestMethod.POST,
         consumes = MediaType.APPLICATION_JSON_VALUE )
-    public Void createEntityData( @RequestBody CreateEntityRequest req ) {
-        List<AclKey> sop = EdmAuthorizationHelper.getSecurableObjectPath( SecurableObjectType.EntitySet,
-                req.getEntitySetId() );
+    public Void createEntityData( @PathVariable( SET_ID ) UUID entitySetId, @PathVariable( SYNC_ID ) UUID syncId, @RequestBody Map<String, SetMultimap<UUID, Object>> entities ) {
+        List<AclKeyPathFragment> sop = EdmAuthorizationHelper.getSecurableObjectPath( SecurableObjectType.EntitySet,
+                entitySetId );
         if ( authz.checkIfHasPermissions( sop,
                 Principals.getCurrentPrincipals(),
                 EnumSet.of( Permission.WRITE ) ) ) {
-            Set<UUID> authorizedProperties = authzHelper.getAuthorizedPropertiesOnEntitySet( req.getEntitySetId(),
+            Set<UUID> authorizedProperties = authzHelper.getAuthorizedPropertiesOnEntitySet( entitySetId,
                     EnumSet.of( Permission.WRITE ) );
 
-            cdm.createEntityData( req, authorizedProperties );
+            cdm.createEntityData( entitySetId, syncId, entities, authorizedProperties );
         } else {
             throw new ForbiddenException( "Insufficient permissions to write to the entity set or it doesn't exist." );
         }

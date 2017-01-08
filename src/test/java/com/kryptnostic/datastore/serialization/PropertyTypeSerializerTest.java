@@ -7,8 +7,8 @@ import org.junit.BeforeClass;
 import com.dataloom.data.serializers.FullQualifedNameJacksonDeserializer;
 import com.dataloom.data.serializers.FullQualifedNameJacksonSerializer;
 import com.dataloom.edm.internal.PropertyType;
+import com.dataloom.serializer.BaseJacksonSerializationTest;
 import com.google.common.collect.ImmutableSet;
-import com.kryptnostic.rhizome.hazelcast.serializers.BaseJacksonSerializationTest;
 
 public class PropertyTypeSerializerTest extends BaseJacksonSerializationTest<PropertyType> {
     @BeforeClass

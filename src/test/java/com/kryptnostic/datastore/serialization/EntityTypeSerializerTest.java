@@ -1,9 +1,7 @@
 package com.kryptnostic.datastore.serialization;
 
 import org.apache.olingo.commons.api.edm.FullQualifiedName;
-import org.junit.Assert;
 import org.junit.BeforeClass;
-import org.junit.Test;
 
 import com.dataloom.data.serializers.FullQualifedNameJacksonDeserializer;
 import com.dataloom.data.serializers.FullQualifedNameJacksonSerializer;
@@ -22,22 +20,15 @@ public class EntityTypeSerializerTest extends BaseJacksonSerializationTest<Entit
 
     @Override
     protected EntityType getSampleData() {
-        return new EntityType().setNamespace( "test" ).setName( "andino" )
-                .setProperties( ImmutableSet.of( new FullQualifiedName( "test", "pan flute" ) ) )
-                .setKey( ImmutableSet.of( new FullQualifiedName( "test", "id" ) ) );
+        return new EntityType(
+                new FullQualifiedName( "test", "andino" ),
+                ImmutableSet.of( new FullQualifiedName( "test", "huepa" ) ),
+                ImmutableSet.of( new FullQualifiedName( "test", "id" ) ),
+                ImmutableSet.of( new FullQualifiedName( "test", "pan flute" ) ) );
     }
 
     @Override
     protected Class<EntityType> getClazz() {
         return EntityType.class;
-    }
-
-    @Test
-    public void testSettingsAreIgnored() throws Exception {
-        EntityType data = getSampleData();
-        SerializationResult result = serialize( data.setTypename( "blah" ) );
-        EntityType deserializedData = deserializeJsonBytes( result );
-        Assert.assertNotNull( data.getTypename() );
-        Assert.assertNull( deserializedData.getTypename() );
     }
 }

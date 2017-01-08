@@ -18,6 +18,7 @@ import org.slf4j.LoggerFactory;
 import com.dataloom.edm.internal.EntitySet;
 import com.dataloom.edm.internal.EntityType;
 import com.dataloom.edm.internal.Schema;
+import com.dataloom.edm.schemas.manager.HazelcastSchemaManager;
 import com.google.common.base.Predicates;
 import com.google.common.collect.Iterables;
 import com.kryptnostic.datastore.odata.Transformers.EntityTypeTransformer;
@@ -25,19 +26,27 @@ import com.kryptnostic.datastore.services.EdmManager;
 
 import jersey.repackaged.com.google.common.collect.Lists;
 
-public class KryptnosticEdmProvider extends CsdlAbstractEdmProvider {
-    private static final Logger         logger         = LoggerFactory
-            .getLogger( KryptnosticEdmProvider.class );
-    public static final String          NAMESPACE      = "OData.Demo";
-    public final String                 CONTAINER_NAME = "Container";
-    public final FullQualifiedName      CONTAINER      = new FullQualifiedName(
+/**
+ * Loom Entity Data Model provider.
+ * 
+ * @author Matthew Tamayo-Rios &lt;matthew@kryptnostic.com&gt;
+ *
+ */
+public class LoomEdmProvider extends CsdlAbstractEdmProvider {
+    private static final Logger          logger         = LoggerFactory
+            .getLogger( LoomEdmProvider.class );
+    public static final String           NAMESPACE      = "OData.Demo";
+    public final String                  CONTAINER_NAME = "Container";
+    public final FullQualifiedName       CONTAINER      = new FullQualifiedName(
             NAMESPACE,
             CONTAINER_NAME );
-    private final EdmManager            dms;
-    private final EntityTypeTransformer ett;
+    private final EdmManager             dms;
+    private final HazelcastSchemaManager schemaManager;
+    private final EntityTypeTransformer  ett;
 
-    public KryptnosticEdmProvider( EdmManager dms ) {
+    public LoomEdmProvider( EdmManager dms, HazelcastSchemaManager schemaManager ) {
         this.dms = dms;
+        this.schemaManager = schemaManager;
         this.ett = new EntityTypeTransformer( dms );
     }
 
@@ -68,14 +77,15 @@ public class KryptnosticEdmProvider extends CsdlAbstractEdmProvider {
 
     public List<CsdlSchema> getSchemas() throws ODataException {
         List<CsdlSchema> schemas = new ArrayList<CsdlSchema>();
-        for ( Schema schemaMetadata : dms.getSchemas() ) {
+
+        for ( Schema schemaMetadata : schemaManager.getAllSchemas() ) {
             CsdlSchema schema = new CsdlSchema();
-            String namespace = schemaMetadata.getNamespace();
+            String namespace = schemaMetadata.getFqn().getNamespace();
             schema.setNamespace( namespace );
-            List<CsdlEntityType> entityTypes = schemaMetadata.getEntityTypeFqns().parallelStream()
+            List<CsdlEntityType> entityTypes = schemaMetadata.getEntityTypes().parallelStream()
                     .map( fqn -> {
                         try {
-                            return getEntityType( fqn );
+                            return getEntityType( fqn.getType() );
                         } catch ( ODataException e ) {
                             logger.error( "Unable to get entity type for FQN={}", fqn );
                             return null;

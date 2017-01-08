@@ -53,6 +53,7 @@ public class IterableCsvHttpMessageConverter
             if ( schema == null ) {
                 schema = fromMultimap( obj );
             }
+            //TODO: Flatten or drop multiple output values into obj.
             csvMapper.writer( schema ).writeValue( outputMessage.getBody(), obj );
         }
 
@@ -77,7 +78,7 @@ public class IterableCsvHttpMessageConverter
         for ( String type : m.keySet() ) {
             Boolean hasMultipleValues = multiplicity.get( type );
             if ( hasMultipleValues == null ) {
-                hasMultipleValues = edmService.getPropertyType( new FullQualifiedName( type ) ).getMultiplicity() > 0;
+//                hasMultipleValues = edmService.getPropertyType( new FullQualifiedName( type ) ).getMultiplicity() > 0;
                 multiplicity.put( type, hasMultipleValues );
             }
 

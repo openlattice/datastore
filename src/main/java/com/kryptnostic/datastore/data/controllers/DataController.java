@@ -1,6 +1,8 @@
 package com.kryptnostic.datastore.data.controllers;
 
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -12,7 +14,6 @@ import javax.inject.Inject;
 import javax.servlet.http.HttpServletResponse;
 import javax.ws.rs.BadRequestException;
 
-import com.google.common.collect.Sets;
 import org.apache.olingo.commons.api.edm.FullQualifiedName;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -27,15 +28,22 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.client.HttpServerErrorException;
 
+import com.dataloom.authorization.AclKey;
+import com.dataloom.authorization.AuthorizationManager;
+import com.dataloom.authorization.EdmAuthorizationHelper;
+import com.dataloom.authorization.Principals;
+import com.dataloom.authorization.SecurableObjectType;
+import com.dataloom.authorization.requests.Permission;
 import com.dataloom.data.DataApi;
 import com.dataloom.data.requests.CreateEntityRequest;
 import com.dataloom.data.requests.LookupEntitiesRequest;
+import com.dataloom.edm.internal.EntitySet;
 import com.dataloom.edm.internal.EntityType;
 import com.google.common.collect.Multimap;
+import com.google.common.collect.Sets;
 import com.kryptnostic.datastore.constants.CustomMediaType;
 import com.kryptnostic.datastore.constants.DatastoreConstants;
 import com.kryptnostic.datastore.exceptions.ResourceNotFoundException;
-import com.kryptnostic.datastore.services.ActionAuthorizationService;
 import com.kryptnostic.datastore.services.DataService;
 import com.kryptnostic.datastore.services.EdmManager;
 
@@ -43,6 +51,7 @@ import com.kryptnostic.datastore.services.EdmManager;
 @RequestMapping( "/" + DataApi.CONTROLLER )
 public class DataController implements DataApi {
     private static final Logger logger = LoggerFactory.getLogger( DataController.class );
+
     // TODO: Move to DataApi
     // TODO: Make spring handling case insensitive to follow correct Java style.
     public static enum FileType {
@@ -57,7 +66,10 @@ public class DataController implements DataApi {
     private DataService                dataService;
 
     @Inject
-    private ActionAuthorizationService authzService;
+    private AuthorizationManager       authz;
+
+    @Inject
+    private EdmAuthorizationHelper     authzHelper;
 
     @RequestMapping(
         path = { "/object/{id}" },
@@ -69,7 +81,8 @@ public class DataController implements DataApi {
     }
 
     @RequestMapping(
-        path = "/" + DataApi.ENTITY_DATA + "/" + DataApi.NAME_SPACE_PATH + "/" + DataApi.NAME_PATH + "/" + DataApi.SET_NAME_PATH,
+        path = "/" + DataApi.ENTITY_DATA + "/" + DataApi.NAME_SPACE_PATH + "/" + DataApi.NAME_PATH + "/"
+                + DataApi.SET_NAME_PATH,
         method = RequestMethod.GET,
         produces = { MediaType.APPLICATION_JSON_VALUE, CustomMediaType.TEXT_CSV_VALUE } )
     @ResponseStatus( HttpStatus.OK )
@@ -108,18 +121,19 @@ public class DataController implements DataApi {
     }
 
     @RequestMapping(
-            path = "/" + DataApi.ENTITY_DATA + "/" + DataApi.NAME_SPACE_PATH + "/" + DataApi.NAME_PATH + "/" + DataApi.SET_NAME_PATH + "/" + DataApi.SELECTED,
-            method = RequestMethod.PUT,
-            consumes = MediaType.APPLICATION_JSON_VALUE,
-            produces = { MediaType.APPLICATION_JSON_VALUE, CustomMediaType.TEXT_CSV_VALUE } )
+        path = "/" + DataApi.ENTITY_DATA + "/" + DataApi.NAME_SPACE_PATH + "/" + DataApi.NAME_PATH + "/"
+                + DataApi.SET_NAME_PATH + "/" + DataApi.SELECTED,
+        method = RequestMethod.PUT,
+        consumes = MediaType.APPLICATION_JSON_VALUE,
+        produces = { MediaType.APPLICATION_JSON_VALUE, CustomMediaType.TEXT_CSV_VALUE } )
     @ResponseStatus( HttpStatus.OK )
     public Iterable<Multimap<FullQualifiedName, Object>> getSelectedEntitiesOfEntitySet(
             @PathVariable( SET_NAME ) String entitySetName,
             @PathVariable( NAME_SPACE ) String entityTypeNamespace,
             @PathVariable( NAME ) String entityTypeName,
             @RequestParam(
-                    value = DatastoreConstants.FILE_TYPE,
-                    required = false ) FileType fileType,
+                value = DatastoreConstants.FILE_TYPE,
+                required = false ) FileType fileType,
             @RequestBody Set<FullQualifiedName> selectedProperties,
             HttpServletResponse response ) {
         String fileName = entitySetName + "_selected";
@@ -137,7 +151,8 @@ public class DataController implements DataApi {
 
         if ( authzService.getAllEntitiesOfEntitySet( entitySetName ) ) {
             EntityType entityType = dms.getEntityType( entityTypeNamespace, entityTypeName );
-            Set<FullQualifiedName> targetPropertyFqns = Sets.intersection( entityType.getProperties(), selectedProperties );
+            Set<FullQualifiedName> targetPropertyFqns = Sets.intersection( entityType.getProperties(),
+                    selectedProperties );
             Set<FullQualifiedName> authorizedPropertyFqns = targetPropertyFqns.stream()
                     .filter( propertyTypeFqn -> authzService.readPropertyTypeInEntitySet( entitySetName,
                             propertyTypeFqn ) )
@@ -189,14 +204,14 @@ public class DataController implements DataApi {
     @Override
     public Iterable<Multimap<FullQualifiedName, Object>> getAllEntitiesOfType(
             FullQualifiedName fqn ) {
-        if( dms.checkEntityTypeExists( fqn ) && authzService.getAllEntitiesOfType( fqn ) ){
+        if ( dms.checkEntityTypeExists( fqn ) && authzService.getAllEntitiesOfType( fqn ) ) {
             EntityType entityType = dms.getEntityType( fqn );
             Set<FullQualifiedName> authorizedPropertyFqns = entityType.getProperties().stream()
                     .filter( propertyTypeFqn -> authzService.readPropertyTypeInEntityType( fqn, propertyTypeFqn ) )
                     .collect( Collectors.toSet() );
             return dataService.readAllEntitiesOfType( fqn, authorizedPropertyFqns );
         } else {
-            throw new ResourceNotFoundException( "Entity Type not found.");
+            throw new ResourceNotFoundException( "Entity Type not found." );
         }
     }
 
@@ -247,17 +262,18 @@ public class DataController implements DataApi {
     }
 
     @RequestMapping(
-            path = "/" + DataApi.ENTITY_DATA + "/" + DataApi.NAME_SPACE_PATH + "/" + DataApi.NAME_PATH + "/" + DataApi.SELECTED,
-            method = RequestMethod.PUT,
-            consumes = MediaType.APPLICATION_JSON_VALUE,
-            produces = { MediaType.APPLICATION_JSON_VALUE, CustomMediaType.TEXT_CSV_VALUE } )
+        path = "/" + DataApi.ENTITY_DATA + "/" + DataApi.NAME_SPACE_PATH + "/" + DataApi.NAME_PATH + "/"
+                + DataApi.SELECTED,
+        method = RequestMethod.PUT,
+        consumes = MediaType.APPLICATION_JSON_VALUE,
+        produces = { MediaType.APPLICATION_JSON_VALUE, CustomMediaType.TEXT_CSV_VALUE } )
     @ResponseStatus( HttpStatus.OK )
     public Iterable<Multimap<FullQualifiedName, Object>> getSelectedEntitiesOfType(
             @PathVariable( NAME_SPACE ) String namespace,
             @PathVariable( NAME ) String name,
             @RequestParam(
-                    value = DatastoreConstants.FILE_TYPE,
-                    required = false ) FileType fileType,
+                value = DatastoreConstants.FILE_TYPE,
+                required = false ) FileType fileType,
             HttpServletResponse response,
             @RequestBody Set<FullQualifiedName> selectedProperties ) {
         String fileName = namespace + "_" + name + "_selected";
@@ -268,11 +284,14 @@ public class DataController implements DataApi {
 
     @Override
     public Iterable<Multimap<FullQualifiedName, Object>> getSelectedEntitiesOfType(
-            String namespace, String name, Set<FullQualifiedName> selectedProperties ) {
+            String namespace,
+            String name,
+            Set<FullQualifiedName> selectedProperties ) {
         FullQualifiedName fqn = new FullQualifiedName( namespace, name );
-        if( dms.checkEntityTypeExists( fqn ) && authzService.getAllEntitiesOfType( fqn ) ){
+        if ( dms.checkEntityTypeExists( fqn ) && authzService.getAllEntitiesOfType( fqn ) ) {
             EntityType entityType = dms.getEntityType( fqn );
-            Set<FullQualifiedName> targetPropertyFqns = Sets.intersection( entityType.getProperties(), selectedProperties );
+            Set<FullQualifiedName> targetPropertyFqns = Sets.intersection( entityType.getProperties(),
+                    selectedProperties );
 
             Set<FullQualifiedName> authorizedPropertyFqns = targetPropertyFqns.stream()
                     .filter( propertyTypeFqn -> authzService.readPropertyTypeInEntityType( fqn, propertyTypeFqn ) )
@@ -280,7 +299,7 @@ public class DataController implements DataApi {
 
             return dataService.readAllEntitiesOfType( fqn, authorizedPropertyFqns );
         } else {
-            throw new ResourceNotFoundException( "Entity Type not found.");
+            throw new ResourceNotFoundException( "Entity Type not found." );
         }
     }
 
@@ -307,14 +326,14 @@ public class DataController implements DataApi {
     public Iterable<Iterable<Multimap<FullQualifiedName, Object>>> getAllEntitiesOfTypes(
             List<FullQualifiedName> fqns ) {
         Map<FullQualifiedName, Collection<FullQualifiedName>> entityTypesAndAuthorizedProperties = new HashMap<>();
-        
-        for( FullQualifiedName fqn : fqns ){
+
+        for ( FullQualifiedName fqn : fqns ) {
             EntityType entityType = dms.getEntityType( fqn );
-            if( dms.checkEntityTypeExists( fqn ) && authzService.getAllEntitiesOfType( fqn ) ){
+            if ( dms.checkEntityTypeExists( fqn ) && authzService.getAllEntitiesOfType( fqn ) ) {
                 Set<FullQualifiedName> authorizedPropertyFqns = entityType.getProperties().stream()
                         .filter( propertyTypeFqn -> authzService.readPropertyTypeInEntityType( fqn, propertyTypeFqn ) )
                         .collect( Collectors.toSet() );
-                entityTypesAndAuthorizedProperties.put( fqn,  authorizedPropertyFqns );
+                entityTypesAndAuthorizedProperties.put( fqn, authorizedPropertyFqns );
             } else {
                 logger.error( "GetAllEntitiesOfType for " + fqn + " failed for user " + authzService.getUserId() );
             }
@@ -341,43 +360,19 @@ public class DataController implements DataApi {
         produces = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
     public Void createEntityData( @RequestBody CreateEntityRequest createEntityRequest ) {
-        boolean entitySetNamePresent = createEntityRequest.getEntitySetName().isPresent();
-        boolean authorizedToWrite;
+        EntitySet entitySet = dms.getEntitySet( createEntityRequest.getEntitySetName() );
+        AclKey entitySetAclKey = new AclKey( SecurableObjectType.EntitySet, entitySet.getId() );
 
-        if ( entitySetNamePresent ) {
-            authorizedToWrite = authzService.createEntityOfEntitySet( createEntityRequest.getEntitySetName().get() );
+        if ( authz.checkIfHasPermissions( Arrays.asList( entitySetAclKey ),
+                Principals.getCurrentPrincipals(),
+                EnumSet.of( Permission.WRITE ) ) ) {
+            Set<FullQualifiedName> authorizedPropertyTypes = authzHelper.getAuthorizedPropertiesOnEntitySet( entitySet,
+                    EnumSet.of( Permission.WRITE ) );
+            dataService.createEntityData( createEntityRequest, authorizedPropertyTypes );
         } else {
-            authorizedToWrite = authzService.createEntityOfEntityType( createEntityRequest.getEntityType() );
-        }
-        
-        if( authorizedToWrite ){
-            EntityType entityType;
-            
-            try{
-                entityType = dms.getEntityType( createEntityRequest.getEntityType() );
-            } catch( IllegalArgumentException e ){
-                throw new BadRequestException( e.getMessage() );
-            }
-
-            Set<FullQualifiedName> authorizedPropertyFqns;
-
-            if ( entitySetNamePresent ) {
-                authorizedPropertyFqns = entityType.getProperties().stream()
-                        .filter( propertyTypeFqn -> authzService.writePropertyTypeInEntitySet(
-                                createEntityRequest.getEntitySetName().get(), propertyTypeFqn ) )
-                        .collect( Collectors.toSet() );
-            } else {
-                authorizedPropertyFqns = entityType.getProperties().stream()
-                        .filter( propertyTypeFqn -> authzService
-                                .writePropertyTypeInEntityType( createEntityRequest.getEntityType(), propertyTypeFqn ) )
-                        .collect( Collectors.toSet() );
-            }
-            
-            try{
-                dataService.createEntityData( createEntityRequest, authorizedPropertyFqns );
-            } catch (Exception e ){
-                throw new HttpServerErrorException( HttpStatus.INTERNAL_SERVER_ERROR, e.getMessage() ); 
-            }
+            throw new HttpServerErrorException(
+                    HttpStatus.FORBIDDEN,
+                    "Insufficient permissions to write to entity set or it doesn't exist" );
         }
         return null;
     }

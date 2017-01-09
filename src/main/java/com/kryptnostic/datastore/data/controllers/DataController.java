@@ -5,10 +5,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import javax.inject.Inject;
 import javax.servlet.http.HttpServletResponse;
 
+import org.apache.olingo.commons.api.edm.EdmPrimitiveTypeKind;
 import org.apache.olingo.commons.api.edm.FullQualifiedName;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -104,7 +106,8 @@ public class DataController implements DataApi {
             UUID entitySetId,
             Optional<Set<UUID>> syncIds,
             Optional<Set<UUID>> selectedProperties ) {
-        List<AclKeyPathFragment> sop = EdmAuthorizationHelper.getSecurableObjectPath( SecurableObjectType.EntitySet, entitySetId );
+        List<AclKeyPathFragment> sop = EdmAuthorizationHelper.getSecurableObjectPath( SecurableObjectType.EntitySet,
+                entitySetId );
         if ( authz.checkIfHasPermissions( sop,
                 Principals.getCurrentPrincipals(),
                 EnumSet.of( Permission.READ ) ) ) {
@@ -134,10 +137,13 @@ public class DataController implements DataApi {
     }
 
     @RequestMapping(
-        path = { "/" + CONTROLLER + "/" + ENTITY_DATA },
+        path = { "/" + CONTROLLER + "/" + ENTITY_DATA + "/" + SET_ID_PATH + SYNC_ID_PATH },
         method = RequestMethod.POST,
         consumes = MediaType.APPLICATION_JSON_VALUE )
-    public Void createEntityData( @PathVariable( SET_ID ) UUID entitySetId, @PathVariable( SYNC_ID ) UUID syncId, @RequestBody Map<String, SetMultimap<UUID, Object>> entities ) {
+    public Void createEntityData(
+            @PathVariable( SET_ID ) UUID entitySetId,
+            @PathVariable( SYNC_ID ) UUID syncId,
+            @RequestBody Map<String, SetMultimap<UUID, Object>> entities ) {
         List<AclKeyPathFragment> sop = EdmAuthorizationHelper.getSecurableObjectPath( SecurableObjectType.EntitySet,
                 entitySetId );
         if ( authz.checkIfHasPermissions( sop,
@@ -146,7 +152,10 @@ public class DataController implements DataApi {
             Set<UUID> authorizedProperties = authzHelper.getAuthorizedPropertiesOnEntitySet( entitySetId,
                     EnumSet.of( Permission.WRITE ) );
 
-            cdm.createEntityData( entitySetId, syncId, entities, authorizedProperties );
+            Map<UUID, EdmPrimitiveTypeKind> authorizedPropertiesWithDataType = authorizedProperties.stream()
+                    .collect( Collectors.toMap( ptId -> ptId, ptId -> dms.getPropertyType( ptId ).getDatatype() ) );
+
+            cdm.createEntityData( entitySetId, syncId, entities, authorizedPropertiesWithDataType );
         } else {
             throw new ForbiddenException( "Insufficient permissions to write to the entity set or it doesn't exist." );
         }

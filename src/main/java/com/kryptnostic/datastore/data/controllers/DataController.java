@@ -24,7 +24,7 @@ import com.dataloom.authorization.EdmAuthorizationHelper;
 import com.dataloom.authorization.Principals;
 import com.dataloom.authorization.SecurableObjectType;
 import com.dataloom.authorization.requests.Permission;
-import com.dataloom.data.NewDataApi;
+import com.dataloom.data.DataApi;
 import com.dataloom.data.requests.GetEntitySetRequest;
 import com.google.common.base.Optional;
 import com.google.common.collect.SetMultimap;
@@ -37,7 +37,7 @@ import com.kryptnostic.datastore.services.CassandraDataManager;
 import com.kryptnostic.datastore.services.EdmService;
 
 @RestController
-public class NewDataController implements NewDataApi {
+public class DataController implements DataApi {
 
     public static enum FileType {
         json,

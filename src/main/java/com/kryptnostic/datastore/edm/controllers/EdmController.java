@@ -352,4 +352,30 @@ public class EdmController implements EdmApi {
         }
     }
 
+    @Override
+    @RequestMapping(
+        path = "/" + IDS + "/" + ENTITY_SETS_BASE_PATH + "/" + NAME_PATH,
+        method = RequestMethod.GET,
+        produces = MediaType.APPLICATION_JSON_VALUE )
+    public UUID getEntitySetId( @PathVariable( NAME ) String entitySetName ) {
+        return entitySetManager.getEntitySet( entitySetName ).getId();
+    }
+
+    @Override
+    @RequestMapping(
+        path = "/" + IDS + "/" + PROPERTY_TYPE_BASE_PATH + "/" + NAMESPACE_PATH + "/" + NAME_PATH,
+        method = RequestMethod.GET,
+        produces = MediaType.APPLICATION_JSON_VALUE )
+    public UUID getPropertyTypeId( String namespace, String name ) {
+        return modelService.getTypeAclKey( new FullQualifiedName( namespace, name ) ).getId();
+    }
+
+    @Override
+    @RequestMapping(
+        path = "/" + IDS + "/" + ENTITY_TYPE_BASE_PATH + "/" + NAMESPACE_PATH + "/" + NAME_PATH,
+        method = RequestMethod.GET,
+        produces = MediaType.APPLICATION_JSON_VALUE )
+    public UUID getEntityTypeId( String namespace, String name ) {
+        return modelService.getTypeAclKey( new FullQualifiedName( namespace, name ) ).getId();
+    }
 }

@@ -1,5 +1,4 @@
 plugins {
-  id 'com.palantir.docker' version '0.8.0'
   id 'application'
   id 'java'
   id 'eclipse'
@@ -16,7 +15,6 @@ distTar {
 }
 
 apply from: "https://raw.githubusercontent.com/kryptnostic/gradles/master/kryptnostic.gradle"
-apply from: "https://raw.githubusercontent.com/kryptnostic/gradles/master/docker.gradle"
 
 mainClassName = "com.kryptnostic.datastore.Datastore"
 applicationDefaultJvmArgs = ["-Xmx5G", "-server"]
@@ -42,7 +40,6 @@ dependencies {
     if( project.hasProperty('developmentMode') && project.developmentMode ) {
         logger.quiet(project.name + " using project dependencies.")
         compile project(":rhizome")
-        compile project(":kryptnostic-mapstores")
         compile project(":kryptnostic-conductor-client")
         compile project(":loom-api")
         testCompile project(path: ":rhizome", configuration: "tests")
@@ -50,7 +47,6 @@ dependencies {
         logger.quiet(project.name + " using jar dependencies.")
         compile "com.kryptnostic:rhizome:${rhizome_version}"
         compile "com.kryptnostic:kryptnostic-conductor-client:${conductor_client_version}"
-        compile "com.kryptnostic:kryptnostic-mapstores:${mapstores_version}"
         compile ("com.kryptnostic:loom-api:${loom_api_version}")
         testCompile "com.kryptnostic:rhizome:${rhizome_version}:tests"
     }

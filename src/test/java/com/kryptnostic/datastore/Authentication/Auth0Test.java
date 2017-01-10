@@ -53,7 +53,6 @@ public class Auth0Test {
     @Test
     public void testAuthenticatedAPICall() {
         boolean entityTypeExists = true;
-        
         try{
             edmApi.getEntityType( "testcsv", "employee" );
         } catch ( NotFoundException e){

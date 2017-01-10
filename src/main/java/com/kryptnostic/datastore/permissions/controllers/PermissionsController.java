@@ -20,10 +20,10 @@ import com.dataloom.authorization.Acl;
 import com.dataloom.authorization.AclData;
 import com.dataloom.authorization.AclKeyPathFragment;
 import com.dataloom.authorization.AuthorizationManager;
+import com.dataloom.authorization.Permission;
 import com.dataloom.authorization.PermissionsApi;
+import com.dataloom.authorization.Principal;
 import com.dataloom.authorization.Principals;
-import com.dataloom.authorization.requests.Permission;
-import com.dataloom.authorization.requests.Principal;
 import com.kryptnostic.datastore.exceptions.ForbiddenException;
 
 @RestController

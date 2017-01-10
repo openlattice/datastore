@@ -10,7 +10,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 import com.dataloom.authorization.AclKeyPathFragment;
-import com.dataloom.authorization.requests.Permission;
+import com.dataloom.authorization.Permission;
 import com.datastax.driver.core.TypeCodec;
 import com.datastax.driver.extras.codecs.enums.EnumNameCodec;
 import com.datastax.driver.extras.codecs.joda.LocalDateCodec;

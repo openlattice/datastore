@@ -25,6 +25,7 @@ import com.kryptnostic.datastore.services.EdmManager;
 import com.kryptnostic.datastore.services.EdmService;
 import com.kryptnostic.datastore.services.ODataStorageService;
 import com.kryptnostic.datastore.services.UserDirectoryService;
+import com.kryptnostic.datastore.util.CassandraDataManagerUtils;
 import com.kryptnostic.datastore.util.PermissionsResultsAdapter;
 import com.kryptnostic.rhizome.pods.CassandraPod;
 import com.kryptnostic.rhizome.registries.ObjectMapperRegistry;
@@ -79,11 +80,6 @@ public class DatastoreServicesPod {
     public CassandraTypeManager entityTypeManager() {
         return new CassandraTypeManager( DatastoreConstants.KEYSPACE, session );
     }
-    
-    @Bean
-    public CassandraDataManager cassandraDataManager() {
-        return new CassandraDataManager( DatastoreConstants.KEYSPACE, session );
-    }
 
     @Bean
     public EdmManager dataModelService() {
@@ -106,6 +102,16 @@ public class DatastoreServicesPod {
                 session );
     }
 
+    @Bean
+    public CassandraDataManagerUtils cassandraDataManagerUtils() {
+        return new CassandraDataManagerUtils( defaultObjectMapper() );
+    }
+    
+    @Bean
+    public CassandraDataManager cassandraDataManager() {
+        return new CassandraDataManager( DatastoreConstants.KEYSPACE, session, cassandraDataManagerUtils() );
+    }
+    
     @Bean
     public DataService dataService() {
         return new DataService(

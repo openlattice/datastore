@@ -10,6 +10,7 @@ import java.util.stream.Collectors;
 import javax.inject.Inject;
 import javax.servlet.http.HttpServletResponse;
 
+import org.apache.commons.lang3.NotImplementedException;
 import org.apache.olingo.commons.api.edm.EdmPrimitiveTypeKind;
 import org.apache.olingo.commons.api.edm.FullQualifiedName;
 import org.springframework.http.MediaType;
@@ -28,10 +29,10 @@ import com.dataloom.authorization.Principals;
 import com.dataloom.authorization.SecurableObjectType;
 import com.dataloom.data.DataApi;
 import com.dataloom.data.requests.GetEntitySetRequest;
+import com.dataloom.edm.internal.PropertyType;
 import com.google.common.base.Optional;
 import com.google.common.collect.SetMultimap;
 import com.google.common.collect.Sets;
-import com.kryptnostic.datastore.cassandra.CassandraPropertyReader;
 import com.kryptnostic.datastore.constants.CustomMediaType;
 import com.kryptnostic.datastore.constants.DatastoreConstants;
 import com.kryptnostic.datastore.exceptions.ForbiddenException;
@@ -125,10 +126,8 @@ public class DataController implements DataApi {
                         EnumSet.of( Permission.READ ) );
             }
 
-            // TODO EdmService should expose Map<UUID, CassandraPropertyReader> as well, which is updated whenever
-            // property type is successfully created.
-            Map<UUID, CassandraPropertyReader> authorizedPropertyTypes = dms.getPropertyReaders()
-                    .getAll( authorizedProperties );
+            Map<UUID, PropertyType> authorizedPropertyTypes = authorizedProperties.stream()
+                    .collect( Collectors.toMap( ptId -> ptId, ptId -> dms.getPropertyType( ptId ) ) );
             return cdm.getEntitySetData( entitySetId, ids, authorizedPropertyTypes );
 
         } else {
@@ -163,8 +162,8 @@ public class DataController implements DataApi {
     }
 
     private Set<UUID> getLatestSyncIds() {
-        // TODO Where should this be obtained from?
-        return null;
+        // TODO Should be obtained from DatasourcesApi once that is done.
+        throw new NotImplementedException( "Ho Chung should fix this once DatasourcesApi is done" );
     }
 
     /**

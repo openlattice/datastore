@@ -2,6 +2,7 @@ package com.kryptnostic.datastore;
 
 import com.dataloom.data.serializers.FullQualifedNameJacksonDeserializer;
 import com.dataloom.data.serializers.FullQualifedNameJacksonSerializer;
+import com.dataloom.mappers.ObjectMappers;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.kryptnostic.datastore.pods.DataStoreSecurityPod;
 import com.kryptnostic.datastore.pods.DatastoreServicesPod;
@@ -9,13 +10,11 @@ import com.kryptnostic.datastore.pods.DatastoreServletsPod;
 import com.kryptnostic.datastore.pods.DatastoreStreamSerializersPod;
 import com.kryptnostic.datastore.pods.DatastoreTypeCodecsPod;
 import com.kryptnostic.datastore.services.EdmManager;
-import com.kryptnostic.mapstores.pods.BaseSerializersPod;
 import com.kryptnostic.rhizome.configuration.websockets.BaseRhizomeServer;
 import com.kryptnostic.rhizome.core.RhizomeApplicationServer;
 import com.kryptnostic.rhizome.hazelcast.serializers.RhizomeUtils.Pods;
 import com.kryptnostic.rhizome.pods.CassandraPod;
 import com.kryptnostic.rhizome.pods.hazelcast.RegistryBasedHazelcastInstanceConfigurationPod;
-import com.kryptnostic.rhizome.registries.ObjectMapperRegistry;
 
 import digital.loom.rhizome.authentication.Auth0Pod;
 
@@ -26,7 +25,6 @@ public class Datastore extends BaseRhizomeServer {
             DataStoreSecurityPod.class, };
     public static final Class<?>[] rhizomePods      = new Class<?>[] {
             CassandraPod.class,
-            BaseSerializersPod.class,
             RegistryBasedHazelcastInstanceConfigurationPod.class,
             Auth0Pod.class };
 
@@ -36,9 +34,9 @@ public class Datastore extends BaseRhizomeServer {
     };
 
     static {
-        ObjectMapperRegistry.foreach( FullQualifedNameJacksonSerializer::registerWithMapper );
-        ObjectMapperRegistry.foreach( FullQualifedNameJacksonDeserializer::registerWithMapper );
-        ObjectMapperRegistry.foreach( mapper -> mapper.disable( SerializationFeature.WRITE_DATES_AS_TIMESTAMPS ) );
+        ObjectMappers.foreach( FullQualifedNameJacksonSerializer::registerWithMapper );
+        ObjectMappers.foreach( FullQualifedNameJacksonDeserializer::registerWithMapper );
+        ObjectMappers.foreach( mapper -> mapper.disable( SerializationFeature.WRITE_DATES_AS_TIMESTAMPS ) );
     }
 
     public Datastore( Class<?>... pods ) {

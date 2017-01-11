@@ -9,18 +9,16 @@ import org.apache.olingo.commons.api.edm.FullQualifiedName;
 import org.junit.Assert;
 
 import com.dataloom.authorization.AuthorizationManager;
-import com.dataloom.authorization.requests.Principal;
-import com.dataloom.authorization.requests.PrincipalType;
+import com.dataloom.authorization.Principal;
+import com.dataloom.authorization.PrincipalType;
 import com.dataloom.edm.internal.EntityType;
 import com.dataloom.edm.internal.PropertyType;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import com.kryptnostic.conductor.rpc.UUIDs.ACLs;
-import com.kryptnostic.datastore.services.ActionAuthorizationService;
 import com.kryptnostic.datastore.services.DataService;
 import com.kryptnostic.datastore.services.EdmManager;
-import com.kryptnostic.datastore.services.PermissionsService;
 import com.kryptnostic.rhizome.pods.SparkPod;
 
 public class BootstrapDatastoreWithCassandra {

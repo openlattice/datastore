@@ -10,6 +10,7 @@ import java.util.stream.Collectors;
 import javax.inject.Inject;
 import javax.servlet.http.HttpServletResponse;
 
+import org.apache.commons.lang3.NotImplementedException;
 import org.apache.olingo.commons.api.edm.EdmPrimitiveTypeKind;
 import org.apache.olingo.commons.api.edm.FullQualifiedName;
 import org.springframework.http.MediaType;
@@ -28,23 +29,17 @@ import com.dataloom.authorization.Permission;
 import com.dataloom.authorization.Principals;
 import com.dataloom.authorization.SecurableObjectType;
 import com.dataloom.data.DataApi;
-import com.dataloom.data.requests.GetEntitySetRequest;
+import com.dataloom.data.requests.EntitySetSelection;
+import com.dataloom.edm.internal.PropertyType;
 import com.google.common.base.Optional;
 import com.google.common.collect.SetMultimap;
 import com.google.common.collect.Sets;
-import com.kryptnostic.datastore.cassandra.CassandraPropertyReader;
 import com.kryptnostic.datastore.constants.CustomMediaType;
-import com.kryptnostic.datastore.constants.DatastoreConstants;
 import com.kryptnostic.datastore.services.CassandraDataManager;
 import com.kryptnostic.datastore.services.EdmService;
 
 @RestController
 public class DataController implements DataApi {
-
-    public static enum FileType {
-        json,
-        csv;
-    }
 
     @Inject
     private EdmService             dms;
@@ -65,40 +60,41 @@ public class DataController implements DataApi {
     public Iterable<SetMultimap<FullQualifiedName, Object>> getEntitySetData(
             @PathVariable( SET_ID ) UUID entitySetId,
             @RequestParam(
-                value = DatastoreConstants.FILE_TYPE,
+                value = FILE_TYPE,
                 required = false ) FileType fileType,
             HttpServletResponse response ) {
         setContentDisposition( response, entitySetId.toString(), fileType );
         setDownloadContentType( response, fileType );
-        return getEntitySetData( entitySetId );
+        return getEntitySetData( entitySetId, fileType );
     }
 
     @Override
-    public Iterable<SetMultimap<FullQualifiedName, Object>> getEntitySetData( UUID entitySetId ) {
+    public Iterable<SetMultimap<FullQualifiedName, Object>> getEntitySetData( UUID entitySetId, FileType fileType ) {
         return getEntitySetData( entitySetId, Optional.absent(), Optional.absent() );
     }
 
     @RequestMapping(
-        path = { "/" + CONTROLLER + "/" + ENTITY_DATA + "/" + SET_ID_PATH + "/" + GET_DATA_PATH },
-        method = RequestMethod.POST,
+        path = { "/" + CONTROLLER + "/" + HISTORICAL + "/" + ENTITY_DATA + "/" + SET_ID_PATH },
+        method = RequestMethod.GET,
         consumes = MediaType.APPLICATION_JSON_VALUE,
         produces = { MediaType.APPLICATION_JSON_VALUE, CustomMediaType.TEXT_CSV_VALUE } )
     public Iterable<SetMultimap<FullQualifiedName, Object>> getEntitySetData(
             @PathVariable( SET_ID ) UUID entitySetId,
-            @RequestBody GetEntitySetRequest req,
+            @RequestBody EntitySetSelection req,
             @RequestParam(
-                value = DatastoreConstants.FILE_TYPE,
+                value = FILE_TYPE,
                 required = false ) FileType fileType,
             HttpServletResponse response ) {
         setContentDisposition( response, entitySetId.toString(), fileType );
         setDownloadContentType( response, fileType );
-        return getEntitySetData( entitySetId, req );
+        return getEntitySetData( entitySetId, req, fileType );
     }
 
     @Override
     public Iterable<SetMultimap<FullQualifiedName, Object>> getEntitySetData(
             UUID entitySetId,
-            GetEntitySetRequest req ) {
+            EntitySetSelection req,
+            FileType fileType ) {
         return getEntitySetData( entitySetId, req.getSyncIds(), req.getSelectedProperties() );
     }
 
@@ -125,10 +121,8 @@ public class DataController implements DataApi {
                         EnumSet.of( Permission.READ ) );
             }
 
-            // TODO EdmService should expose Map<UUID, CassandraPropertyReader> as well, which is updated whenever
-            // property type is successfully created.
-            Map<UUID, CassandraPropertyReader> authorizedPropertyTypes = dms.getPropertyReaders()
-                    .getAll( authorizedProperties );
+            Map<UUID, PropertyType> authorizedPropertyTypes = authorizedProperties.stream()
+                    .collect( Collectors.toMap( ptId -> ptId, ptId -> dms.getPropertyType( ptId ) ) );
             return cdm.getEntitySetData( entitySetId, ids, authorizedPropertyTypes );
 
         } else {
@@ -163,8 +157,8 @@ public class DataController implements DataApi {
     }
 
     private Set<UUID> getLatestSyncIds() {
-        // TODO Where should this be obtained from?
-        return null;
+        // TODO Should be obtained from DatasourcesApi once that is done.
+        throw new NotImplementedException( "Ho Chung should fix this once DatasourcesApi is done" );
     }
 
     /**

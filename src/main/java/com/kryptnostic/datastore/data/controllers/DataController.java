@@ -28,7 +28,7 @@ import com.dataloom.authorization.Permission;
 import com.dataloom.authorization.Principals;
 import com.dataloom.authorization.SecurableObjectType;
 import com.dataloom.data.DataApi;
-import com.dataloom.data.requests.GetEntitySetRequest;
+import com.dataloom.data.requests.EntitySetSelection;
 import com.dataloom.edm.internal.PropertyType;
 import com.google.common.base.Optional;
 import com.google.common.collect.SetMultimap;
@@ -74,13 +74,13 @@ public class DataController implements DataApi {
     }
 
     @RequestMapping(
-        path = { "/" + CONTROLLER + "/" + ENTITY_DATA + "/" + SET_ID_PATH + "/" + GET_DATA_PATH },
-        method = RequestMethod.POST,
+        path = { "/" + CONTROLLER + "/" + HISTORICAL + "/" + ENTITY_DATA + "/" + SET_ID_PATH },
+        method = RequestMethod.GET,
         consumes = MediaType.APPLICATION_JSON_VALUE,
         produces = { MediaType.APPLICATION_JSON_VALUE, CustomMediaType.TEXT_CSV_VALUE } )
     public Iterable<SetMultimap<FullQualifiedName, Object>> getEntitySetData(
             @PathVariable( SET_ID ) UUID entitySetId,
-            @RequestBody GetEntitySetRequest req,
+            @RequestBody EntitySetSelection req,
             @RequestParam(
                 value = FILE_TYPE,
                 required = false ) FileType fileType,
@@ -93,7 +93,7 @@ public class DataController implements DataApi {
     @Override
     public Iterable<SetMultimap<FullQualifiedName, Object>> getEntitySetData(
             UUID entitySetId,
-            GetEntitySetRequest req,
+            EntitySetSelection req,
             FileType fileType ) {
         return getEntitySetData( entitySetId, req.getSyncIds(), req.getSelectedProperties() );
     }

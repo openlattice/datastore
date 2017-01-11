@@ -75,6 +75,17 @@ public class CassandraDataManager {
         return Iterables.transform( entityRows, rs -> RowAdapters.entity( rs, authorizedPropertyTypes, mapper ) );
     }
 
+    //Would you batch this with the previous one? If yes, their return type needs to match
+    public SetMultimap<FullQualifiedName, Object> getEntity(
+            UUID entitySetId,
+            String entityId,
+            Set<UUID> syncIds,
+            Map<UUID, PropertyType> authorizedPropertyTypes ) {
+        Set<UUID> authorizedProperties = authorizedPropertyTypes.keySet();
+        ResultSet rs = asyncLoadEntity( entityId, syncIds, authorizedProperties ).getUninterruptibly();
+        return RowAdapters.entity( rs, authorizedPropertyTypes, mapper );
+    }
+    
     public Iterable<String> getEntityIds( UUID entitySetId, Set<UUID> syncIds ) {
         BoundStatement boundEntityIdsQuery = entityIdsQuery.bind()
                 .setSet( CommonColumns.SYNCID.cql(), syncIds )

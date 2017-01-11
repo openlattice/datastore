@@ -15,7 +15,7 @@ import com.datastax.driver.core.TypeCodec;
 import com.datastax.driver.extras.codecs.enums.EnumNameCodec;
 import com.datastax.driver.extras.codecs.joda.LocalDateCodec;
 import com.datastax.driver.extras.codecs.joda.LocalTimeCodec;
-import com.kryptnostic.conductor.codecs.AclKeyTypeCodec;
+import com.kryptnostic.conductor.codecs.AclKeyPathFragmentTypeCodec;
 import com.kryptnostic.conductor.codecs.EnumSetTypeCodec;
 import com.kryptnostic.conductor.codecs.FullQualifiedNameTypeCodec;
 import com.kryptnostic.conductor.codecs.TimestampDateTimeTypeCodec;
@@ -44,7 +44,7 @@ public class DatastoreTypeCodecsPod {
     
     @Bean
     public TypeCodec<AclKeyPathFragment> aclKeyCodec() {
-        return new AclKeyTypeCodec();
+        return new AclKeyPathFragmentTypeCodec();
     }
     
     public TimestampDateTimeTypeCodec timestampDateTimeTypeCodec(){

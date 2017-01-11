@@ -68,7 +68,7 @@ public class DatastoreServicesPod {
 
     @Bean
     public CassandraEntitySetManager entitySetManager() {
-        return new CassandraEntitySetManager( session, DatastoreConstants.KEYSPACE );
+        return new CassandraEntitySetManager( DatastoreConstants.KEYSPACE, session, authorizationManager() );
     }
 
     @Bean

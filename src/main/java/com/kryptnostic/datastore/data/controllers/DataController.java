@@ -34,18 +34,12 @@ import com.google.common.base.Optional;
 import com.google.common.collect.SetMultimap;
 import com.google.common.collect.Sets;
 import com.kryptnostic.datastore.constants.CustomMediaType;
-import com.kryptnostic.datastore.constants.DatastoreConstants;
 import com.kryptnostic.datastore.exceptions.ForbiddenException;
 import com.kryptnostic.datastore.services.CassandraDataManager;
 import com.kryptnostic.datastore.services.EdmService;
 
 @RestController
 public class DataController implements DataApi {
-
-    public static enum FileType {
-        json,
-        csv;
-    }
 
     @Inject
     private EdmService             dms;
@@ -66,16 +60,16 @@ public class DataController implements DataApi {
     public Iterable<SetMultimap<FullQualifiedName, Object>> getEntitySetData(
             @PathVariable( SET_ID ) UUID entitySetId,
             @RequestParam(
-                value = DatastoreConstants.FILE_TYPE,
+                value = FILE_TYPE,
                 required = false ) FileType fileType,
             HttpServletResponse response ) {
         setContentDisposition( response, entitySetId.toString(), fileType );
         setDownloadContentType( response, fileType );
-        return getEntitySetData( entitySetId );
+        return getEntitySetData( entitySetId, fileType );
     }
 
     @Override
-    public Iterable<SetMultimap<FullQualifiedName, Object>> getEntitySetData( UUID entitySetId ) {
+    public Iterable<SetMultimap<FullQualifiedName, Object>> getEntitySetData( UUID entitySetId, FileType fileType ) {
         return getEntitySetData( entitySetId, Optional.absent(), Optional.absent() );
     }
 
@@ -88,18 +82,19 @@ public class DataController implements DataApi {
             @PathVariable( SET_ID ) UUID entitySetId,
             @RequestBody GetEntitySetRequest req,
             @RequestParam(
-                value = DatastoreConstants.FILE_TYPE,
+                value = FILE_TYPE,
                 required = false ) FileType fileType,
             HttpServletResponse response ) {
         setContentDisposition( response, entitySetId.toString(), fileType );
         setDownloadContentType( response, fileType );
-        return getEntitySetData( entitySetId, req );
+        return getEntitySetData( entitySetId, req, fileType );
     }
 
     @Override
     public Iterable<SetMultimap<FullQualifiedName, Object>> getEntitySetData(
             UUID entitySetId,
-            GetEntitySetRequest req ) {
+            GetEntitySetRequest req,
+            FileType fileType ) {
         return getEntitySetData( entitySetId, req.getSyncIds(), req.getSelectedProperties() );
     }
 

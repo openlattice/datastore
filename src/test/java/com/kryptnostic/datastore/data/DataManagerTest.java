@@ -4,34 +4,43 @@ import java.io.BufferedReader;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
+import java.math.BigDecimal;
+import java.nio.ByteBuffer;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
+import java.util.Random;
 import java.util.Set;
 import java.util.UUID;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.olingo.commons.api.edm.EdmPrimitiveTypeKind;
 import org.apache.olingo.commons.api.edm.FullQualifiedName;
+import org.apache.olingo.commons.api.edm.geo.Geospatial.Dimension;
+import org.apache.olingo.commons.api.edm.geo.Point;
+import org.apache.olingo.commons.api.edm.geo.SRID;
+import org.joda.time.DateTime;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
 
-import com.datastax.driver.core.ProtocolVersion;
-import com.datastax.driver.core.Row;
-import com.datastax.driver.core.TypeCodec;
+import com.dataloom.edm.internal.PropertyType;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.base.Optional;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
 import com.google.common.collect.SetMultimap;
 import com.google.common.collect.Sets;
 import com.kryptnostic.conductor.rpc.Employee;
-import com.kryptnostic.datastore.cassandra.CassandraPropertyReader;
 import com.kryptnostic.datastore.services.CassandraDataManager;
 import com.kryptnostic.rhizome.core.RhizomeApplicationServer;
 import com.kryptnostic.rhizome.pods.CassandraPod;
@@ -44,41 +53,70 @@ public class DataManagerTest {
     protected static CassandraDataManager           cdm;
 
     protected static final Set<String>              PROFILES = Sets.newHashSet( "local", "cassandra" );
+    
+    private static final List<EdmPrimitiveTypeKind> edmTypesList;
+    private static final int edmTypesSize;
+    
+    private static final Random random = new Random();
+    private static ObjectMapper mapper;
+    
+    static{
+        edmTypesList = Arrays.asList( 
+                EdmPrimitiveTypeKind.Binary,
+                EdmPrimitiveTypeKind.Boolean,
+                EdmPrimitiveTypeKind.Byte,
+                EdmPrimitiveTypeKind.SByte,
+                EdmPrimitiveTypeKind.Date,
+                EdmPrimitiveTypeKind.DateTimeOffset,
+                EdmPrimitiveTypeKind.TimeOfDay,
+                EdmPrimitiveTypeKind.Duration,
+                EdmPrimitiveTypeKind.Decimal,
+                EdmPrimitiveTypeKind.Single,
+                EdmPrimitiveTypeKind.Double,
+                EdmPrimitiveTypeKind.Guid,
+                EdmPrimitiveTypeKind.Int16,
+                EdmPrimitiveTypeKind.Int32,
+                EdmPrimitiveTypeKind.Int64,
+                EdmPrimitiveTypeKind.String,
+                EdmPrimitiveTypeKind.GeographyPoint
+                );
+        edmTypesSize = edmTypesList.size();
+    }
 
     @BeforeClass
     public static void init() {
         ds.sprout( PROFILES.toArray( new String[ 0 ] ) );
         cdm = ds.getContext().getBean( CassandraDataManager.class );
+        mapper = ds.getContext().getBean( ObjectMapper.class );
     }
 
-    //@Test
+    @Test
     public void testWriteAndRead() {
         final UUID entitySetId = UUID.randomUUID();
         final UUID syncId = UUID.randomUUID();
 
-        Map<UUID, CassandraPropertyReader> readers = generateProperties( 5 );
-        Set<UUID> properties = readers.keySet();
-        Map<UUID, EdmPrimitiveTypeKind> propertiesWithDataType = getDataTypeMapOfStringType( properties );
-        Map<String, SetMultimap<UUID, Object>> entities = generateData( 10, properties, 1 );
+        Map<UUID, PropertyType> propertyTypes = generateProperties( 5 );
+        Map<UUID, EdmPrimitiveTypeKind> propertiesWithDataType = propertyTypes.entrySet().stream().collect(Collectors.toMap(e -> e.getKey(), e -> e.getValue().getDatatype() ));
+        Map<String, SetMultimap<UUID, Object>> entities = generateData( 1, propertiesWithDataType, 1 );
 
         testWriteData( entitySetId, syncId, entities, propertiesWithDataType );
         Set<SetMultimap<FullQualifiedName, Object>> result = testReadData( ImmutableSet.of( syncId ),
                 entitySetId,
-                readers );
+                propertyTypes );
 
         Set<SetMultimap<FullQualifiedName, Object>> expected = convertGeneratedDataFromUuidToFqn( entities );
-        Assert.assertEquals( expected, result );
+        
+            Assert.assertEquals( convertValueToString(expected), convertValueToString(result) );
     }
 
-    @Test
+    @Ignore
     public void populateEmployeeCsv() throws FileNotFoundException, IOException {
         final UUID syncId = UUID.randomUUID();
         final UUID entitySetId = UUID.randomUUID();
         // Four property types: Employee Name, Title, Department, Salary
         Map<String, UUID> idLookup = getUUIDsForEmployeeCsvProperties();
-        Map<UUID, CassandraPropertyReader> readers = getReadersForEmployeeCsv( idLookup );
-        Map<UUID, EdmPrimitiveTypeKind> propertiesWithDataType = getDataTypeEmployeeCsv( idLookup );
-        Set<UUID> properties = readers.keySet();
+        Map<UUID, PropertyType> propertyTypes = getPropertiesForEmployeeCsv( idLookup );
+        Map<UUID, EdmPrimitiveTypeKind> propertiesWithDataType = propertyTypes.entrySet().stream().collect(Collectors.toMap(e -> e.getKey(), e -> e.getValue().getDatatype() ));
 
         try ( FileReader fr = new FileReader( "src/test/resources/employees.csv" );
                 BufferedReader br = new BufferedReader( fr ) ) {
@@ -130,38 +168,40 @@ public class DataManagerTest {
     public Set<SetMultimap<FullQualifiedName, Object>> testReadData(
             Set<UUID> syncIds,
             UUID entitySetId,
-            Map<UUID, CassandraPropertyReader> readers ) {
-        return Sets.newHashSet( cdm.getEntitySetData( entitySetId, syncIds, readers ) );
+            Map<UUID, PropertyType> propertyTypes ) {
+        return Sets.newHashSet( cdm.getEntitySetData( entitySetId, syncIds, propertyTypes ) );
     }
 
-    private Map<UUID, CassandraPropertyReader> generateProperties( int n ) {
+    private Map<UUID, PropertyType> generateProperties( int n ) {
         System.out.println( "Generating Properties..." );
-        Map<UUID, CassandraPropertyReader> readers = new HashMap<>();
+        Map<UUID, PropertyType> propertyTypes = new HashMap<>();
         for ( int i = 0; i < n; i++ ) {
             UUID propertyId = UUID.randomUUID();
-            readers.put( propertyId, getStringReader( propertyId ) );
+            propertyTypes.put(propertyId, new PropertyType( propertyId, getFqnFromUuid( propertyId ), "Property " + propertyId.toString(), Optional.absent(), ImmutableSet.of(), EdmPrimitiveTypeKind.GeographyPoint) );
+//            propertyTypes.put( propertyId, getRandomPropertyType( propertyId ) );
         }
         System.out.println( "Properties generated." );
-        return readers;
+        return propertyTypes;
     }
 
     private Map<String, SetMultimap<UUID, Object>> generateData(
             int numOfEntities,
-            Set<UUID> properties,
+            Map<UUID, EdmPrimitiveTypeKind> propertiesWithDataType,
             int multiplicityOfProperties ) {
         System.out.println( "Generating data..." );
 
         final Map<String, SetMultimap<UUID, Object>> entities = new HashMap<>();
+        Set<UUID> properties = propertiesWithDataType.keySet();
         for ( int i = 0; i < numOfEntities; i++ ) {
             String id = RandomStringUtils.randomAlphanumeric( 10 );
             SetMultimap<UUID, Object> propertyValues = HashMultimap.create();
             for ( UUID property : properties ) {
                 for ( int k = 0; k < multiplicityOfProperties; k++ ) {
                     // Generate random numeric strings as value
-                    String value = RandomStringUtils.randomNumeric( 5 );
+                    Object value = getRandomValue( propertiesWithDataType.get( property ));
                     propertyValues.put( property, value );
                     // For debugging
-                    System.out.println( "Property: " + property + ", value generated: " + value );
+                    System.out.println( "Property: " + property + ", type: " + propertiesWithDataType.get( property ) + ", value generated: " + value );
                 }
             }
             entities.put( id, propertyValues );
@@ -174,54 +214,33 @@ public class DataManagerTest {
             Map<String, SetMultimap<UUID, Object>> map ) {
         Set<SetMultimap<FullQualifiedName, Object>> result = new HashSet<>();
         for ( SetMultimap<UUID, Object> v : map.values() ) {
-            Map<FullQualifiedName, Collection<Object>> tmp = new HashMap<>();
-            SetMultimap<FullQualifiedName, Object> ans = Multimaps.newSetMultimap( tmp, HashSet::new );
-            v.asMap().entrySet().stream().forEach( e -> tmp.put( getFqnFromUuid( e.getKey() ), e.getValue() ) );
+            SetMultimap<FullQualifiedName, Object> ans = HashMultimap.create();
+            v.entries().stream().forEach( e -> ans.put( getFqnFromUuid( e.getKey() ), e.getValue() ) );
             result.add( ans );
         }
         return result;
     }
 
     /**
-     * CassandraPropertyReader Utils
+     * Utils
      */
-
-    private CassandraPropertyReader getStringReader( UUID propertyId ) {
-        return new CassandraPropertyReader( getFqnFromUuid( propertyId ), DataManagerTest::stdStringReader );
-    }
 
     private FullQualifiedName getFqnFromUuid( UUID propertyId ) {
         return new FullQualifiedName( "test", propertyId.toString() );
     }
 
-    private static String stdStringReader( Row row ) {
-        return TypeCodec.varchar().deserialize( row.getBytes( "value" ), ProtocolVersion.NEWEST_SUPPORTED );
-    }
+    private Map<UUID, PropertyType> getPropertiesForEmployeeCsv( Map<String, UUID> idLookup ) {
+        Map<UUID, PropertyType> propertyTypes = new HashMap<>();
+        PropertyType name = new PropertyType( idLookup.get("name"), getFqnFromUuid( idLookup.get( "name" )), "Name", Optional.of( "Employee Name"), ImmutableSet.of(), EdmPrimitiveTypeKind.String);
+        PropertyType title = new PropertyType( idLookup.get("title"), getFqnFromUuid( idLookup.get( "title" )), "Title", Optional.of( "Employee Title"), ImmutableSet.of(), EdmPrimitiveTypeKind.String);
+        PropertyType dept = new PropertyType( idLookup.get("dept"), getFqnFromUuid( idLookup.get( "dept" )), "Dept", Optional.of( "Employee Department"), ImmutableSet.of(), EdmPrimitiveTypeKind.String);
+        PropertyType salary = new PropertyType( idLookup.get("salary"), getFqnFromUuid( idLookup.get( "salary" )), "Salary", Optional.of( "Employee Salary"), ImmutableSet.of(), EdmPrimitiveTypeKind.Int64);
 
-    private CassandraPropertyReader getLongReader( UUID propertyId ) {
-        return new CassandraPropertyReader( getFqnFromUuid( propertyId ), DataManagerTest::stdLongReader );
-    }
-
-    private static Long stdLongReader( Row row ) {
-        return TypeCodec.counter().deserialize( row.getBytes( "value" ), ProtocolVersion.NEWEST_SUPPORTED );
-    }
-
-    private Map<UUID, CassandraPropertyReader> getReadersForEmployeeCsv( Map<String, UUID> idLookup ) {
-        Map<UUID, CassandraPropertyReader> readers = new HashMap<>();
-        readers.put( idLookup.get( "name" ), getStringReader( idLookup.get( "name" ) ) );
-        readers.put( idLookup.get( "title" ), getStringReader( idLookup.get( "title" ) ) );
-        readers.put( idLookup.get( "dept" ), getStringReader( idLookup.get( "dept" ) ) );
-        readers.put( idLookup.get( "salary" ), getLongReader( idLookup.get( "salary" ) ) );
-        return readers;
-    }
-
-    private Map<UUID, EdmPrimitiveTypeKind> getDataTypeEmployeeCsv( Map<String, UUID> idLookup ) {
-        Map<UUID, EdmPrimitiveTypeKind> propertiesWithDataType = new HashMap<>();
-        propertiesWithDataType.put( idLookup.get( "name" ), EdmPrimitiveTypeKind.String );
-        propertiesWithDataType.put( idLookup.get( "title" ), EdmPrimitiveTypeKind.String );
-        propertiesWithDataType.put( idLookup.get( "dept" ), EdmPrimitiveTypeKind.String );
-        propertiesWithDataType.put( idLookup.get( "salary" ), EdmPrimitiveTypeKind.Int64 );
-        return propertiesWithDataType;
+        propertyTypes.put( idLookup.get( "name" ), name );
+        propertyTypes.put( idLookup.get( "title" ),title );
+        propertyTypes.put( idLookup.get( "dept" ), dept );
+        propertyTypes.put( idLookup.get( "salary" ), salary );
+        return propertyTypes;
     }
 
     private Map<String, UUID> getUUIDsForEmployeeCsvProperties() {
@@ -232,8 +251,100 @@ public class DataManagerTest {
         idLookup.put( "salary", UUID.randomUUID() );
         return idLookup;
     }
+    
+    private PropertyType getRandomPropertyType( UUID id ) {
+        EdmPrimitiveTypeKind type = getRandomEdmType();
+        return new PropertyType( id, getFqnFromUuid( id ), "Property " + id.toString(), Optional.absent(), ImmutableSet.of(), type);
 
-    private Map<UUID, EdmPrimitiveTypeKind> getDataTypeMapOfStringType( Set<UUID> properties ) {
-        return properties.stream().collect( Collectors.toMap( id -> id, id -> EdmPrimitiveTypeKind.String ) );
+    }
+    
+    private EdmPrimitiveTypeKind getRandomEdmType(){
+        return edmTypesList.get( random.nextInt( edmTypesSize ) );
+    }
+    
+    /**
+     * See http://docs.oasis-open.org/odata/odata-json-format/v4.0/errata03/os/odata-json-format-v4.0-errata03-os-complete.html#_Toc453766642
+     */
+    @SuppressWarnings( "unchecked" )
+    private Object getRandomValue( EdmPrimitiveTypeKind type ){
+        Object rawObj;
+        switch( type ){
+            case Binary:
+rawObj = RandomStringUtils.randomAlphanumeric( 10 );
+break;
+            case Boolean:
+                rawObj = random.nextBoolean();
+                break;
+            case Byte:
+                rawObj = random.nextInt( 8 );
+                break;
+            case Date:
+                rawObj = ( 1000 + random.nextInt( 2000 ) ) + "-" + ( 1 + random.nextInt( 12 ) ) + "-"
+                        + ( 1 + random.nextInt( 28 ) );
+                break;
+            case DateTimeOffset:
+                rawObj = DateTime.now().toString();
+                break;
+            case Decimal:
+                rawObj = new BigDecimal( Math.random() );
+                break;
+            case Double:
+                rawObj = random.nextDouble();
+                break;
+            case Duration:
+                rawObj = random.nextInt() + "d" + random.nextInt( 24 ) + "h" + random.nextInt( 60 ) + "m" + random.nextInt( 60 )
+                        + "m";
+                break;
+            case Guid:
+                rawObj = UUID.randomUUID();
+                break;
+            case Int16:
+                rawObj = (short) random.nextInt( Short.MAX_VALUE + 1 );
+                break;
+            case Int32:
+                rawObj = random.nextInt();
+                break;
+            case Int64:
+                rawObj = random.nextLong();
+                break;
+            case String:
+                rawObj = RandomStringUtils.randomAlphanumeric( 10 );
+                break;
+            case SByte:
+                rawObj = random.nextInt( 256 ) - 128;
+                break;
+            case Single:
+                rawObj = random.nextFloat();
+                break;
+            case TimeOfDay:
+                rawObj = random.nextInt( 24 ) + ":" + random.nextInt( 60 ) + ":" + random.nextInt( 60 ) + "."
+                        + random.nextInt( 1000 );
+                break;
+            case GeographyPoint:
+                //Should follow GeoJson format as in https://tools.ietf.org/html/draft-butler-geojson-04#appendix-A.1
+                rawObj = new HashMap<String, Object>();
+                ( (Map<String, Object>) rawObj).put("type", "Point");
+                ( (Map<String, Object>) rawObj).put("coordinates", Arrays.asList( random.nextDouble(), random.nextDouble() ));  
+                break;
+            default:
+                rawObj = null; 
+                }
+        try {  
+        String value = mapper.writeValueAsString( rawObj );
+            return mapper.readValue( value, Object.class );
+        } catch ( IOException e ) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+    
+    private Set<SetMultimap<FullQualifiedName, String>> convertValueToString (Set<SetMultimap<FullQualifiedName, Object>> set){
+        Set<SetMultimap<FullQualifiedName, String>> result = new HashSet<>();
+        for ( SetMultimap<FullQualifiedName, Object> map : set ) {
+            SetMultimap<FullQualifiedName, String> ans = HashMultimap.create();
+            map.entries().stream().forEach( e -> ans.put( e.getKey(), e.getValue().toString() ) );
+            result.add( ans );
+        }
+        return result;
     }
 }

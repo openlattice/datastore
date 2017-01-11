@@ -5,7 +5,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
@@ -29,7 +28,6 @@ import com.dataloom.authorization.AuthorizationManager;
 import com.dataloom.authorization.AuthorizingComponent;
 import com.dataloom.authorization.ForbiddenException;
 import com.dataloom.authorization.Permission;
-import com.dataloom.authorization.Principal;
 import com.dataloom.authorization.Principals;
 import com.dataloom.authorization.SecurableObjectType;
 import com.dataloom.edm.EdmApi;
@@ -47,7 +45,6 @@ import com.kryptnostic.datastore.exceptions.BadRequestException;
 import com.kryptnostic.datastore.exceptions.ResourceNotFoundException;
 import com.kryptnostic.datastore.services.CassandraEntitySetManager;
 import com.kryptnostic.datastore.services.EdmManager;
-import com.kryptnostic.datastore.util.Util;
 
 @RestController
 public class EdmController implements EdmApi, AuthorizingComponent {
@@ -387,8 +384,6 @@ public class EdmController implements EdmApi, AuthorizingComponent {
         }
     }
 
-<<<<<<< Updated upstream
-=======
     @Override
     @RequestMapping(
         path = "/" + IDS + "/" + ENTITY_SETS_BASE_PATH + "/" + NAME_PATH,
@@ -421,5 +416,4 @@ public class EdmController implements EdmApi, AuthorizingComponent {
         return authorizations;
     }
 
->>>>>>> Stashed changes
 }

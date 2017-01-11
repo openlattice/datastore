@@ -4,15 +4,14 @@ import javax.inject.Inject;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.DependsOn;
 import org.springframework.context.annotation.Import;
 
+import com.dataloom.mappers.ObjectMappers;
 import com.datastax.driver.core.Session;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.kryptnostic.datastore.services.CassandraDataManager;
 import com.kryptnostic.datastore.util.CassandraDataManagerUtils;
 import com.kryptnostic.rhizome.pods.CassandraPod;
-import com.kryptnostic.rhizome.registries.ObjectMapperRegistry;
 
 @Configuration
 @Import( { CassandraPod.class } )
@@ -25,7 +24,7 @@ public class DataManagerTestPod {
     
     @Bean
     public ObjectMapper defaultObjectMapper() {
-        return ObjectMapperRegistry.getJsonMapper();
+        return ObjectMappers.getJsonMapper();
     }
 
     @Bean

@@ -1,5 +1,9 @@
 package com.kryptnostic.datastore.Authentication;
 
+import java.util.UUID;
+
+import javax.ws.rs.NotFoundException;
+
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.olingo.commons.api.edm.FullQualifiedName;
 import org.junit.AfterClass;
@@ -17,14 +21,12 @@ import com.dataloom.client.RetrofitFactory;
 import com.dataloom.client.RetrofitFactory.Environment;
 import com.dataloom.data.DataApi;
 import com.dataloom.edm.EdmApi;
-import com.google.common.collect.Multimap;
+import com.google.common.collect.SetMultimap;
 import com.kryptnostic.datastore.Datastore;
 
 import digital.loom.rhizome.authentication.AuthenticationTest;
 import digital.loom.rhizome.configuration.auth0.Auth0Configuration;
 import retrofit2.Retrofit;
-
-import javax.ws.rs.NotFoundException;
 
 public class Auth0Test {
     private static final Logger                      logger = LoggerFactory.getLogger( Auth0Test.class );
@@ -52,19 +54,18 @@ public class Auth0Test {
 
     @Test
     public void testAuthenticatedAPICall() {
-        boolean entityTypeExists = true;
-        try{
-            edmApi.getEntityType( "testcsv", "employee" );
-        } catch ( NotFoundException e){
-            entityTypeExists = false;
+        UUID entitySetId = null;
+        try {
+            entitySetId = edmApi.getEntitySetId( "employees" );
+        } catch ( NotFoundException e ) {
+            
         }
-        
-        try{
-            Iterable<Multimap<FullQualifiedName, Object>> result = dataApi.getAllEntitiesOfType( "testcsv", "employee" );
+
+        try {
+            Iterable<SetMultimap<FullQualifiedName, Object>> result = dataApi.getEntitySetData( entitySetId );
             Assert.assertNull( result );
-        } catch ( NotFoundException e ){
-            //NotFoundException only thrown if testcsv.employee entity Type doesn't exist.
-            Assert.assertFalse( entityTypeExists );
+        } catch ( NotFoundException e ) {
+            Assert.assertNull( entitySetId );
         }
     }
 

@@ -1,13 +1,18 @@
 package com.kryptnostic.datastore.edm.controllers;
 
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 import javax.inject.Inject;
 
 import org.apache.olingo.commons.api.edm.FullQualifiedName;
+import org.spark_project.guava.collect.Iterables;
 import org.spark_project.guava.collect.Maps;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -19,8 +24,14 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.client.HttpServerErrorException;
 
+import com.dataloom.authorization.AclKeyPathFragment;
 import com.dataloom.authorization.AuthorizationManager;
+import com.dataloom.authorization.AuthorizingComponent;
+import com.dataloom.authorization.ForbiddenException;
+import com.dataloom.authorization.Permission;
+import com.dataloom.authorization.Principal;
 import com.dataloom.authorization.Principals;
+import com.dataloom.authorization.SecurableObjectType;
 import com.dataloom.edm.EdmApi;
 import com.dataloom.edm.EntityDataModel;
 import com.dataloom.edm.internal.EntitySet;
@@ -29,15 +40,17 @@ import com.dataloom.edm.internal.PropertyType;
 import com.dataloom.edm.internal.Schema;
 import com.dataloom.edm.requests.EdmRequest;
 import com.dataloom.edm.schemas.manager.HazelcastSchemaManager;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import com.kryptnostic.datastore.exceptions.BadRequestException;
 import com.kryptnostic.datastore.exceptions.ResourceNotFoundException;
 import com.kryptnostic.datastore.services.CassandraEntitySetManager;
 import com.kryptnostic.datastore.services.EdmManager;
+import com.kryptnostic.datastore.util.Util;
 
 @RestController
-public class EdmController implements EdmApi {
+public class EdmController implements EdmApi, AuthorizingComponent {
 
     @Inject
     private EdmManager                modelService;
@@ -57,7 +70,18 @@ public class EdmController implements EdmApi {
         produces = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
     public EntityDataModel getEntityDataModel() {
-        return modelService.getEntityDataModel();
+        EntityDataModel edm = modelService.getEntityDataModel();
+
+        Stream<EntitySet> authorizedEntitySets = StreamSupport
+                .stream( edm.getEntitySets().spliterator(), false )
+                .filter( isAuthorizedObject( Permission.READ ) );
+
+        return new EntityDataModel(
+                edm.getNamespaces(),
+                edm.getSchemas(),
+                edm.getEntityTypes(),
+                edm.getPropertyTypes(),
+                authorizedEntitySets::iterator );
     }
 
     /*
@@ -160,7 +184,11 @@ public class EdmController implements EdmApi {
         method = RequestMethod.GET )
     @ResponseStatus( HttpStatus.OK )
     public Iterable<EntitySet> getEntitySets() {
-        return entitySetManager.getAllEntitySets();
+        Iterable<AclKeyPathFragment> entitySetAclKeys = authorizations.getAuthorizedObjectsOfType(
+                Principals.getCurrentPrincipals(),
+                SecurableObjectType.EntitySet,
+                EnumSet.of( Permission.READ ) );
+        return Iterables.transform( entitySetAclKeys, akpf -> modelService.getEntitySet( akpf.getId() ) );
     }
 
     @Override
@@ -169,7 +197,14 @@ public class EdmController implements EdmApi {
         method = RequestMethod.GET )
     @ResponseStatus( HttpStatus.OK )
     public EntitySet getEntitySet( @PathVariable( ID ) UUID entitySetId ) {
-        return modelService.getEntitySet( entitySetId );
+        if ( authorizations.checkIfHasPermissions(
+                ImmutableList.of( new AclKeyPathFragment( SecurableObjectType.EntitySet, entitySetId ) ),
+                Principals.getCurrentPrincipals(),
+                EnumSet.of( Permission.READ ) ) ) {
+            return modelService.getEntitySet( entitySetId );
+        } else {
+            throw new ForbiddenException( "Entity set " + entitySetId.toString() + " does not exist." );
+        }
     }
 
     @Override
@@ -352,4 +387,39 @@ public class EdmController implements EdmApi {
         }
     }
 
+<<<<<<< Updated upstream
+=======
+    @Override
+    @RequestMapping(
+        path = "/" + IDS + "/" + ENTITY_SETS_BASE_PATH + "/" + NAME_PATH,
+        method = RequestMethod.GET,
+        produces = MediaType.APPLICATION_JSON_VALUE )
+    public UUID getEntitySetId( @PathVariable( NAME ) String entitySetName ) {
+        return entitySetManager.getEntitySet( entitySetName ).getId();
+    }
+
+    @Override
+    @RequestMapping(
+        path = "/" + IDS + "/" + PROPERTY_TYPE_BASE_PATH + "/" + NAMESPACE_PATH + "/" + NAME_PATH,
+        method = RequestMethod.GET,
+        produces = MediaType.APPLICATION_JSON_VALUE )
+    public UUID getPropertyTypeId( String namespace, String name ) {
+        return modelService.getTypeAclKey( new FullQualifiedName( namespace, name ) ).getId();
+    }
+
+    @Override
+    @RequestMapping(
+        path = "/" + IDS + "/" + ENTITY_TYPE_BASE_PATH + "/" + NAMESPACE_PATH + "/" + NAME_PATH,
+        method = RequestMethod.GET,
+        produces = MediaType.APPLICATION_JSON_VALUE )
+    public UUID getEntityTypeId( String namespace, String name ) {
+        return modelService.getTypeAclKey( new FullQualifiedName( namespace, name ) ).getId();
+    }
+
+    @Override
+    public AuthorizationManager getAuthorizationManager() {
+        return authorizations;
+    }
+
+>>>>>>> Stashed changes
 }

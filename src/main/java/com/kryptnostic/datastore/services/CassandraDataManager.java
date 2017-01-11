@@ -1,11 +1,14 @@
 package com.kryptnostic.datastore.services;
 
 import java.util.ArrayList;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.olingo.commons.api.edm.EdmPrimitiveTypeKind;
@@ -13,6 +16,11 @@ import org.apache.olingo.commons.api.edm.FullQualifiedName;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.dataloom.authorization.AclKeyPathFragment;
+import com.dataloom.authorization.Permission;
+import com.dataloom.authorization.Principal;
+import com.dataloom.authorization.SecurableObjectType;
+import com.dataloom.edm.internal.EntitySet;
 import com.datastax.driver.core.BoundStatement;
 import com.datastax.driver.core.DataType;
 import com.datastax.driver.core.PreparedStatement;
@@ -39,9 +47,6 @@ public class CassandraDataManager {
     private static final Logger             logger            = LoggerFactory
             .getLogger( CassandraDataManager.class );
     public static final String              VALUE_COLUMN_NAME = "value";
-    private static ColumnDef                VALUE_COLUMN      = new CassandraTableBuilder.ValueColumn(
-            VALUE_COLUMN_NAME,
-            DataType.blob() );
     private final String                    keyspace;
     private final Session                   session;
     private final CassandraDataManagerUtils utils;
@@ -54,9 +59,8 @@ public class CassandraDataManager {
         this.keyspace = keyspace;
         this.session = session;
         this.utils = utils;
-        CassandraTableBuilder idLookupTableDefinitions = defineIdLookupTables( keyspace );
-        CassandraTableBuilder dataTableDefinitions = defineDataTables( keyspace );
-        prepareTables( session, idLookupTableDefinitions, dataTableDefinitions );
+        CassandraTableBuilder idLookupTableDefinitions = Tables.ENTITY_ID_LOOKUP.getBuilder();
+        CassandraTableBuilder dataTableDefinitions = Tables.DATA.getBuilder();
 
         this.entitySetQuery = prepareEntitySetQuery( session, dataTableDefinitions );
         this.entityIdsQuery = prepareEntityIdsQuery( keyspace, session );
@@ -122,7 +126,7 @@ public class CassandraDataManager {
                                             .setString( CommonColumns.ENTITYID.cql(), entity.getKey() )
                                             .setUUID( CommonColumns.SYNCID.cql(), syncId )
                                             .setUUID( CommonColumns.PROPERTY_TYPE_ID.cql(), entry.getKey() )
-                                            .setBytes( VALUE_COLUMN.cql(),
+                                            .setBytes( CommonColumns.PROPERTY_VALUE.cql(),
                                                     utils.serialize( entry.getValue(),
                                                             authorizedPropertiesWithDataType
                                                                     .get( entry.getKey() ) ) ) ) );
@@ -172,27 +176,4 @@ public class CassandraDataManager {
                 .and( QueryBuilder.in( CommonColumns.SYNCID.cql(), CommonColumns.SYNCID.bindMarker() ) ) );
     }
 
-    private static void prepareTables(
-            Session session,
-            CassandraTableBuilder... ctbs ) {
-        for ( CassandraTableBuilder ctb : ctbs ) {
-            logger.debug( "Ensuring table " + ctb.getKeyspace() + "." + ctb.getName() + " exists." );
-            session.execute( ctb.buildQuery() );
-            logger.debug( "Table " + ctb.getKeyspace() + "." + ctb.getName() + " exists." );
-        }
-    }
-
-    private static CassandraTableBuilder defineIdLookupTables( String keyspace ) {
-        return new CassandraTableBuilder( keyspace, Tables.ENTITY_ID_LOOKUP.getName() )
-                .ifNotExists()
-                .partitionKey( CommonColumns.SYNCID, CommonColumns.ENTITY_SET_ID )
-                .clusteringColumns( CommonColumns.ENTITYID );
-    }
-
-    private static CassandraTableBuilder defineDataTables( String keyspace ) {
-        return new CassandraTableBuilder( keyspace, Tables.DATA.getName() )
-                .ifNotExists()
-                .partitionKey( CommonColumns.ENTITYID )
-                .clusteringColumns( CommonColumns.SYNCID, CommonColumns.PROPERTY_TYPE_ID, VALUE_COLUMN );
-    }
 }

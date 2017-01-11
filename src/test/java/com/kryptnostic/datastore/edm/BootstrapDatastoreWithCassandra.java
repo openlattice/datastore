@@ -1,6 +1,7 @@
 package com.kryptnostic.datastore.edm;
 
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.Semaphore;
 
 import org.apache.olingo.commons.api.edm.EdmPrimitiveTypeKind;
@@ -12,6 +13,7 @@ import com.dataloom.authorization.requests.Principal;
 import com.dataloom.authorization.requests.PrincipalType;
 import com.dataloom.edm.internal.EntityType;
 import com.dataloom.edm.internal.PropertyType;
+import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import com.kryptnostic.conductor.rpc.UUIDs.ACLs;
@@ -22,38 +24,77 @@ import com.kryptnostic.datastore.services.PermissionsService;
 import com.kryptnostic.rhizome.pods.SparkPod;
 
 public class BootstrapDatastoreWithCassandra {
-    public static final String                  NAMESPACE                = "testcsv";
-    protected static EdmManager                 dms;
-    protected static AuthorizationManager       am;
-    protected static DataService                dataService;
+    public static final String               NAMESPACE                 = "testcsv";
+    protected static EdmManager              dms;
+    protected static AuthorizationManager    am;
+    protected static DataService             dataService;
 
-    protected static final Set<Class<?>>        PODS                     = Sets.newHashSet( SparkPod.class );
-    protected static final DatastoreServices    ds                       = new DatastoreServices();
-    protected static final Set<String>          PROFILES                 = Sets.newHashSet( "local", "cassandra" );
-    protected static final String               SALARY                   = "salary";
-    protected static final String               EMPLOYEE_NAME            = "employee_name";
-    protected static final String               EMPLOYEE_TITLE           = "employee_title";
-    protected static final String               EMPLOYEE_DEPT            = "employee_dept";
-    protected static final String               EMPLOYEE_ID              = "employee_id";
-    protected static final String               ENTITY_SET_NAME          = "Employees";
-    protected static final FullQualifiedName    ENTITY_TYPE              = new FullQualifiedName(
+    protected static final Set<Class<?>>     PODS                      = Sets.newHashSet( SparkPod.class );
+    protected static final DatastoreServices ds                        = new DatastoreServices();
+    protected static final Set<String>       PROFILES                  = Sets.newHashSet( "local", "cassandra" );
+    protected static final String            SALARY                    = "salary";
+    protected static final String            EMPLOYEE_NAME             = "employee_name";
+    protected static final String            EMPLOYEE_TITLE            = "employee_title";
+    protected static final String            EMPLOYEE_DEPT             = "employee_dept";
+    protected static final String            EMPLOYEE_ID               = "employee_id";
+    protected static final String            ENTITY_SET_NAME           = "Employees";
+
+    protected static final FullQualifiedName ENTITY_TYPE               = new FullQualifiedName(
             NAMESPACE,
             "employee" );
     // created by Ho Chung to populate two more entity Types
-    protected static final FullQualifiedName    ENTITY_TYPE_MARS         = new FullQualifiedName(
+    protected static final FullQualifiedName ENTITY_TYPE_MARS          = new FullQualifiedName(
             NAMESPACE,
             "employeeMars" );
-    protected static final FullQualifiedName    ENTITY_TYPE_SATURN       = new FullQualifiedName(
+    protected static final FullQualifiedName ENTITY_TYPE_SATURN        = new FullQualifiedName(
             NAMESPACE,
             "employeeSaturn" );
-    protected static final String               SCHEMA_NAME              = "csv";
-    protected static final Semaphore            initLock                 = new Semaphore( 1 );
+    protected static final String            SCHEMA_NAME               = "csv";
 
-    protected static final String               PROPERTY_TYPE_EXISTS_MSG = "Property Type of same name exists.";
-    protected static final String               ENTITY_TYPE_EXISTS_MSG   = "Entity type of same name already exists.";
-    protected static final String               ENTITY_SET_EXISTS_MSG    = "Entity set already exists.";
-    protected static final String               SCHEMA_EXISTS_MSG        = "Failed to create schema.";
-    protected static final Principal            principal                = new Principal(
+    protected static PropertyType            EMPLOYEE_ID_PROP_TYPE     = new PropertyType(
+            new FullQualifiedName( NAMESPACE, EMPLOYEE_ID ),
+            "Employee ID",
+            Optional
+                    .of( "ID of an employee of the city of Chicago." ),
+            ImmutableSet.of(),
+            EdmPrimitiveTypeKind.Guid );
+
+    protected static PropertyType            EMPLOYEE_TITLE_PROP_TYPE  = new PropertyType(
+            new FullQualifiedName( NAMESPACE, EMPLOYEE_TITLE ),
+            "Title",
+            Optional.of( "Title of an employee of the city of Chicago." ),
+            ImmutableSet.of(),
+            EdmPrimitiveTypeKind.String );
+
+    protected static PropertyType            EMPLOYEE_NAME_PROP_TYPE   = new PropertyType(
+            new FullQualifiedName( NAMESPACE, EMPLOYEE_NAME ),
+            "Name",
+            Optional
+                    .of( "Name of an employee of the city of Chicago." ),
+            ImmutableSet.of(),
+            EdmPrimitiveTypeKind.String );
+    protected static PropertyType            EMPLOYEE_DEPT_PROP_TYPE   = new PropertyType(
+            new FullQualifiedName( NAMESPACE, EMPLOYEE_DEPT ),
+            "Department",
+            Optional
+                    .of( "Department of an employee of the city of Chicago." ),
+            ImmutableSet.of(),
+            EdmPrimitiveTypeKind.String );
+    protected static PropertyType            EMPLOYEE_SALARY_PROP_TYPE = new PropertyType(
+            new FullQualifiedName( NAMESPACE, SALARY ),
+            "Salary",
+            Optional.of( "Salary of an employee of the city of Chicago." ),
+            ImmutableSet.of(),
+            EdmPrimitiveTypeKind.Int64 );
+
+    protected static EntityType              METADATA_LEVELS;
+    protected static final Semaphore         initLock                  = new Semaphore( 1 );
+
+    protected static final String            PROPERTY_TYPE_EXISTS_MSG  = "Property Type of same name exists.";
+    protected static final String            ENTITY_TYPE_EXISTS_MSG    = "Entity type of same name already exists.";
+    protected static final String            ENTITY_SET_EXISTS_MSG     = "Entity set already exists.";
+    protected static final String            SCHEMA_EXISTS_MSG         = "Failed to create schema.";
+    protected static final Principal         principal                 = new Principal(
             PrincipalType.USER,
             "tests|blahblah" );
 
@@ -71,64 +112,34 @@ public class BootstrapDatastoreWithCassandra {
 
     private static void setupDatamodel() {
         try {
-            dms.createPropertyTypeIfNotExists( new PropertyType(
-                    new FullQualifiedName( NAMESPACE, EMPLOYEE_ID ),
-                    ImmutableSet.of(),
-                    EdmPrimitiveTypeKind.Guid ) );
+            dms.createPropertyTypeIfNotExists( EMPLOYEE_ID_PROP_TYPE );
         } catch ( IllegalArgumentException e ) {
-            // Only acceptable exception is property type already exists
             Assert.assertEquals( PROPERTY_TYPE_EXISTS_MSG, e.getMessage() );
         }
+        
         try {
-            dms.createPropertyTypeIfNotExists( new PropertyType(
-                    new FullQualifiedName( NAMESPACE, EMPLOYEE_TITLE ),
-                    ImmutableSet.of(),
-                    EdmPrimitiveTypeKind.String ) );
+            dms.createPropertyTypeIfNotExists( EMPLOYEE_TITLE_PROP_TYPE );
         } catch ( IllegalArgumentException e ) {
-            // Only acceptable exception is property type already exists
             Assert.assertEquals( PROPERTY_TYPE_EXISTS_MSG, e.getMessage() );
         }
+        dms.createPropertyTypeIfNotExists( EMPLOYEE_NAME_PROP_TYPE );
+        dms.createPropertyTypeIfNotExists( EMPLOYEE_DEPT_PROP_TYPE );
+        dms.createPropertyTypeIfNotExists( EMPLOYEE_SALARY_PROP_TYPE );
         try {
-            dms.createPropertyTypeIfNotExists( new PropertyType(
-                    new FullQualifiedName( NAMESPACE, EMPLOYEE_NAME ),
+            METADATA_LEVELS = new EntityType(
+                    ENTITY_TYPE,
+                    "Employee",
+                    "Employees of the city of Chicago",
                     ImmutableSet.of(),
-                    EdmPrimitiveTypeKind.String ) );
-        } catch ( IllegalArgumentException e ) {
-            // Only acceptable exception is property type already exists
-            Assert.assertEquals( PROPERTY_TYPE_EXISTS_MSG, e.getMessage() );
-        }
-        try {
-            dms.createPropertyTypeIfNotExists( new PropertyType(
-                    new FullQualifiedName( NAMESPACE, EMPLOYEE_DEPT ),
-                    ImmutableSet.of(),
-                    EdmPrimitiveTypeKind.String ) );
-        } catch ( IllegalArgumentException e ) {
-            // Only acceptable exception is property type already exists
-            Assert.assertEquals( PROPERTY_TYPE_EXISTS_MSG, e.getMessage() );
-        }
-        try {
-            dms.createPropertyTypeIfNotExists( new PropertyType(
-                    new FullQualifiedName( NAMESPACE, SALARY ),
-                    ImmutableSet.of(),
-                    EdmPrimitiveTypeKind.Int64 ) );
-        } catch ( IllegalArgumentException e ) {
-            // Only acceptable exception is property type already exists
-            Assert.assertEquals( PROPERTY_TYPE_EXISTS_MSG, e.getMessage() );
-        }
+                    ImmutableSet.of( EMPLOYEE_ID_PROP_TYPE.getId() ),
+                    ImmutableSet.of( EMPLOYEE_ID_PROP_TYPE.getId(),
+                            EMPLOYEE_TITLE_PROP_TYPE.getId(),
+                            EMPLOYEE_NAME_PROP_TYPE.getId(),
+                            EMPLOYEE_DEPT_PROP_TYPE.getId(),
+                            EMPLOYEE_SALARY_PROP_TYPE.getId() ) );
 
-        EntityType metadataLevel = new EntityType(
-                ENTITY_TYPE,
-                ImmutableSet.of(),
-                ImmutableSet.of( new FullQualifiedName( NAMESPACE, EMPLOYEE_ID ) ),
-                ImmutableSet.of( new FullQualifiedName( NAMESPACE, EMPLOYEE_ID ),
-                        new FullQualifiedName( NAMESPACE, EMPLOYEE_TITLE ),
-                        new FullQualifiedName( NAMESPACE, EMPLOYEE_NAME ),
-                        new FullQualifiedName( NAMESPACE, EMPLOYEE_DEPT ),
-                        new FullQualifiedName( NAMESPACE, SALARY ) ) );
-        try {
-            dms.createEntityType( metadataLevel );
+            dms.createEntityType( METADATA_LEVELS );
         } catch ( IllegalArgumentException e ) {
-            // Only acceptable exception is entity type already exists
             Assert.assertEquals( ENTITY_TYPE_EXISTS_MSG, e.getMessage() );
         }
 

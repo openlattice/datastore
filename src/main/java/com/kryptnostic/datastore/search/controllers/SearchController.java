@@ -20,6 +20,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.guava.GuavaModule;
 import com.fasterxml.jackson.datatype.joda.JodaModule;
 import com.google.common.base.Optional;
+import com.google.common.collect.Lists;
 import com.kryptnostic.datastore.services.SearchService;
 
 @RestController
@@ -53,7 +54,7 @@ public class SearchController implements SearchApi {
 		} catch (JsonProcessingException e) {
 			e.printStackTrace();
 		}
-		return "[]";
+		return Lists.newArrayList().toString();
 	}
     
 
@@ -67,9 +68,9 @@ public class SearchController implements SearchApi {
 			@RequestParam(
 					value = ENTITY_TYPE_ID,
 					required = false ) UUID entityType,
-			@RequestBody Set<UUID> pid ) {
+			@RequestBody Set<UUID> propertyTypes ) {
     	Optional<UUID> optionalEntityType = ( entityType == null ) ? Optional.absent() : Optional.of( entityType );
-		return searchService.executeEntitySetKeywordSearchQuery( query, optionalEntityType, Optional.of( pid ) );
+		return searchService.executeEntitySetKeywordSearchQuery( query, optionalEntityType, Optional.of( propertyTypes ) );
 	}
 
 }

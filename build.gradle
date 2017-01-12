@@ -42,13 +42,17 @@ dependencies {
         compile project(":rhizome")
         compile project(":kryptnostic-conductor-client")
         compile project(":loom-api")
-        testCompile project(path: ":rhizome", configuration: "tests")
+        testCompile( project(path: ":loom-api", configuration: "tests"))
+        testCompile( project(path: ":rhizome", configuration: "tests"))
+        testCompile( project(path: ":rhizome-client", configuration: "tests"))
     } else {
         logger.quiet(project.name + " using jar dependencies.")
         compile "com.kryptnostic:rhizome:${rhizome_version}"
         compile "com.kryptnostic:kryptnostic-conductor-client:${conductor_client_version}"
         compile ("com.kryptnostic:loom-api:${loom_api_version}")
+        testCompile "com.kryptnostic:loom-api:${loom_api_version}:tests"
         testCompile "com.kryptnostic:rhizome:${rhizome_version}:tests"
+        testCompile "com.kryptnostic:rhizome-client:${rhizome_client_version}:tests"
     }
 
     compile group: 'com.datastax.cassandra', name: 'cassandra-driver-core', version: "${cassandra_driver_version}"

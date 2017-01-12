@@ -8,6 +8,7 @@ import org.springframework.context.annotation.Import;
 
 import com.dataloom.authorization.AuthorizationManager;
 import com.dataloom.authorization.AuthorizationQueryService;
+import com.dataloom.authorization.EdmAuthorizationHelper;
 import com.dataloom.authorization.HazelcastAclKeyReservationService;
 import com.dataloom.authorization.HazelcastAuthorizationService;
 import com.dataloom.edm.internal.DatastoreConstants;
@@ -127,4 +128,8 @@ public class DatastoreServicesPod {
     	return new SearchService( hazelcastInstance );
     }
 
+    @Bean
+    public EdmAuthorizationHelper edmAuthorizationHelper() {
+        return new EdmAuthorizationHelper( dataModelService(), authorizationManager() );
+    }
 }

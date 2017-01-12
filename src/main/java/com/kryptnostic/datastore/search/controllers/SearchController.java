@@ -1,6 +1,5 @@
 package com.kryptnostic.datastore.search.controllers;
 
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -61,7 +60,7 @@ public class SearchController implements SearchApi {
     @RequestMapping(
     		path = { "/" + SEARCH },
     		method = RequestMethod.POST )
-	public List<Map<String, Object>> executeQuery(
+	public Iterable<Map<String, Object>> executeQuery(
 			@RequestParam(
 					value = KEYWORD,
 					required = true ) String query,

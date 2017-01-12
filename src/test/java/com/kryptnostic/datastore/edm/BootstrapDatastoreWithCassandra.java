@@ -108,7 +108,7 @@ public class BootstrapDatastoreWithCassandra {
         METADATA_LEVELS_SATURN = from( "Saturn" );
         METADATA_LEVELS_MARS = from( "Mars" );
         EMPLOYEES = new EntitySet(
-                METADATA_LEVELS.getType()s,
+                METADATA_LEVELS.getType(),
                 METADATA_LEVELS.getId(),
                 ENTITY_SET_NAME,
                 ENTITY_SET_NAME,

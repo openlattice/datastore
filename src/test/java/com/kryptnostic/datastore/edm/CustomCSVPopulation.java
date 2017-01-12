@@ -1,23 +1,20 @@
 package com.kryptnostic.datastore.edm;
 
 import java.io.BufferedOutputStream;
-import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileOutputStream;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.Callable;
-import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.olingo.commons.api.data.Entity;
@@ -26,10 +23,13 @@ import org.apache.olingo.commons.api.data.ValueType;
 import org.apache.olingo.commons.api.edm.EdmPrimitiveTypeKind;
 import org.apache.olingo.commons.api.edm.FullQualifiedName;
 
-import com.dataloom.authorization.requests.Principal;
-import com.dataloom.authorization.requests.PrincipalType;
+import com.dataloom.authorization.Principal;
+import com.dataloom.authorization.PrincipalType;
+import com.dataloom.edm.internal.EntitySet;
 import com.dataloom.edm.internal.EntityType;
 import com.dataloom.edm.internal.PropertyType;
+import com.dataloom.edm.internal.Schema;
+import com.dataloom.edm.schemas.manager.HazelcastSchemaManager;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.MappingIterator;
@@ -37,12 +37,11 @@ import com.fasterxml.jackson.databind.ObjectWriter;
 import com.fasterxml.jackson.dataformat.csv.CsvMapper;
 import com.fasterxml.jackson.dataformat.csv.CsvParser;
 import com.fasterxml.jackson.dataformat.csv.CsvSchema;
-import com.google.common.base.Stopwatch;
+import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Multimap;
 import com.kryptnostic.conductor.rpc.UUIDs.ACLs;
 import com.kryptnostic.conductor.rpc.UUIDs.Syncs;
-import com.kryptnostic.datastore.services.DataService;
+import com.kryptnostic.datastore.services.CassandraDataManager;
 import com.kryptnostic.datastore.services.EdmManager;
 import com.kryptnostic.datastore.services.ODataStorageService;
 
@@ -59,14 +58,15 @@ public class CustomCSVPopulation {
     protected static final DatastoreServices ds                  = new DatastoreServices();
     static EdmManager                        dms;
     static ODataStorageService               odsc;
-    static DataService                       dataService;
+    static CassandraDataManager                      cdm;
+    static HazelcastSchemaManager                        hsm;
 
     public static int                        defaultTypeSize     = 0;
     public static List<CustomPropertyType>   defaultTypeList     = new ArrayList<>();
 
     public static List<CustomPropertyType>   propertyTypesList   = new ArrayList<>();
     public static CsvSchema                  csvSchema;
-    public static List<String>               EntityTypesList     = new ArrayList<String>();
+    public static List<EntityType>               EntityTypesList     = new ArrayList<>();
     public static List<String>               EntitySetsList      = new ArrayList<String>();
     public static Map<String, String>        EntitySetToType     = new HashMap<>();
 
@@ -90,6 +90,7 @@ public class CustomCSVPopulation {
      *
      */
     private static class CustomPropertyType {
+        private UUID id;
         private String               name;
         private EdmPrimitiveTypeKind dataType;
         private String               keyword;
@@ -97,11 +98,13 @@ public class CustomCSVPopulation {
         private String               javaTypeName;
 
         public CustomPropertyType(
+                UUID id,
                 String name,
                 EdmPrimitiveTypeKind dataType,
                 String keyword,
                 Callable randomGenCallable,
                 String javaTypeName ) {
+            this.id = id;
             this.name = name;
             this.dataType = dataType;
             this.keyword = keyword;
@@ -109,6 +112,24 @@ public class CustomCSVPopulation {
             this.javaTypeName = javaTypeName;
         }
 
+        public CustomPropertyType(
+                String name,
+                EdmPrimitiveTypeKind dataType,
+                String keyword,
+                Callable randomGenCallable,
+                String javaTypeName ) {
+            this.id = UUID.randomUUID();
+            this.name = name;
+            this.dataType = dataType;
+            this.keyword = keyword;
+            this.randomGenCallable = randomGenCallable;
+            this.javaTypeName = javaTypeName;
+        }
+
+        public UUID getId(){
+            return id;
+        }
+        
         public String getJavaTypeName() {
             return javaTypeName;
         }
@@ -214,7 +235,7 @@ public class CustomCSVPopulation {
             String javaTypeName = propertyType.getJavaTypeName();
 
             propertyTypesList
-                    .add( new CustomPropertyType( newName, dataType, keyword, randomGenCallable, javaTypeName ) );
+                    .add( new CustomPropertyType( UUID.randomUUID(), newName, dataType, keyword, randomGenCallable, javaTypeName ) );
         }
         return propertyTypesList;
     }
@@ -256,7 +277,8 @@ public class CustomCSVPopulation {
 
     public static void createPropertyTypes() {
         for ( CustomPropertyType type : propertyTypesList ) {
-            dms.createPropertyType( new PropertyType(type.getFqn(),ImmutableSet.of(), type.getDataType() ) );
+            dms.createPropertyTypeIfNotExists( new PropertyType( type.getFqn(), "Generated Type " + type.getFqn().toString(), Optional.absent(), ImmutableSet.of(), type.getDataType() )
+                     );
         }
     }
 
@@ -272,28 +294,25 @@ public class CustomCSVPopulation {
         for ( int i = 0; i < numEntityTypes; i++ ) {
             // Entity Type of 10-character names
             String entityTypeName = RandomStringUtils.randomAlphabetic( 10 );
-            Set<FullQualifiedName> setPropertyTypesFQN = new HashSet<FullQualifiedName>();
-            for ( CustomPropertyType propertyType : propertyTypesList ) {
-                setPropertyTypesFQN.add( new FullQualifiedName( NAMESPACE, propertyType.getName() ) );
-            }
+            Set<UUID> keyPropertyType = ImmutableSet.of( propertyTypesList.get( propertyTypesList.size() - 1 ).getId());
+            Set<UUID> propertyTypeIdsSet = propertyTypesList.stream().map( pt -> pt.getId() ).collect( Collectors.toSet() );
 
-            EntityType entityType = new EntityType(new FullQualifiedName( NAMESPACE ,entityTypeName ),ImmutableSet.of(),ImmutableSet.of( new FullQualifiedName( NAMESPACE, "key" ) ), setPropertyTypesFQN );
+            UUID entityTypeId = UUID.randomUUID();
+            EntityType entityType = new EntityType( entityTypeId, new FullQualifiedName( NAMESPACE ,entityTypeName ), entityTypeName, Optional.absent(), ImmutableSet.of(), keyPropertyType, propertyTypeIdsSet );
             // Add property types to entity type
 
             // Create Entity Type in database
             dms.createEntityType( entityType );
 
             // Update list of custom Entity Types
-            EntityTypesList.add( entityTypeName );
+            EntityTypesList.add( entityType );
 
             // Create entity set
             for ( int j = 0; j < numEntitySets; j++ ) {
                 String entitySetName = RandomStringUtils.randomAlphabetic( 10 );
                 // Create entity set
                 dms.createEntitySet( principal,
-                        new FullQualifiedName( NAMESPACE, entityTypeName ),
-                        entitySetName,
-                        "Random Entity Set " + entitySetName );
+                        new EntitySet( new FullQualifiedName(NAMESPACE,entityTypeName), entityTypeId, entitySetName, "Random Entity Set " + entitySetName, Optional.absent()) );
 
                 // Update list of custom Entity Sets
                 EntitySetsList.add( entitySetName );
@@ -304,16 +323,11 @@ public class CustomCSVPopulation {
     }
 
     public static void createSchema() {
-        Set<FullQualifiedName> setOfEntityTypes = new HashSet();
+        Set<PropertyType> propertyTypesSet = propertyTypesList.stream().map( type -> 
+        new PropertyType( type.getFqn(), "Generated Type " + type.getFqn().toString(), Optional.absent(), ImmutableSet.of(), type.getDataType()
+                )).collect( Collectors.toSet() );        
 
-        for ( String entityTypeName : EntityTypesList ) {
-            setOfEntityTypes.add( new FullQualifiedName( NAMESPACE, entityTypeName ) );
-        }
-
-        dms.createSchema( NAMESPACE,
-                "hochung",
-                ACLs.EVERYONE_ACL,
-                setOfEntityTypes );
+        hsm.createOrUpdateSchemas( new Schema( new FullQualifiedName( NAMESPACE, "hochung"), propertyTypesSet, EntityTypesList) );
     }
 
     private static Object TypeConversion( String str, String type ) {
@@ -376,12 +390,14 @@ public class CustomCSVPopulation {
     }
 
     /**
+     * WARNING: THIS TEST IS DISABLED SINCE getAllEntitiesOfType IS NOW GONE.
      * Benchmarking getAllEntitiesOfType
      * 
      * @param numTest
      * @throws IOException
      */
     public static void timeGetAllEntitiesOfType( int numTest ) throws IOException {
+        /**
         // Initialize file writers
         File fileAll = new File( individualResultLoc );
         FileWriter fwAll = new FileWriter( fileAll.getAbsoluteFile() );
@@ -431,6 +447,7 @@ public class CustomCSVPopulation {
 
         bwAll.close();
         bwAverage.close();
+        */
     }
 
     // @BeforeClass
@@ -451,7 +468,7 @@ public class CustomCSVPopulation {
         ds.sprout( "cassandra", "local" );
         dms = ds.getContext().getBean( EdmManager.class );
         odsc = ds.getContext().getBean( ODataStorageService.class );
-        dataService = ds.getContext().getBean( DataService.class );
+        cdm = ds.getContext().getBean( CassandraDataManager.class );
 
         // Create PropertyType, Entity Types, Entity Sets in database
         createPropertyTypes();

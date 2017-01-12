@@ -15,9 +15,9 @@ import org.springframework.web.servlet.config.annotation.ContentNegotiationConfi
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurationSupport;
 
+import com.dataloom.data.DataApi;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.kryptnostic.datastore.constants.CustomMediaType;
-import com.kryptnostic.datastore.constants.DatastoreConstants;
 import com.kryptnostic.datastore.converters.CsvHttpMessageConverter;
 import com.ryantenney.metrics.spring.config.annotation.EnableMetrics;
 
@@ -63,7 +63,7 @@ public class DataStoreMvcPod extends WebMvcConfigurationSupport {
 
     @Override
     protected void configureContentNegotiation( ContentNegotiationConfigurer configurer ) {
-        configurer.parameterName( DatastoreConstants.FILE_TYPE )
+        configurer.parameterName( DataApi.FILE_TYPE )
                 .favorParameter( true )
                 .mediaType( "csv", CustomMediaType.TEXT_CSV )
                 .mediaType( "json", MediaType.APPLICATION_JSON )

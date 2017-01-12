@@ -21,14 +21,12 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.hazelcast.core.HazelcastInstance;
 import com.kryptnostic.datastore.services.CassandraDataManager;
 import com.kryptnostic.datastore.services.CassandraEntitySetManager;
-import com.kryptnostic.datastore.services.DataService;
 import com.kryptnostic.datastore.services.DatasourceManager;
 import com.kryptnostic.datastore.services.EdmManager;
 import com.kryptnostic.datastore.services.EdmService;
 import com.kryptnostic.datastore.services.ODataStorageService;
 import com.kryptnostic.datastore.services.SearchService;
 import com.kryptnostic.datastore.services.UserDirectoryService;
-import com.kryptnostic.datastore.util.CassandraDataManagerUtils;
 import com.kryptnostic.rhizome.pods.CassandraPod;
 
 import digital.loom.rhizome.authentication.Auth0Pod;
@@ -69,7 +67,7 @@ public class DatastoreServicesPod {
 
     @Bean
     public CassandraEntitySetManager entitySetManager() {
-        return new CassandraEntitySetManager( session, DatastoreConstants.KEYSPACE );
+        return new CassandraEntitySetManager( DatastoreConstants.KEYSPACE, session, authorizationManager() );
     }
 
     @Bean
@@ -110,22 +108,8 @@ public class DatastoreServicesPod {
     }
 
     @Bean
-    public CassandraDataManagerUtils cassandraDataManagerUtils() {
-        return new CassandraDataManagerUtils( defaultObjectMapper() );
-    }
-    
-    @Bean
     public CassandraDataManager cassandraDataManager() {
-        return new CassandraDataManager( DatastoreConstants.KEYSPACE, session, cassandraDataManagerUtils() );
-    }
-    
-    @Bean
-    public DataService dataService() {
-        return new DataService(
-                DatastoreConstants.KEYSPACE,
-                hazelcastInstance,
-                dataModelService(),
-                session );
+        return new CassandraDataManager( DatastoreConstants.KEYSPACE, session, defaultObjectMapper() );
     }
 
     @Bean

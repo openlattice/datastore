@@ -1,6 +1,7 @@
 package com.kryptnostic.datastore.edm;
 
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.Semaphore;
 
 import org.apache.olingo.commons.api.edm.EdmPrimitiveTypeKind;
@@ -46,9 +47,11 @@ public class BootstrapDatastoreWithCassandra {
     protected static final String            ENTITY_SET_EXISTS_MSG     = "Entity set already exists.";
     protected static final String            SCHEMA_EXISTS_MSG         = "Failed to create schema.";
 
-    protected static final FullQualifiedName ENTITY_TYPE               = new FullQualifiedName(
-            NAMESPACE,
-            "employee" );
+    protected static final String ENTITY_TYPE_NAME               = 
+            "employee";
+    protected static final FullQualifiedName ENTITY_TYPE               = 
+            new FullQualifiedName( NAMESPACE, ENTITY_TYPE_NAME );
+
     // created by Ho Chung to populate two more entity Types
     protected static final FullQualifiedName ENTITY_TYPE_MARS          = new FullQualifiedName(
             NAMESPACE,
@@ -59,6 +62,7 @@ public class BootstrapDatastoreWithCassandra {
     protected static final String            SCHEMA_NAME               = "csv";
 
     protected static final PropertyType      EMPLOYEE_ID_PROP_TYPE     = new PropertyType(
+            UUID.randomUUID(),
             new FullQualifiedName( NAMESPACE, EMPLOYEE_ID ),
             "Employee ID",
             Optional
@@ -67,6 +71,7 @@ public class BootstrapDatastoreWithCassandra {
             EdmPrimitiveTypeKind.Guid );
 
     protected static final PropertyType      EMPLOYEE_TITLE_PROP_TYPE  = new PropertyType(
+            UUID.randomUUID(),
             new FullQualifiedName( NAMESPACE, EMPLOYEE_TITLE ),
             "Title",
             Optional.of( "Title of an employee of the city of Chicago." ),
@@ -74,6 +79,7 @@ public class BootstrapDatastoreWithCassandra {
             EdmPrimitiveTypeKind.String );
 
     protected static final PropertyType      EMPLOYEE_NAME_PROP_TYPE   = new PropertyType(
+            UUID.randomUUID(),
             new FullQualifiedName( NAMESPACE, EMPLOYEE_NAME ),
             "Name",
             Optional
@@ -81,6 +87,7 @@ public class BootstrapDatastoreWithCassandra {
             ImmutableSet.of(),
             EdmPrimitiveTypeKind.String );
     protected static final PropertyType      EMPLOYEE_DEPT_PROP_TYPE   = new PropertyType(
+            UUID.randomUUID(),
             new FullQualifiedName( NAMESPACE, EMPLOYEE_DEPT ),
             "Department",
             Optional
@@ -88,6 +95,7 @@ public class BootstrapDatastoreWithCassandra {
             ImmutableSet.of(),
             EdmPrimitiveTypeKind.String );
     protected static final PropertyType      EMPLOYEE_SALARY_PROP_TYPE = new PropertyType(
+            UUID.randomUUID(),
             new FullQualifiedName( NAMESPACE, SALARY ),
             "Salary",
             Optional.of( "Salary of an employee of the city of Chicago." ),
@@ -128,53 +136,25 @@ public class BootstrapDatastoreWithCassandra {
     }
 
     private static void setupDatamodel() {
-        try {
             dms.createPropertyTypeIfNotExists( EMPLOYEE_ID_PROP_TYPE );
-        } catch ( IllegalArgumentException e ) {
-            Assert.assertEquals( PROPERTY_TYPE_EXISTS_MSG, e.getMessage() );
-        }
 
-        try {
             dms.createPropertyTypeIfNotExists( EMPLOYEE_TITLE_PROP_TYPE );
-        } catch ( IllegalArgumentException e ) {
-            Assert.assertEquals( PROPERTY_TYPE_EXISTS_MSG, e.getMessage() );
-        }
         dms.createPropertyTypeIfNotExists( EMPLOYEE_NAME_PROP_TYPE );
         dms.createPropertyTypeIfNotExists( EMPLOYEE_DEPT_PROP_TYPE );
         dms.createPropertyTypeIfNotExists( EMPLOYEE_SALARY_PROP_TYPE );
-        try {
 
             dms.createEntityType( METADATA_LEVELS );
             dms.createEntityType( METADATA_LEVELS_SATURN );
             dms.createEntityType( METADATA_LEVELS_MARS );
-        } catch ( IllegalArgumentException e ) {
-            Assert.assertEquals( ENTITY_TYPE_EXISTS_MSG, e.getMessage() );
-        }
 
-        try {
             dms.createEntityType( METADATA_LEVELS_MARS );
-        } catch ( IllegalArgumentException e ) {
-            // Only acceptable exception is entity type already exists
-            Assert.assertEquals( ENTITY_TYPE_EXISTS_MSG, e.getMessage() );
-        }
 
-        try {
             dms.createEntityType( METADATA_LEVELS_SATURN );
-        } catch ( IllegalArgumentException e ) {
-            // Only acceptable exception is entity type already exists
-            Assert.assertEquals( ENTITY_TYPE_EXISTS_MSG, e.getMessage() );
-        }
 
-        try {
             dms.createEntitySet(
                     principal,
                     EMPLOYEES );
-        } catch ( IllegalArgumentException e ) {
-            // Only acceptable exception is entity type already exists
-            Assert.assertEquals( ENTITY_SET_EXISTS_MSG, e.getMessage() );
-        }
 
-        try {
             schemaManager.createOrUpdateSchemas( new Schema(
                     new FullQualifiedName( NAMESPACE, SCHEMA_NAME ),
                     ImmutableSet.of( EMPLOYEE_ID_PROP_TYPE,
@@ -183,10 +163,6 @@ public class BootstrapDatastoreWithCassandra {
                             EMPLOYEE_DEPT_PROP_TYPE,
                             EMPLOYEE_SALARY_PROP_TYPE ),
                     ImmutableSet.of( METADATA_LEVELS, METADATA_LEVELS_MARS, METADATA_LEVELS_SATURN ) ) );
-        } catch ( IllegalStateException e ) {
-            // TODO Temporary fix, should add validation for schema existence
-            Assert.assertEquals( SCHEMA_EXISTS_MSG, e.getMessage() );
-        }
 
         Assert.assertTrue(
                 dms.checkEntitySetExists( ENTITY_SET_NAME ) );
@@ -194,9 +170,10 @@ public class BootstrapDatastoreWithCassandra {
 
     public static EntityType from( String modifier ) {
         return new EntityType(
-                ENTITY_TYPE_SATURN,
+                UUID.randomUUID(),
+                new FullQualifiedName( NAMESPACE, ENTITY_TYPE_NAME + modifier ),
                 modifier + " Employees",
-                modifier + " Employees of the city of Chicago",
+                Optional.of( modifier + " Employees of the city of Chicago" ),
                 ImmutableSet.of(),
                 ImmutableSet.of( EMPLOYEE_ID_PROP_TYPE.getId() ),
                 ImmutableSet.of( EMPLOYEE_ID_PROP_TYPE.getId(),

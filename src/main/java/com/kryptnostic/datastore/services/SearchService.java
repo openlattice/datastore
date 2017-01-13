@@ -52,10 +52,10 @@ public class SearchService {
 		eventBus.register( this );
 	}
 		
-	public List<Map<String, Object>> executeEntitySetKeywordSearchQuery( String query, Optional<UUID> optionalEntityType, Optional<Set<UUID>> optionalPropertyTypes ) {
+	public List<Map<String, Object>> executeEntitySetKeywordSearchQuery( Optional<String> optionalQuery, Optional<UUID> optionalEntityType, Optional<Set<UUID>> optionalPropertyTypes ) {
 		try {
 			List<Map<String, Object>> queryResults = executor.submit( ConductorCall
-					.wrap( Lambdas.executeElasticsearchMetadataQuery( query, optionalEntityType, optionalPropertyTypes ) ) )
+					.wrap( Lambdas.executeElasticsearchMetadataQuery( optionalQuery, optionalEntityType, optionalPropertyTypes ) ) )
 			.get();
 			return queryResults;
 		} catch (InterruptedException | ExecutionException e) {

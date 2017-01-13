@@ -12,16 +12,15 @@ import org.junit.Assert;
 import com.dataloom.authorization.AuthorizationManager;
 import com.dataloom.authorization.Principal;
 import com.dataloom.authorization.PrincipalType;
+import com.dataloom.edm.exceptions.TypeExistsException;
 import com.dataloom.edm.internal.EntitySet;
 import com.dataloom.edm.internal.EntityType;
 import com.dataloom.edm.internal.PropertyType;
 import com.dataloom.edm.internal.Schema;
-import com.dataloom.edm.schemas.SchemaQueryService;
 import com.dataloom.edm.schemas.manager.HazelcastSchemaManager;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
-import com.kryptnostic.conductor.rpc.UUIDs.ACLs;
 import com.kryptnostic.datastore.services.CassandraDataManager;
 import com.kryptnostic.datastore.services.EdmManager;
 import com.kryptnostic.rhizome.pods.SparkPod;
@@ -137,21 +136,25 @@ public class BootstrapDatastoreWithCassandra {
     }
 
     private static void setupDatamodel() {
-        dms.createPropertyTypeIfNotExists( EMPLOYEE_ID_PROP_TYPE );
-        dms.createPropertyTypeIfNotExists( EMPLOYEE_TITLE_PROP_TYPE );
-        dms.createPropertyTypeIfNotExists( EMPLOYEE_NAME_PROP_TYPE );
-        dms.createPropertyTypeIfNotExists( EMPLOYEE_DEPT_PROP_TYPE );
-        dms.createPropertyTypeIfNotExists( EMPLOYEE_SALARY_PROP_TYPE );
+        try {
+            dms.createPropertyTypeIfNotExists( EMPLOYEE_ID_PROP_TYPE );
+            dms.createPropertyTypeIfNotExists( EMPLOYEE_TITLE_PROP_TYPE );
+            dms.createPropertyTypeIfNotExists( EMPLOYEE_NAME_PROP_TYPE );
+            dms.createPropertyTypeIfNotExists( EMPLOYEE_DEPT_PROP_TYPE );
+            dms.createPropertyTypeIfNotExists( EMPLOYEE_SALARY_PROP_TYPE );
 
-        dms.createEntityType( METADATA_LEVELS );
-        dms.createEntityType( METADATA_LEVELS_SATURN );
-        dms.createEntityType( METADATA_LEVELS_MARS );
+            dms.createEntityType( METADATA_LEVELS );
+            dms.createEntityType( METADATA_LEVELS_SATURN );
+            dms.createEntityType( METADATA_LEVELS_MARS );
+        } catch ( Exception e ) {
+            Assert.assertSame( TypeExistsException.class, e.getClass() );
+        }
 
         try {
-        dms.createEntitySet(
-                principal,
-                EMPLOYEES );
-        } catch ( IllegalStateException e ){
+            dms.createEntitySet(
+                    principal,
+                    EMPLOYEES );
+        } catch ( IllegalStateException e ) {
             // Only acceptable exception is Entity Set already exists.
             Assert.assertEquals( ENTITY_SET_EXISTS_MSG, e.getMessage() );
         }
@@ -183,9 +186,10 @@ public class BootstrapDatastoreWithCassandra {
                         EMPLOYEE_DEPT_PROP_TYPE.getId(),
                         EMPLOYEE_SALARY_PROP_TYPE.getId() ) );
     }
-     @AfterClass
-     public static void shutdown() {
-     ds.plowUnder();
-     }
+
+    @AfterClass
+    public static void shutdown() {
+        ds.plowUnder();
+    }
 
 }

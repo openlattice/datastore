@@ -20,6 +20,8 @@ import com.dataloom.authorization.AuthorizationManager;
 import com.dataloom.authorization.Permission;
 import com.dataloom.authorization.Principal;
 import com.dataloom.authorization.SecurableObjectType;
+import com.dataloom.edm.events.EntitySetCreatedEvent;
+import com.dataloom.edm.events.EntitySetDeletedEvent;
 import com.google.common.base.Optional;
 import com.google.common.collect.Sets;
 import com.google.common.eventbus.EventBus;
@@ -78,6 +80,21 @@ public class SearchService {
         		aclKeys,
         		ace.getPrincipal(),
         		authorizations.getSecurableObjectPermissions( aclKeys, Sets.newHashSet( ace.getPrincipal() ) ) ) );
+	}
+	
+	@Subscribe
+	public void createEntitySet( EntitySetCreatedEvent event ) {
+		executor.submit( ConductorCall
+        		.wrap( Lambdas.submitEntitySetToElasticsearch(
+        				event.getEntitySet(),
+        				event.getPropertyTypes(),
+        				event.getPrincipal() ) ) );
+	}
+	
+	@Subscribe
+	public void deleteEntitySet( EntitySetDeletedEvent event ) {
+		executor.submit( ConductorCall
+        		.wrap( Lambdas.deleteEntitySet( event.getEntitySetId() ) ) );
 	}
 
 }

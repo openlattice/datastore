@@ -6,6 +6,7 @@ import java.util.concurrent.Semaphore;
 
 import org.apache.olingo.commons.api.edm.EdmPrimitiveTypeKind;
 import org.apache.olingo.commons.api.edm.FullQualifiedName;
+import org.junit.AfterClass;
 import org.junit.Assert;
 
 import com.dataloom.authorization.AuthorizationManager;
@@ -47,10 +48,10 @@ public class BootstrapDatastoreWithCassandra {
     protected static final String            ENTITY_SET_EXISTS_MSG     = "Entity set already exists.";
     protected static final String            SCHEMA_EXISTS_MSG         = "Failed to create schema.";
 
-    protected static final String ENTITY_TYPE_NAME               = 
-            "employee";
-    protected static final FullQualifiedName ENTITY_TYPE               = 
-            new FullQualifiedName( NAMESPACE, ENTITY_TYPE_NAME );
+    protected static final String            ENTITY_TYPE_NAME          = "employee";
+    protected static final FullQualifiedName ENTITY_TYPE               = new FullQualifiedName(
+            NAMESPACE,
+            ENTITY_TYPE_NAME );
 
     // created by Ho Chung to populate two more entity Types
     protected static final FullQualifiedName ENTITY_TYPE_MARS          = new FullQualifiedName(
@@ -136,33 +137,33 @@ public class BootstrapDatastoreWithCassandra {
     }
 
     private static void setupDatamodel() {
-            dms.createPropertyTypeIfNotExists( EMPLOYEE_ID_PROP_TYPE );
-
-            dms.createPropertyTypeIfNotExists( EMPLOYEE_TITLE_PROP_TYPE );
+        dms.createPropertyTypeIfNotExists( EMPLOYEE_ID_PROP_TYPE );
+        dms.createPropertyTypeIfNotExists( EMPLOYEE_TITLE_PROP_TYPE );
         dms.createPropertyTypeIfNotExists( EMPLOYEE_NAME_PROP_TYPE );
         dms.createPropertyTypeIfNotExists( EMPLOYEE_DEPT_PROP_TYPE );
         dms.createPropertyTypeIfNotExists( EMPLOYEE_SALARY_PROP_TYPE );
 
-            dms.createEntityType( METADATA_LEVELS );
-            dms.createEntityType( METADATA_LEVELS_SATURN );
-            dms.createEntityType( METADATA_LEVELS_MARS );
+        dms.createEntityType( METADATA_LEVELS );
+        dms.createEntityType( METADATA_LEVELS_SATURN );
+        dms.createEntityType( METADATA_LEVELS_MARS );
 
-            dms.createEntityType( METADATA_LEVELS_MARS );
+        try {
+        dms.createEntitySet(
+                principal,
+                EMPLOYEES );
+        } catch ( IllegalStateException e ){
+            // Only acceptable exception is Entity Set already exists.
+            Assert.assertEquals( ENTITY_SET_EXISTS_MSG, e.getMessage() );
+        }
 
-            dms.createEntityType( METADATA_LEVELS_SATURN );
-
-            dms.createEntitySet(
-                    principal,
-                    EMPLOYEES );
-
-            schemaManager.createOrUpdateSchemas( new Schema(
-                    new FullQualifiedName( NAMESPACE, SCHEMA_NAME ),
-                    ImmutableSet.of( EMPLOYEE_ID_PROP_TYPE,
-                            EMPLOYEE_TITLE_PROP_TYPE,
-                            EMPLOYEE_NAME_PROP_TYPE,
-                            EMPLOYEE_DEPT_PROP_TYPE,
-                            EMPLOYEE_SALARY_PROP_TYPE ),
-                    ImmutableSet.of( METADATA_LEVELS, METADATA_LEVELS_MARS, METADATA_LEVELS_SATURN ) ) );
+        schemaManager.createOrUpdateSchemas( new Schema(
+                new FullQualifiedName( NAMESPACE, SCHEMA_NAME ),
+                ImmutableSet.of( EMPLOYEE_ID_PROP_TYPE,
+                        EMPLOYEE_TITLE_PROP_TYPE,
+                        EMPLOYEE_NAME_PROP_TYPE,
+                        EMPLOYEE_DEPT_PROP_TYPE,
+                        EMPLOYEE_SALARY_PROP_TYPE ),
+                ImmutableSet.of( METADATA_LEVELS, METADATA_LEVELS_MARS, METADATA_LEVELS_SATURN ) ) );
 
         Assert.assertTrue(
                 dms.checkEntitySetExists( ENTITY_SET_NAME ) );
@@ -182,9 +183,9 @@ public class BootstrapDatastoreWithCassandra {
                         EMPLOYEE_DEPT_PROP_TYPE.getId(),
                         EMPLOYEE_SALARY_PROP_TYPE.getId() ) );
     }
-    // @AfterClass
-    // public static void shutdown() {
-    // ds.plowUnder();
-    // }
+     @AfterClass
+     public static void shutdown() {
+     ds.plowUnder();
+     }
 
 }

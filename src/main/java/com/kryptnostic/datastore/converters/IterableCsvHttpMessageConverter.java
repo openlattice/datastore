@@ -53,8 +53,8 @@ public class IterableCsvHttpMessageConverter
             if ( schema == null ) {
                 schema = fromMultimap( obj );
             }
-            //TODO: Flatten or drop multiple output values into obj.
-            csvMapper.writer( schema ).writeValue( outputMessage.getBody(), obj );
+            // TODO: Flatten or drop multiple output values into obj.
+            csvMapper.writer( schema ).writeValue( outputMessage.getBody(), obj.asMap() );
         }
 
     }
@@ -75,17 +75,8 @@ public class IterableCsvHttpMessageConverter
     public CsvSchema fromMultimap( Multimap<String, ?> m ) {
         Builder schemaBuilder = CsvSchema.builder();
 
-        for ( String type : m.keySet() ) {
-            Boolean hasMultipleValues = multiplicity.get( type );
-            if ( hasMultipleValues == null ) {
-//                hasMultipleValues = edmService.getPropertyType( new FullQualifiedName( type ) ).getMultiplicity() > 0;
-                multiplicity.put( type, hasMultipleValues );
-            }
+        m.keySet().stream().forEach( type -> schemaBuilder.addColumn( type, ColumnType.ARRAY ) );
 
-            Preconditions.checkState( !hasMultipleValues.booleanValue(), "Serialization of field with high multiplicity unsupported" );
-
-            schemaBuilder.addColumn( type, ColumnType.NUMBER_OR_STRING );
-        }
         return schemaBuilder.build();
     }
 

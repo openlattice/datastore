@@ -46,7 +46,6 @@ import com.kryptnostic.rhizome.core.RhizomeApplicationServer;
 import com.kryptnostic.rhizome.pods.CassandraPod;
 
 public class DataManagerTest {
-    // WARNING: TestPod creates the CassandraDataManager bean, whose keyspace is NOT the usual one.
     protected static final RhizomeApplicationServer ds       = new RhizomeApplicationServer(
             CassandraPod.class,
             DataManagerTestPod.class );
@@ -97,7 +96,7 @@ public class DataManagerTest {
 
         Map<UUID, PropertyType> propertyTypes = generateProperties( 5 );
         Map<UUID, EdmPrimitiveTypeKind> propertiesWithDataType = propertyTypes.entrySet().stream().collect(Collectors.toMap(e -> e.getKey(), e -> e.getValue().getDatatype() ));
-        Map<String, SetMultimap<UUID, Object>> entities = generateData( 1, propertiesWithDataType, 1 );
+        Map<String, SetMultimap<UUID, Object>> entities = generateData( 10, propertiesWithDataType, 1 );
 
         testWriteData( entitySetId, syncId, entities, propertiesWithDataType );
         Set<SetMultimap<FullQualifiedName, Object>> result = testReadData( ImmutableSet.of( syncId ),
@@ -150,11 +149,6 @@ public class DataManagerTest {
 
     }
 
-    @AfterClass
-    public static void dropKeyspace() {
-        ds.getContext().getBean( "dropCassandraTestKeyspace", Runnable.class ).run();
-    }
-
     public void testWriteData(
             UUID entitySetId,
             UUID syncId,
@@ -177,8 +171,7 @@ public class DataManagerTest {
         Map<UUID, PropertyType> propertyTypes = new HashMap<>();
         for ( int i = 0; i < n; i++ ) {
             UUID propertyId = UUID.randomUUID();
-            propertyTypes.put(propertyId, new PropertyType( propertyId, getFqnFromUuid( propertyId ), "Property " + propertyId.toString(), Optional.absent(), ImmutableSet.of(), EdmPrimitiveTypeKind.GeographyPoint) );
-//            propertyTypes.put( propertyId, getRandomPropertyType( propertyId ) );
+            propertyTypes.put( propertyId, getRandomPropertyType( propertyId ) );
         }
         System.out.println( "Properties generated." );
         return propertyTypes;

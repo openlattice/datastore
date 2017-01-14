@@ -56,11 +56,6 @@ public class DatastoreTests extends BootstrapDatastoreWithCassandra {
 
     private static final Multimap<String, Object> m = HashMultimap.create();
 
-    @BeforeClass
-    public static void initDatastoreTests() {
-        init();
-    }
-
     @Test
     public void testSerialization() throws HttpMessageNotWritableException, IOException {
         IterableCsvHttpMessageConverter converter = new IterableCsvHttpMessageConverter(

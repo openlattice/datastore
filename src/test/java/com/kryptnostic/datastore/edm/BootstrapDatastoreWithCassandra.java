@@ -24,6 +24,7 @@ import com.google.common.collect.Sets;
 import com.kryptnostic.datastore.services.CassandraDataManager;
 import com.kryptnostic.datastore.services.EdmManager;
 import com.kryptnostic.rhizome.pods.SparkPod;
+import org.junit.BeforeClass;
 
 public class BootstrapDatastoreWithCassandra {
     public static final String               NAMESPACE                 = "testcsv";
@@ -44,7 +45,7 @@ public class BootstrapDatastoreWithCassandra {
 
     protected static final String            PROPERTY_TYPE_EXISTS_MSG  = "Property Type of same name exists.";
     protected static final String            ENTITY_TYPE_EXISTS_MSG    = "Entity type of same name already exists.";
-    protected static final String            ENTITY_SET_EXISTS_MSG     = "Entity set already exists.";
+    protected static final String            ENTITY_SET_EXISTS_MSG     = "Entity Set not created.";
     protected static final String            SCHEMA_EXISTS_MSG         = "Failed to create schema.";
 
     protected static final String            ENTITY_TYPE_NAME          = "employee";
@@ -122,6 +123,7 @@ public class BootstrapDatastoreWithCassandra {
             PrincipalType.USER,
             "tests|blahblah" );
 
+    @BeforeClass
     public static void init() {
         if ( initLock.tryAcquire() ) {
             ds.intercrop( PODS.toArray( new Class<?>[ 0 ] ) );

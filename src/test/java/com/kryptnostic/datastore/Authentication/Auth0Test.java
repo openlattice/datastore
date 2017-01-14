@@ -62,7 +62,7 @@ public class Auth0Test {
         }
 
         try {
-            Iterable<SetMultimap<FullQualifiedName, Object>> result = dataApi.getEntitySetData( entitySetId, null );
+            Iterable<SetMultimap<FullQualifiedName, Object>> result = dataApi.getEntitySetData( UUID.randomUUID(), null );
             Assert.assertNull( result );
         } catch ( NotFoundException e ) {
             Assert.assertNull( entitySetId );

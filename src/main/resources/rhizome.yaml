@@ -9,12 +9,12 @@ session-clustering-enabled: false
 cassandra:
     ssl-enabled: false
     keyspace: "sparks"
-    replication-factor: 2
+    replication-factor: 1
     seed-nodes:
         - "cassandra"
 
 hazelcast:
-    server: false
+    server: true
     group: "local"
     password: "kryptodoge4life"
     seed-nodes: 

@@ -9,6 +9,9 @@ plugins {
 description = "Kryptnostic Datastore"
 group = "com.kryptnostic"
 ext.projectName = "datastore"
+ext.scmUrl = 'scm:git:https://github.com/dataloom/datastore.git'
+ext.connectionUrl = 'scm:git:https://github.com/dataloom/datastore.git'
+ext.developerConnectionUrl = 'scm:git:https://github.com/dataloom/datastore.git'
 
 distTar {
   archiveName "$baseName" + ".tgz"

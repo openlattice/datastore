@@ -26,6 +26,7 @@ import com.kryptnostic.datastore.services.DatasourceManager;
 import com.kryptnostic.datastore.services.EdmManager;
 import com.kryptnostic.datastore.services.EdmService;
 import com.kryptnostic.datastore.services.ODataStorageService;
+import com.kryptnostic.datastore.services.SearchService;
 import com.kryptnostic.datastore.services.UserDirectoryService;
 import com.kryptnostic.rhizome.pods.CassandraPod;
 
@@ -120,6 +121,11 @@ public class DatastoreServicesPod {
     @Bean
     public UserDirectoryService userDirectoryService() {
         return new UserDirectoryService( auth0Configuration.getToken() );
+    }
+    
+    @Bean
+    public SearchService searchService() {
+    	return new SearchService( hazelcastInstance );
     }
 
     @Bean

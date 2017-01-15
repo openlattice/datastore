@@ -25,12 +25,22 @@ import com.dataloom.authorization.Permission;
 import com.dataloom.authorization.PermissionsApi;
 import com.dataloom.authorization.Principal;
 import com.dataloom.authorization.Principals;
+import com.dataloom.authorization.SecurableObjectType;
+import com.google.common.collect.Sets;
+import com.google.common.eventbus.EventBus;
+import com.kryptnostic.datastore.services.SearchService;
 
 @RestController
 public class PermissionsController implements PermissionsApi {
     private static final Logger  logger = LoggerFactory.getLogger( PermissionsController.class );
     @Inject
     private AuthorizationManager authorizations;
+    
+    @Inject
+    private SearchService searchService;
+    
+    @Inject
+    private EventBus eventBus;
 
     @Override
     @RequestMapping(
@@ -41,7 +51,6 @@ public class PermissionsController implements PermissionsApi {
         /*
          * Ensure that the user has alter permissions on Acl permissions being modified
          */
-
         final Acl acl = req.getAcl();
         final List<AclKeyPathFragment> aclKeys = acl.getAclKey();
         if ( isOwnerOrCanAlter( aclKeys ) ) {
@@ -71,9 +80,11 @@ public class PermissionsController implements PermissionsApi {
                     logger.error( "Invalid action {} specified for request.", req.getAction() );
                     throw new HttpServerErrorException( HttpStatus.BAD_REQUEST, "Invalid action specified." );
             }
-
+            eventBus.post( req );
+        } else {
+        	throw new ForbiddenException( "Only owner of a securable object can access other users' access rights." );
         }
-        throw new ForbiddenException( "Only owner of a securable object can access other users' access rights." );
+        return null;
     }
 
     @Override

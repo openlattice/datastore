@@ -6,10 +6,6 @@
 enable-persistence:  false
 session-clustering-enabled: false
 
-rethinkdb:
-    hostname: "localhost"
-    port: 28015
-    
 cassandra:
     ssl-enabled: false
     keyspace: "sparks"

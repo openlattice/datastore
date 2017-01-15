@@ -2,12 +2,15 @@ package com.kryptnostic.datastore.edm;
 
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.Semaphore;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 import org.apache.olingo.commons.api.edm.EdmPrimitiveTypeKind;
 import org.apache.olingo.commons.api.edm.FullQualifiedName;
 import org.junit.AfterClass;
 import org.junit.Assert;
+import org.junit.BeforeClass;
+import org.springframework.beans.BeansException;
 
 import com.dataloom.authorization.AuthorizationManager;
 import com.dataloom.authorization.Principal;
@@ -18,15 +21,16 @@ import com.dataloom.edm.internal.EntityType;
 import com.dataloom.edm.internal.PropertyType;
 import com.dataloom.edm.internal.Schema;
 import com.dataloom.edm.schemas.manager.HazelcastSchemaManager;
+import com.geekbeast.rhizome.tests.bootstrap.CassandraBootstrap;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
+import com.kryptnostic.datastore.Datastore;
 import com.kryptnostic.datastore.services.CassandraDataManager;
 import com.kryptnostic.datastore.services.EdmManager;
 import com.kryptnostic.rhizome.pods.SparkPod;
-import org.junit.BeforeClass;
 
-public class BootstrapDatastoreWithCassandra {
+public class BootstrapDatastoreWithCassandra extends CassandraBootstrap {
     public static final String               NAMESPACE                 = "testcsv";
     protected static EdmManager              dms;
     protected static AuthorizationManager    am;
@@ -34,7 +38,7 @@ public class BootstrapDatastoreWithCassandra {
     protected static HazelcastSchemaManager  schemaManager;
 
     protected static final Set<Class<?>>     PODS                      = Sets.newHashSet( SparkPod.class );
-    protected static final DatastoreServices ds                        = new DatastoreServices();
+    protected static final Datastore         ds                        = new Datastore();
     protected static final Set<String>       PROFILES                  = Sets.newHashSet( "local", "cassandra" );
     protected static final String            SALARY                    = "salary";
     protected static final String            EMPLOYEE_NAME             = "employee_name";
@@ -112,22 +116,22 @@ public class BootstrapDatastoreWithCassandra {
             ImmutableSet.of(),
             EdmPrimitiveTypeKind.Int64 );
 
-    protected static EntityType        METADATA_LEVELS;
-    protected static EntityType        METADATA_LEVELS_SATURN;
-    protected static EntityType        METADATA_LEVELS_MARS;
-    protected static EntitySet         EMPLOYEES;
+    protected static EntityType              METADATA_LEVELS;
+    protected static EntityType              METADATA_LEVELS_SATURN;
+    protected static EntityType              METADATA_LEVELS_MARS;
+    protected static EntitySet               EMPLOYEES;
 
-    protected static final Semaphore         initLock                  = new Semaphore( 1 );
+    protected static final Lock              initLock                  = new ReentrantLock();
 
     protected static final Principal         principal                 = new Principal(
             PrincipalType.USER,
             "tests|blahblah" );
 
     @BeforeClass
-    public static void init() {
-        if ( initLock.tryAcquire() ) {
+    public static void init() throws Exception {
+        if ( initLock.tryLock() ) {
             ds.intercrop( PODS.toArray( new Class<?>[ 0 ] ) );
-            ds.sprout( PROFILES.toArray( new String[ 0 ] ) );
+            ds.start( PROFILES.toArray( new String[ 0 ] ) );
             dms = ds.getContext().getBean( EdmManager.class );
             am = ds.getContext().getBean( AuthorizationManager.class );
             dataService = ds.getContext().getBean( CassandraDataManager.class );
@@ -140,7 +144,7 @@ public class BootstrapDatastoreWithCassandra {
         createPropertyTypes();
         createEntityTypes();
         createEntitySets();
-        
+
         schemaManager.createOrUpdateSchemas( new Schema(
                 new FullQualifiedName( NAMESPACE, SCHEMA_NAME ),
                 ImmutableSet.of( EMPLOYEE_ID_PROP_TYPE,
@@ -181,7 +185,7 @@ public class BootstrapDatastoreWithCassandra {
                         EMPLOYEE_SALARY_PROP_ID ) );
     }
 
-    private static void createPropertyTypes(){
+    private static void createPropertyTypes() {
         try {
             dms.createPropertyTypeIfNotExists( EMPLOYEE_ID_PROP_TYPE );
         } catch ( TypeExistsException e ) {
@@ -208,12 +212,12 @@ public class BootstrapDatastoreWithCassandra {
             EMPLOYEE_SALARY_PROP_ID = dms.getTypeAclKey( EMPLOYEE_SALARY_PROP_TYPE.getType() ).getId();
         }
     }
-    
-    private static void createEntityTypes(){
+
+    private static void createEntityTypes() {
         METADATA_LEVELS = from( "" );
         METADATA_LEVELS_SATURN = from( "Saturn" );
         METADATA_LEVELS_MARS = from( "Mars" );
-        
+
         try {
             dms.createEntityType( METADATA_LEVELS );
         } catch ( TypeExistsException e ) {
@@ -230,8 +234,8 @@ public class BootstrapDatastoreWithCassandra {
             METADATA_LEVELS_SATURN_ID = dms.getTypeAclKey( METADATA_LEVELS_SATURN.getType() ).getId();
         }
     }
-    
-    private static void createEntitySets(){
+
+    private static void createEntitySets() {
         EMPLOYEES = new EntitySet(
                 METADATA_LEVELS.getType(),
                 METADATA_LEVELS_ID,
@@ -248,10 +252,10 @@ public class BootstrapDatastoreWithCassandra {
             Assert.assertEquals( ENTITY_SET_EXISTS_MSG, e.getMessage() );
         }
     }
-    
+
     @AfterClass
-    public static void shutdown() {
-        ds.plowUnder();
+    public static void shutdown() throws BeansException, Exception {
+        ds.stop();
     }
 
 }

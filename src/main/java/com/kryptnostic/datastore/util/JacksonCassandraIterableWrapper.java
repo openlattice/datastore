@@ -14,6 +14,10 @@ public class JacksonCassandraIterableWrapper<T> implements Iterable<T> {
         return new JacksonCassandraIteratorWrapper<T>( iterable.iterator() );
     }
 
+    public static <T> Iterable<T> wrap( Iterable<T> i ) {
+        return new JacksonCassandraIterableWrapper<T>( i );
+    }
+
     public static class JacksonCassandraIteratorWrapper<T> implements Iterator<T> {
         private final Iterator<T> iterator;
 

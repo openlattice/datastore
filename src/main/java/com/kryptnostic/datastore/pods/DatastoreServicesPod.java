@@ -109,7 +109,7 @@ public class DatastoreServicesPod {
 
     @Bean
     public CassandraDataManager cassandraDataManager() {
-        return new CassandraDataManager( DatastoreConstants.KEYSPACE, session, defaultObjectMapper() );
+        return new CassandraDataManager( session, defaultObjectMapper() );
     }
 
     @Bean

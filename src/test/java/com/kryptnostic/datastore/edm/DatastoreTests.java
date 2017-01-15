@@ -1,21 +1,13 @@
 package com.kryptnostic.datastore.edm;
 
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertSame;
-
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.math.BigDecimal;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Random;
+import java.util.Arrays;
 import java.util.Set;
 import java.util.UUID;
 
-import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.olingo.commons.api.data.Entity;
 import org.apache.olingo.commons.api.data.EntityCollection;
 import org.apache.olingo.commons.api.data.Property;
@@ -34,27 +26,21 @@ import org.apache.olingo.commons.core.edm.EdmEntitySetImpl;
 import org.apache.olingo.commons.core.edm.EdmEntityTypeImpl;
 import org.apache.olingo.commons.core.edm.EdmProviderImpl;
 import org.apache.olingo.server.api.ODataApplicationException;
-import org.joda.time.DateTime;
 import org.junit.Assert;
-import org.junit.BeforeClass;
 import org.junit.Test;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpOutputMessage;
 import org.springframework.http.converter.HttpMessageNotWritableException;
 
-import com.dataloom.edm.internal.EntitySet;
-import com.dataloom.edm.internal.EntityType;
+import com.dataloom.edm.exceptions.TypeExistsException;
 import com.dataloom.edm.internal.PropertyType;
 import com.dataloom.edm.schemas.manager.HazelcastSchemaManager;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Optional;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
-import com.google.common.collect.SetMultimap;
 import com.kryptnostic.conductor.rpc.Employee;
-import com.kryptnostic.conductor.rpc.UUIDs;
 import com.kryptnostic.conductor.rpc.UUIDs.ACLs;
 import com.kryptnostic.conductor.rpc.UUIDs.Syncs;
 import com.kryptnostic.datastore.converters.IterableCsvHttpMessageConverter;
@@ -69,11 +55,6 @@ public class DatastoreTests extends BootstrapDatastoreWithCassandra {
 
     private static final Multimap<String, Object> m = HashMultimap.create();
 
-    @BeforeClass
-    public static void initDatastoreTests() {
-        init();
-    }
-
     @Test
     public void testSerialization() throws HttpMessageNotWritableException, IOException {
         IterableCsvHttpMessageConverter converter = new IterableCsvHttpMessageConverter(
@@ -81,6 +62,8 @@ public class DatastoreTests extends BootstrapDatastoreWithCassandra {
         m.put( new FullQualifiedName( NAMESPACE, SALARY ).getFullQualifiedNameAsString(), 1 );
         m.put( new FullQualifiedName( NAMESPACE, EMPLOYEE_ID ).getFullQualifiedNameAsString(), UUID.randomUUID() );
         m.put( new FullQualifiedName( NAMESPACE, EMPLOYEE_TITLE ).getFullQualifiedNameAsString(), "Master Chief" );
+        m.putAll( new FullQualifiedName( NAMESPACE, EMPLOYEE_DEPT ).getFullQualifiedNameAsString(),
+                Arrays.asList( "Fire", "Water" ) );
         converter.write( ImmutableList.of( m ), null, null, new HttpOutputMessage() {
 
             @Override
@@ -96,7 +79,7 @@ public class DatastoreTests extends BootstrapDatastoreWithCassandra {
     }
 
     @Test
-    public void testCreateEntityType() {
+    public void testCreateEntityByOData() {
         ODataStorageService esc = ds.getContext().getBean( ODataStorageService.class );
         Property empId = new Property();
         Property empName = new Property();
@@ -246,12 +229,14 @@ public class DatastoreTests extends BootstrapDatastoreWithCassandra {
         // Desired result: Properties EMPLOYEE_COUNTRY, EMPLOYEE_WEIGHT are added to ENTITY_TYPE (Employees)
         final String EMPLOYEE_COUNTRY = "employee_country";
         final String EMPLOYEE_WEIGHT = "employee_weight";
-        final UUID EMPLOYEE_COUNTRY_ID = UUID.randomUUID();
-        final UUID EMPLOYEE_WEIGHT_ID = UUID.randomUUID();
+        UUID EMPLOYEE_COUNTRY_ID;
+        UUID EMPLOYEE_WEIGHT_ID;
 
         EdmManager dms = ds.getContext().getBean( EdmManager.class );
-
-            dms.createPropertyTypeIfNotExists(         new PropertyType(
+        try {
+            EMPLOYEE_COUNTRY_ID = UUID.randomUUID();
+            EMPLOYEE_WEIGHT_ID = UUID.randomUUID();
+            dms.createPropertyTypeIfNotExists( new PropertyType(
                     EMPLOYEE_COUNTRY_ID,
                     new FullQualifiedName( NAMESPACE, EMPLOYEE_COUNTRY ),
                     "Employee Country",
@@ -260,18 +245,22 @@ public class DatastoreTests extends BootstrapDatastoreWithCassandra {
                     ImmutableSet.of(),
                     EdmPrimitiveTypeKind.String ) );
 
-            dms.createPropertyTypeIfNotExists(new PropertyType(
-                            EMPLOYEE_WEIGHT_ID,
-                            new FullQualifiedName( NAMESPACE, EMPLOYEE_WEIGHT ),
-                            "Employee Weight",
-                            Optional
-                                    .of( "Weight of an employee of the city of Chicago." ),
-                            ImmutableSet.of(),
-                            EdmPrimitiveTypeKind.Int32 ) );
+            dms.createPropertyTypeIfNotExists( new PropertyType(
+                    EMPLOYEE_WEIGHT_ID,
+                    new FullQualifiedName( NAMESPACE, EMPLOYEE_WEIGHT ),
+                    "Employee Weight",
+                    Optional
+                            .of( "Weight of an employee of the city of Chicago." ),
+                    ImmutableSet.of(),
+                    EdmPrimitiveTypeKind.Int32 ) );
+        } catch ( TypeExistsException e ) {
+            EMPLOYEE_COUNTRY_ID = dms.getTypeAclKey( new FullQualifiedName( NAMESPACE, EMPLOYEE_COUNTRY ) ).getId();
+            EMPLOYEE_WEIGHT_ID = dms.getTypeAclKey( new FullQualifiedName( NAMESPACE, EMPLOYEE_WEIGHT ) ).getId();
 
+        }
         Set<UUID> properties = ImmutableSet.of( EMPLOYEE_COUNTRY_ID, EMPLOYEE_WEIGHT_ID );
 
-        dms.addPropertyTypesToEntityType( METADATA_LEVELS.getId(), properties );
+        dms.addPropertyTypesToEntityType( METADATA_LEVELS_ID, properties );
     }
 
     @Test
@@ -280,7 +269,7 @@ public class DatastoreTests extends BootstrapDatastoreWithCassandra {
         // Desired result: Since property is already part of ENTITY_TYPE, nothing should happen
 
         EdmManager dms = ds.getContext().getBean( EdmManager.class );
-        dms.addPropertyTypesToEntityType( METADATA_LEVELS.getId(), ImmutableSet.of( EMPLOYEE_ID_PROP_TYPE.getId() ) );
+        dms.addPropertyTypesToEntityType( METADATA_LEVELS_ID, ImmutableSet.of( EMPLOYEE_ID_PROP_ID ) );
     }
 
     @Test(
@@ -291,19 +280,23 @@ public class DatastoreTests extends BootstrapDatastoreWithCassandra {
 
         EdmManager dms = ds.getContext().getBean( EdmManager.class );
 
-        dms.addPropertyTypesToEntityType( METADATA_LEVELS.getId(), ImmutableSet.of( UUID.randomUUID() ));
+        dms.addPropertyTypesToEntityType( METADATA_LEVELS_ID, ImmutableSet.of( UUID.randomUUID() ) );
     }
 
     @Test
     public void testAddPropertyToSchema() {
         final String EMPLOYEE_TOENAIL_LENGTH = "employee-toenail-length";
         final String EMPLOYEE_FINGERNAIL_LENGTH = "employee-fingernail-length";
-        
-        final UUID EMPLOYEE_TOENAIL_LENGTH_ID = UUID.randomUUID();
-        final UUID EMPLOYEE_FINGERNAIL_LENGTH_ID = UUID.randomUUID();
+
+        UUID EMPLOYEE_TOENAIL_LENGTH_ID;
+        UUID EMPLOYEE_FINGERNAIL_LENGTH_ID;
 
         EdmManager dms = ds.getContext().getBean( EdmManager.class );
-            dms.createPropertyTypeIfNotExists(         new PropertyType(
+        try {
+            EMPLOYEE_TOENAIL_LENGTH_ID = UUID.randomUUID();
+            EMPLOYEE_FINGERNAIL_LENGTH_ID = UUID.randomUUID();
+
+            dms.createPropertyTypeIfNotExists( new PropertyType(
                     EMPLOYEE_TOENAIL_LENGTH_ID,
                     new FullQualifiedName( NAMESPACE, EMPLOYEE_TOENAIL_LENGTH ),
                     "Employee Toenail Length",
@@ -320,22 +313,30 @@ public class DatastoreTests extends BootstrapDatastoreWithCassandra {
                             .of( "Fingernail Length of an employee of the city of Chicago." ),
                     ImmutableSet.of(),
                     EdmPrimitiveTypeKind.Int32 ) );
+        } catch ( TypeExistsException e ) {
+            EMPLOYEE_TOENAIL_LENGTH_ID = dms
+                    .getTypeAclKey( new FullQualifiedName( NAMESPACE, EMPLOYEE_TOENAIL_LENGTH ) ).getId();
+            EMPLOYEE_FINGERNAIL_LENGTH_ID = dms
+                    .getTypeAclKey( new FullQualifiedName( NAMESPACE, EMPLOYEE_FINGERNAIL_LENGTH ) ).getId();
+        }
         // Add new property to Schema
         Set<UUID> newProperties = ImmutableSet.of( EMPLOYEE_TOENAIL_LENGTH_ID, EMPLOYEE_FINGERNAIL_LENGTH_ID );
-schemaManager.addPropertyTypesToSchema( newProperties, new FullQualifiedName( NAMESPACE, SCHEMA_NAME) );
+        schemaManager.addPropertyTypesToSchema( newProperties, new FullQualifiedName( NAMESPACE, SCHEMA_NAME ) );
 
         // Add existing property to Schema
-        schemaManager.addPropertyTypesToSchema( ImmutableSet.of( EMPLOYEE_TITLE_PROP_TYPE.getId() ), new FullQualifiedName( NAMESPACE, SCHEMA_NAME) );
+        schemaManager.addPropertyTypesToSchema( ImmutableSet.of( EMPLOYEE_TITLE_PROP_ID ),
+                new FullQualifiedName( NAMESPACE, SCHEMA_NAME ) );
 
         // Add non-existing property to Schema
         Throwable caught = null;
         try {
-            schemaManager.addPropertyTypesToSchema( ImmutableSet.of( UUID.randomUUID() ), new FullQualifiedName( NAMESPACE, SCHEMA_NAME) );
+            schemaManager.addPropertyTypesToSchema( ImmutableSet.of( UUID.randomUUID() ),
+                    new FullQualifiedName( NAMESPACE, SCHEMA_NAME ) );
         } catch ( Throwable t ) {
             caught = t;
         }
-        assertNotNull( caught );
-        assertSame( IllegalArgumentException.class, caught.getClass() );
+        Assert.assertNotNull( caught );
+        Assert.assertSame( IllegalArgumentException.class, caught.getClass() );
     }
 
     @Test
@@ -348,11 +349,14 @@ schemaManager.addPropertyTypesToSchema( newProperties, new FullQualifiedName( NA
         final String EMPLOYEE_HAIR_LENGTH = "employee_hair_length";
         final String EMPLOYEE_EYEBROW_LENGTH = "employee_eyebrow_length";
 
-        final UUID EMPLOYEE_HAIR_LENGTH_ID = UUID.randomUUID();
-        final UUID EMPLOYEE_EYEBROW_LENGTH_ID = UUID.randomUUID();
+        UUID EMPLOYEE_HAIR_LENGTH_ID;
+        UUID EMPLOYEE_EYEBROW_LENGTH_ID;
 
         EdmManager dms = ds.getContext().getBean( EdmManager.class );
-            dms.createPropertyTypeIfNotExists(         new PropertyType(
+        try {
+            EMPLOYEE_HAIR_LENGTH_ID = UUID.randomUUID();
+            EMPLOYEE_EYEBROW_LENGTH_ID = UUID.randomUUID();
+            dms.createPropertyTypeIfNotExists( new PropertyType(
                     EMPLOYEE_HAIR_LENGTH_ID,
                     new FullQualifiedName( NAMESPACE, EMPLOYEE_HAIR_LENGTH ),
                     "Employee Hair Length",
@@ -361,7 +365,7 @@ schemaManager.addPropertyTypesToSchema( newProperties, new FullQualifiedName( NA
                     ImmutableSet.of(),
                     EdmPrimitiveTypeKind.Int32 ) );
 
-            dms.createPropertyTypeIfNotExists(         new PropertyType(
+            dms.createPropertyTypeIfNotExists( new PropertyType(
                     EMPLOYEE_EYEBROW_LENGTH_ID,
                     new FullQualifiedName( NAMESPACE, EMPLOYEE_EYEBROW_LENGTH ),
                     "Employee Eyebrow Length",
@@ -369,16 +373,25 @@ schemaManager.addPropertyTypesToSchema( newProperties, new FullQualifiedName( NA
                             .of( "Eyebrow Length of an employee of the city of Chicago." ),
                     ImmutableSet.of(),
                     EdmPrimitiveTypeKind.Int32 ) );
+        } catch ( TypeExistsException e ) {
+            EMPLOYEE_HAIR_LENGTH_ID = dms.getTypeAclKey( new FullQualifiedName( NAMESPACE, EMPLOYEE_HAIR_LENGTH ) )
+                    .getId();
+            EMPLOYEE_EYEBROW_LENGTH_ID = dms
+                    .getTypeAclKey( new FullQualifiedName( NAMESPACE, EMPLOYEE_EYEBROW_LENGTH ) ).getId();
 
-            dms.addPropertyTypesToEntityType( METADATA_LEVELS.getId(), ImmutableSet.of( EMPLOYEE_HAIR_LENGTH_ID) );
-        schemaManager.addPropertyTypesToSchema(                 ImmutableSet.of( EMPLOYEE_EYEBROW_LENGTH_ID ), new FullQualifiedName( NAMESPACE,
-                SCHEMA_NAME )
- );
+        }
 
-        dms.removePropertyTypesFromEntityType( METADATA_LEVELS.getId(), ImmutableSet.of( EMPLOYEE_HAIR_LENGTH_ID) );
-        schemaManager.removePropertyTypesFromSchema(                 ImmutableSet.of( EMPLOYEE_EYEBROW_LENGTH_ID ), new FullQualifiedName( NAMESPACE,
-                SCHEMA_NAME )
- );
+        dms.addPropertyTypesToEntityType( METADATA_LEVELS.getId(), ImmutableSet.of( EMPLOYEE_HAIR_LENGTH_ID ) );
+        schemaManager.addPropertyTypesToSchema( ImmutableSet.of( EMPLOYEE_EYEBROW_LENGTH_ID ),
+                new FullQualifiedName(
+                        NAMESPACE,
+                        SCHEMA_NAME ) );
+
+        dms.removePropertyTypesFromEntityType( METADATA_LEVELS.getId(), ImmutableSet.of( EMPLOYEE_HAIR_LENGTH_ID ) );
+        schemaManager.removePropertyTypesFromSchema( ImmutableSet.of( EMPLOYEE_EYEBROW_LENGTH_ID ),
+                new FullQualifiedName(
+                        NAMESPACE,
+                        SCHEMA_NAME ) );
     }
 
 }

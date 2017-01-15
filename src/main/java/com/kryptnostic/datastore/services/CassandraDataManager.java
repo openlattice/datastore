@@ -35,7 +35,6 @@ import com.kryptnostic.rhizome.cassandra.CassandraTableBuilder;
 public class CassandraDataManager {
     private static final Logger     logger = LoggerFactory
             .getLogger( CassandraDataManager.class );
-    private final String            keyspace;
     private final Session           session;
     private final ObjectMapper      mapper;
     private final PreparedStatement writeIdLookupQuery;
@@ -43,15 +42,14 @@ public class CassandraDataManager {
     private final PreparedStatement entitySetQuery;
     private final PreparedStatement entityIdsQuery;
 
-    public CassandraDataManager( String keyspace, Session session, ObjectMapper mapper ) {
-        this.keyspace = keyspace;
+    public CassandraDataManager( Session session, ObjectMapper mapper ) {
         this.session = session;
         this.mapper = mapper;
         CassandraTableBuilder idLookupTableDefinitions = Tables.ENTITY_ID_LOOKUP.getBuilder();
         CassandraTableBuilder dataTableDefinitions = Tables.DATA.getBuilder();
 
         this.entitySetQuery = prepareEntitySetQuery( session, dataTableDefinitions );
-        this.entityIdsQuery = prepareEntityIdsQuery( keyspace, session );
+        this.entityIdsQuery = prepareEntityIdsQuery( session );
         this.writeIdLookupQuery = prepareWriteQuery( session, idLookupTableDefinitions );
         this.writeDataQuery = prepareWriteQuery( session, dataTableDefinitions );
     }
@@ -68,7 +66,7 @@ public class CassandraDataManager {
         return Iterables.transform( entityRows, rs -> RowAdapters.entity( rs, authorizedPropertyTypes, mapper ) );
     }
 
-    // Would you batch this with the previous one? If yes, their return type needs to match
+    // TODO Unexposed (yet) method. Would you batch this with the previous one? If yes, their return type needs to match
     public SetMultimap<FullQualifiedName, Object> getEntity(
             UUID entitySetId,
             String entityId,
@@ -164,10 +162,10 @@ public class CassandraDataManager {
                         CommonColumns.PROPERTY_TYPE_ID.bindMarker() ) );
     }
 
-    private static PreparedStatement prepareEntityIdsQuery( String keyspace, Session session ) {
+    private static PreparedStatement prepareEntityIdsQuery( Session session ) {
         return session.prepare( QueryBuilder
                 .select( CommonColumns.ENTITYID.cql() )
-                .from( keyspace, Tables.ENTITY_ID_LOOKUP.getName() )
+                .from( Tables.ENTITY_ID_LOOKUP.getKeyspace(), Tables.ENTITY_ID_LOOKUP.getName() )
                 .where( QueryBuilder.eq( CommonColumns.ENTITY_SET_ID.cql(), QueryBuilder.bindMarker() ) )
                 .and( QueryBuilder.in( CommonColumns.SYNCID.cql(), CommonColumns.SYNCID.bindMarker() ) ) );
     }

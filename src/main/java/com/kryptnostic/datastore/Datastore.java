@@ -2,9 +2,11 @@ package com.kryptnostic.datastore;
 
 import com.dataloom.data.serializers.FullQualifedNameJacksonDeserializer;
 import com.dataloom.data.serializers.FullQualifedNameJacksonSerializer;
+import com.dataloom.hazelcast.pods.MapstoresPod;
 import com.dataloom.mappers.ObjectMappers;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.kryptnostic.conductor.codecs.pods.TypeCodecsPod;
+import com.kryptnostic.datastore.cassandra.CassandraTablesPod;
 import com.kryptnostic.datastore.pods.DataStoreSecurityPod;
 import com.kryptnostic.datastore.pods.DatastoreServicesPod;
 import com.kryptnostic.datastore.pods.DatastoreServletsPod;
@@ -30,7 +32,9 @@ public class Datastore extends BaseRhizomeServer {
 
     public static final Class<?>[] datastorePods    = new Class<?>[] {
             DatastoreServicesPod.class,
-            TypeCodecsPod.class, DatastoreStreamSerializersPod.class
+            TypeCodecsPod.class, DatastoreStreamSerializersPod.class,
+            MapstoresPod.class,
+            CassandraTablesPod.class,   
     };
 
     static {

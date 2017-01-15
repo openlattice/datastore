@@ -76,8 +76,8 @@ public class EdmController implements EdmApi, AuthorizingComponent {
         return new EntityDataModel(
                 edm.getNamespaces(),
                 edm.getSchemas(),
-                edm.getEntityTypes(),
-                edm.getPropertyTypes(),
+                edm.getEntityTypes()::iterator,
+                edm.getPropertyTypes()::iterator,
                 authorizedEntitySets::iterator );
     }
 
@@ -185,7 +185,7 @@ public class EdmController implements EdmApi, AuthorizingComponent {
                 Principals.getCurrentPrincipals(),
                 SecurableObjectType.EntitySet,
                 EnumSet.of( Permission.READ ) );
-        return Iterables.transform( entitySetAclKeys, akpf -> modelService.getEntitySet( akpf.getId() ) );
+        return Iterables.transform( entitySetAclKeys, akpf -> modelService.getEntitySet( akpf.getId() ) )::iterator;
     }
 
     @Override
@@ -225,7 +225,7 @@ public class EdmController implements EdmApi, AuthorizingComponent {
         produces = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
     public Iterable<EntityType> getEntityTypes() {
-        return modelService.getEntityTypes();
+        return modelService.getEntityTypes()::iterator;
     }
 
     @Override

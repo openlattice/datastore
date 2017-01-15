@@ -2,15 +2,13 @@ package com.kryptnostic.datastore.edm;
 
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import org.apache.olingo.commons.api.edm.EdmPrimitiveTypeKind;
 import org.apache.olingo.commons.api.edm.FullQualifiedName;
-import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
-import org.springframework.beans.BeansException;
 
 import com.dataloom.authorization.AuthorizationManager;
 import com.dataloom.authorization.Principal;
@@ -121,22 +119,26 @@ public class BootstrapDatastoreWithCassandra extends CassandraBootstrap {
     protected static EntityType              METADATA_LEVELS_MARS;
     protected static EntitySet               EMPLOYEES;
 
-    protected static final Lock              initLock                  = new ReentrantLock();
+    protected static final ReadWriteLock     initLock                  = new ReentrantReadWriteLock();
 
     protected static final Principal         principal                 = new Principal(
             PrincipalType.USER,
             "tests|blahblah" );
 
-    @BeforeClass
-    public static void init() throws Exception {
-        if ( initLock.tryLock() ) {
+    static {
+        if ( initLock.writeLock().tryLock() ) {
             ds.intercrop( PODS.toArray( new Class<?>[ 0 ] ) );
-            ds.start( PROFILES.toArray( new String[ 0 ] ) );
+            try {
+                ds.start( PROFILES.toArray( new String[ 0 ] ) );
+            } catch ( Exception e ) {
+                throw new IllegalStateException( "Unable to start datastore", e );
+            }
             dms = ds.getContext().getBean( EdmManager.class );
             am = ds.getContext().getBean( AuthorizationManager.class );
             dataService = ds.getContext().getBean( CassandraDataManager.class );
             schemaManager = ds.getContext().getBean( HazelcastSchemaManager.class );
             setupDatamodel();
+//            initLock.writeLock().unlock();
         }
     }
 
@@ -253,9 +255,8 @@ public class BootstrapDatastoreWithCassandra extends CassandraBootstrap {
         }
     }
 
-    @AfterClass
-    public static void shutdown() throws BeansException, Exception {
-        ds.stop();
-    }
-
+    // @AfterClass
+    // public static void shutdown() throws BeansException, Exception {
+    // ds.stop();
+    // }
 }

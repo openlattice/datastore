@@ -7,40 +7,28 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.auth0.Auth0;
-import com.auth0.authentication.AuthenticationAPIClient;
 import com.auth0.authentication.result.Authentication;
 import com.auth0.authentication.result.Credentials;
 import com.dataloom.client.RetrofitFactory;
 import com.dataloom.client.RetrofitFactory.Environment;
-import com.dataloom.data.DataApi;
 import com.dataloom.edm.EdmApi;
 import com.dataloom.edm.internal.EntityType;
 import com.kryptnostic.datastore.edm.BootstrapDatastoreWithCassandra;
 
 import digital.loom.rhizome.authentication.AuthenticationTest;
-import digital.loom.rhizome.configuration.auth0.Auth0Configuration;
 import retrofit2.Retrofit;
 
 public class Auth0Test extends BootstrapDatastoreWithCassandra {
     private static final Logger                      logger = LoggerFactory.getLogger( Auth0Test.class );
-    private static Auth0Configuration                configuration;
-    private static Auth0                             auth0;
-    private static AuthenticationAPIClient           client;
-    private static DataApi                           dataApi;
     private static Retrofit                          dataServiceRestAdapter;
     protected static EdmApi                          edmApi;
     private static Pair<Credentials, Authentication> authPair;
 
     @BeforeClass
     public static void authInit() throws Exception {
-        configuration = ds.getContext().getBean( Auth0Configuration.class );
-        auth0 = new Auth0( configuration.getClientId(), configuration.getDomain() );
-        client = auth0.newAuthenticationAPIClient();
         authPair = AuthenticationTest.authenticate();
         String jwtToken = authPair.getLeft().getIdToken();
         dataServiceRestAdapter = RetrofitFactory.newClient( Environment.TESTING, () -> jwtToken );
-        dataApi = dataServiceRestAdapter.create( DataApi.class );
         edmApi = dataServiceRestAdapter.create( EdmApi.class );
     }
 

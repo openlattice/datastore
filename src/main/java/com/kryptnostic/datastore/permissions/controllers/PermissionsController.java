@@ -3,6 +3,7 @@ package com.kryptnostic.datastore.permissions.controllers;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 
 import javax.inject.Inject;
 
@@ -18,7 +19,6 @@ import org.springframework.web.client.HttpServerErrorException;
 
 import com.dataloom.authorization.Acl;
 import com.dataloom.authorization.AclData;
-import com.dataloom.authorization.AclKeyPathFragment;
 import com.dataloom.authorization.AuthorizationManager;
 import com.dataloom.authorization.ForbiddenException;
 import com.dataloom.authorization.Permission;
@@ -52,7 +52,7 @@ public class PermissionsController implements PermissionsApi {
          * Ensure that the user has alter permissions on Acl permissions being modified
          */
         final Acl acl = req.getAcl();
-        final List<AclKeyPathFragment> aclKeys = acl.getAclKey();
+        final List<UUID> aclKeys = acl.getAclKey();
         if ( isOwnerOrCanAlter( aclKeys ) ) {
             switch ( req.getAction() ) {
                 case ADD:
@@ -92,11 +92,11 @@ public class PermissionsController implements PermissionsApi {
         path = "/" + PERMISSIONS,
         method = RequestMethod.GET,
         produces = MediaType.APPLICATION_JSON_VALUE )
-    public Acl getAcl( List<AclKeyPathFragment> aclKeys ) {
+    public Acl getAcl( List<UUID> aclKeys ) {
         return authorizations.getAllSecurableObjectPermissions( aclKeys );
     }
 
-    private boolean isOwnerOrCanAlter( List<AclKeyPathFragment> aclKeys ) {
+    private boolean isOwnerOrCanAlter( List<UUID> aclKeys ) {
         Set<Principal> principals = Principals.getCurrentPrincipals();
         return authorizations.checkIfHasPermissions( aclKeys, principals, EnumSet.of( Permission.OWNER ) )
                 || authorizations.checkIfHasPermissions( aclKeys, principals, EnumSet.of( Permission.ALTER ) );

@@ -42,7 +42,7 @@ public class SearchController implements SearchApi {
                 value = ENTITY_TYPE_ID,
                 required = false ) UUID entityType,
             @RequestBody Set<UUID> propertyTypes ) {
-        if ( query == null && entityType == null && propertyTypes == null ) {
+        if ( query == null && entityType == null && ( propertyTypes == null || propertyTypes.isEmpty() ) ) {
             throw new HttpServerErrorException(
                     HttpStatus.BAD_REQUEST,
                     "You must specify at least one query param (keyword 'kw', entity type id 'eid') or request body (property types)" );

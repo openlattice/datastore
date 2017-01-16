@@ -11,8 +11,8 @@ import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 
-import com.dataloom.authorization.Auth;
-import com.dataloom.authorization.AuthQuery;
+import com.dataloom.authorization.AccessCheck;
+import com.dataloom.authorization.Authorization;
 import com.dataloom.authorization.AuthorizationManager;
 import com.dataloom.authorization.AuthorizationsApi;
 import com.dataloom.authorization.AuthorizingComponent;
@@ -33,7 +33,7 @@ public class AuthorizationsController implements AuthorizationsApi, AuthorizingC
         method = RequestMethod.POST,
         consumes = MediaType.APPLICATION_JSON_VALUE,
         produces = MediaType.APPLICATION_JSON_VALUE )
-    public Iterable<Auth> checkAuthorizations( Set<AuthQuery> queries ) {
+    public Iterable<Authorization> checkAuthorizations( Set<AccessCheck> queries ) {
         return Iterables.transform( queries, this::getAuth )::iterator;
     }
 
@@ -42,10 +42,10 @@ public class AuthorizationsController implements AuthorizationsApi, AuthorizingC
         return authorizations;
     }
 
-    private Auth getAuth( AuthQuery query ) {
+    private Authorization getAuth( AccessCheck query ) {
         Set<Permission> currentPermissions = authorizations.getSecurableObjectPermissions( query.getAclKey(),
                 Principals.getCurrentPrincipals() );
         Map<Permission, Boolean> permissionsMap = Maps.asMap( query.getPermissions(), currentPermissions::contains );
-        return new Auth( query.getAclKey(), permissionsMap );
+        return new Authorization( query.getAclKey(), permissionsMap );
     }
 }

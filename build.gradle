@@ -19,7 +19,7 @@ distTar {
 
 apply from: "https://raw.githubusercontent.com/kryptnostic/gradles/master/kryptnostic.gradle"
 
-mainClassName = "com.kryptnostic.datastore.Datastore"
+mainClassName = "com.dataloom.datastore.Datastore"
 applicationDefaultJvmArgs = ["-Xmx5G", "-server"]
 sourceCompatibility=JavaVersion.VERSION_1_8
 targetCompatibility=JavaVersion.VERSION_1_8

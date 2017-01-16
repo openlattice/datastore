@@ -172,7 +172,7 @@ public class EdmController implements EdmApi, AuthorizingComponent {
         } else if ( !failedRequests.isEmpty() ) {
             throw new HttpServerErrorException( HttpStatus.INTERNAL_SERVER_ERROR, failedRequests.toString() );
         }
-        return null;
+        return createdEntitySets;
     }
 
     @Override

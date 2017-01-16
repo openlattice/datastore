@@ -45,7 +45,7 @@ public class SearchController implements SearchApi {
         if ( query == null && entityType == null && propertyTypes == null ) {
             throw new HttpServerErrorException(
                     HttpStatus.BAD_REQUEST,
-                    "You must specify at least one query param (keyword 'kw', entity type id 'eid', property type ids 'pid'" );
+                    "You must specify at least one query param (keyword 'kw', entity type id 'eid') or request body (property types)" );
         }
         ObjectMapper mapper = new ObjectMapper();
         mapper.registerModule( new GuavaModule() );

@@ -32,7 +32,8 @@ public class SearchController implements SearchApi {
         method = RequestMethod.GET,
         produces = { MediaType.APPLICATION_JSON_VALUE } )
     public String executeQueryJson( @RequestBody SearchRequest request ) {
-        if ( !request.getOptionalKeyword().isPresent() && !request.getOptionalEntityType().isPresent() && !request.getOptionalPropertyTypes().isPresent() ) {
+        if ( !request.getOptionalKeyword().isPresent() && !request.getOptionalEntityType().isPresent()
+                && !request.getOptionalPropertyTypes().isPresent() ) {
             throw new HttpServerErrorException(
                     HttpStatus.BAD_REQUEST,
                     "You must specify at least one request body param (keyword 'kw', entity type id 'eid', or property type ids 'pid'" );
@@ -40,7 +41,9 @@ public class SearchController implements SearchApi {
 
         try {
             return ObjectMappers.getJsonMapper().writeValueAsString( searchService
-                    .executeEntitySetKeywordSearchQuery( request.getOptionalKeyword(), request.getOptionalEntityType(), request.getOptionalPropertyTypes() ) );
+                    .executeEntitySetKeywordSearchQuery( request.getOptionalKeyword(),
+                            request.getOptionalEntityType(),
+                            request.getOptionalPropertyTypes() ) );
         } catch ( JsonProcessingException e ) {
             e.printStackTrace();
         }
@@ -51,7 +54,8 @@ public class SearchController implements SearchApi {
         path = { "/" + SEARCH_JAVA },
         method = RequestMethod.GET )
     public Iterable<Map<String, Object>> executeQuery( @Body SearchRequest request ) {
-        if ( !request.getOptionalKeyword().isPresent() && !request.getOptionalEntityType().isPresent() && !request.getOptionalPropertyTypes().isPresent() ) {
+        if ( !request.getOptionalKeyword().isPresent() && !request.getOptionalEntityType().isPresent()
+                && !request.getOptionalPropertyTypes().isPresent() ) {
             throw new HttpServerErrorException(
                     HttpStatus.BAD_REQUEST,
                     "You must specify at least one request body param (keyword 'kw', entity type id 'eid', or property type ids 'pid'" );

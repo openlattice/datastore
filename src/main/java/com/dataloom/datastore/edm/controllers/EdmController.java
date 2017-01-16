@@ -360,7 +360,6 @@ public class EdmController implements EdmApi, AuthorizingComponent {
         path = "/" + PROPERTY_TYPE_BASE_PATH + "/" + ID_PATH,
         method = RequestMethod.GET,
         produces = MediaType.APPLICATION_JSON_VALUE )
-    @ResponseStatus( HttpStatus.OK )
     public PropertyType getPropertyType( @PathVariable( ID ) UUID propertyTypeId ) {
         try {
             return modelService.getPropertyType( propertyTypeId );
@@ -374,7 +373,6 @@ public class EdmController implements EdmApi, AuthorizingComponent {
         path = "/" + NAMESPACE + "/" + NAMESPACE_PATH + "/" + PROPERTY_TYPE_BASE_PATH,
         method = RequestMethod.GET,
         produces = MediaType.APPLICATION_JSON_VALUE )
-    @ResponseStatus( HttpStatus.OK )
     public Iterable<PropertyType> getPropertyTypesInNamespace( @PathVariable( NAMESPACE ) String namespace ) {
         try {
             return modelService.getPropertyTypesInNamespace( namespace );
@@ -397,7 +395,7 @@ public class EdmController implements EdmApi, AuthorizingComponent {
         path = "/" + IDS + "/" + PROPERTY_TYPE_BASE_PATH + "/" + NAMESPACE_PATH + "/" + NAME_PATH,
         method = RequestMethod.GET,
         produces = MediaType.APPLICATION_JSON_VALUE )
-    public UUID getPropertyTypeId( String namespace, String name ) {
+    public UUID getPropertyTypeId( @PathVariable( NAMESPACE ) String namespace, @PathVariable( NAME ) String name ) {
         return modelService.getTypeAclKey( new FullQualifiedName( namespace, name ) );
     }
 
@@ -406,7 +404,7 @@ public class EdmController implements EdmApi, AuthorizingComponent {
         path = "/" + IDS + "/" + ENTITY_TYPE_BASE_PATH + "/" + NAMESPACE_PATH + "/" + NAME_PATH,
         method = RequestMethod.GET,
         produces = MediaType.APPLICATION_JSON_VALUE )
-    public UUID getEntityTypeId( String namespace, String name ) {
+    public UUID getEntityTypeId( @PathVariable( NAMESPACE ) String namespace, @PathVariable( NAME ) String name ) {
         return modelService.getTypeAclKey( new FullQualifiedName( namespace, name ) );
     }
 

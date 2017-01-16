@@ -191,27 +191,27 @@ public class BootstrapDatastoreWithCassandra extends CassandraBootstrap {
         try {
             dms.createPropertyTypeIfNotExists( EMPLOYEE_ID_PROP_TYPE );
         } catch ( TypeExistsException e ) {
-            EMPLOYEE_ID_PROP_ID = dms.getTypeAclKey( EMPLOYEE_ID_PROP_TYPE.getType() ).getId();
+            EMPLOYEE_ID_PROP_ID = dms.getTypeAclKey( EMPLOYEE_ID_PROP_TYPE.getType() );
         }
         try {
             dms.createPropertyTypeIfNotExists( EMPLOYEE_TITLE_PROP_TYPE );
         } catch ( TypeExistsException e ) {
-            EMPLOYEE_TITLE_PROP_ID = dms.getTypeAclKey( EMPLOYEE_TITLE_PROP_TYPE.getType() ).getId();
+            EMPLOYEE_TITLE_PROP_ID = dms.getTypeAclKey( EMPLOYEE_TITLE_PROP_TYPE.getType() );
         }
         try {
             dms.createPropertyTypeIfNotExists( EMPLOYEE_NAME_PROP_TYPE );
         } catch ( TypeExistsException e ) {
-            EMPLOYEE_NAME_PROP_ID = dms.getTypeAclKey( EMPLOYEE_NAME_PROP_TYPE.getType() ).getId();
+            EMPLOYEE_NAME_PROP_ID = dms.getTypeAclKey( EMPLOYEE_NAME_PROP_TYPE.getType() );
         }
         try {
             dms.createPropertyTypeIfNotExists( EMPLOYEE_DEPT_PROP_TYPE );
         } catch ( TypeExistsException e ) {
-            EMPLOYEE_DEPT_PROP_ID = dms.getTypeAclKey( EMPLOYEE_DEPT_PROP_TYPE.getType() ).getId();
+            EMPLOYEE_DEPT_PROP_ID = dms.getTypeAclKey( EMPLOYEE_DEPT_PROP_TYPE.getType() );
         }
         try {
             dms.createPropertyTypeIfNotExists( EMPLOYEE_SALARY_PROP_TYPE );
         } catch ( TypeExistsException e ) {
-            EMPLOYEE_SALARY_PROP_ID = dms.getTypeAclKey( EMPLOYEE_SALARY_PROP_TYPE.getType() ).getId();
+            EMPLOYEE_SALARY_PROP_ID = dms.getTypeAclKey( EMPLOYEE_SALARY_PROP_TYPE.getType() );
         }
     }
 
@@ -223,17 +223,17 @@ public class BootstrapDatastoreWithCassandra extends CassandraBootstrap {
         try {
             dms.createEntityType( METADATA_LEVELS );
         } catch ( TypeExistsException e ) {
-            METADATA_LEVELS_ID = dms.getTypeAclKey( METADATA_LEVELS.getType() ).getId();
+            METADATA_LEVELS_ID = dms.getTypeAclKey( METADATA_LEVELS.getType() );
         }
         try {
             dms.createEntityType( METADATA_LEVELS_SATURN );
         } catch ( TypeExistsException e ) {
-            METADATA_LEVELS_MARS_ID = dms.getTypeAclKey( METADATA_LEVELS_MARS.getType() ).getId();
+            METADATA_LEVELS_MARS_ID = dms.getTypeAclKey( METADATA_LEVELS_MARS.getType() );
         }
         try {
             dms.createEntityType( METADATA_LEVELS_MARS );
         } catch ( TypeExistsException e ) {
-            METADATA_LEVELS_SATURN_ID = dms.getTypeAclKey( METADATA_LEVELS_SATURN.getType() ).getId();
+            METADATA_LEVELS_SATURN_ID = dms.getTypeAclKey( METADATA_LEVELS_SATURN.getType() );
         }
     }
 

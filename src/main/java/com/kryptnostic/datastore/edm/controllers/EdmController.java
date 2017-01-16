@@ -398,7 +398,7 @@ public class EdmController implements EdmApi, AuthorizingComponent {
         method = RequestMethod.GET,
         produces = MediaType.APPLICATION_JSON_VALUE )
     public UUID getPropertyTypeId( String namespace, String name ) {
-        return modelService.getTypeAclKey( new FullQualifiedName( namespace, name ) ).getId();
+        return modelService.getTypeAclKey( new FullQualifiedName( namespace, name ) );
     }
 
     @Override
@@ -407,7 +407,7 @@ public class EdmController implements EdmApi, AuthorizingComponent {
         method = RequestMethod.GET,
         produces = MediaType.APPLICATION_JSON_VALUE )
     public UUID getEntityTypeId( String namespace, String name ) {
-        return modelService.getTypeAclKey( new FullQualifiedName( namespace, name ) ).getId();
+        return modelService.getTypeAclKey( new FullQualifiedName( namespace, name ) );
     }
 
     @Override

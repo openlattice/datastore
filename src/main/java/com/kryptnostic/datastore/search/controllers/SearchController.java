@@ -32,7 +32,7 @@ public class SearchController implements SearchApi {
 	
     @RequestMapping(
     		path = { "/" + SEARCH },
-    		method = RequestMethod.GET,
+    		method = RequestMethod.POST,
     		produces = { MediaType.APPLICATION_JSON_VALUE } )
 	public String executeQueryJson(
 			@RequestParam(
@@ -41,9 +41,7 @@ public class SearchController implements SearchApi {
 			@RequestParam(
 					value = ENTITY_TYPE_ID,
 					required = false ) UUID entityType,
-			@RequestParam(
-					value = PROPERTY_TYPE_ID,
-					required = false ) Set<UUID> propertyTypes) {
+			@RequestBody Set<UUID> propertyTypes ) {
     	if ( query == null && entityType == null && propertyTypes == null ) {
     		throw new HttpServerErrorException( HttpStatus.BAD_REQUEST, "You must specify at least one query param (keyword 'kw', entity type id 'eid', property type ids 'pid'" );
     	}
@@ -64,7 +62,7 @@ public class SearchController implements SearchApi {
     
 
     @RequestMapping(
-    		path = { "/" + SEARCH },
+    		path = { "/" + SEARCH_JAVA },
     		method = RequestMethod.POST )
 	public Iterable<Map<String, Object>> executeQuery(
 			@RequestParam(

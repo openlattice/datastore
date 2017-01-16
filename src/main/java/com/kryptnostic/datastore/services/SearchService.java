@@ -12,14 +12,10 @@ import javax.inject.Inject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.clearspring.analytics.util.Lists;
-import com.dataloom.authorization.Ace;
 import com.dataloom.authorization.AclData;
-import com.dataloom.authorization.AclKeyPathFragment;
 import com.dataloom.authorization.AuthorizationManager;
 import com.dataloom.authorization.Permission;
 import com.dataloom.authorization.Principal;
-import com.dataloom.authorization.SecurableObjectType;
 import com.dataloom.edm.events.EntitySetCreatedEvent;
 import com.dataloom.edm.events.EntitySetDeletedEvent;
 import com.google.common.base.Optional;
@@ -32,69 +28,72 @@ import com.kryptnostic.conductor.rpc.ConductorCall;
 import com.kryptnostic.conductor.rpc.Lambdas;
 
 public class SearchService {
-	
-	private static final Logger logger = LoggerFactory.getLogger( SearchService.class );
-	
+
+    private static final Logger          logger = LoggerFactory.getLogger( SearchService.class );
+
     @Inject
-    private EventBus eventBus;
-	
+    private EventBus                     eventBus;
+
     @Inject
-    private AuthorizationManager authorizations;
-    
-	private final DurableExecutorService executor;
-	
-	public SearchService( HazelcastInstance hazelcast ) {
-		this.executor = hazelcast.getDurableExecutorService( "default" );
-	}
-	
-	@PostConstruct
-	public void initializeBus() {
-		eventBus.register( this );
-	}
-		
-	public List<Map<String, Object>> executeEntitySetKeywordSearchQuery( Optional<String> optionalQuery, Optional<UUID> optionalEntityType, Optional<Set<UUID>> optionalPropertyTypes ) {
-		try {
-			List<Map<String, Object>> queryResults = executor.submit( ConductorCall
-					.wrap( Lambdas.executeElasticsearchMetadataQuery( optionalQuery, optionalEntityType, optionalPropertyTypes ) ) )
-			.get();
-			return queryResults;
-		} catch (InterruptedException | ExecutionException e) {
-			e.printStackTrace();
-		}
-		return null;
-	}
-	
-	public void updateEntitySetPermissions( List<AclKeyPathFragment> aclKeys, Principal principal, Set<Permission> permissions ) {
-		aclKeys.forEach( aclKey -> {
-			if ( aclKey.getType() == SecurableObjectType.EntitySet ) {
-				executor.submit( ConductorCall
-						.wrap( Lambdas.updateEntitySetPermissions( aclKey.getId(), principal, permissions) ) );
-			}
-		} );
-	}
-	
-	@Subscribe
-	public void onAclUpdate( AclData req ) {
-		List<AclKeyPathFragment> aclKeys = req.getAcl().getAclKey();
-		req.getAcl().getAces().forEach( ace -> updateEntitySetPermissions(
-        		aclKeys,
-        		ace.getPrincipal(),
-        		authorizations.getSecurableObjectPermissions( aclKeys, Sets.newHashSet( ace.getPrincipal() ) ) ) );
-	}
-	
-	@Subscribe
-	public void createEntitySet( EntitySetCreatedEvent event ) {
-		executor.submit( ConductorCall
-        		.wrap( Lambdas.submitEntitySetToElasticsearch(
-        				event.getEntitySet(),
-        				event.getPropertyTypes(),
-        				event.getPrincipal() ) ) );
-	}
-	
-	@Subscribe
-	public void deleteEntitySet( EntitySetDeletedEvent event ) {
-		executor.submit( ConductorCall
-        		.wrap( Lambdas.deleteEntitySet( event.getEntitySetId() ) ) );
-	}
+    private AuthorizationManager         authorizations;
+
+    private final DurableExecutorService executor;
+
+    public SearchService( HazelcastInstance hazelcast ) {
+        this.executor = hazelcast.getDurableExecutorService( "default" );
+    }
+
+    @PostConstruct
+    public void initializeBus() {
+        eventBus.register( this );
+    }
+
+    public List<Map<String, Object>> executeEntitySetKeywordSearchQuery(
+            Optional<String> optionalQuery,
+            Optional<UUID> optionalEntityType,
+            Optional<Set<UUID>> optionalPropertyTypes ) {
+        try {
+            List<Map<String, Object>> queryResults = executor.submit( ConductorCall
+                    .wrap( Lambdas.executeElasticsearchMetadataQuery( optionalQuery,
+                            optionalEntityType,
+                            optionalPropertyTypes ) ) )
+                    .get();
+            return queryResults;
+        } catch ( InterruptedException | ExecutionException e ) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+    public void updateEntitySetPermissions( List<UUID> aclKeys, Principal principal, Set<Permission> permissions ) {
+        aclKeys.forEach( aclKey -> {
+            executor.submit( ConductorCall
+                    .wrap( Lambdas.updateEntitySetPermissions( aclKey, principal, permissions ) ) );
+        } );
+    }
+
+    @Subscribe
+    public void onAclUpdate( AclData req ) {
+        List<UUID> aclKeys = req.getAcl().getAclKey();
+        req.getAcl().getAces().forEach( ace -> updateEntitySetPermissions(
+                aclKeys,
+                ace.getPrincipal(),
+                authorizations.getSecurableObjectPermissions( aclKeys, Sets.newHashSet( ace.getPrincipal() ) ) ) );
+    }
+
+    @Subscribe
+    public void createEntitySet( EntitySetCreatedEvent event ) {
+        executor.submit( ConductorCall
+                .wrap( Lambdas.submitEntitySetToElasticsearch(
+                        event.getEntitySet(),
+                        event.getPropertyTypes(),
+                        event.getPrincipal() ) ) );
+    }
+
+    @Subscribe
+    public void deleteEntitySet( EntitySetDeletedEvent event ) {
+        executor.submit( ConductorCall
+                .wrap( Lambdas.deleteEntitySet( event.getEntitySetId() ) ) );
+    }
 
 }

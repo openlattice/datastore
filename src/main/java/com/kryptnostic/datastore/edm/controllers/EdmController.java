@@ -23,7 +23,6 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.client.HttpServerErrorException;
 
-import com.dataloom.authorization.AclKeyPathFragment;
 import com.dataloom.authorization.AuthorizationManager;
 import com.dataloom.authorization.AuthorizingComponent;
 import com.dataloom.authorization.ForbiddenException;
@@ -181,11 +180,11 @@ public class EdmController implements EdmApi, AuthorizingComponent {
         method = RequestMethod.GET )
     @ResponseStatus( HttpStatus.OK )
     public Iterable<EntitySet> getEntitySets() {
-        Iterable<AclKeyPathFragment> entitySetAclKeys = authorizations.getAuthorizedObjectsOfType(
+        Iterable<UUID> entitySetAclKeys = authorizations.getAuthorizedObjectsOfType(
                 Principals.getCurrentPrincipals(),
                 SecurableObjectType.EntitySet,
                 EnumSet.of( Permission.READ ) );
-        return Iterables.transform( entitySetAclKeys, akpf -> modelService.getEntitySet( akpf.getId() ) )::iterator;
+        return Iterables.transform( entitySetAclKeys, modelService::getEntitySet )::iterator;
     }
 
     @Override
@@ -195,7 +194,7 @@ public class EdmController implements EdmApi, AuthorizingComponent {
     @ResponseStatus( HttpStatus.OK )
     public EntitySet getEntitySet( @PathVariable( ID ) UUID entitySetId ) {
         if ( authorizations.checkIfHasPermissions(
-                ImmutableList.of( new AclKeyPathFragment( SecurableObjectType.EntitySet, entitySetId ) ),
+                ImmutableList.of( entitySetId ),
                 Principals.getCurrentPrincipals(),
                 EnumSet.of( Permission.READ ) ) ) {
             return modelService.getEntitySet( entitySetId );
@@ -399,7 +398,7 @@ public class EdmController implements EdmApi, AuthorizingComponent {
         method = RequestMethod.GET,
         produces = MediaType.APPLICATION_JSON_VALUE )
     public UUID getPropertyTypeId( String namespace, String name ) {
-        return modelService.getTypeAclKey( new FullQualifiedName( namespace, name ) ).getId();
+        return modelService.getTypeAclKey( new FullQualifiedName( namespace, name ) );
     }
 
     @Override
@@ -408,7 +407,7 @@ public class EdmController implements EdmApi, AuthorizingComponent {
         method = RequestMethod.GET,
         produces = MediaType.APPLICATION_JSON_VALUE )
     public UUID getEntityTypeId( String namespace, String name ) {
-        return modelService.getTypeAclKey( new FullQualifiedName( namespace, name ) ).getId();
+        return modelService.getTypeAclKey( new FullQualifiedName( namespace, name ) );
     }
 
     @Override

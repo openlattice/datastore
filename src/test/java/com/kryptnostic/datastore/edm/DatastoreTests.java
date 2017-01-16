@@ -254,8 +254,8 @@ public class DatastoreTests extends BootstrapDatastoreWithCassandra {
                     ImmutableSet.of(),
                     EdmPrimitiveTypeKind.Int32 ) );
         } catch ( TypeExistsException e ) {
-            EMPLOYEE_COUNTRY_ID = dms.getTypeAclKey( new FullQualifiedName( NAMESPACE, EMPLOYEE_COUNTRY ) ).getId();
-            EMPLOYEE_WEIGHT_ID = dms.getTypeAclKey( new FullQualifiedName( NAMESPACE, EMPLOYEE_WEIGHT ) ).getId();
+            EMPLOYEE_COUNTRY_ID = dms.getTypeAclKey( new FullQualifiedName( NAMESPACE, EMPLOYEE_COUNTRY ) );
+            EMPLOYEE_WEIGHT_ID = dms.getTypeAclKey( new FullQualifiedName( NAMESPACE, EMPLOYEE_WEIGHT ) );
 
         }
         Set<UUID> properties = ImmutableSet.of( EMPLOYEE_COUNTRY_ID, EMPLOYEE_WEIGHT_ID );
@@ -315,9 +315,9 @@ public class DatastoreTests extends BootstrapDatastoreWithCassandra {
                     EdmPrimitiveTypeKind.Int32 ) );
         } catch ( TypeExistsException e ) {
             EMPLOYEE_TOENAIL_LENGTH_ID = dms
-                    .getTypeAclKey( new FullQualifiedName( NAMESPACE, EMPLOYEE_TOENAIL_LENGTH ) ).getId();
+                    .getTypeAclKey( new FullQualifiedName( NAMESPACE, EMPLOYEE_TOENAIL_LENGTH ) );
             EMPLOYEE_FINGERNAIL_LENGTH_ID = dms
-                    .getTypeAclKey( new FullQualifiedName( NAMESPACE, EMPLOYEE_FINGERNAIL_LENGTH ) ).getId();
+                    .getTypeAclKey( new FullQualifiedName( NAMESPACE, EMPLOYEE_FINGERNAIL_LENGTH ) );
         }
         // Add new property to Schema
         Set<UUID> newProperties = ImmutableSet.of( EMPLOYEE_TOENAIL_LENGTH_ID, EMPLOYEE_FINGERNAIL_LENGTH_ID );
@@ -374,10 +374,9 @@ public class DatastoreTests extends BootstrapDatastoreWithCassandra {
                     ImmutableSet.of(),
                     EdmPrimitiveTypeKind.Int32 ) );
         } catch ( TypeExistsException e ) {
-            EMPLOYEE_HAIR_LENGTH_ID = dms.getTypeAclKey( new FullQualifiedName( NAMESPACE, EMPLOYEE_HAIR_LENGTH ) )
-                    .getId();
+            EMPLOYEE_HAIR_LENGTH_ID = dms.getTypeAclKey( new FullQualifiedName( NAMESPACE, EMPLOYEE_HAIR_LENGTH ) );
             EMPLOYEE_EYEBROW_LENGTH_ID = dms
-                    .getTypeAclKey( new FullQualifiedName( NAMESPACE, EMPLOYEE_EYEBROW_LENGTH ) ).getId();
+                    .getTypeAclKey( new FullQualifiedName( NAMESPACE, EMPLOYEE_EYEBROW_LENGTH ) );
 
         }
 

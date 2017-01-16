@@ -11,6 +11,8 @@ import com.dataloom.authorization.AuthorizationQueryService;
 import com.dataloom.authorization.EdmAuthorizationHelper;
 import com.dataloom.authorization.HazelcastAclKeyReservationService;
 import com.dataloom.authorization.HazelcastAuthorizationService;
+import com.dataloom.data.serializers.FullQualifedNameJacksonDeserializer;
+import com.dataloom.data.serializers.FullQualifedNameJacksonSerializer;
 import com.dataloom.edm.internal.DatastoreConstants;
 import com.dataloom.edm.properties.CassandraTypeManager;
 import com.dataloom.edm.schemas.SchemaQueryService;
@@ -48,7 +50,10 @@ public class DatastoreServicesPod {
 
     @Bean
     public ObjectMapper defaultObjectMapper() {
-        return ObjectMappers.getJsonMapper();
+        ObjectMapper mapper = ObjectMappers.getJsonMapper();
+        FullQualifedNameJacksonSerializer.registerWithMapper( mapper );
+        FullQualifedNameJacksonDeserializer.registerWithMapper( mapper );
+        return mapper;
     }
 
     @Bean

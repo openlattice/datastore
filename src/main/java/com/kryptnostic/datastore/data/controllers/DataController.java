@@ -1,7 +1,6 @@
 package com.kryptnostic.datastore.data.controllers;
 
 import java.util.EnumSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -21,17 +20,16 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.dataloom.authorization.AclKeyPathFragment;
 import com.dataloom.authorization.AuthorizationManager;
 import com.dataloom.authorization.EdmAuthorizationHelper;
 import com.dataloom.authorization.ForbiddenException;
 import com.dataloom.authorization.Permission;
 import com.dataloom.authorization.Principals;
-import com.dataloom.authorization.SecurableObjectType;
 import com.dataloom.data.DataApi;
 import com.dataloom.data.requests.EntitySetSelection;
 import com.dataloom.edm.internal.PropertyType;
 import com.google.common.base.Optional;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.SetMultimap;
 import com.google.common.collect.Sets;
 import com.kryptnostic.datastore.constants.CustomMediaType;
@@ -102,9 +100,7 @@ public class DataController implements DataApi {
             UUID entitySetId,
             Optional<Set<UUID>> syncIds,
             Optional<Set<UUID>> selectedProperties ) {
-        List<AclKeyPathFragment> sop = EdmAuthorizationHelper.getSecurableObjectPath( SecurableObjectType.EntitySet,
-                entitySetId );
-        if ( authz.checkIfHasPermissions( sop,
+        if ( authz.checkIfHasPermissions( ImmutableList.of( entitySetId ),
                 Principals.getCurrentPrincipals(),
                 EnumSet.of( Permission.READ ) ) ) {
             Set<UUID> ids = syncIds.or( getLatestSyncIds() );
@@ -138,9 +134,7 @@ public class DataController implements DataApi {
             @PathVariable( SET_ID ) UUID entitySetId,
             @PathVariable( SYNC_ID ) UUID syncId,
             @RequestBody Map<String, SetMultimap<UUID, Object>> entities ) {
-        List<AclKeyPathFragment> sop = EdmAuthorizationHelper.getSecurableObjectPath( SecurableObjectType.EntitySet,
-                entitySetId );
-        if ( authz.checkIfHasPermissions( sop,
+        if ( authz.checkIfHasPermissions( ImmutableList.of( entitySetId ),
                 Principals.getCurrentPrincipals(),
                 EnumSet.of( Permission.WRITE ) ) ) {
             Set<UUID> authorizedProperties = authzHelper.getAuthorizedPropertiesOnEntitySet( entitySetId,

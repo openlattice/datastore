@@ -25,7 +25,7 @@ public class EdmControllerTests extends AuthenticedRestCallsTest {
     public Pair<UUID, PropertyType> createPropertyType() {
         PropertyType p = TestDataFactory.propertyType();
         UUID propertyTypeId = edm.createPropertyType( p );
-        Assert.assertNotNull( "Property type creation shouldn't return null UUID.", p );
+        Assert.assertNotNull( "Property type creation shouldn't return null UUID.", propertyTypeId );
         return Pair.of( propertyTypeId, p );
     }
 
@@ -38,7 +38,7 @@ public class EdmControllerTests extends AuthenticedRestCallsTest {
         e.removePropertyTypes( e.getProperties() );
         e.addPropertyTypes( ImmutableSet.of( k.getLeft(), p1.getLeft(), p2.getLeft() ) );
         UUID entityTypeId = edm.createEntityType( e );
-        Assert.assertNotNull( "Entity type creation shouldn't return null UUID.", e );
+        Assert.assertNotNull( "Entity type creation shouldn't return null UUID.", entityTypeId );
         return Pair.of( entityTypeId, e );
     }
 
@@ -71,6 +71,7 @@ public class EdmControllerTests extends AuthenticedRestCallsTest {
     public void testCreatePropertyType() {
         Pair<UUID, PropertyType> propertyTypePair = createPropertyType();
         PropertyType p = edm.getPropertyType( propertyTypePair.getLeft() );
+        Assert.assertNotNull( p );
         compare( propertyTypePair.getRight(), p );
     }
 
@@ -82,6 +83,7 @@ public class EdmControllerTests extends AuthenticedRestCallsTest {
         UUID maybePropertyTypeId = edm.getPropertyTypeId(
                 propertyType.getType().getNamespace(),
                 propertyType.getType().getName() );
+        Assert.assertNotNull( maybePropertyTypeId );
         Assert.assertEquals( propertyTypePair.getLeft(), maybePropertyTypeId );
     }
 
@@ -92,6 +94,7 @@ public class EdmControllerTests extends AuthenticedRestCallsTest {
         UUID maybeEntityTypeId = edm.getEntityTypeId(
                 entityType.getType().getNamespace(),
                 entityType.getType().getName() );
+        Assert.assertNotNull( maybeEntityTypeId );
         Assert.assertEquals( entityTypePair.getLeft(), maybeEntityTypeId );
     }
 

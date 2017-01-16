@@ -11,6 +11,7 @@ import java.util.stream.StreamSupport;
 import javax.inject.Inject;
 
 import org.apache.olingo.commons.api.edm.FullQualifiedName;
+import org.slf4j.LoggerFactory;
 import org.spark_project.guava.collect.Iterables;
 import org.spark_project.guava.collect.Maps;
 import org.springframework.http.HttpStatus;
@@ -362,7 +363,8 @@ public class EdmController implements EdmApi, AuthorizingComponent {
         produces = MediaType.APPLICATION_JSON_VALUE )
     public PropertyType getPropertyType( @PathVariable( ID ) UUID propertyTypeId ) {
         try {
-            return modelService.getPropertyType( propertyTypeId );
+            PropertyType pt = modelService.getPropertyType( propertyTypeId );
+            return pt;
         } catch ( NullPointerException e ) {
             throw new ResourceNotFoundException( "Property type not found." );
         }

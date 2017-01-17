@@ -24,6 +24,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 
 @RestController
+@RequestMapping( AuthorizationsApi.CONTROLLER )
 public class AuthorizationsController implements AuthorizationsApi, AuthorizingComponent {
     private static final Logger  logger = LoggerFactory.getLogger( AuthorizationsController.class );
 
@@ -32,7 +33,6 @@ public class AuthorizationsController implements AuthorizationsApi, AuthorizingC
 
     @Override
     @RequestMapping(
-        path = "/" + AUTHORIZATIONS,
         method = RequestMethod.POST,
         consumes = MediaType.APPLICATION_JSON_VALUE,
         produces = MediaType.APPLICATION_JSON_VALUE )

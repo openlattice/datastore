@@ -1,4 +1,4 @@
-package com.kryptnostic.datastore.requests.controllers;
+package com.dataloom.datastore.requests.controllers;
 
 import java.util.EnumSet;
 import java.util.List;
@@ -8,6 +8,7 @@ import javax.inject.Inject;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseStatus;
@@ -38,45 +39,45 @@ public class PermissionsRequestsController implements PermissionsRequestsApi, Au
 
     @Override
     @RequestMapping(
-        path = "/" + PERMISSIONS,
+        path = "/",
         method = RequestMethod.PUT,
         consumes = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
-    public Void upsertRequest( AclRootRequestDetailsPair req ) {
+    public Void upsertRequest( @RequestBody AclRootRequestDetailsPair req ) {
         prm.upsertRequest( req.getAclRoot(), Principals.getCurrentUser(), req.getDetails().getPermissions() );
         return null;
     }
 
     @Override
     @RequestMapping(
-        path = "/" + PERMISSIONS + "/" + UNRESOLVED,
+        path = "/" + UNRESOLVED,
         method = RequestMethod.POST,
         consumes = MediaType.APPLICATION_JSON_VALUE,
         produces = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
-    public PermissionsRequest getUnresolvedRequestOfUser( List<UUID> aclRoot ) {
+    public PermissionsRequest getUnresolvedRequestOfUser( @RequestBody List<UUID> aclRoot ) {
         return prm.getUnresolvedRequestOfUser( aclRoot, Principals.getCurrentUser() );
     }
 
     @Override
     @RequestMapping(
-        path = "/" + PERMISSIONS + "/" + RESOLVED,
+        path = "/" + RESOLVED,
         method = RequestMethod.POST,
         consumes = MediaType.APPLICATION_JSON_VALUE,
         produces = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
-    public Iterable<PermissionsRequest> getResolvedRequestsOfUser( List<UUID> aclRoot ) {
+    public Iterable<PermissionsRequest> getResolvedRequestsOfUser( @RequestBody List<UUID> aclRoot ) {
         return prm.getResolvedRequestsOfUser( aclRoot, Principals.getCurrentUser() );
     }
 
     @Override
     @RequestMapping(
-        path = "/" + PERMISSIONS + "/" + ADMIN,
+        path = "/" + ADMIN,
         method = RequestMethod.POST,
         consumes = MediaType.APPLICATION_JSON_VALUE,
         produces = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
-    public Void updateUnresolvedRequestStatus( PermissionsRequest req ) {
+    public Void updateUnresolvedRequestStatus( @RequestBody PermissionsRequest req ) {
         ensureOwnerAccess( req.getAclRoot() );
         prm.updateUnresolvedRequestStatus( req.getAclRoot(),
                 req.getUser(),
@@ -86,12 +87,12 @@ public class PermissionsRequestsController implements PermissionsRequestsApi, Au
 
     @Override
     @RequestMapping(
-        path = "/" + PERMISSIONS + "/" + ADMIN + "/" + UNRESOLVED,
+        path = "/" + ADMIN + "/" + UNRESOLVED,
         method = RequestMethod.POST,
         consumes = MediaType.APPLICATION_JSON_VALUE,
         produces = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
-    public Iterable<PermissionsRequest> getAllUnresolvedRequestsOfAdmin( AclRootStatusPair req ) {
+    public Iterable<PermissionsRequest> getAllUnresolvedRequestsOfAdmin( @RequestBody AclRootStatusPair req ) {
         EnumSet<RequestStatus> status = req.getStatus() == null ? EnumSet.allOf( RequestStatus.class )
                 : req.getStatus();
 

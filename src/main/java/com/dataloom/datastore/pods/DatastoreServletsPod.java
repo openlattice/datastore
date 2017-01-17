@@ -62,4 +62,15 @@ public class DatastoreServletsPod {
                 1,
                 Lists.<Class<?>> newArrayList( EdmMvcPod.class ) );
     }
+
+
+    @Bean
+    public DispatcherServletConfiguration permissionsRequestsServlet() {
+        return new DispatcherServletConfiguration(
+                "requests",
+                new String[] { "/requests/*" },
+                1,
+                Lists.<Class<?>> newArrayList( PermissionsRequestsMvcPod.class ) );
+    }
+
 }

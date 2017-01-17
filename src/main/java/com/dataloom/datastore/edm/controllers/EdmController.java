@@ -67,9 +67,9 @@ public class EdmController implements EdmApi, AuthorizingComponent {
         produces = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
     public EntityDataModel getEntityDataModel() {
-        final Iterable<Schema> schemas = schemaManager.getAllSchemas()::iterator;
-        final Iterable<EntityType> entityTypes = getEntityTypes()::iterator;
-        final Iterable<PropertyType> propertyTypes = getPropertyTypes()::iterator;
+        final Iterable<Schema> schemas = schemaManager.getAllSchemas();
+        final Iterable<EntityType> entityTypes = getEntityTypes();
+        final Iterable<PropertyType> propertyTypes = getPropertyTypes();
         final Set<String> namespaces = Sets.newHashSet();
         entityTypes.forEach( entityType -> namespaces.add( entityType.getType().getNamespace() ) );
         propertyTypes.forEach( propertyType -> namespaces.add( propertyType.getType().getNamespace() ) );
@@ -386,7 +386,7 @@ public class EdmController implements EdmApi, AuthorizingComponent {
         produces = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
     public Iterable<PropertyType> getPropertyTypes() {
-        return modelService.getPropertyTypes()::iterator;
+        return modelService.getPropertyTypes();
     }
 
     @Override

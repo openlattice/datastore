@@ -9,7 +9,7 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.dataloom.datastore.authentication.AuthenticedRestCallsTest;
+import com.dataloom.datastore.authentication.AuthenticatedRestCallsTest;
 import com.dataloom.edm.EdmApi;
 import com.dataloom.edm.EntityDataModel;
 import com.dataloom.edm.internal.AbstractSchemaAssociatedSecurableType;
@@ -19,8 +19,8 @@ import com.dataloom.edm.internal.PropertyType;
 import com.dataloom.edm.internal.TestDataFactory;
 import com.google.common.collect.ImmutableSet;
 
-public class EdmControllerTests extends AuthenticedRestCallsTest {
-    private final static Logger logger = LoggerFactory.getLogger( AuthenticedRestCallsTest.class );
+public class EdmControllerTests extends AuthenticatedRestCallsTest {
+    private final static Logger logger = LoggerFactory.getLogger( AuthenticatedRestCallsTest.class );
     private final EdmApi        edm    = getApi( EdmApi.class );
 
     public Pair<UUID, PropertyType> createPropertyType() {

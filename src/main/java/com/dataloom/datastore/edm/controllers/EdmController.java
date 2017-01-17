@@ -2,6 +2,7 @@ package com.dataloom.datastore.edm.controllers;
 
 import java.util.EnumSet;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -93,54 +94,53 @@ public class EdmController implements EdmApi, AuthorizingComponent {
         produces = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
     public EdmDetails getEdmDetails( @RequestBody Set<EdmDetailsSelector> selectors) {
-        final Map<UUID, PropertyType> propertyTypes = new HashMap<>();
-        final Map<UUID, EntityType> entityTypes = new HashMap<>();
-        final Map<UUID, EntitySet> entitySets = new HashMap<>();
+        final Set<UUID> propertyTypeIds = new HashSet<>();
+        final Set<UUID> entityTypeIds = new HashSet<>();
+        final Set<UUID> entitySetIds = new HashSet<>();
         
         selectors.forEach( selector -> {
             switch( selector.getType() ){
                 case PropertyTypeInEntitySet:
-                    fillPropertyTypeDetails( selector, propertyTypes );
+                    updatePropertyTypeIdsToGet( selector, propertyTypeIds );
                     break;
                 case EntityType:
-                    fillEntityTypeDetails( selector, propertyTypes, entityTypes );
+                    updateEntityTypeIdsToGet( selector, propertyTypeIds, entityTypeIds );
                     break;
                 case EntitySet:
-                    fillEntitySetDetails( selector, propertyTypes, entityTypes, entitySets );
+                    updateEntitySetIdsToGet( selector, propertyTypeIds, entityTypeIds, entitySetIds );
                     break;
                 default:
                     throw new BadRequestException( "Unsupported Securable Object Type when retrieving Edm Details: " + selector.getType() );
             }
         });
-        return new EdmDetails( propertyTypes, entityTypes, entitySets );
+        return new EdmDetails( modelService.getPropertyTypesAsMap( propertyTypeIds ), modelService.getEntityTypesAsMap( entityTypeIds ), modelService.getEntitySetsAsMap( entitySetIds ) );
     }
 
-    private void fillPropertyTypeDetails( EdmDetailsSelector selector, Map<UUID, PropertyType> propertyTypes ){
+    private void updatePropertyTypeIdsToGet( EdmDetailsSelector selector, Set<UUID> propertyTypeIds ){
             if( selector.getIncludedFields().contains( SecurableObjectType.PropertyTypeInEntitySet ) ){
-                propertyTypes.putIfAbsent( selector.getId(), modelService.getPropertyType( selector.getId()) );
+                propertyTypeIds.add( selector.getId() );
             }
     }
 
-    private void fillEntityTypeDetails( EdmDetailsSelector selector, Map<UUID, PropertyType> propertyTypes, Map<UUID, EntityType> entityTypes ){
+    private void updateEntityTypeIdsToGet( EdmDetailsSelector selector, Set<UUID> propertyTypeIds, Set<UUID> entityTypeIds ){
             if( selector.getIncludedFields().contains( SecurableObjectType.EntityType ) ){
-                entityTypes.putIfAbsent( selector.getId(), modelService.getEntityType( selector.getId() ) );
+                entityTypeIds.add( selector.getId() );
             }
             if( selector.getIncludedFields().contains( SecurableObjectType.PropertyTypeInEntitySet ) ){
-                modelService.getEntityType( selector.getId() ).getProperties().forEach( pid -> propertyTypes.putIfAbsent( pid, modelService.getPropertyType( pid ) ) );
+                propertyTypeIds.addAll( modelService.getEntityType( selector.getId() ).getProperties() );
             }
     }
 
-    private void fillEntitySetDetails( EdmDetailsSelector selector, Map<UUID, PropertyType> propertyTypes, Map<UUID, EntityType> entityTypes, Map<UUID, EntitySet> entitySets ){
+    private void updateEntitySetIdsToGet( EdmDetailsSelector selector, Set<UUID> propertyTypeIds, Set<UUID> entityTypeIds, Set<UUID> entitySetIds ){
         if( selector.getIncludedFields().contains( SecurableObjectType.EntitySet ) ){
-            entitySets.putIfAbsent( selector.getId(), modelService.getEntitySet( selector.getId() ) );
+            entitySetIds.add( selector.getId() );
         }
         if( selector.getIncludedFields().contains( SecurableObjectType.EntityType ) ){
-            UUID eid = modelService.getEntitySet( selector.getId() ).getEntityTypeId();
-            entityTypes.putIfAbsent( eid, modelService.getEntityType( eid ) );
+            entityTypeIds.add( modelService.getEntitySet( selector.getId() ).getEntityTypeId() );
         }
         if( selector.getIncludedFields().contains( SecurableObjectType.PropertyTypeInEntitySet ) ){
             UUID eid = modelService.getEntitySet( selector.getId() ).getEntityTypeId();
-            modelService.getEntityType( eid ).getProperties().forEach( pid -> propertyTypes.putIfAbsent( pid, modelService.getPropertyType( pid ) ) );
+            propertyTypeIds.addAll( modelService.getEntityType( eid ).getProperties() );
         }                
     }
 

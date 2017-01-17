@@ -37,6 +37,7 @@ import com.google.common.collect.Sets;
 import com.kryptnostic.datastore.services.EdmService;
 
 @RestController
+@RequestMapping( DataApi.CONTROLLER )
 public class DataController implements DataApi {
 
     @Inject
@@ -52,7 +53,7 @@ public class DataController implements DataApi {
     private EdmAuthorizationHelper authzHelper;
 
     @RequestMapping(
-        path = { "/" + CONTROLLER + "/" + ENTITY_DATA + "/" + SET_ID_PATH },
+        path = { "/" + ENTITY_DATA + "/" + SET_ID_PATH },
         method = RequestMethod.GET,
         produces = { MediaType.APPLICATION_JSON_VALUE, CustomMediaType.TEXT_CSV_VALUE } )
     public Iterable<SetMultimap<FullQualifiedName, Object>> getEntitySetData(
@@ -72,7 +73,7 @@ public class DataController implements DataApi {
     }
 
     @RequestMapping(
-        path = { "/" + CONTROLLER + "/" + HISTORICAL + "/" + ENTITY_DATA + "/" + SET_ID_PATH },
+        path = { "/" + HISTORICAL + "/" + ENTITY_DATA + "/" + SET_ID_PATH },
         method = RequestMethod.GET,
         consumes = MediaType.APPLICATION_JSON_VALUE,
         produces = { MediaType.APPLICATION_JSON_VALUE, CustomMediaType.TEXT_CSV_VALUE } )
@@ -127,7 +128,7 @@ public class DataController implements DataApi {
     }
 
     @RequestMapping(
-        path = { "/" + CONTROLLER + "/" + ENTITY_DATA + "/" + SET_ID_PATH + SYNC_ID_PATH },
+        path = { "/" + ENTITY_DATA + "/" + SET_ID_PATH + SYNC_ID_PATH },
         method = RequestMethod.POST,
         consumes = MediaType.APPLICATION_JSON_VALUE )
     public Void createEntityData(

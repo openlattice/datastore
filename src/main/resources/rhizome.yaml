@@ -14,7 +14,7 @@ cassandra:
         - "cassandra"
 
 hazelcast:
-    server: true
+    server: false
     group: "local"
     password: "kryptodoge4life"
     seed-nodes: 

@@ -5,13 +5,10 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-import java.util.stream.Stream;
-import java.util.stream.StreamSupport;
 
 import javax.inject.Inject;
 
 import org.apache.olingo.commons.api.edm.FullQualifiedName;
-import org.spark_project.guava.base.Predicate;
 import org.spark_project.guava.collect.Iterables;
 import org.spark_project.guava.collect.Maps;
 import org.springframework.http.HttpStatus;
@@ -68,17 +65,22 @@ public class EdmController implements EdmApi, AuthorizingComponent {
         produces = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
     public EntityDataModel getEntityDataModel() {
-        EntityDataModel edm = modelService.getEntityDataModel();
-        Set<EntitySet> s = ImmutableSet.copyOf( edm.getEntitySets() );
+        final Iterable<Schema> schemas = schemaManager.getAllSchemas();
+        final Iterable<EntityType> entityTypes = getEntityTypes();
+        final Iterable<PropertyType> propertyTypes = getPropertyTypes();
+        final Set<String> namespaces = Sets.newHashSet();
+        entityTypes.forEach( entityType -> namespaces.add( entityType.getType().getNamespace() ) );
+        propertyTypes.forEach( propertyType -> namespaces.add( propertyType.getType().getNamespace() ) );
 
-        Iterable<EntitySet> authorizedEntitySets = Iterables
-                .filter( edm.getEntitySets(), es -> isAuthorizedObject( Permission.READ ).test( es ) );
+        Iterable<EntitySet> authorizedEntitySets = Iterables.transform(
+                getAccessibleObjects( SecurableObjectType.EntitySet, EnumSet.of( Permission.READ ) ),
+                modelService::getEntitySet );
 
         return new EntityDataModel(
-                edm.getNamespaces(),
-                edm.getSchemas(),
-                edm.getEntityTypes()::iterator,
-                edm.getPropertyTypes()::iterator,
+                namespaces,
+                schemas,
+                entityTypes::iterator,
+                propertyTypes::iterator,
                 authorizedEntitySets::iterator );
     }
 

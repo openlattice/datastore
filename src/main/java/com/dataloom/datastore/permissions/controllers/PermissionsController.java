@@ -1,8 +1,6 @@
 package com.dataloom.datastore.permissions.controllers;
 
-import java.util.EnumSet;
 import java.util.List;
-import java.util.Set;
 import java.util.UUID;
 
 import javax.inject.Inject;
@@ -20,16 +18,15 @@ import org.springframework.web.client.HttpServerErrorException;
 import com.dataloom.authorization.Acl;
 import com.dataloom.authorization.AclData;
 import com.dataloom.authorization.AuthorizationManager;
+import com.dataloom.authorization.AuthorizingComponent;
 import com.dataloom.authorization.ForbiddenException;
 import com.dataloom.authorization.Permission;
 import com.dataloom.authorization.PermissionsApi;
-import com.dataloom.authorization.Principal;
-import com.dataloom.authorization.Principals;
 import com.google.common.eventbus.EventBus;
 
 @RestController
 @RequestMapping( PermissionsApi.CONTROLLER )
-public class PermissionsController implements PermissionsApi {
+public class PermissionsController implements PermissionsApi, AuthorizingComponent {
     private static final Logger  logger = LoggerFactory.getLogger( PermissionsController.class );
     @Inject
     private AuthorizationManager authorizations;
@@ -48,7 +45,7 @@ public class PermissionsController implements PermissionsApi {
          */
         final Acl acl = req.getAcl();
         final List<UUID> aclKeys = acl.getAclKey();
-        if ( isOwnerOrCanAlter( aclKeys ) ) {
+        if ( isAuthorized( Permission.OWNER ).test( aclKeys ) ) {
             switch ( req.getAction() ) {
                 case ADD:
                     acl.getAces().forEach(
@@ -91,10 +88,8 @@ public class PermissionsController implements PermissionsApi {
         return authorizations.getAllSecurableObjectPermissions( aclKeys );
     }
 
-    private boolean isOwnerOrCanAlter( List<UUID> aclKeys ) {
-        Set<Principal> principals = Principals.getCurrentPrincipals();
-        return authorizations.checkIfHasPermissions( aclKeys, principals, EnumSet.of( Permission.OWNER ) )
-                || authorizations.checkIfHasPermissions( aclKeys, principals, EnumSet.of( Permission.ALTER ) );
-
+    @Override
+    public AuthorizationManager getAuthorizationManager() {
+        return authorizations;
     }
 }

@@ -23,6 +23,7 @@ import com.dataloom.datastore.directory.controllers.PrincipalDirectoryController
 import com.dataloom.datastore.edm.controllers.EdmController;
 import com.dataloom.datastore.permissions.controllers.PermissionsController;
 import com.dataloom.datastore.search.controllers.SearchController;
+import com.dataloom.organizations.controllers.OrganizationsController;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ryantenney.metrics.spring.config.annotation.EnableMetrics;
 
@@ -30,7 +31,7 @@ import com.ryantenney.metrics.spring.config.annotation.EnableMetrics;
 @ComponentScan(
     basePackageClasses = { DataController.class, SearchController.class, PermissionsController.class,
             PrincipalDirectoryController.class,
-            EdmController.class },
+            EdmController.class, OrganizationsController.class },
     includeFilters = @ComponentScan.Filter(
         value = { org.springframework.stereotype.Controller.class,
                 org.springframework.web.bind.annotation.ControllerAdvice.class },

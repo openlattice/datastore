@@ -1,5 +1,7 @@
 package com.dataloom.datastore.edm;
 
+import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 import org.apache.commons.lang3.tuple.Pair;
@@ -9,18 +11,20 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.dataloom.datastore.authentication.AuthenticedRestCallsTest;
+import com.dataloom.datastore.authentication.AuthenticatedRestCallsTest;
 import com.dataloom.edm.EdmApi;
 import com.dataloom.edm.EntityDataModel;
 import com.dataloom.edm.internal.AbstractSchemaAssociatedSecurableType;
 import com.dataloom.edm.internal.AbstractSecurableType;
+import com.dataloom.edm.internal.EntitySet;
 import com.dataloom.edm.internal.EntityType;
 import com.dataloom.edm.internal.PropertyType;
-import com.dataloom.edm.internal.TestDataFactory;
+import com.dataloom.mapstores.TestDataFactory;
+import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableSet;
 
-public class EdmControllerTests extends AuthenticedRestCallsTest {
-    private final static Logger logger = LoggerFactory.getLogger( AuthenticedRestCallsTest.class );
+public class EdmControllerTests extends AuthenticatedRestCallsTest {
+    private final static Logger logger = LoggerFactory.getLogger( AuthenticatedRestCallsTest.class );
     private final EdmApi        edm    = getApi( EdmApi.class );
 
     public Pair<UUID, PropertyType> createPropertyType() {
@@ -108,11 +112,27 @@ public class EdmControllerTests extends AuthenticedRestCallsTest {
                 entityType.getType().getName() );
         Assert.assertEquals( entityTypePair.getLeft(), maybeEntityTypeId );
     }
-    
+
     @Test
     public void testEntityDataModel() {
         EntityDataModel dm = edm.getEntityDataModel();
-        Assert.assertNotNull( dm ); 
+        Assert.assertNotNull( dm );
+    }
+
+    @Test
+    public void createEntitySet() {
+        Pair<UUID, EntityType> entityTypePair = createEntityType();
+        EntityType entityType = edm.getEntityType( entityTypePair.getLeft() );
+
+        EntitySet es = new EntitySet(
+                entityType.getType(),
+                entityType.getId(),
+                "foo",
+                "foobar",
+                Optional.<String> of( "barred" ) );
+        Map<String, UUID> entitySetId = edm.createEntitySets( ImmutableSet.of( es ) );
+        Set<EntitySet> ess = ImmutableSet.copyOf( edm.getEntitySets() );
+        Assert.assertTrue( ess.contains( es ) );
     }
 
     @AfterClass

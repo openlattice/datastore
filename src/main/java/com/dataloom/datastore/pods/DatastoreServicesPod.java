@@ -22,6 +22,7 @@ import com.dataloom.edm.schemas.SchemaQueryService;
 import com.dataloom.edm.schemas.cassandra.CassandraSchemaQueryService;
 import com.dataloom.edm.schemas.manager.HazelcastSchemaManager;
 import com.dataloom.mappers.ObjectMappers;
+import com.dataloom.organizations.HazelcastOrganizationService;
 import com.datastax.driver.core.Session;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.hazelcast.core.HazelcastInstance;
@@ -122,6 +123,16 @@ public class DatastoreServicesPod {
     @Bean
     public CassandraDataManager cassandraDataManager() {
         return new CassandraDataManager( session, defaultObjectMapper() );
+    }
+
+    @Bean
+    public HazelcastOrganizationService organizationsManager() {
+        return new HazelcastOrganizationService(
+                cassandraConfiguration.getKeyspace(),
+                session,
+                hazelcastInstance,
+                aclKeyReservationService(),
+                authorizationManager() );
     }
 
     @Bean

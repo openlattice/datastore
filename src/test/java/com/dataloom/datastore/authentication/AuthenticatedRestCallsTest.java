@@ -15,7 +15,7 @@ import com.dataloom.edm.internal.EntityType;
 import digital.loom.rhizome.authentication.AuthenticationTest;
 import retrofit2.Retrofit;
 
-public class AuthenticedRestCallsTest extends BootstrapDatastoreWithCassandra {
+public class AuthenticatedRestCallsTest extends BootstrapDatastoreWithCassandra {
     private static Retrofit                          retrofit;
     protected static EdmApi                          edmApi;
     private static Pair<Credentials, Authentication> authPair;

@@ -7,7 +7,6 @@ import java.util.UUID;
 
 import javax.inject.Inject;
 
-import org.spark_project.guava.collect.Iterables;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -30,8 +29,10 @@ import com.dataloom.authorization.SecurableObjectType;
 import com.dataloom.organization.Organization;
 import com.dataloom.organization.OrganizationsApi;
 import com.dataloom.organizations.HazelcastOrganizationService;
+import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 
 @RestController
 @RequestMapping( OrganizationsApi.CONTROLLER )
@@ -48,8 +49,12 @@ public class OrganizationsController implements AuthorizingComponent, Organizati
         value = { "", "/" },
         produces = MediaType.APPLICATION_JSON_VALUE )
     public Iterable<Organization> getOrganizations() {
-        return Iterables.transform(
+        Iterable<UUID> orgs = Iterables.filter(
                 getAccessibleObjects( SecurableObjectType.Organization, EnumSet.of( Permission.READ ) ),
+                Predicates.notNull() );
+
+        return Iterables.transform(
+                orgs,
                 organizations::getOrganization )::iterator;
     }
 

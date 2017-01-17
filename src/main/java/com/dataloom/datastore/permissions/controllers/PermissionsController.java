@@ -25,24 +25,21 @@ import com.dataloom.authorization.Permission;
 import com.dataloom.authorization.PermissionsApi;
 import com.dataloom.authorization.Principal;
 import com.dataloom.authorization.Principals;
-import com.dataloom.datastore.services.SearchService;
 import com.google.common.eventbus.EventBus;
 
 @RestController
+@RequestMapping( PermissionsApi.CONTROLLER )
 public class PermissionsController implements PermissionsApi {
     private static final Logger  logger = LoggerFactory.getLogger( PermissionsController.class );
     @Inject
     private AuthorizationManager authorizations;
-    
+
     @Inject
-    private SearchService searchService;
-    
-    @Inject
-    private EventBus eventBus;
+    private EventBus             eventBus;
 
     @Override
     @RequestMapping(
-        path = "/" + PERMISSIONS,
+        path = { "", "/" },
         method = RequestMethod.PATCH,
         produces = MediaType.APPLICATION_JSON_VALUE )
     public Void updateAcl( @RequestBody AclData req ) {
@@ -80,14 +77,14 @@ public class PermissionsController implements PermissionsApi {
             }
             eventBus.post( req );
         } else {
-        	throw new ForbiddenException( "Only owner of a securable object can access other users' access rights." );
+            throw new ForbiddenException( "Only owner of a securable object can access other users' access rights." );
         }
         return null;
     }
 
     @Override
     @RequestMapping(
-        path = "/" + PERMISSIONS,
+        path = { "", "/" },
         method = RequestMethod.GET,
         produces = MediaType.APPLICATION_JSON_VALUE )
     public Acl getAcl( List<UUID> aclKeys ) {

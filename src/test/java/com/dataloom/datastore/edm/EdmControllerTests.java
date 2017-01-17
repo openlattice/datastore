@@ -11,6 +11,7 @@ import org.slf4j.LoggerFactory;
 
 import com.dataloom.datastore.authentication.AuthenticedRestCallsTest;
 import com.dataloom.edm.EdmApi;
+import com.dataloom.edm.EntityDataModel;
 import com.dataloom.edm.internal.AbstractSchemaAssociatedSecurableType;
 import com.dataloom.edm.internal.AbstractSecurableType;
 import com.dataloom.edm.internal.EntityType;
@@ -106,6 +107,12 @@ public class EdmControllerTests extends AuthenticedRestCallsTest {
                 entityType.getType().getNamespace(),
                 entityType.getType().getName() );
         Assert.assertEquals( entityTypePair.getLeft(), maybeEntityTypeId );
+    }
+    
+    @Test
+    public void testEntityDataModel() {
+        EntityDataModel dm = edm.getEntityDataModel();
+        Assert.assertNotNull( dm ); 
     }
 
     @AfterClass

@@ -61,7 +61,7 @@ public class DatastoreServicesPod {
 
     @Bean
     public AuthorizationQueryService authorizationQueryService() {
-        return new AuthorizationQueryService( session, hazelcastInstance );
+        return new AuthorizationQueryService( cassandraConfiguration.getKeyspace(), session, hazelcastInstance );
     }
 
     @Bean
@@ -81,7 +81,10 @@ public class DatastoreServicesPod {
 
     @Bean
     public HazelcastSchemaManager schemaManager() {
-        return new HazelcastSchemaManager( cassandraConfiguration.getKeyspace(), hazelcastInstance, schemaQueryService() );
+        return new HazelcastSchemaManager(
+                cassandraConfiguration.getKeyspace(),
+                hazelcastInstance,
+                schemaQueryService() );
     }
 
     @Bean

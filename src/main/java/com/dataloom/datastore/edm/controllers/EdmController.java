@@ -326,7 +326,7 @@ public class EdmController implements EdmApi, AuthorizingComponent {
         produces = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
     public Iterable<PropertyType> getPropertyTypes() {
-        return modelService.getPropertyTypes();
+        return modelService.getPropertyTypes()::iterator;
     }
 
     @Override

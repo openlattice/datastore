@@ -29,7 +29,7 @@ public class SearchController implements SearchApi {
 
     @RequestMapping(
         path = { "/", "" },
-        method = RequestMethod.GET,
+        method = RequestMethod.POST,
         produces = { MediaType.APPLICATION_JSON_VALUE } )
     public String executeQueryJson( @RequestBody SearchRequest request ) {
         if ( !request.getOptionalKeyword().isPresent() && !request.getOptionalEntityType().isPresent()
@@ -52,7 +52,7 @@ public class SearchController implements SearchApi {
 
     @RequestMapping(
         path = { SEARCH_JAVA },
-        method = RequestMethod.GET,
+        method = RequestMethod.POST,
         produces = { MediaType.APPLICATION_JSON_VALUE } )
     public Iterable<Map<String, Object>> executeQuery( @Body SearchRequest request ) {
         if ( !request.getOptionalKeyword().isPresent() && !request.getOptionalEntityType().isPresent()

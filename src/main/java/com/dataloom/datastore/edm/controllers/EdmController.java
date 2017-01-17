@@ -11,6 +11,7 @@ import java.util.stream.StreamSupport;
 import javax.inject.Inject;
 
 import org.apache.olingo.commons.api.edm.FullQualifiedName;
+import org.spark_project.guava.base.Predicate;
 import org.spark_project.guava.collect.Iterables;
 import org.spark_project.guava.collect.Maps;
 import org.springframework.http.HttpStatus;
@@ -68,11 +69,10 @@ public class EdmController implements EdmApi, AuthorizingComponent {
     @ResponseStatus( HttpStatus.OK )
     public EntityDataModel getEntityDataModel() {
         EntityDataModel edm = modelService.getEntityDataModel();
+        Set<EntitySet> s = ImmutableSet.copyOf( edm.getEntitySets() );
 
-        Stream<EntitySet> authorizedEntitySets = StreamSupport
-                .stream( edm.getEntitySets().spliterator(), false )
-                .filter( es -> es!=null )
-                .filter( isAuthorizedObject( Permission.READ ) );
+        Iterable<EntitySet> authorizedEntitySets = Iterables
+                .filter( edm.getEntitySets(), es -> isAuthorizedObject( Permission.READ ).test( es ) );
 
         return new EntityDataModel(
                 edm.getNamespaces(),

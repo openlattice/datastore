@@ -31,10 +31,12 @@ import com.dataloom.datastore.exceptions.BadRequestException;
 import com.dataloom.datastore.exceptions.ResourceNotFoundException;
 import com.dataloom.edm.EdmApi;
 import com.dataloom.edm.EntityDataModel;
+import com.dataloom.edm.internal.EdmDetails;
 import com.dataloom.edm.internal.EntitySet;
 import com.dataloom.edm.internal.EntityType;
 import com.dataloom.edm.internal.PropertyType;
 import com.dataloom.edm.internal.Schema;
+import com.dataloom.edm.requests.EdmDetailsSelector;
 import com.dataloom.edm.requests.EdmRequest;
 import com.dataloom.edm.schemas.manager.HazelcastSchemaManager;
 import com.google.common.collect.ImmutableList;
@@ -65,9 +67,9 @@ public class EdmController implements EdmApi, AuthorizingComponent {
         produces = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
     public EntityDataModel getEntityDataModel() {
-        final Iterable<Schema> schemas = schemaManager.getAllSchemas();
-        final Iterable<EntityType> entityTypes = getEntityTypes();
-        final Iterable<PropertyType> propertyTypes = getPropertyTypes();
+        final Iterable<Schema> schemas = schemaManager.getAllSchemas()::iterator;
+        final Iterable<EntityType> entityTypes = getEntityTypes()::iterator;
+        final Iterable<PropertyType> propertyTypes = getPropertyTypes()::iterator;
         final Set<String> namespaces = Sets.newHashSet();
         entityTypes.forEach( entityType -> namespaces.add( entityType.getType().getNamespace() ) );
         propertyTypes.forEach( propertyType -> namespaces.add( propertyType.getType().getNamespace() ) );
@@ -82,6 +84,64 @@ public class EdmController implements EdmApi, AuthorizingComponent {
                 entityTypes::iterator,
                 propertyTypes::iterator,
                 authorizedEntitySets::iterator );
+    }
+
+    @Override
+    @RequestMapping(
+        method = RequestMethod.POST,
+        consumes = MediaType.APPLICATION_JSON_VALUE,
+        produces = MediaType.APPLICATION_JSON_VALUE )
+    @ResponseStatus( HttpStatus.OK )
+    public EdmDetails getEdmDetails( @RequestBody Set<EdmDetailsSelector> selectors) {
+        final Map<UUID, PropertyType> propertyTypes = new HashMap<>();
+        final Map<UUID, EntityType> entityTypes = new HashMap<>();
+        final Map<UUID, EntitySet> entitySets = new HashMap<>();
+        
+        selectors.forEach( selector -> {
+            switch( selector.getType() ){
+                case PropertyTypeInEntitySet:
+                    fillPropertyTypeDetails( selector, propertyTypes );
+                    break;
+                case EntityType:
+                    fillEntityTypeDetails( selector, propertyTypes, entityTypes );
+                    break;
+                case EntitySet:
+                    fillEntitySetDetails( selector, propertyTypes, entityTypes, entitySets );
+                    break;
+                default:
+                    throw new BadRequestException( "Unsupported Securable Object Type when retrieving Edm Details: " + selector.getType() );
+            }
+        });
+        return new EdmDetails( propertyTypes, entityTypes, entitySets );
+    }
+
+    private void fillPropertyTypeDetails( EdmDetailsSelector selector, Map<UUID, PropertyType> propertyTypes ){
+            if( selector.getIncludedFields().contains( SecurableObjectType.PropertyTypeInEntitySet ) ){
+                propertyTypes.putIfAbsent( selector.getId(), modelService.getPropertyType( selector.getId()) );
+            }
+    }
+
+    private void fillEntityTypeDetails( EdmDetailsSelector selector, Map<UUID, PropertyType> propertyTypes, Map<UUID, EntityType> entityTypes ){
+            if( selector.getIncludedFields().contains( SecurableObjectType.EntityType ) ){
+                entityTypes.putIfAbsent( selector.getId(), modelService.getEntityType( selector.getId() ) );
+            }
+            if( selector.getIncludedFields().contains( SecurableObjectType.PropertyTypeInEntitySet ) ){
+                modelService.getEntityType( selector.getId() ).getProperties().forEach( pid -> propertyTypes.putIfAbsent( pid, modelService.getPropertyType( pid ) ) );
+            }
+    }
+
+    private void fillEntitySetDetails( EdmDetailsSelector selector, Map<UUID, PropertyType> propertyTypes, Map<UUID, EntityType> entityTypes, Map<UUID, EntitySet> entitySets ){
+        if( selector.getIncludedFields().contains( SecurableObjectType.EntitySet ) ){
+            entitySets.putIfAbsent( selector.getId(), modelService.getEntitySet( selector.getId() ) );
+        }
+        if( selector.getIncludedFields().contains( SecurableObjectType.EntityType ) ){
+            UUID eid = modelService.getEntitySet( selector.getId() ).getEntityTypeId();
+            entityTypes.putIfAbsent( eid, modelService.getEntityType( eid ) );
+        }
+        if( selector.getIncludedFields().contains( SecurableObjectType.PropertyTypeInEntitySet ) ){
+            UUID eid = modelService.getEntitySet( selector.getId() ).getEntityTypeId();
+            modelService.getEntityType( eid ).getProperties().forEach( pid -> propertyTypes.putIfAbsent( pid, modelService.getPropertyType( pid ) ) );
+        }                
     }
 
     /*
@@ -326,7 +386,7 @@ public class EdmController implements EdmApi, AuthorizingComponent {
         produces = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
     public Iterable<PropertyType> getPropertyTypes() {
-        return modelService.getPropertyTypes();
+        return modelService.getPropertyTypes()::iterator;
     }
 
     @Override

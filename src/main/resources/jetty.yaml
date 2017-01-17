@@ -8,7 +8,7 @@ max-threads: 500
 context:
     descriptor: src/main/webapp/WEB-INF/web.xml
     resource-base: src/main/webapp
-    path: /datastore
+    path: /
     parent-loader-priority: true
 
 ##

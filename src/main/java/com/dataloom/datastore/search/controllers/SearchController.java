@@ -25,13 +25,14 @@ import com.google.common.base.Optional;
 import com.google.common.collect.Lists;
 
 @RestController
+@RequestMapping(SearchApi.CONTROLLER)
 public class SearchController implements SearchApi {
 
     @Inject
     private SearchService searchService;
 
     @RequestMapping(
-        path = { "/" + SEARCH },
+        path = { "/" , "" },
         method = RequestMethod.POST,
         produces = { MediaType.APPLICATION_JSON_VALUE } )
     public String executeQueryJson(
@@ -64,7 +65,7 @@ public class SearchController implements SearchApi {
     }
 
     @RequestMapping(
-        path = { "/" + SEARCH_JAVA },
+        path = { SEARCH_JAVA },
         method = RequestMethod.POST )
     public Iterable<Map<String, Object>> executeQuery(
             @RequestParam(

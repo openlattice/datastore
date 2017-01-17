@@ -11,7 +11,6 @@ import java.util.stream.StreamSupport;
 import javax.inject.Inject;
 
 import org.apache.olingo.commons.api.edm.FullQualifiedName;
-import org.slf4j.LoggerFactory;
 import org.spark_project.guava.collect.Iterables;
 import org.spark_project.guava.collect.Maps;
 import org.springframework.http.HttpStatus;
@@ -47,6 +46,7 @@ import com.kryptnostic.datastore.services.CassandraEntitySetManager;
 import com.kryptnostic.datastore.services.EdmManager;
 
 @RestController
+@RequestMapping( EdmApi.CONTROLLER )
 public class EdmController implements EdmApi, AuthorizingComponent {
 
     @Inject

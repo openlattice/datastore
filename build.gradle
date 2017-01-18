@@ -20,7 +20,21 @@ distTar {
 apply from: "https://raw.githubusercontent.com/kryptnostic/gradles/master/kryptnostic.gradle"
 
 mainClassName = "com.dataloom.datastore.Datastore"
-applicationDefaultJvmArgs = ["-Xmx5G", "-server"]
+
+def DS_XMS = "$System.env.DATASTORE_XMS"
+def DS_XMX = "$System.env.DATASTORE_XMX"
+
+if( DS_XMS == 'null' || DS_XMS = null || DS_XMS == "" ) {
+    DS_XMS = '-Xms1g'
+}
+
+if( DS_XMX == 'null' || DS_XMX == null || DS_XMX == "" ) {
+    DS_XMX = '-Xms4g'
+}
+
+println "Using java args for running ${projectName}: Xms=" + DS_XMS + ",Xmx=" + DS_XMX + " -server"
+
+applicationDefaultJvmArgs = [DS_XMS, DS_XMX, "-server"]
 sourceCompatibility=JavaVersion.VERSION_1_8
 targetCompatibility=JavaVersion.VERSION_1_8
 /*

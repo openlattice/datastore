@@ -13,8 +13,8 @@ import org.apache.olingo.server.api.ODataHttpHandler;
 import org.apache.olingo.server.api.ServiceMetadata;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 import com.dataloom.datastore.odata.KryptnosticEntityCollectionProcessor;
 import com.dataloom.datastore.odata.KryptnosticEntityProcessor;
@@ -25,7 +25,7 @@ import com.hazelcast.core.HazelcastInstance;
 import com.kryptnostic.datastore.services.EdmManager;
 import com.kryptnostic.datastore.services.ODataStorageService;
 
-@Controller
+@RestController
 public class ODataController {
     private static final Logger    logger = LoggerFactory.getLogger( ODataController.class );
     @Inject

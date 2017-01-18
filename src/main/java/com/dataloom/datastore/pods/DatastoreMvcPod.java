@@ -18,21 +18,28 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurationSupp
 import com.dataloom.data.DataApi;
 import com.dataloom.datastore.constants.CustomMediaType;
 import com.dataloom.datastore.converters.CsvHttpMessageConverter;
+import com.dataloom.datastore.data.controllers.DataController;
+import com.dataloom.datastore.directory.controllers.PrincipalDirectoryController;
+import com.dataloom.datastore.edm.controllers.EdmController;
+import com.dataloom.datastore.permissions.controllers.PermissionsController;
 import com.dataloom.datastore.search.controllers.SearchController;
+import com.dataloom.organizations.controllers.OrganizationsController;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ryantenney.metrics.spring.config.annotation.EnableMetrics;
 
 @Configuration
 @ComponentScan(
-    basePackageClasses = { SearchController.class },
+    basePackageClasses = { DataController.class, SearchController.class, PermissionsController.class,
+            PrincipalDirectoryController.class,
+            EdmController.class, OrganizationsController.class },
     includeFilters = @ComponentScan.Filter(
-        value = { org.springframework.stereotype.Controller.class, org.springframework.stereotype.Service.class,
+        value = { org.springframework.stereotype.Controller.class,
                 org.springframework.web.bind.annotation.ControllerAdvice.class },
         type = FilterType.ANNOTATION ) )
 @EnableAsync
 @EnableMetrics(
     proxyTargetClass = true )
-public class SearchMvcPod extends WebMvcConfigurationSupport {
+public class DatastoreMvcPod extends WebMvcConfigurationSupport {
 
     @Inject
     private ObjectMapper defaultObjectMapper;

@@ -18,14 +18,4 @@ public class DatastoreServletsPod {
                 Lists.<Class<?>> newArrayList( DatastoreMvcPod.class ) );
     }
 
-
-    @Bean
-    public DispatcherServletConfiguration permissionsRequestsServlet() {
-        return new DispatcherServletConfiguration(
-                "requests",
-                new String[] { "/requests/*" },
-                1,
-                Lists.<Class<?>> newArrayList( PermissionsRequestsMvcPod.class ) );
-    }
-
 }

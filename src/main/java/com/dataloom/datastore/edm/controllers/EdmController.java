@@ -307,7 +307,7 @@ public class EdmController implements EdmApi, AuthorizingComponent {
         switch ( request.getAction() ) {
             case ADD:
                 schemaManager.addEntityTypesToSchema( entityTypes, schemaName );
-                schemaManager.removePropertyTypesFromSchema( propertyTypes, schemaName );
+                schemaManager.addPropertyTypesFromSchema( propertyTypes, schemaName );
                 break;
             case REMOVE:
                 schemaManager.removeEntityTypesFromSchema( entityTypes, schemaName );

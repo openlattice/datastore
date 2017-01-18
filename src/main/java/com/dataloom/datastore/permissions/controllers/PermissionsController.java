@@ -38,7 +38,7 @@ public class PermissionsController implements PermissionsApi, AuthorizingCompone
     @RequestMapping(
         path = { "", "/" },
         method = RequestMethod.PATCH,
-        produces = MediaType.APPLICATION_JSON_VALUE )
+        consumes = MediaType.APPLICATION_JSON_VALUE )
     public Void updateAcl( @RequestBody AclData req ) {
         /*
          * Ensure that the user has alter permissions on Acl permissions being modified

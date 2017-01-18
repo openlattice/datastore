@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.dataloom.authorization.AuthorizationManager;
 import com.dataloom.authorization.AuthorizingComponent;
 import com.dataloom.authorization.Permission;
+import com.dataloom.authorization.PermissionsApi;
 import com.dataloom.authorization.Principal;
 import com.dataloom.authorization.PrincipalType;
 import com.dataloom.authorization.Principals;
@@ -29,6 +30,7 @@ import com.dataloom.requests.RequestStatus;
 import com.google.common.collect.Iterables;
 
 @RestController
+@RequestMapping( PermissionsRequestsApi.CONTROLLER )
 public class PermissionsRequestsController implements PermissionsRequestsApi, AuthorizingComponent {
 
     @Inject
@@ -93,10 +95,10 @@ public class PermissionsRequestsController implements PermissionsRequestsApi, Au
         produces = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
     public Iterable<PermissionsRequest> getAllUnresolvedRequestsOfAdmin( @RequestBody AclRootStatusPair req ) {
-        EnumSet<RequestStatus> status = req.getStatus() == null ? EnumSet.allOf( RequestStatus.class )
+        EnumSet<RequestStatus> status = req.getStatus().isEmpty() ? EnumSet.allOf( RequestStatus.class )
                 : req.getStatus();
 
-        if ( req.getAclRoot() != null ) {
+        if ( !req.getAclRoot().isEmpty() ) {
             ensureOwnerAccess( req.getAclRoot() );
             if( status.equals( EnumSet.allOf( RequestStatus.class ) ) ){
                 return prm.getAllUnresolvedRequestsOfAdmin( req.getAclRoot() );

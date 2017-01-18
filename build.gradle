@@ -24,7 +24,7 @@ mainClassName = "com.dataloom.datastore.Datastore"
 def DS_XMS = "$System.env.DATASTORE_XMS"
 def DS_XMX = "$System.env.DATASTORE_XMX"
 
-if( DS_XMS == 'null' || DS_XMS = null || DS_XMS == "" ) {
+if( DS_XMS == 'null' || DS_XMS == null || DS_XMS == "" ) {
     DS_XMS = '-Xms1g'
 }
 

@@ -34,7 +34,7 @@ import com.google.common.collect.Iterables;
 public class PermissionsRequestsController implements PermissionsRequestsApi, AuthorizingComponent {
 
     @Inject
-    private AuthorizationManager      authorizations;
+    private AuthorizationManager       authorizations;
 
     @Inject
     private PermissionsRequestsManager prm;
@@ -94,20 +94,25 @@ public class PermissionsRequestsController implements PermissionsRequestsApi, Au
         consumes = MediaType.APPLICATION_JSON_VALUE,
         produces = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
-    public Iterable<PermissionsRequest> getAllUnresolvedRequestsOfAdmin( @RequestBody AclRootStatusPair req ) {
-        EnumSet<RequestStatus> status = req.getStatus().isEmpty() ? EnumSet.allOf( RequestStatus.class )
+    public Iterable<PermissionsRequest> getAllUnresolvedRequestsOfAdmin( @RequestBody(
+        required = false ) AclRootStatusPair req ) {
+        if ( req == null ) {
+            req = new AclRootStatusPair( null, null );
+        }
+
+        EnumSet<RequestStatus> status = req.getStatus() == null ? EnumSet.allOf( RequestStatus.class )
                 : req.getStatus();
 
-        if ( !req.getAclRoot().isEmpty() ) {
+        if ( !( req.getAclRoot() == null ) ) {
             ensureOwnerAccess( req.getAclRoot() );
-            if( status.equals( EnumSet.allOf( RequestStatus.class ) ) ){
+            if ( status.equals( EnumSet.allOf( RequestStatus.class ) ) ) {
                 return prm.getAllUnresolvedRequestsOfAdmin( req.getAclRoot() );
             } else {
                 return prm.getAllUnresolvedRequestsOfAdmin( req.getAclRoot(), status );
             }
         } else {
             Iterable<Iterable<PermissionsRequest>> requests;
-            if( status.equals( EnumSet.allOf( RequestStatus.class ) ) ){
+            if ( status.equals( EnumSet.allOf( RequestStatus.class ) ) ) {
                 requests = Iterables.transform(
                         authorizations.getAuthorizedObjects( Principals.getCurrentPrincipals(),
                                 EnumSet.of( Permission.OWNER ) ),

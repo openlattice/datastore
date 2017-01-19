@@ -360,8 +360,31 @@ public class EdmController implements EdmApi, AuthorizingComponent {
         path = ENTITY_TYPE_PATH + ID_PATH,
         method = RequestMethod.PUT )
     @ResponseStatus( HttpStatus.OK )
-    public Void updatePropertyTypesInEntityType( UUID entityTypeId, Set<UUID> request ) {
-        // TODO Auto-generated method stub
+    public Void updatePropertyTypesInEntityType( @PathVariable( ID ) UUID entityTypeId, @RequestBody EdmRequest request ) {
+        ensureAdminAccess();
+        switch( request.getAction() ){
+            case ADD:
+                modelService.addPropertyTypesToEntityType( entityTypeId, request.getPropertyTypes() );
+                break;
+            case REMOVE:
+                if( !Iterables.isEmpty( entitySetManager.getAllEntitySetsForType( entityTypeId ) ) ){
+                    throw new ForbiddenException( "Removal of property type failed, because entity set exists for this entity type.");
+                }
+                modelService.removePropertyTypesFromEntityType( entityTypeId, request.getPropertyTypes() );
+                break;
+            case REPLACE:
+                final Set<UUID> existingPropertyTypes = modelService.getEntityType( entityTypeId ).getProperties();
+
+                final Set<UUID> propertyTypesToAdd = Sets.difference( request.getPropertyTypes(), existingPropertyTypes );
+                final Set<UUID> propertyTypesToRemove = Sets.difference( existingPropertyTypes, request.getPropertyTypes() );
+
+                if( !Iterables.isEmpty( entitySetManager.getAllEntitySetsForType( entityTypeId ) ) ){
+                    throw new ForbiddenException( "Removal of property type failed, because entity set exists for this entity type.");
+                }
+                modelService.removePropertyTypesFromEntityType( entityTypeId, propertyTypesToRemove );
+                modelService.addPropertyTypesToEntityType( entityTypeId, propertyTypesToAdd );
+                break;
+        }
         return null;
     }
 

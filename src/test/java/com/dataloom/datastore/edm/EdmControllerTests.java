@@ -96,6 +96,7 @@ public class EdmControllerTests extends AuthenticatedRestCallsTest {
         EntityType entityType = createEntityType();
 
         EntitySet es = new EntitySet(
+                UUID.randomUUID(),
                 entityType.getType(),
                 entityType.getId(),
                 "foo",

@@ -357,34 +357,27 @@ public class EdmController implements EdmApi, AuthorizingComponent {
 
     @Override
     @RequestMapping(
-        path = ENTITY_TYPE_PATH + ID_PATH,
+        path = ENTITY_TYPE_PATH + ENTITY_TYPE_ID_PATH + PROPERTY_TYPE_ID_PATH,
         method = RequestMethod.PUT )
     @ResponseStatus( HttpStatus.OK )
-    public Void updatePropertyTypesInEntityType( @PathVariable( ID ) UUID entityTypeId, @RequestBody EdmRequest request ) {
+    public Void addPropertyTypeToEntityType(
+            @PathVariable( ENTITY_TYPE_ID ) UUID entityTypeId,
+            @PathVariable( PROPERTY_TYPE_ID ) UUID propertyTypeId ) {
         ensureAdminAccess();
-        switch( request.getAction() ){
-            case ADD:
-                modelService.addPropertyTypesToEntityType( entityTypeId, request.getPropertyTypes() );
-                break;
-            case REMOVE:
-                if( !Iterables.isEmpty( entitySetManager.getAllEntitySetsForType( entityTypeId ) ) ){
-                    throw new ForbiddenException( "Removal of property type failed, because entity set exists for this entity type.");
-                }
-                modelService.removePropertyTypesFromEntityType( entityTypeId, request.getPropertyTypes() );
-                break;
-            case REPLACE:
-                final Set<UUID> existingPropertyTypes = modelService.getEntityType( entityTypeId ).getProperties();
+        modelService.addPropertyTypesToEntityType( entityTypeId, ImmutableSet.of( propertyTypeId ) );
+        return null;
+    }
 
-                final Set<UUID> propertyTypesToAdd = Sets.difference( request.getPropertyTypes(), existingPropertyTypes );
-                final Set<UUID> propertyTypesToRemove = Sets.difference( existingPropertyTypes, request.getPropertyTypes() );
-
-                if( !Iterables.isEmpty( entitySetManager.getAllEntitySetsForType( entityTypeId ) ) ){
-                    throw new ForbiddenException( "Removal of property type failed, because entity set exists for this entity type.");
-                }
-                modelService.removePropertyTypesFromEntityType( entityTypeId, propertyTypesToRemove );
-                modelService.addPropertyTypesToEntityType( entityTypeId, propertyTypesToAdd );
-                break;
-        }
+    @Override
+    @RequestMapping(
+        path = ENTITY_TYPE_PATH + ENTITY_TYPE_ID_PATH + PROPERTY_TYPE_ID_PATH,
+        method = RequestMethod.DELETE )
+    @ResponseStatus( HttpStatus.OK )
+    public Void removePropertyTypeFromEntityType(
+            @PathVariable( ENTITY_TYPE_ID ) UUID entityTypeId,
+            @PathVariable( PROPERTY_TYPE_ID ) UUID propertyTypeId ) {
+        ensureAdminAccess();
+        modelService.removePropertyTypesFromEntityType( entityTypeId, ImmutableSet.of( propertyTypeId ) );
         return null;
     }
 

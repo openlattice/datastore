@@ -28,6 +28,7 @@ import com.kryptnostic.datastore.services.ODataStorageService;
 @RestController
 public class ODataController {
     private static final Logger    logger = LoggerFactory.getLogger( ODataController.class );
+
     @Inject
     private HazelcastInstance      hazelcast;
 

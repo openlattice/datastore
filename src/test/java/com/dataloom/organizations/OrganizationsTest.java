@@ -26,10 +26,17 @@ public class OrganizationsTest extends AuthenticatedRestCallsTest {
 
     @Test
     public void getOrganizations() {
-        Organization organization = createOrganization();
         Iterable<Organization> iorgs = organizations.getOrganizations();
         Assert.assertNotNull( iorgs );
         Set<Organization> orgs = ImmutableSet.copyOf( iorgs );
+        
+        Organization organization = createOrganization();
+        
+        iorgs = organizations.getOrganizations();
+        Assert.assertNotNull( iorgs );
+        Assert.assertTrue( !orgs.contains( organization ) );
+        
+        orgs = ImmutableSet.copyOf( iorgs );
         Assert.assertNotNull( orgs );
         Assert.assertTrue( orgs.contains( organization ) );
     }

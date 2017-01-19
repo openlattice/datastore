@@ -20,7 +20,6 @@ import com.dataloom.authorization.AuthorizationsApi;
 import com.dataloom.authorization.AuthorizingComponent;
 import com.dataloom.authorization.Permission;
 import com.dataloom.authorization.Principals;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 
 @RestController
@@ -37,7 +36,7 @@ public class AuthorizationsController implements AuthorizationsApi, AuthorizingC
         consumes = MediaType.APPLICATION_JSON_VALUE,
         produces = MediaType.APPLICATION_JSON_VALUE )
     public Iterable<Authorization> checkAuthorizations( @RequestBody Set<AccessCheck> queries ) {
-        return Iterables.transform( queries, this::getAuth )::iterator;
+        return queries.stream().map( this::getAuth )::iterator;
     }
 
     @Override

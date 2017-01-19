@@ -10,8 +10,6 @@ import java.util.UUID;
 import javax.inject.Inject;
 
 import org.apache.olingo.commons.api.edm.FullQualifiedName;
-import org.spark_project.guava.collect.Iterables;
-import org.spark_project.guava.collect.Maps;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -42,6 +40,8 @@ import com.dataloom.edm.requests.EdmRequest;
 import com.dataloom.edm.schemas.manager.HazelcastSchemaManager;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.kryptnostic.datastore.services.CassandraEntitySetManager;
 import com.kryptnostic.datastore.services.EdmManager;

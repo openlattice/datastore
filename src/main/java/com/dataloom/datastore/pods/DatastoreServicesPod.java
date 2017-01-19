@@ -23,6 +23,9 @@ import com.dataloom.edm.schemas.cassandra.CassandraSchemaQueryService;
 import com.dataloom.edm.schemas.manager.HazelcastSchemaManager;
 import com.dataloom.mappers.ObjectMappers;
 import com.dataloom.organizations.HazelcastOrganizationService;
+import com.dataloom.requests.HazelcastPermissionsRequestsService;
+import com.dataloom.requests.PermissionsRequestsManager;
+import com.dataloom.requests.PermissionsRequestsQueryService;
 import com.datastax.driver.core.Session;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.hazelcast.core.HazelcastInstance;
@@ -154,4 +157,15 @@ public class DatastoreServicesPod {
     public EdmAuthorizationHelper edmAuthorizationHelper() {
         return new EdmAuthorizationHelper( dataModelService(), authorizationManager() );
     }
+    
+    @Bean
+    public PermissionsRequestsQueryService permissionsRequestsQueryService() {
+        return new PermissionsRequestsQueryService( session );
+    }
+
+    @Bean
+    public PermissionsRequestsManager permissionsRequestsManager() {
+        return new HazelcastPermissionsRequestsService( hazelcastInstance, permissionsRequestsQueryService() );
+    }
+   
 }

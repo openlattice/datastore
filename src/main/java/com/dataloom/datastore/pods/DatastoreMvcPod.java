@@ -22,6 +22,7 @@ import com.dataloom.datastore.data.controllers.DataController;
 import com.dataloom.datastore.directory.controllers.PrincipalDirectoryController;
 import com.dataloom.datastore.edm.controllers.EdmController;
 import com.dataloom.datastore.permissions.controllers.PermissionsController;
+import com.dataloom.datastore.requests.controllers.PermissionsRequestsController;
 import com.dataloom.datastore.search.controllers.SearchController;
 import com.dataloom.organizations.controllers.OrganizationsController;
 import com.dataloom.datastore.authorization.controllers.AuthorizationsController;
@@ -31,7 +32,7 @@ import com.ryantenney.metrics.spring.config.annotation.EnableMetrics;
 @Configuration
 @ComponentScan(
     basePackageClasses = { DataController.class, SearchController.class, 
-            PermissionsController.class, AuthorizationsController.class,
+            PermissionsController.class, PermissionsRequestsController.class, AuthorizationsController.class,
             PrincipalDirectoryController.class,
             EdmController.class, OrganizationsController.class },
     includeFilters = @ComponentScan.Filter(

@@ -6,10 +6,12 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import org.spark_project.guava.collect.ImmutableMap;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.dataloom.client.RetrofitFactory;
 import com.dataloom.directory.pojo.Auth0UserBasic;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.kryptnostic.datastore.services.Auth0ManagementApi;
@@ -17,9 +19,9 @@ import com.kryptnostic.datastore.services.Auth0ManagementApi;
 import retrofit2.Retrofit;
 
 public class UserDirectoryService {
-
-    private Retrofit           retrofit;
-    private Auth0ManagementApi auth0ManagementApi;
+    private static final Logger logger = LoggerFactory.getLogger( UserDirectoryService.class );
+    private Retrofit            retrofit;
+    private Auth0ManagementApi  auth0ManagementApi;
 
     public UserDirectoryService( String token ) {
         retrofit = RetrofitFactory.newClient( "https://loom.auth0.com/api/v2/", () -> token );
@@ -28,7 +30,15 @@ public class UserDirectoryService {
 
     public Map<String, Auth0UserBasic> getAllUsers() {
         Set<Auth0UserBasic> users = auth0ManagementApi.getAllUsers();
-        return users.stream().collect( Collectors.toMap( Auth0UserBasic::getUserId, Function.identity() ) );
+
+        if ( users == null ) {
+            logger.warn( "Received null response from auth0" );
+            return ImmutableMap.of();
+        }
+
+        return users
+                .stream()
+                .collect( Collectors.toMap( Auth0UserBasic::getUserId, Function.identity() ) );
     }
 
     public Auth0UserBasic getUser( String userId ) {

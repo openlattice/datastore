@@ -307,7 +307,7 @@ public class EdmController implements EdmApi, AuthorizingComponent {
         switch ( request.getAction() ) {
             case ADD:
                 schemaManager.addEntityTypesToSchema( entityTypes, schemaName );
-                schemaManager.removePropertyTypesFromSchema( propertyTypes, schemaName );
+                schemaManager.addPropertyTypesToSchema( propertyTypes, schemaName );
                 break;
             case REMOVE:
                 schemaManager.removeEntityTypesFromSchema( entityTypes, schemaName );
@@ -357,11 +357,27 @@ public class EdmController implements EdmApi, AuthorizingComponent {
 
     @Override
     @RequestMapping(
-        path = ENTITY_TYPE_PATH + ID_PATH,
+        path = ENTITY_TYPE_PATH + ENTITY_TYPE_ID_PATH + PROPERTY_TYPE_ID_PATH,
         method = RequestMethod.PUT )
     @ResponseStatus( HttpStatus.OK )
-    public Void updatePropertyTypesInEntityType( UUID entityTypeId, Set<UUID> request ) {
-        // TODO Auto-generated method stub
+    public Void addPropertyTypeToEntityType(
+            @PathVariable( ENTITY_TYPE_ID ) UUID entityTypeId,
+            @PathVariable( PROPERTY_TYPE_ID ) UUID propertyTypeId ) {
+        ensureAdminAccess();
+        modelService.addPropertyTypesToEntityType( entityTypeId, ImmutableSet.of( propertyTypeId ) );
+        return null;
+    }
+
+    @Override
+    @RequestMapping(
+        path = ENTITY_TYPE_PATH + ENTITY_TYPE_ID_PATH + PROPERTY_TYPE_ID_PATH,
+        method = RequestMethod.DELETE )
+    @ResponseStatus( HttpStatus.OK )
+    public Void removePropertyTypeFromEntityType(
+            @PathVariable( ENTITY_TYPE_ID ) UUID entityTypeId,
+            @PathVariable( PROPERTY_TYPE_ID ) UUID propertyTypeId ) {
+        ensureAdminAccess();
+        modelService.removePropertyTypesFromEntityType( entityTypeId, ImmutableSet.of( propertyTypeId ) );
         return null;
     }
 

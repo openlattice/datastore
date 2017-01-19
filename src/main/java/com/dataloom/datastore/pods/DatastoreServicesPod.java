@@ -16,7 +16,7 @@ import com.dataloom.data.serializers.FullQualifedNameJacksonSerializer;
 import com.dataloom.datastore.services.CassandraDataManager;
 import com.dataloom.datastore.services.DatasourceManager;
 import com.dataloom.datastore.services.SearchService;
-import com.dataloom.datastore.services.UserDirectoryService;
+import com.dataloom.directory.UserDirectoryService;
 import com.dataloom.edm.properties.CassandraTypeManager;
 import com.dataloom.edm.schemas.SchemaQueryService;
 import com.dataloom.edm.schemas.cassandra.CassandraSchemaQueryService;
@@ -135,7 +135,8 @@ public class DatastoreServicesPod {
                 session,
                 hazelcastInstance,
                 aclKeyReservationService(),
-                authorizationManager() );
+                authorizationManager(),
+                userDirectoryService() );
     }
 
     @Bean
@@ -157,7 +158,7 @@ public class DatastoreServicesPod {
     public EdmAuthorizationHelper edmAuthorizationHelper() {
         return new EdmAuthorizationHelper( dataModelService(), authorizationManager() );
     }
-    
+
     @Bean
     public PermissionsRequestsQueryService permissionsRequestsQueryService() {
         return new PermissionsRequestsQueryService( session );
@@ -167,5 +168,5 @@ public class DatastoreServicesPod {
     public PermissionsRequestsManager permissionsRequestsManager() {
         return new HazelcastPermissionsRequestsService( hazelcastInstance, permissionsRequestsQueryService() );
     }
-   
+
 }

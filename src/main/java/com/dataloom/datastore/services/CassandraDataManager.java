@@ -131,11 +131,7 @@ public class CassandraDataManager {
                     } );
         } );
 
-        try {
-            Futures.allAsList( results ).get();
-        } catch ( InterruptedException | ExecutionException e ) {
-            logger.error( "Error writing data with syncId " + syncId );
-        }
+        results.forEach( ResultSetFuture::getUninterruptibly );
     }
 
     private static PreparedStatement prepareEntitySetQuery(

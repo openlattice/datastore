@@ -155,7 +155,7 @@ public class DataController implements DataApi {
         if ( authz.checkIfHasPermissions( ImmutableList.of( entitySetId ),
                 Principals.getCurrentPrincipals(),
                 EnumSet.of( Permission.WRITE ) ) ) {
-            //To avoid re-doing authz check more of than once every 250 ms during an integration we cache the results.
+            //To avoid re-doing authz check more of than once every 250 ms during an integration we cache the results.cd ../
             AuthorizationKey ak = new AuthorizationKey( Principals.getCurrentUser(), entitySetId, syncId );
 
             Set<UUID> authorizedProperties = authorizedPropertyCache.getUnchecked( ak );

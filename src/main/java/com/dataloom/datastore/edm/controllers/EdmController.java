@@ -159,17 +159,6 @@ public class EdmController implements EdmApi, AuthorizingComponent {
 
     @Override
     @RequestMapping(
-        path = SCHEMA_PATH + NAMESPACE_PATH,
-        method = RequestMethod.GET,
-        consumes = MediaType.APPLICATION_JSON_VALUE )
-    @ResponseStatus( HttpStatus.OK )
-    public Iterable<Schema> getSchemas( @PathVariable( NAMESPACE ) String namespace ) {
-        return schemaManager.getSchemasInNamespace( namespace );
-
-    }
-
-    @Override
-    @RequestMapping(
         path = SCHEMA_PATH + NAMESPACE_PATH + NAME_PATH,
         method = RequestMethod.GET )
     @ResponseStatus( HttpStatus.OK )
@@ -181,7 +170,9 @@ public class EdmController implements EdmApi, AuthorizingComponent {
 
     @Override
     @RequestMapping(
-        path = SCHEMA_PATH + NAMESPACE_PATH )
+        path = SCHEMA_PATH + NAMESPACE_PATH,
+        method = RequestMethod.GET,
+        produces = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
     public Iterable<Schema> getSchemasInNamespace( @PathVariable( NAMESPACE ) String namespace ) {
         return schemaManager.getSchemasInNamespace( namespace );

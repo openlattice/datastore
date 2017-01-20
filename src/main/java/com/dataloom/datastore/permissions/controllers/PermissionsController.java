@@ -82,9 +82,10 @@ public class PermissionsController implements PermissionsApi, AuthorizingCompone
     @Override
     @RequestMapping(
         path = { "", "/" },
-        method = RequestMethod.GET,
+        method = RequestMethod.POST,
+        consumes = MediaType.APPLICATION_JSON_VALUE,
         produces = MediaType.APPLICATION_JSON_VALUE )
-    public Acl getAcl( List<UUID> aclKeys ) {
+    public Acl getAcl( @RequestBody List<UUID> aclKeys ) {
         return authorizations.getAllSecurableObjectPermissions( aclKeys );
     }
 

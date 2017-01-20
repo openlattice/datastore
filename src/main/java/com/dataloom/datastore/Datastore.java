@@ -6,6 +6,7 @@ import com.dataloom.datastore.pods.DatastoreSecurityPod;
 import com.dataloom.datastore.pods.DatastoreServicesPod;
 import com.dataloom.datastore.pods.DatastoreServletsPod;
 import com.dataloom.datastore.pods.SparkDependencyPod;
+import com.dataloom.hazelcast.pods.IMapObjectStreamSerializersPod;
 import com.dataloom.hazelcast.pods.MapstoresPod;
 import com.dataloom.mappers.ObjectMappers;
 import com.fasterxml.jackson.databind.SerializationFeature;
@@ -32,6 +33,7 @@ public class Datastore extends BaseRhizomeServer {
     public static final Class<?>[] datastorePods = new Class<?>[] {
             DatastoreServicesPod.class,
             TypeCodecsPod.class,
+            IMapObjectStreamSerializersPod.class,
             SharedStreamSerializersPod.class,
             MapstoresPod.class,
             CassandraTablesPod.class,

@@ -37,7 +37,7 @@ import com.ryantenney.metrics.spring.config.annotation.EnableMetrics;
             EdmController.class, OrganizationsController.class },
     includeFilters = @ComponentScan.Filter(
         value = { org.springframework.stereotype.Controller.class,
-                org.springframework.web.bind.annotation.ControllerAdvice.class },
+                org.springframework.web.bind.annotation.RestControllerAdvice.class },
         type = FilterType.ANNOTATION ) )
 @EnableAsync
 @EnableMetrics(

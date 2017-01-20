@@ -166,7 +166,10 @@ public class DatastoreServicesPod {
 
     @Bean
     public PermissionsRequestsManager permissionsRequestsManager() {
-        return new HazelcastPermissionsRequestsService( hazelcastInstance, permissionsRequestsQueryService(), authorizationManager() );
+        return new HazelcastPermissionsRequestsService(
+                hazelcastInstance,
+                permissionsRequestsQueryService(),
+                authorizationManager() );
     }
 
 }

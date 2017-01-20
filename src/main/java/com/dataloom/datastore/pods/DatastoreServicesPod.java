@@ -15,7 +15,6 @@ import com.dataloom.data.serializers.FullQualifedNameJacksonDeserializer;
 import com.dataloom.data.serializers.FullQualifedNameJacksonSerializer;
 import com.dataloom.datastore.services.CassandraDataManager;
 import com.dataloom.datastore.services.DatasourceManager;
-import com.dataloom.datastore.services.DatastoreConductorSparkApi;
 import com.dataloom.datastore.services.SearchService;
 import com.dataloom.directory.UserDirectoryService;
 import com.dataloom.edm.properties.CassandraTypeManager;
@@ -30,7 +29,6 @@ import com.dataloom.requests.PermissionsRequestsQueryService;
 import com.datastax.driver.core.Session;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.hazelcast.core.HazelcastInstance;
-import com.kryptnostic.conductor.rpc.ConductorSparkApi;
 import com.kryptnostic.datastore.services.CassandraEntitySetManager;
 import com.kryptnostic.datastore.services.EdmManager;
 import com.kryptnostic.datastore.services.EdmService;
@@ -172,11 +170,6 @@ public class DatastoreServicesPod {
                 hazelcastInstance,
                 permissionsRequestsQueryService(),
                 authorizationManager() );
-    }
-
-    @Bean
-    public ConductorSparkApi api() {
-        return new DatastoreConductorSparkApi();
     }
 
 }

@@ -58,19 +58,20 @@ public class CustomCSVPopulation {
     protected static final DatastoreServices ds                  = new DatastoreServices();
     static EdmManager                        dms;
     static ODataStorageService               odsc;
-    static CassandraDataManager                      cdm;
-    static HazelcastSchemaManager                        hsm;
+    static CassandraDataManager              cdm;
+    static HazelcastSchemaManager            hsm;
 
     public static int                        defaultTypeSize     = 0;
     public static List<CustomPropertyType>   defaultTypeList     = new ArrayList<>();
 
     public static List<CustomPropertyType>   propertyTypesList   = new ArrayList<>();
     public static CsvSchema                  csvSchema;
-    public static List<EntityType>               EntityTypesList     = new ArrayList<>();
+    public static List<EntityType>           EntityTypesList     = new ArrayList<>();
     public static List<String>               EntitySetsList      = new ArrayList<String>();
     public static Map<String, String>        EntitySetToType     = new HashMap<>();
 
     // Random
+    @SuppressWarnings( "rawtypes" )
     public static Map<String, Supplier>      RandomGenerator     = new HashMap<>();
     public static final Principal            principal           = new Principal(
             PrincipalType.USER,
@@ -90,7 +91,7 @@ public class CustomCSVPopulation {
      *
      */
     private static class CustomPropertyType {
-        private UUID id;
+        private UUID                 id;
         private String               name;
         private EdmPrimitiveTypeKind dataType;
         private String               keyword;
@@ -126,10 +127,10 @@ public class CustomCSVPopulation {
             this.javaTypeName = javaTypeName;
         }
 
-        public UUID getId(){
+        public UUID getId() {
             return id;
         }
-        
+
         public String getJavaTypeName() {
             return javaTypeName;
         }
@@ -235,7 +236,13 @@ public class CustomCSVPopulation {
             String javaTypeName = propertyType.getJavaTypeName();
 
             propertyTypesList
-                    .add( new CustomPropertyType( UUID.randomUUID(), newName, dataType, keyword, randomGenCallable, javaTypeName ) );
+                    .add( new CustomPropertyType(
+                            UUID.randomUUID(),
+                            newName,
+                            dataType,
+                            keyword,
+                            randomGenCallable,
+                            javaTypeName ) );
         }
         return propertyTypesList;
     }
@@ -277,8 +284,12 @@ public class CustomCSVPopulation {
 
     public static void createPropertyTypes() {
         for ( CustomPropertyType type : propertyTypesList ) {
-            dms.createPropertyTypeIfNotExists( new PropertyType( type.getFqn(), "Generated Type " + type.getFqn().toString(), Optional.absent(), ImmutableSet.of(), type.getDataType() )
-                     );
+            dms.createPropertyTypeIfNotExists( new PropertyType(
+                    type.getFqn(),
+                    "Generated Type " + type.getFqn().toString(),
+                    Optional.absent(),
+                    ImmutableSet.of(),
+                    type.getDataType() ) );
         }
     }
 
@@ -294,11 +305,20 @@ public class CustomCSVPopulation {
         for ( int i = 0; i < numEntityTypes; i++ ) {
             // Entity Type of 10-character names
             String entityTypeName = RandomStringUtils.randomAlphabetic( 10 );
-            Set<UUID> keyPropertyType = ImmutableSet.of( propertyTypesList.get( propertyTypesList.size() - 1 ).getId());
-            Set<UUID> propertyTypeIdsSet = propertyTypesList.stream().map( pt -> pt.getId() ).collect( Collectors.toSet() );
+            Set<UUID> keyPropertyType = ImmutableSet
+                    .of( propertyTypesList.get( propertyTypesList.size() - 1 ).getId() );
+            Set<UUID> propertyTypeIdsSet = propertyTypesList.stream().map( pt -> pt.getId() )
+                    .collect( Collectors.toSet() );
 
             UUID entityTypeId = UUID.randomUUID();
-            EntityType entityType = new EntityType( entityTypeId, new FullQualifiedName( NAMESPACE ,entityTypeName ), entityTypeName, Optional.absent(), ImmutableSet.of(), keyPropertyType, propertyTypeIdsSet );
+            EntityType entityType = new EntityType(
+                    entityTypeId,
+                    new FullQualifiedName( NAMESPACE, entityTypeName ),
+                    entityTypeName,
+                    Optional.absent(),
+                    ImmutableSet.of(),
+                    keyPropertyType,
+                    propertyTypeIdsSet );
             // Add property types to entity type
 
             // Create Entity Type in database
@@ -312,7 +332,12 @@ public class CustomCSVPopulation {
                 String entitySetName = RandomStringUtils.randomAlphabetic( 10 );
                 // Create entity set
                 dms.createEntitySet( principal,
-                        new EntitySet( new FullQualifiedName(NAMESPACE,entityTypeName), entityTypeId, entitySetName, "Random Entity Set " + entitySetName, Optional.absent()) );
+                        new EntitySet(
+                                new FullQualifiedName( NAMESPACE, entityTypeName ),
+                                entityTypeId,
+                                entitySetName,
+                                "Random Entity Set " + entitySetName,
+                                Optional.absent() ) );
 
                 // Update list of custom Entity Sets
                 EntitySetsList.add( entitySetName );
@@ -323,11 +348,17 @@ public class CustomCSVPopulation {
     }
 
     public static void createSchema() {
-        Set<PropertyType> propertyTypesSet = propertyTypesList.stream().map( type -> 
-        new PropertyType( type.getFqn(), "Generated Type " + type.getFqn().toString(), Optional.absent(), ImmutableSet.of(), type.getDataType()
-                )).collect( Collectors.toSet() );        
+        Set<PropertyType> propertyTypesSet = propertyTypesList.stream()
+                .map( type -> new PropertyType(
+                        type.getFqn(),
+                        "Generated Type " + type.getFqn().toString(),
+                        Optional.absent(),
+                        ImmutableSet.of(),
+                        type.getDataType() ) )
+                .collect( Collectors.toSet() );
 
-        hsm.createOrUpdateSchemas( new Schema( new FullQualifiedName( NAMESPACE, "hochung"), propertyTypesSet, EntityTypesList) );
+        hsm.createOrUpdateSchemas(
+                new Schema( new FullQualifiedName( NAMESPACE, "hochung" ), propertyTypesSet, EntityTypesList ) );
     }
 
     private static Object TypeConversion( String str, String type ) {
@@ -390,64 +421,49 @@ public class CustomCSVPopulation {
     }
 
     /**
-     * WARNING: THIS TEST IS DISABLED SINCE getAllEntitiesOfType IS NOW GONE.
-     * Benchmarking getAllEntitiesOfType
+     * WARNING: THIS TEST IS DISABLED SINCE getAllEntitiesOfType IS NOW GONE. Benchmarking getAllEntitiesOfType
      * 
      * @param numTest
      * @throws IOException
      */
     public static void timeGetAllEntitiesOfType( int numTest ) throws IOException {
         /**
-        // Initialize file writers
-        File fileAll = new File( individualResultLoc );
-        FileWriter fwAll = new FileWriter( fileAll.getAbsoluteFile() );
-        BufferedWriter bwAll = new BufferedWriter( fwAll );
-
-        File fileAverage = new File( averageResultLoc );
-        FileWriter fwAverage = new FileWriter( fileAverage.getAbsoluteFile() );
-        BufferedWriter bwAverage = new BufferedWriter( fwAverage );
-
-        bwAll.write( "========================================================== \n" );
-        bwAll.write( "Testing: getAllEntitiesOfType \n" );
-        bwAll.write( "Number of Columns: " + numPropertyTypes + " \n" );
-        bwAll.write( "Number of Rows: " + numRows + " \n" );
-        bwAll.write( "Number of Entity Types: " + numEntityTypes + " \n" );
-        bwAll.write( "Number of Entity Sets: " + numEntitySets + " \n" );
-        bwAll.write( "========================================================== \n" );
-        bwAll.write( "Test #, Time elapsed (ms) \n" );
-
-        bwAverage.write( "========================================================== \n" );
-        bwAverage.write( "Testing: getAllEntitiesOfType \n" );
-        bwAverage.write( "Number of Columns: " + numPropertyTypes + " \n" );
-        bwAverage.write( "Number of Rows: " + numRows + " \n" );
-        bwAverage.write( "Number of Entity Types: " + numEntityTypes + " \n" );
-        bwAverage.write( "Number of Entity Sets: " + numEntitySets + " \n" );
-        bwAverage.write( "========================================================== \n" );
-
-        // Actual testing
-        float totalTime = 0;
-
-        for ( int i = 0; i < numTest; i++ ) {
-            // Decide which EntityType to look up
-            String entityTypeName = EntityTypesList.get( ( new Random() ).nextInt( EntityTypesList.size() ) );
-            // Make request
-            Stopwatch stopwatch = Stopwatch.createStarted();
-            Iterable<Multimap<FullQualifiedName, Object>> result = dataService
-                    .readAllEntitiesOfType( new FullQualifiedName( NAMESPACE, entityTypeName ) );
-            // print result
-            stopwatch.stop();
-
-            totalTime += stopwatch.elapsed( TimeUnit.MILLISECONDS );
-
-            bwAll.write( i + "," + stopwatch.elapsed( TimeUnit.MILLISECONDS ) + " \n" );
-        }
-
-        bwAverage.write( "Number of tests: " + numTest + " \n" );
-        bwAverage.write( "Average Time (ms):" + totalTime / numTest + " \n" );
-
-        bwAll.close();
-        bwAverage.close();
-        */
+         * // Initialize file writers File fileAll = new File( individualResultLoc ); FileWriter fwAll = new FileWriter(
+         * fileAll.getAbsoluteFile() ); BufferedWriter bwAll = new BufferedWriter( fwAll );
+         * 
+         * File fileAverage = new File( averageResultLoc ); FileWriter fwAverage = new FileWriter(
+         * fileAverage.getAbsoluteFile() ); BufferedWriter bwAverage = new BufferedWriter( fwAverage );
+         * 
+         * bwAll.write( "========================================================== \n" ); bwAll.write( "Testing:
+         * getAllEntitiesOfType \n" ); bwAll.write( "Number of Columns: " + numPropertyTypes + " \n" ); bwAll.write(
+         * "Number of Rows: " + numRows + " \n" ); bwAll.write( "Number of Entity Types: " + numEntityTypes + " \n" );
+         * bwAll.write( "Number of Entity Sets: " + numEntitySets + " \n" ); bwAll.write(
+         * "========================================================== \n" ); bwAll.write( "Test #, Time elapsed (ms)
+         * \n" );
+         * 
+         * bwAverage.write( "========================================================== \n" ); bwAverage.write(
+         * "Testing: getAllEntitiesOfType \n" ); bwAverage.write( "Number of Columns: " + numPropertyTypes + " \n" );
+         * bwAverage.write( "Number of Rows: " + numRows + " \n" ); bwAverage.write( "Number of Entity Types: " +
+         * numEntityTypes + " \n" ); bwAverage.write( "Number of Entity Sets: " + numEntitySets + " \n" );
+         * bwAverage.write( "========================================================== \n" );
+         * 
+         * // Actual testing float totalTime = 0;
+         * 
+         * for ( int i = 0; i < numTest; i++ ) { // Decide which EntityType to look up String entityTypeName =
+         * EntityTypesList.get( ( new Random() ).nextInt( EntityTypesList.size() ) ); // Make request Stopwatch
+         * stopwatch = Stopwatch.createStarted(); Iterable<Multimap<FullQualifiedName, Object>> result = dataService
+         * .readAllEntitiesOfType( new FullQualifiedName( NAMESPACE, entityTypeName ) ); // print result
+         * stopwatch.stop();
+         * 
+         * totalTime += stopwatch.elapsed( TimeUnit.MILLISECONDS );
+         * 
+         * bwAll.write( i + "," + stopwatch.elapsed( TimeUnit.MILLISECONDS ) + " \n" ); }
+         * 
+         * bwAverage.write( "Number of tests: " + numTest + " \n" ); bwAverage.write( "Average Time (ms):" + totalTime /
+         * numTest + " \n" );
+         * 
+         * bwAll.close(); bwAverage.close();
+         */
     }
 
     // @BeforeClass

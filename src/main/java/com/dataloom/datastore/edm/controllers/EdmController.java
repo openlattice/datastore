@@ -170,7 +170,9 @@ public class EdmController implements EdmApi, AuthorizingComponent {
 
     @Override
     @RequestMapping(
-        path = SCHEMA_PATH + NAMESPACE_PATH )
+        path = SCHEMA_PATH + NAMESPACE_PATH,
+        method = RequestMethod.GET,
+        produces = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
     public Iterable<Schema> getSchemasInNamespace( @PathVariable( NAMESPACE ) String namespace ) {
         return schemaManager.getSchemasInNamespace( namespace );

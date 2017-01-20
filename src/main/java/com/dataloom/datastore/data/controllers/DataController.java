@@ -91,7 +91,7 @@ public class DataController implements DataApi {
 
     @RequestMapping(
         path = { "/" + HISTORICAL + "/" + ENTITY_DATA + "/" + SET_ID_PATH },
-        method = RequestMethod.GET,
+        method = RequestMethod.POST,
         consumes = MediaType.APPLICATION_JSON_VALUE,
         produces = { MediaType.APPLICATION_JSON_VALUE, CustomMediaType.TEXT_CSV_VALUE } )
     public Iterable<SetMultimap<FullQualifiedName, Object>> getEntitySetData(

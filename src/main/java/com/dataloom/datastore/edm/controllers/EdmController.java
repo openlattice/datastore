@@ -93,13 +93,13 @@ public class EdmController implements EdmApi, AuthorizingComponent {
         consumes = MediaType.APPLICATION_JSON_VALUE,
         produces = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
-    public EdmDetails getEdmDetails( @RequestBody Set<EdmDetailsSelector> selectors) {
+    public EdmDetails getEdmDetails( @RequestBody Set<EdmDetailsSelector> selectors ) {
         final Set<UUID> propertyTypeIds = new HashSet<>();
         final Set<UUID> entityTypeIds = new HashSet<>();
         final Set<UUID> entitySetIds = new HashSet<>();
-        
+
         selectors.forEach( selector -> {
-            switch( selector.getType() ){
+            switch ( selector.getType() ) {
                 case PropertyTypeInEntitySet:
                     updatePropertyTypeIdsToGet( selector, propertyTypeIds );
                     break;
@@ -110,38 +110,49 @@ public class EdmController implements EdmApi, AuthorizingComponent {
                     updateEntitySetIdsToGet( selector, propertyTypeIds, entityTypeIds, entitySetIds );
                     break;
                 default:
-                    throw new BadRequestException( "Unsupported Securable Object Type when retrieving Edm Details: " + selector.getType() );
+                    throw new BadRequestException(
+                            "Unsupported Securable Object Type when retrieving Edm Details: " + selector.getType() );
             }
-        });
-        return new EdmDetails( modelService.getPropertyTypesAsMap( propertyTypeIds ), modelService.getEntityTypesAsMap( entityTypeIds ), modelService.getEntitySetsAsMap( entitySetIds ) );
+        } );
+        return new EdmDetails(
+                modelService.getPropertyTypesAsMap( propertyTypeIds ),
+                modelService.getEntityTypesAsMap( entityTypeIds ),
+                modelService.getEntitySetsAsMap( entitySetIds ) );
     }
 
-    private void updatePropertyTypeIdsToGet( EdmDetailsSelector selector, Set<UUID> propertyTypeIds ){
-            if( selector.getIncludedFields().contains( SecurableObjectType.PropertyTypeInEntitySet ) ){
-                propertyTypeIds.add( selector.getId() );
-            }
+    private void updatePropertyTypeIdsToGet( EdmDetailsSelector selector, Set<UUID> propertyTypeIds ) {
+        if ( selector.getIncludedFields().contains( SecurableObjectType.PropertyTypeInEntitySet ) ) {
+            propertyTypeIds.add( selector.getId() );
+        }
     }
 
-    private void updateEntityTypeIdsToGet( EdmDetailsSelector selector, Set<UUID> propertyTypeIds, Set<UUID> entityTypeIds ){
-            if( selector.getIncludedFields().contains( SecurableObjectType.EntityType ) ){
-                entityTypeIds.add( selector.getId() );
-            }
-            if( selector.getIncludedFields().contains( SecurableObjectType.PropertyTypeInEntitySet ) ){
-                propertyTypeIds.addAll( modelService.getEntityType( selector.getId() ).getProperties() );
-            }
+    private void updateEntityTypeIdsToGet(
+            EdmDetailsSelector selector,
+            Set<UUID> propertyTypeIds,
+            Set<UUID> entityTypeIds ) {
+        if ( selector.getIncludedFields().contains( SecurableObjectType.EntityType ) ) {
+            entityTypeIds.add( selector.getId() );
+        }
+        if ( selector.getIncludedFields().contains( SecurableObjectType.PropertyTypeInEntitySet ) ) {
+            propertyTypeIds.addAll( modelService.getEntityType( selector.getId() ).getProperties() );
+        }
     }
 
-    private void updateEntitySetIdsToGet( EdmDetailsSelector selector, Set<UUID> propertyTypeIds, Set<UUID> entityTypeIds, Set<UUID> entitySetIds ){
-        if( selector.getIncludedFields().contains( SecurableObjectType.EntitySet ) ){
+    private void updateEntitySetIdsToGet(
+            EdmDetailsSelector selector,
+            Set<UUID> propertyTypeIds,
+            Set<UUID> entityTypeIds,
+            Set<UUID> entitySetIds ) {
+        if ( selector.getIncludedFields().contains( SecurableObjectType.EntitySet ) ) {
             entitySetIds.add( selector.getId() );
         }
-        if( selector.getIncludedFields().contains( SecurableObjectType.EntityType ) ){
+        if ( selector.getIncludedFields().contains( SecurableObjectType.EntityType ) ) {
             entityTypeIds.add( modelService.getEntitySet( selector.getId() ).getEntityTypeId() );
         }
-        if( selector.getIncludedFields().contains( SecurableObjectType.PropertyTypeInEntitySet ) ){
+        if ( selector.getIncludedFields().contains( SecurableObjectType.PropertyTypeInEntitySet ) ) {
             UUID eid = modelService.getEntitySet( selector.getId() ).getEntityTypeId();
             propertyTypeIds.addAll( modelService.getEntityType( eid ).getProperties() );
-        }                
+        }
     }
 
     /*
@@ -459,7 +470,12 @@ public class EdmController implements EdmApi, AuthorizingComponent {
         method = RequestMethod.GET,
         produces = MediaType.APPLICATION_JSON_VALUE )
     public UUID getEntitySetId( @PathVariable( NAME ) String entitySetName ) {
-        return entitySetManager.getEntitySet( entitySetName ).getId();
+        EntitySet es = entitySetManager.getEntitySet( entitySetName );
+        if ( es == null ) {
+            throw new ResourceNotFoundException( "Unable to find entity set: " + entitySetName );
+        } else {
+            return es.getId();
+        }
     }
 
     @Override

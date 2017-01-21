@@ -63,7 +63,7 @@ public class CassandraDataManager {
         Iterable<ResultSetFuture> entityFutures = Iterables.transform( entityIds,
                 entityId -> asyncLoadEntity( entityId, syncIds, authorizedProperties ) );
         Iterable<ResultSet> entityRows = Iterables.transform( entityFutures, ResultSetFuture::getUninterruptibly );
-        return Iterables.transform( entityRows, rs -> RowAdapters.entity( rs, authorizedPropertyTypes, mapper ) );
+        return Iterables.transform( entityRows, rs -> RowAdapters.entity( rs, authorizedPropertyTypes, mapper ) )::iterator;
     }
 
     // TODO Unexposed (yet) method. Would you batch this with the previous one? If yes, their return type needs to match

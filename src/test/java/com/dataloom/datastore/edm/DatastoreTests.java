@@ -379,13 +379,13 @@ public class DatastoreTests extends BootstrapDatastoreWithCassandra {
 
         }
 
-        dms.addPropertyTypesToEntityType( METADATA_LEVELS.getId(), ImmutableSet.of( EMPLOYEE_HAIR_LENGTH_ID ) );
+        dms.addPropertyTypesToEntityType( METADATA_LEVELS_ID, ImmutableSet.of( EMPLOYEE_HAIR_LENGTH_ID ) );
         schemaManager.addPropertyTypesToSchema( ImmutableSet.of( EMPLOYEE_EYEBROW_LENGTH_ID ),
                 new FullQualifiedName(
                         NAMESPACE,
                         SCHEMA_NAME ) );
-
-        dms.removePropertyTypesFromEntityType( METADATA_LEVELS.getId(), ImmutableSet.of( EMPLOYEE_HAIR_LENGTH_ID ) );
+        
+        dms.removePropertyTypesFromEntityType( METADATA_LEVELS_ID, ImmutableSet.of( EMPLOYEE_HAIR_LENGTH_ID ) );
         schemaManager.removePropertyTypesFromSchema( ImmutableSet.of( EMPLOYEE_EYEBROW_LENGTH_ID ),
                 new FullQualifiedName(
                         NAMESPACE,

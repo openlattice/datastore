@@ -58,7 +58,8 @@ public class CassandraDataManager {
         Iterable<ResultSetFuture> entityFutures = Iterables.transform( entityIds,
                 entityId -> asyncLoadEntity( entityId, syncIds, authorizedProperties ) );
         Iterable<ResultSet> entityRows = Iterables.transform( entityFutures, ResultSetFuture::getUninterruptibly );
-        return Iterables.transform( entityRows, rs -> RowAdapters.entity( rs, authorizedPropertyTypes, mapper ) )::iterator;
+        return Iterables.transform( entityRows,
+                rs -> RowAdapters.entity( rs, authorizedPropertyTypes, mapper ) )::iterator;
     }
 
     // TODO Unexposed (yet) method. Would you batch this with the previous one? If yes, their return type needs to match
@@ -98,9 +99,10 @@ public class CassandraDataManager {
 
         entities.entrySet().stream().forEach( entity -> {
 
-            session.execute( writeIdLookupQuery.bind().setUUID( CommonColumns.SYNCID.cql(), syncId )
-                    .setUUID( CommonColumns.ENTITY_SET_ID.cql(), entitySetId )
-                    .setString( CommonColumns.ENTITYID.cql(), entity.getKey() ) );
+            results.add(
+                    session.executeAsync( writeIdLookupQuery.bind().setUUID( CommonColumns.SYNCID.cql(), syncId )
+                            .setUUID( CommonColumns.ENTITY_SET_ID.cql(), entitySetId )
+                            .setString( CommonColumns.ENTITYID.cql(), entity.getKey() ) ) );
 
             SetMultimap<UUID, Object> propertyValues = entity.getValue();
 

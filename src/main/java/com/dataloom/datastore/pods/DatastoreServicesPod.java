@@ -16,6 +16,7 @@ import com.dataloom.data.serializers.FullQualifedNameJacksonSerializer;
 import com.dataloom.datastore.services.CassandraDataManager;
 import com.dataloom.datastore.services.DatasourceManager;
 import com.dataloom.datastore.services.SearchService;
+import com.dataloom.datastore.services.SyncTicketService;
 import com.dataloom.directory.UserDirectoryService;
 import com.dataloom.edm.properties.CassandraTypeManager;
 import com.dataloom.edm.schemas.SchemaQueryService;
@@ -172,4 +173,8 @@ public class DatastoreServicesPod {
                 authorizationManager() );
     }
 
+    @Bean
+    public SyncTicketService sts() {
+        return new SyncTicketService( hazelcastInstance );
+    }
 }

@@ -19,11 +19,15 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.client.HttpServerErrorException;
 
@@ -36,6 +40,7 @@ import com.dataloom.data.DataApi;
 import com.dataloom.data.requests.EntitySetSelection;
 import com.dataloom.datastore.constants.CustomMediaType;
 import com.dataloom.datastore.services.CassandraDataManager;
+import com.dataloom.datastore.services.SyncTicketService;
 import com.dataloom.edm.internal.PropertyType;
 import com.dataloom.edm.processors.EdmPrimitiveTypeKindGetter;
 import com.google.common.base.Optional;
@@ -53,6 +58,9 @@ import com.kryptnostic.datastore.util.Util;
 @RequestMapping( DataApi.CONTROLLER )
 public class DataController implements DataApi {
     private static final Logger                       logger = LoggerFactory.getLogger( DataController.class );
+
+    @Inject
+    private SyncTicketService                         sts;
 
     @Inject
     private EdmService                                dms;
@@ -122,7 +130,7 @@ public class DataController implements DataApi {
                 Principals.getCurrentPrincipals(),
                 EnumSet.of( Permission.READ ) ) ) {
             Set<UUID> ids;
-            if( !syncIds.isPresent() || syncIds.get().isEmpty() ){
+            if ( !syncIds.isPresent() || syncIds.get().isEmpty() ) {
                 ids = getLatestSyncIds();
             } else {
                 ids = syncIds.get();
@@ -160,7 +168,8 @@ public class DataController implements DataApi {
         if ( authz.checkIfHasPermissions( ImmutableList.of( entitySetId ),
                 Principals.getCurrentPrincipals(),
                 EnumSet.of( Permission.WRITE ) ) ) {
-            //To avoid re-doing authz check more of than once every 250 ms during an integration we cache the results.cd ../
+            // To avoid re-doing authz check more of than once every 250 ms during an integration we cache the
+            // results.cd ../
             AuthorizationKey ak = new AuthorizationKey( Principals.getCurrentUser(), entitySetId, syncId );
 
             Set<UUID> authorizedProperties = authorizedPropertyCache.getUnchecked( ak );
@@ -235,6 +244,59 @@ public class DataController implements DataApi {
             response.setHeader( "Content-Disposition",
                     "attachment; filename=" + fileName + "." + fileType.toString() );
         }
+    }
+
+    @Override
+    @PostMapping( "/" + TICKET + "/" + SET_ID_PATH + "/" + SYNC_ID_PATH )
+    public UUID acquireSyncTicket( @PathVariable( SET_ID ) UUID entitySetId, @PathVariable( SYNC_ID ) UUID syncId ) {
+        if ( authz.checkIfHasPermissions( ImmutableList.of( entitySetId ),
+                Principals.getCurrentPrincipals(),
+                EnumSet.of( Permission.WRITE ) ) ) {
+            AuthorizationKey ak = new AuthorizationKey( Principals.getCurrentUser(), entitySetId, syncId );
+            Set<UUID> authorizedProperties = authorizedPropertyCache.getUnchecked( ak );
+
+            return sts.acquireTicket( Principals.getCurrentUser(), entitySetId, authorizedProperties );
+        } else {
+            throw new ForbiddenException( "Insufficient permissions to write to the entity set or it doesn't exist." );
+        }
+    }
+
+    @Override
+    @DeleteMapping(
+        value = "/" + TICKET + "/" + SET_ID_PATH )
+    @ResponseStatus( HttpStatus.OK )
+    public Void releaseSyncTicket( @PathVariable( TICKET ) UUID ticketId ) {
+        sts.releaseTicket( Principals.getCurrentUser(), ticketId );
+        return null;
+    }
+
+    @Override
+    @RequestMapping(
+        value = "/" + ENTITY_DATA + "/" + TICKET_PATH + "/" + SYNC_ID_PATH,
+        method = RequestMethod.PATCH,
+        consumes = MediaType.APPLICATION_JSON_VALUE )
+    public Void storeEntityData(
+            @PathVariable( TICKET ) UUID ticket,
+            @PathVariable( SYNC_ID ) UUID syncId,
+            @RequestBody Map<String, SetMultimap<UUID, Object>> entities ) {
+
+        // To avoid re-doing authz check more of than once every 250 ms during an integration we cache the
+        // results.cd ../
+        UUID entitySetId = sts.getAuthorizedEntitySet( Principals.getCurrentUser(), ticket );
+        Set<UUID> authorizedProperties = sts.getAuthorizedProperties( Principals.getCurrentUser(), ticket );
+        Map<UUID, EdmPrimitiveTypeKind> authorizedPropertiesWithDataType;
+        try {
+            authorizedPropertiesWithDataType = primitiveTypeKinds
+                    .getAll( authorizedProperties );
+        } catch ( ExecutionException e ) {
+            logger.error( "Unable to load data types for authorized properties." );
+            throw new HttpServerErrorException(
+                    HttpStatus.NOT_FOUND,
+                    "Unable to load data types for authorized properties." );
+        }
+
+        cdm.createEntityData( entitySetId, syncId, entities, authorizedPropertiesWithDataType );
+        return null;
     }
 
 }

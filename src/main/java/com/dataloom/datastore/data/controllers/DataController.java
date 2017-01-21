@@ -80,26 +80,6 @@ public class DataController implements DataApi {
 
     @RequestMapping(
         path = { "/" + ENTITY_DATA + "/" + SET_ID_PATH },
-        method = RequestMethod.GET,
-        produces = { MediaType.APPLICATION_JSON_VALUE, CustomMediaType.TEXT_CSV_VALUE } )
-    public Iterable<SetMultimap<FullQualifiedName, Object>> getEntitySetData(
-            @PathVariable( SET_ID ) UUID entitySetId,
-            @RequestParam(
-                value = FILE_TYPE,
-                required = false ) FileType fileType,
-            HttpServletResponse response ) {
-        setContentDisposition( response, entitySetId.toString(), fileType );
-        setDownloadContentType( response, fileType );
-        return getEntitySetData( entitySetId, fileType );
-    }
-
-    @Override
-    public Iterable<SetMultimap<FullQualifiedName, Object>> getEntitySetData( UUID entitySetId, FileType fileType ) {
-        return getEntitySetData( entitySetId, Optional.absent(), Optional.absent() );
-    }
-
-    @RequestMapping(
-        path = { "/" + HISTORICAL + "/" + ENTITY_DATA + "/" + SET_ID_PATH },
         method = RequestMethod.POST,
         consumes = MediaType.APPLICATION_JSON_VALUE,
         produces = { MediaType.APPLICATION_JSON_VALUE, CustomMediaType.TEXT_CSV_VALUE } )
@@ -112,18 +92,18 @@ public class DataController implements DataApi {
             HttpServletResponse response ) {
         setContentDisposition( response, entitySetId.toString(), fileType );
         setDownloadContentType( response, fileType );
-        return getEntitySetData( entitySetId, req, fileType );
+        return loadEntitySetData( entitySetId, req, fileType );
     }
 
     @Override
-    public Iterable<SetMultimap<FullQualifiedName, Object>> getEntitySetData(
+    public Iterable<SetMultimap<FullQualifiedName, Object>> loadEntitySetData(
             UUID entitySetId,
             EntitySetSelection req,
             FileType fileType ) {
-        return getEntitySetData( entitySetId, req.getSyncIds(), req.getSelectedProperties() );
+        return loadEntitySetData( entitySetId, req.getSyncIds(), req.getSelectedProperties() );
     }
 
-    private Iterable<SetMultimap<FullQualifiedName, Object>> getEntitySetData(
+    private Iterable<SetMultimap<FullQualifiedName, Object>> loadEntitySetData(
             UUID entitySetId,
             Optional<Set<UUID>> syncIds,
             Optional<Set<UUID>> selectedProperties ) {
@@ -160,7 +140,7 @@ public class DataController implements DataApi {
 
     @RequestMapping(
         path = { "/" + ENTITY_DATA + "/" + SET_ID_PATH + "/" + SYNC_ID_PATH },
-        method = RequestMethod.POST,
+        method = RequestMethod.PUT,
         consumes = MediaType.APPLICATION_JSON_VALUE )
     public Void createEntityData(
             @PathVariable( SET_ID ) UUID entitySetId,

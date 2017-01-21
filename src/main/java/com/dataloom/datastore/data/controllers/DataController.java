@@ -85,7 +85,8 @@ public class DataController implements DataApi {
         produces = { MediaType.APPLICATION_JSON_VALUE, CustomMediaType.TEXT_CSV_VALUE } )
     public Iterable<SetMultimap<FullQualifiedName, Object>> getEntitySetData(
             @PathVariable( SET_ID ) UUID entitySetId,
-            @RequestBody EntitySetSelection req,
+            @RequestBody(
+                required = false ) EntitySetSelection req,
             @RequestParam(
                 value = FILE_TYPE,
                 required = false ) FileType fileType,
@@ -100,7 +101,11 @@ public class DataController implements DataApi {
             UUID entitySetId,
             EntitySetSelection req,
             FileType fileType ) {
-        return loadEntitySetData( entitySetId, req.getSyncIds(), req.getSelectedProperties() );
+        if ( req == null ) {
+            return loadEntitySetData( entitySetId, Optional.absent(), Optional.absent() );
+        } else {
+            return loadEntitySetData( entitySetId, req.getSyncIds(), req.getSelectedProperties() );
+        }
     }
 
     private Iterable<SetMultimap<FullQualifiedName, Object>> loadEntitySetData(

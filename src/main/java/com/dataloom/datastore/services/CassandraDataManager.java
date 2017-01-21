@@ -98,15 +98,9 @@ public class CassandraDataManager {
 
         entities.entrySet().stream().forEach( entity -> {
 
-            boolean idWritten = Util.wasLightweightTransactionApplied(
-                    session.execute( writeIdLookupQuery.bind().setUUID( CommonColumns.SYNCID.cql(), syncId )
-                            .setUUID( CommonColumns.ENTITY_SET_ID.cql(), entitySetId )
-                            .setString( CommonColumns.ENTITYID.cql(), entity.getKey() ) ) );
-
-            if ( !idWritten ) {
-                logger.error( "Failed to write entity " + entity.getKey() + " into id table." );
-                throw new IllegalStateException( "Failed to write entity " + entity.getKey() );
-            }
+            session.execute( writeIdLookupQuery.bind().setUUID( CommonColumns.SYNCID.cql(), syncId )
+                    .setUUID( CommonColumns.ENTITY_SET_ID.cql(), entitySetId )
+                    .setString( CommonColumns.ENTITYID.cql(), entity.getKey() ) );
 
             SetMultimap<UUID, Object> propertyValues = entity.getValue();
 
@@ -142,7 +136,7 @@ public class CassandraDataManager {
     }
 
     private static Insert writeQuery( CassandraTableBuilder ctb ) {
-        return ctb.buildStoreQuery().ifNotExists();
+        return ctb.buildStoreQuery();
     }
 
     private static Select.Where entitySetQuery( CassandraTableBuilder ctb ) {

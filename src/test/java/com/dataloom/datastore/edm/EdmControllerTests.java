@@ -4,7 +4,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
-import org.apache.commons.lang3.tuple.Pair;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.Test;
@@ -14,8 +13,6 @@ import org.slf4j.LoggerFactory;
 import com.dataloom.datastore.authentication.AuthenticatedRestCallsTest;
 import com.dataloom.edm.EdmApi;
 import com.dataloom.edm.EntityDataModel;
-import com.dataloom.edm.internal.AbstractSchemaAssociatedSecurableType;
-import com.dataloom.edm.internal.AbstractSecurableType;
 import com.dataloom.edm.internal.EntitySet;
 import com.dataloom.edm.internal.EntityType;
 import com.dataloom.edm.internal.PropertyType;

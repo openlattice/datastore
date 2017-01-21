@@ -1,11 +1,6 @@
 package com.dataloom.datastore.services;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.ExecutionException;
+import java.util.*;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.olingo.commons.api.edm.EdmPrimitiveTypeKind;
@@ -25,7 +20,6 @@ import com.datastax.driver.core.querybuilder.Select;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.SetMultimap;
-import com.google.common.util.concurrent.Futures;
 import com.kryptnostic.conductor.rpc.odata.Tables;
 import com.kryptnostic.datastore.cassandra.CommonColumns;
 import com.kryptnostic.datastore.cassandra.RowAdapters;
@@ -35,6 +29,7 @@ import com.kryptnostic.rhizome.cassandra.CassandraTableBuilder;
 public class CassandraDataManager {
     private static final Logger     logger = LoggerFactory
             .getLogger( CassandraDataManager.class );
+
     private final Session           session;
     private final ObjectMapper      mapper;
     private final PreparedStatement writeIdLookupQuery;

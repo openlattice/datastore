@@ -45,13 +45,21 @@ public final class Transformers {
 
     }
 
-    public static CsdlEntitySet transform( EntitySet entitySet ) {
-        if ( entitySet == null ) {
-            return null;
+    public static final class EntitySetTransformer {
+        private final EdmManager dms;
+        
+        public EntitySetTransformer ( EdmManager dms ){
+            this.dms = dms;
         }
+        
+        public CsdlEntitySet transform( EntitySet entitySet ){
+            if ( entitySet == null ) {
+                return null;
+            }
 
-        return new CsdlEntitySet()
-                .setType( entitySet.getType() )
-                .setName( entitySet.getName() );
+            return new CsdlEntitySet()
+                    .setType( dms.getEntityTypeFqn( entitySet.getEntityTypeId() ) )
+                    .setName( entitySet.getName() );
+        }
     }
 }

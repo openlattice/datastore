@@ -333,7 +333,6 @@ public class CustomCSVPopulation {
                 // Create entity set
                 dms.createEntitySet( principal,
                         new EntitySet(
-                                new FullQualifiedName( NAMESPACE, entityTypeName ),
                                 entityTypeId,
                                 entitySetName,
                                 "Random Entity Set " + entitySetName,

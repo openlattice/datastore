@@ -15,6 +15,7 @@ import org.apache.olingo.commons.api.ex.ODataException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.dataloom.datastore.odata.Transformers.EntitySetTransformer;
 import com.dataloom.datastore.odata.Transformers.EntityTypeTransformer;
 import com.dataloom.edm.internal.EntitySet;
 import com.dataloom.edm.internal.EntityType;
@@ -43,11 +44,13 @@ public class LoomEdmProvider extends CsdlAbstractEdmProvider {
     private final EdmManager             dms;
     private final HazelcastSchemaManager schemaManager;
     private final EntityTypeTransformer  ett;
+    private final EntitySetTransformer  est;
 
     public LoomEdmProvider( EdmManager dms, HazelcastSchemaManager schemaManager ) {
         this.dms = dms;
         this.schemaManager = schemaManager;
         this.ett = new EntityTypeTransformer( dms );
+        this.est = new EntitySetTransformer( dms );
     }
 
     @Override
@@ -59,13 +62,13 @@ public class LoomEdmProvider extends CsdlAbstractEdmProvider {
 
     public CsdlEntitySet getEntitySet( FullQualifiedName entityContainer, String entitySetName ) {
         EntitySet entitySet = dms.getEntitySet( entitySetName );
-        return Transformers.transform( entitySet );
+        return est.transform( entitySet );
     }
 
     public CsdlEntityContainer getEntityContainer() {
         // create EntitySets
         List<CsdlEntitySet> entitySets = Lists.newArrayList( Iterables
-                .filter( Iterables.transform( dms.getEntitySets(), Transformers::transform ), Predicates.notNull() ) );
+                .filter( Iterables.transform( dms.getEntitySets(), est::transform ), Predicates.notNull() ) );
 
         // create EntityContainer
         CsdlEntityContainer entityContainer = new CsdlEntityContainer();

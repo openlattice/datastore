@@ -121,9 +121,14 @@ public class DataController implements DataApi {
         if ( authz.checkIfHasPermissions( ImmutableList.of( entitySetId ),
                 Principals.getCurrentPrincipals(),
                 EnumSet.of( Permission.READ ) ) ) {
-            Set<UUID> ids = syncIds.or( getLatestSyncIds() );
+            Set<UUID> ids;
+            if( !syncIds.isPresent() || syncIds.get().isEmpty() ){
+                ids = getLatestSyncIds();
+            } else {
+                ids = syncIds.get();
+            }
             Set<UUID> authorizedProperties;
-            if ( selectedProperties.isPresent() ) {
+            if ( selectedProperties.isPresent() && !selectedProperties.get().isEmpty() ) {
                 if ( !authzHelper.getAllPropertiesOnEntitySet( entitySetId ).containsAll( selectedProperties.get() ) ) {
                     throw new IllegalArgumentException(
                             "Not all selected properties are property types of the entity set." );

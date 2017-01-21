@@ -51,6 +51,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.SetMultimap;
 import com.google.common.collect.Sets;
+import com.kryptnostic.conductor.rpc.UUIDs.Syncs;
 import com.kryptnostic.datastore.services.EdmService;
 import com.kryptnostic.datastore.util.Util;
 
@@ -220,8 +221,8 @@ public class DataController implements DataApi {
     }
 
     private Set<UUID> getLatestSyncIds() {
-        // TODO Should be obtained from DatasourcesApi once that is done.
-        throw new NotImplementedException( "Ho Chung should fix this once DatasourcesApi is done" );
+        // TODO Ho Chung: Should be obtained from DatasourcesApi once that is done.
+        return ImmutableSet.of( Syncs.BASE.getSyncId() );
     }
 
     /**

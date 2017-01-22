@@ -11,12 +11,11 @@ cassandra:
     keyspace: "sparks"
     replication-factor: 1
     seed-nodes:
-#        - "cassandra"
-        - "localhost"
+        - "cassandra"
+
 hazelcast:
     server: false
     group: "local"
     password: "kryptodoge4life"
     seed-nodes: 
-#        - "conductor"
-        - "localhost"
+        - "conductor"

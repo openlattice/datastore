@@ -1,7 +1,7 @@
 package com.dataloom.datastore.edm.controllers;
 
+import java.util.Arrays;
 import java.util.EnumSet;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -10,6 +10,7 @@ import java.util.UUID;
 import javax.inject.Inject;
 
 import org.apache.olingo.commons.api.edm.FullQualifiedName;
+import org.spark_project.guava.base.Preconditions;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -18,7 +19,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.client.HttpServerErrorException;
 
 import com.dataloom.authorization.AuthorizationManager;
 import com.dataloom.authorization.AuthorizingComponent;
@@ -26,8 +26,6 @@ import com.dataloom.authorization.ForbiddenException;
 import com.dataloom.authorization.Permission;
 import com.dataloom.authorization.Principals;
 import com.dataloom.authorization.SecurableObjectType;
-import com.dataloom.datastore.exceptions.BadRequestException;
-import com.dataloom.datastore.exceptions.ResourceNotFoundException;
 import com.dataloom.edm.EdmApi;
 import com.dataloom.edm.EntityDataModel;
 import com.dataloom.edm.internal.EdmDetails;
@@ -43,8 +41,12 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
+import com.kryptnostic.datastore.exceptions.BadRequestException;
+import com.kryptnostic.datastore.exceptions.BatchException;
+import com.kryptnostic.datastore.exceptions.ResourceNotFoundException;
 import com.kryptnostic.datastore.services.CassandraEntitySetManager;
 import com.kryptnostic.datastore.services.EdmManager;
+import com.kryptnostic.datastore.util.ErrorsDTO;
 
 @RestController
 @RequestMapping( EdmApi.CONTROLLER )
@@ -136,7 +138,7 @@ public class EdmController implements EdmApi, AuthorizingComponent {
         if ( selector.getIncludedFields().contains( SecurableObjectType.PropertyTypeInEntitySet ) ) {
             EntityType et = modelService.getEntityType( selector.getId() );
             if ( et != null ) {
-                propertyTypeIds.addAll( modelService.getEntityType( selector.getId() ).getProperties() );
+                propertyTypeIds.addAll( et.getProperties() );
             }
         }
     }
@@ -233,25 +235,21 @@ public class EdmController implements EdmApi, AuthorizingComponent {
         produces = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
     public Map<String, UUID> createEntitySets( @RequestBody Set<EntitySet> entitySets ) {
-        Map<String, String> badRequests = new HashMap<>();
-        Map<String, String> failedRequests = new HashMap<>();
+        ErrorsDTO dto = new ErrorsDTO();
+
         Map<String, UUID> createdEntitySets = Maps.newHashMapWithExpectedSize( entitySets.size() );
         // TODO: Add access check to make sure user can create entity sets.
         for ( EntitySet entitySet : entitySets ) {
             try {
                 modelService.createEntitySet( Principals.getCurrentUser(), entitySet );
                 createdEntitySets.put( entitySet.getName(), entitySet.getId() );
-            } catch ( IllegalArgumentException e ) {
-                badRequests.put( entitySet.getName(), e.getMessage() );
-            } catch ( IllegalStateException e ) {
-                failedRequests.put( entitySet.getName(), e.getMessage() );
+            } catch ( Exception e ) {
+                dto.addError( e.getClass().getSimpleName(), entitySet.getName() + ": " + e.getMessage() );
             }
         }
 
-        if ( !badRequests.isEmpty() ) {
-            throw new BadRequestException( badRequests.toString() );
-        } else if ( !failedRequests.isEmpty() ) {
-            throw new HttpServerErrorException( HttpStatus.INTERNAL_SERVER_ERROR, failedRequests.toString() );
+        if ( !dto.isEmpty() ) {
+            throw new BatchException( dto );
         }
         return createdEntitySets;
     }
@@ -281,7 +279,7 @@ public class EdmController implements EdmApi, AuthorizingComponent {
                 EnumSet.of( Permission.READ ) ) ) {
             return modelService.getEntitySet( entitySetId );
         } else {
-            throw new ForbiddenException( "Entity set " + entitySetId.toString() + " does not exist." );
+            throw new ForbiddenException( "Unable to find entity set: " + entitySetId );
         }
     }
 
@@ -290,12 +288,9 @@ public class EdmController implements EdmApi, AuthorizingComponent {
         path = ENTITY_SETS_PATH + ID_PATH,
         method = RequestMethod.DELETE )
     @ResponseStatus( HttpStatus.OK )
-    public Void deleteEntitySet( @PathVariable( ID ) UUID entitySetName ) {
-        try {
-            modelService.deleteEntitySet( entitySetName );
-        } catch ( IllegalStateException e ) {
-            throw new HttpServerErrorException( HttpStatus.INTERNAL_SERVER_ERROR, e.getMessage() );
-        }
+    public Void deleteEntitySet( @PathVariable( ID ) UUID entitySetId ) {
+        ensureOwnerAccess( Arrays.asList( entitySetId ) );
+        modelService.deleteEntitySet( entitySetId );
         return null;
     }
 
@@ -366,11 +361,8 @@ public class EdmController implements EdmApi, AuthorizingComponent {
         method = RequestMethod.GET )
     @ResponseStatus( HttpStatus.OK )
     public EntityType getEntityType( @PathVariable( ID ) UUID entityTypeId ) {
-        try {
-            return modelService.getEntityType( entityTypeId );
-        } catch ( NullPointerException e ) {
-            throw new ResourceNotFoundException( e.getMessage() );
-        }
+        return Preconditions.checkNotNull( modelService.getEntityType( entityTypeId ),
+                "Unable to find entity type: " + entityTypeId );
     }
 
     @Override
@@ -405,11 +397,8 @@ public class EdmController implements EdmApi, AuthorizingComponent {
         method = RequestMethod.DELETE )
     @ResponseStatus( HttpStatus.OK )
     public Void deleteEntityType( @PathVariable( ID ) UUID entityTypeId ) {
-        try {
-            modelService.deleteEntityType( entityTypeId );
-        } catch ( IllegalStateException e ) {
-            throw new HttpServerErrorException( HttpStatus.INTERNAL_SERVER_ERROR, e.getMessage() );
-        }
+        ensureAdminAccess();
+        modelService.deleteEntityType( entityTypeId );
         return null;
     }
 
@@ -430,12 +419,8 @@ public class EdmController implements EdmApi, AuthorizingComponent {
         consumes = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
     public UUID createPropertyType( @RequestBody PropertyType propertyType ) {
-        try {
-            modelService.createPropertyTypeIfNotExists( propertyType );
-            return propertyType.getId();
-        } catch ( IllegalStateException e ) {
-            throw new HttpServerErrorException( HttpStatus.INTERNAL_SERVER_ERROR, e.getMessage() );
-        }
+        modelService.createPropertyTypeIfNotExists( propertyType );
+        return propertyType.getId();
     }
 
     @Override
@@ -445,11 +430,8 @@ public class EdmController implements EdmApi, AuthorizingComponent {
     @ResponseStatus( HttpStatus.OK )
     public Void deletePropertyType(
             @PathVariable( ID ) UUID propertyTypeId ) {
-        try {
-            modelService.deletePropertyType( propertyTypeId );
-        } catch ( IllegalStateException e ) {
-            throw new HttpServerErrorException( HttpStatus.INTERNAL_SERVER_ERROR, e.getMessage() );
-        }
+        ensureAdminAccess();
+        modelService.deletePropertyType( propertyTypeId );
         return null;
     }
 
@@ -459,12 +441,7 @@ public class EdmController implements EdmApi, AuthorizingComponent {
         method = RequestMethod.GET,
         produces = MediaType.APPLICATION_JSON_VALUE )
     public PropertyType getPropertyType( @PathVariable( ID ) UUID propertyTypeId ) {
-        try {
-            PropertyType pt = modelService.getPropertyType( propertyTypeId );
-            return pt;
-        } catch ( NullPointerException e ) {
-            throw new ResourceNotFoundException( "Property type not found." );
-        }
+        return modelService.getPropertyType( propertyTypeId );
     }
 
     @Override
@@ -473,11 +450,7 @@ public class EdmController implements EdmApi, AuthorizingComponent {
         method = RequestMethod.GET,
         produces = MediaType.APPLICATION_JSON_VALUE )
     public Iterable<PropertyType> getPropertyTypesInNamespace( @PathVariable( NAMESPACE ) String namespace ) {
-        try {
-            return modelService.getPropertyTypesInNamespace( namespace );
-        } catch ( NullPointerException e ) {
-            throw new ResourceNotFoundException( "Property type not found." );
-        }
+        return modelService.getPropertyTypesInNamespace( namespace );
     }
 
     @Override
@@ -487,11 +460,8 @@ public class EdmController implements EdmApi, AuthorizingComponent {
         produces = MediaType.APPLICATION_JSON_VALUE )
     public UUID getEntitySetId( @PathVariable( NAME ) String entitySetName ) {
         EntitySet es = entitySetManager.getEntitySet( entitySetName );
-        if ( es == null ) {
-            throw new ResourceNotFoundException( "Unable to find entity set: " + entitySetName );
-        } else {
-            return es.getId();
-        }
+        Preconditions.checkNotNull( es, "Entity Set %s does not exist.", entitySetName );
+        return es.getId();
     }
 
     @Override
@@ -500,7 +470,8 @@ public class EdmController implements EdmApi, AuthorizingComponent {
         method = RequestMethod.GET,
         produces = MediaType.APPLICATION_JSON_VALUE )
     public UUID getPropertyTypeId( @PathVariable( NAMESPACE ) String namespace, @PathVariable( NAME ) String name ) {
-        return modelService.getTypeAclKey( new FullQualifiedName( namespace, name ) );
+        FullQualifiedName fqn = new FullQualifiedName( namespace, name );
+        return Preconditions.checkNotNull( modelService.getTypeAclKey( fqn ), "Property Type %s does not exist.", fqn.getFullQualifiedNameAsString() );
     }
 
     @Override
@@ -509,7 +480,8 @@ public class EdmController implements EdmApi, AuthorizingComponent {
         method = RequestMethod.GET,
         produces = MediaType.APPLICATION_JSON_VALUE )
     public UUID getEntityTypeId( @PathVariable( NAMESPACE ) String namespace, @PathVariable( NAME ) String name ) {
-        return modelService.getTypeAclKey( new FullQualifiedName( namespace, name ) );
+        FullQualifiedName fqn = new FullQualifiedName( namespace, name );
+        return Preconditions.checkNotNull( modelService.getTypeAclKey( fqn ), "Entity Type %s does not exist.", fqn.getFullQualifiedNameAsString() );
     }
 
     @Override

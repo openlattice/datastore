@@ -52,6 +52,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.SetMultimap;
 import com.google.common.collect.Sets;
 import com.kryptnostic.conductor.rpc.UUIDs.Syncs;
+import com.kryptnostic.datastore.exceptions.ResourceNotFoundException;
 import com.kryptnostic.datastore.services.EdmService;
 import com.kryptnostic.datastore.util.Util;
 
@@ -81,7 +82,6 @@ public class DataController implements DataApi {
     @RequestMapping(
         path = { "/" + ENTITY_DATA + "/" + SET_ID_PATH },
         method = RequestMethod.POST,
-        consumes = MediaType.APPLICATION_JSON_VALUE,
         produces = { MediaType.APPLICATION_JSON_VALUE, CustomMediaType.TEXT_CSV_VALUE } )
     public Iterable<SetMultimap<FullQualifiedName, Object>> getEntitySetData(
             @PathVariable( SET_ID ) UUID entitySetId,
@@ -166,10 +166,8 @@ public class DataController implements DataApi {
                 authorizedPropertiesWithDataType = primitiveTypeKinds
                         .getAll( authorizedProperties );
             } catch ( ExecutionException e ) {
-                logger.error( "Unable to load data types for authorized properties." );
-                throw new HttpServerErrorException(
-                        HttpStatus.NOT_FOUND,
-                        "Unable to load data types for authorized properties." );
+                logger.error( "Unable to load data types for authorized properties for user " + Principals.getCurrentUser() + " and entity set " + entitySetId + "." );
+                throw new ResourceNotFoundException( "Unable to load data types for authorized properties." );
             }
 
             cdm.createEntityData( entitySetId, syncId, entities, authorizedPropertiesWithDataType );
@@ -275,10 +273,8 @@ public class DataController implements DataApi {
             authorizedPropertiesWithDataType = primitiveTypeKinds
                     .getAll( authorizedProperties );
         } catch ( ExecutionException e ) {
-            logger.error( "Unable to load data types for authorized properties." );
-            throw new HttpServerErrorException(
-                    HttpStatus.NOT_FOUND,
-                    "Unable to load data types for authorized properties." );
+            logger.error( "Unable to load data types for authorized properties for user " + Principals.getCurrentUser() + " and entity set " + entitySetId + "." );
+            throw new ResourceNotFoundException( "Unable to load data types for authorized properties." );
         }
 
         cdm.createEntityData( entitySetId, syncId, entities, authorizedPropertiesWithDataType );

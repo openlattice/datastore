@@ -240,7 +240,6 @@ public class BootstrapDatastoreWithCassandra extends CassandraBootstrap {
 
     private static void createEntitySets() {
         EMPLOYEES = new EntitySet(
-                METADATA_LEVELS.getType(),
                 METADATA_LEVELS_ID,
                 ENTITY_SET_NAME,
                 ENTITY_SET_NAME,

@@ -35,7 +35,7 @@ import org.springframework.http.converter.HttpMessageNotWritableException;
 import com.dataloom.datastore.BootstrapDatastoreWithCassandra;
 import com.dataloom.datastore.converters.IterableCsvHttpMessageConverter;
 import com.dataloom.datastore.odata.LoomEdmProvider;
-import com.dataloom.datastore.odata.Transformers;
+import com.dataloom.datastore.odata.Transformers.EntitySetTransformer;
 import com.dataloom.datastore.odata.Transformers.EntityTypeTransformer;
 import com.dataloom.edm.exceptions.TypeExistsException;
 import com.dataloom.edm.internal.PropertyType;
@@ -212,7 +212,7 @@ public class DatastoreTests extends BootstrapDatastoreWithCassandra {
 
         EdmEntityType edmEntityType = new EdmEntityTypeImpl( edm, ENTITY_TYPE, csdlEntityType );
 
-        CsdlEntitySet csdlEntitySet = Transformers.transform( EMPLOYEES );
+        CsdlEntitySet csdlEntitySet = new EntitySetTransformer( dms ).transform( EMPLOYEES );
         EdmEntitySet edmEntitySet = new EdmEntitySetImpl( edm, edmEntityContainer, csdlEntitySet );
 
         try {

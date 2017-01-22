@@ -19,3 +19,4 @@ hazelcast:
     password: "kryptodoge4life"
     seed-nodes: 
         - "conductor"
+        

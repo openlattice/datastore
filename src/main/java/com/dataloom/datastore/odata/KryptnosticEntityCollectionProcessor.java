@@ -77,7 +77,7 @@ public class KryptnosticEntityCollectionProcessor implements EntityCollectionPro
                 opts );
         InputStream serializedContent = serializerResult.getContent();
 
-        // Finally: configure the response object: set the body, headers and status code
+        // Finally: configure the response object: set the body, headers and reqStatus code
         response.setContent( serializedContent );
         response.setStatusCode( HttpStatusCode.OK.getStatusCode() );
         response.setHeader( HttpHeader.CONTENT_TYPE, responseFormat.toContentTypeString() );

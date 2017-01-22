@@ -5,14 +5,18 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import javax.inject.Inject;
+import javax.ws.rs.ForbiddenException;
 
 import org.springframework.http.MediaType;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -49,21 +53,24 @@ public class RequestsController implements RequestsApi, AuthorizingComponent {
     }
 
     @Override
+    @GetMapping(
+        path = { "", "/" } )
     public Iterable<Status> getMyRequests() {
         return hrm.getStatuses( Principals.getCurrentUser() )::iterator;
     }
 
     @Override
-    public Iterable<Status> getMyRequests( @Path( REQUEST_STATUS ) RequestStatus requestStatus ) {
+    @GetMapping(
+        path = REQUEST_STATUS_PATH )
+    public Iterable<Status> getMyRequests( @PathVariable( REQUEST_STATUS ) RequestStatus requestStatus ) {
         return hrm.getStatuses( Principals.getCurrentUser(), requestStatus )::iterator;
     }
 
     @Override
-    public Void submit( @Body Set<Request> requests ) {
-        Map<AceKey, Status> statusMap = requests
-                .stream()
-                .map( RequestUtil::newStatus )
-                .collect( Collectors.toMap( RequestUtil::aceKey, Function.identity() ) );
+    @PutMapping(
+        path = { "", "/" } )
+    public Void submit( @RequestBody Set<Request> requests ) {
+        Map<AceKey, Status> statusMap = RequestUtil.reqsAsStatusMap( requests );
         hrm.submitAll( statusMap );
         return null;
     }
@@ -73,7 +80,7 @@ public class RequestsController implements RequestsApi, AuthorizingComponent {
         path = { "", "/" },
         consumes = MediaType.APPLICATION_JSON_VALUE,
         produces = MediaType.APPLICATION_JSON_VALUE )
-    public Iterable<Status> getStatuses( @Body Set<List<UUID>> aclKeys ) {
+    public Iterable<Status> getStatuses( @RequestBody Set<List<UUID>> aclKeys ) {
         return aclKeys.stream().flatMap( this::getStatuses )::iterator;
     }
 
@@ -83,8 +90,8 @@ public class RequestsController implements RequestsApi, AuthorizingComponent {
         consumes = MediaType.APPLICATION_JSON_VALUE,
         produces = MediaType.APPLICATION_JSON_VALUE )
     public Iterable<Status> getStatuses(
-            @Path( REQUEST_STATUS ) RequestStatus requestStatus,
-            @Body Set<List<UUID>> aclKeys ) {
+            @PathVariable( REQUEST_STATUS ) RequestStatus requestStatus,
+            @RequestBody Set<List<UUID>> aclKeys ) {
         return aclKeys.stream().flatMap( getStatusesInStatus( requestStatus ) )::iterator;
     }
 
@@ -93,14 +100,13 @@ public class RequestsController implements RequestsApi, AuthorizingComponent {
         path = { "", "/" },
         consumes = MediaType.APPLICATION_JSON_VALUE,
         produces = MediaType.APPLICATION_JSON_VALUE )
-    public Void updateStatuses( @Body Set<Status> statuses ) {
+    public Void updateStatuses( @RequestBody Set<Status> statuses ) {
         if ( statuses.stream().map( Status::getAclKey ).allMatch( this::owns ) ) {
-            Map<AceKey, Status> statusMap = statuses
-                    .stream()
-                    .collect( Collectors.toMap( RequestUtil::aceKey, Function.identity() ) );
+            Map<AceKey, Status> statusMap = RequestUtil.statusMap( statuses );
             hrm.submitAll( statusMap );
+            return null;
         }
-        return null;
+        throw new ForbiddenException();
     }
 
     private Function<List<UUID>, Stream<Status>> getStatusesInStatus( RequestStatus requestStatus ) {

@@ -157,11 +157,11 @@ public class OrganizationsController implements AuthorizingComponent, Organizati
     }
 
     @Override
-    @PostMapping(
+    @PutMapping(
         value = ID_PATH + EMAIL_DOMAINS + EMAIL_DOMAIN_PATH )
     public Void addAutoApprovedEmailDomain(
             @PathVariable( ID ) UUID organizationId,
-            @PathVariable( EMAIL_DOMAIN_PATH ) String emailDomain ) {
+            @PathVariable( EMAIL_DOMAIN ) String emailDomain ) {
         ensureOwner( organizationId );
         organizations.addAutoApprovedEmailDomains( organizationId, ImmutableSet.of( emailDomain ) );
         return null;
@@ -170,7 +170,9 @@ public class OrganizationsController implements AuthorizingComponent, Organizati
     @Override
     @DeleteMapping(
         value = ID_PATH + EMAIL_DOMAINS + EMAIL_DOMAIN_PATH )
-    public Void removeAutoApprovedEmailDomain( @PathVariable( ID ) UUID organizationId, String emailDomain ) {
+    public Void removeAutoApprovedEmailDomain(
+            @PathVariable( ID ) UUID organizationId,
+            @PathVariable( EMAIL_DOMAIN ) String emailDomain ) {
         ensureOwner( organizationId );
         organizations.removeAutoApprovedEmailDomains( organizationId, ImmutableSet.of( emailDomain ) );
         return null;

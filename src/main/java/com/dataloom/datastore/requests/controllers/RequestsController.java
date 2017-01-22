@@ -1,0 +1,116 @@
+package com.dataloom.datastore.requests.controllers;
+
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+import javax.inject.Inject;
+
+import org.springframework.http.MediaType;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.dataloom.authorization.AceKey;
+import com.dataloom.authorization.AuthorizationManager;
+import com.dataloom.authorization.AuthorizingComponent;
+import com.dataloom.authorization.Principals;
+import com.dataloom.requests.HazelcastRequestsManager;
+import com.dataloom.requests.Request;
+import com.dataloom.requests.RequestStatus;
+import com.dataloom.requests.RequestsApi;
+import com.dataloom.requests.Status;
+import com.dataloom.requests.util.RequestUtil;
+
+import retrofit2.http.Body;
+import retrofit2.http.Path;
+
+/**
+ * @author Matthew Tamayo-Rios &lt;matthew@kryptnostic.com&gt;
+ */
+@RestController
+@RequestMapping( RequestsApi.CONTROLLER )
+public class RequestsController implements RequestsApi, AuthorizingComponent {
+
+    @Inject
+    private AuthorizationManager     authorizations;
+
+    @Inject
+    private HazelcastRequestsManager hrm;
+
+    @Override
+    public AuthorizationManager getAuthorizationManager() {
+        return authorizations;
+    }
+
+    @Override
+    public Iterable<Status> getMyRequests() {
+        return hrm.getStatuses( Principals.getCurrentUser() )::iterator;
+    }
+
+    @Override
+    public Iterable<Status> getMyRequests( @Path( REQUEST_STATUS ) RequestStatus requestStatus ) {
+        return hrm.getStatuses( Principals.getCurrentUser(), requestStatus )::iterator;
+    }
+
+    @Override
+    public Void submit( @Body Set<Request> requests ) {
+        Map<AceKey, Status> statusMap = requests
+                .stream()
+                .map( RequestUtil::newStatus )
+                .collect( Collectors.toMap( RequestUtil::aceKey, Function.identity() ) );
+        hrm.submitAll( statusMap );
+        return null;
+    }
+
+    @Override
+    @PostMapping(
+        path = { "", "/" },
+        consumes = MediaType.APPLICATION_JSON_VALUE,
+        produces = MediaType.APPLICATION_JSON_VALUE )
+    public Iterable<Status> getStatuses( @Body Set<List<UUID>> aclKeys ) {
+        return aclKeys.stream().flatMap( this::getStatuses )::iterator;
+    }
+
+    @Override
+    @PostMapping(
+        path = REQUEST_STATUS_PATH,
+        consumes = MediaType.APPLICATION_JSON_VALUE,
+        produces = MediaType.APPLICATION_JSON_VALUE )
+    public Iterable<Status> getStatuses(
+            @Path( REQUEST_STATUS ) RequestStatus requestStatus,
+            @Body Set<List<UUID>> aclKeys ) {
+        return aclKeys.stream().flatMap( getStatusesInStatus( requestStatus ) )::iterator;
+    }
+
+    @Override
+    @PatchMapping(
+        path = { "", "/" },
+        consumes = MediaType.APPLICATION_JSON_VALUE,
+        produces = MediaType.APPLICATION_JSON_VALUE )
+    public Void updateStatuses( @Body Set<Status> statuses ) {
+        if ( statuses.stream().map( Status::getAclKey ).allMatch( this::owns ) ) {
+            Map<AceKey, Status> statusMap = statuses
+                    .stream()
+                    .collect( Collectors.toMap( RequestUtil::aceKey, Function.identity() ) );
+            hrm.submitAll( statusMap );
+        }
+        return null;
+    }
+
+    private Function<List<UUID>, Stream<Status>> getStatusesInStatus( RequestStatus requestStatus ) {
+        return aclKey -> owns( aclKey ) ? hrm.getStatusesForAllUser( aclKey, requestStatus )
+                : hrm.getStatuses( Stream.of( new AceKey( aclKey, Principals.getCurrentUser() ) ) )
+                        .filter( status -> status.equals( requestStatus ) );
+    }
+
+    private Stream<Status> getStatuses( List<UUID> aclKey ) {
+        return owns( aclKey ) ? hrm.getStatusesForAllUser( aclKey )
+                : hrm.getStatuses( Stream.of( new AceKey( aclKey, Principals.getCurrentUser() ) ) );
+    }
+}

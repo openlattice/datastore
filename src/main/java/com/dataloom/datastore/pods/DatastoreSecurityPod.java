@@ -27,7 +27,6 @@ public class DatastoreSecurityPod extends Auth0SecurityPod {
     protected void authorizeRequests( HttpSecurity http ) throws Exception {
         http.authorizeRequests()
                 .antMatchers( HttpMethod.OPTIONS ).permitAll()
-                .antMatchers( "/datastore/**" ).hasAnyAuthority( "user", "USER" )
                 .antMatchers( "/datastore/**" ).hasAnyAuthority( "admin", "ADMIN" )
                 .antMatchers( "/datastore/**" ).hasAnyAuthority( "AuthenticatedUser", "AuthenticatedUser" );
     }

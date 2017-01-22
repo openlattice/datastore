@@ -157,7 +157,7 @@ public class OrganizationsController implements AuthorizingComponent, Organizati
     }
 
     @Override
-    @PostMapping(
+    @PutMapping(
         value = ID_PATH + EMAIL_DOMAINS + EMAIL_DOMAIN_PATH )
     public Void addAutoApprovedEmailDomain(
             @PathVariable( ID ) UUID organizationId,

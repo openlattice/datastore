@@ -134,7 +134,10 @@ public class EdmController implements EdmApi, AuthorizingComponent {
             entityTypeIds.add( selector.getId() );
         }
         if ( selector.getIncludedFields().contains( SecurableObjectType.PropertyTypeInEntitySet ) ) {
-            propertyTypeIds.addAll( modelService.getEntityType( selector.getId() ).getProperties() );
+            EntityType et = modelService.getEntityType( selector.getId() );
+            if ( et != null ) {
+                propertyTypeIds.addAll( modelService.getEntityType( selector.getId() ).getProperties() );
+            }
         }
     }
 
@@ -143,15 +146,28 @@ public class EdmController implements EdmApi, AuthorizingComponent {
             Set<UUID> propertyTypeIds,
             Set<UUID> entityTypeIds,
             Set<UUID> entitySetIds ) {
+        boolean setRetrieved = false;
+        EntitySet es = null;
         if ( selector.getIncludedFields().contains( SecurableObjectType.EntitySet ) ) {
             entitySetIds.add( selector.getId() );
         }
         if ( selector.getIncludedFields().contains( SecurableObjectType.EntityType ) ) {
-            entityTypeIds.add( modelService.getEntitySet( selector.getId() ).getEntityTypeId() );
+            es = modelService.getEntitySet( selector.getId() );
+            setRetrieved = true;
+            if ( es != null ) {
+                entityTypeIds.add( es.getEntityTypeId() );
+            }
         }
         if ( selector.getIncludedFields().contains( SecurableObjectType.PropertyTypeInEntitySet ) ) {
-            UUID eid = modelService.getEntitySet( selector.getId() ).getEntityTypeId();
-            propertyTypeIds.addAll( modelService.getEntityType( eid ).getProperties() );
+            if ( !setRetrieved ) {
+                es = modelService.getEntitySet( selector.getId() );
+            }
+            if ( es != null ) {
+                EntityType et = modelService.getEntityType( es.getEntityTypeId() );
+                if ( et != null ) {
+                    propertyTypeIds.addAll( et.getProperties() );
+                }
+            }
         }
     }
 

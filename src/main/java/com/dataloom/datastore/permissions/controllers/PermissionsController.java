@@ -1,6 +1,7 @@
 package com.dataloom.datastore.permissions.controllers;
 
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 import javax.inject.Inject;
@@ -22,6 +23,9 @@ import com.dataloom.authorization.AuthorizingComponent;
 import com.dataloom.authorization.ForbiddenException;
 import com.dataloom.authorization.Permission;
 import com.dataloom.authorization.PermissionsApi;
+import com.dataloom.authorization.Principal;
+import com.dataloom.authorization.events.AclUpdateEvent;
+import com.google.common.collect.Sets;
 import com.google.common.eventbus.EventBus;
 
 @RestController
@@ -72,7 +76,10 @@ public class PermissionsController implements PermissionsApi, AuthorizingCompone
                     logger.error( "Invalid action {} specified for request.", req.getAction() );
                     throw new HttpServerErrorException( HttpStatus.BAD_REQUEST, "Invalid action specified." );
             }
-            eventBus.post( req );
+            
+            Set<Principal> principals = Sets.newHashSet();
+            acl.getAces().forEach( ace -> principals.add( ace.getPrincipal() ) );
+            eventBus.post( new AclUpdateEvent( aclKeys, principals ) );
         } else {
             throw new ForbiddenException( "Only owner of a securable object can access other users' access rights." );
         }

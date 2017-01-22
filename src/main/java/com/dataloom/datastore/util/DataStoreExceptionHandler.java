@@ -30,7 +30,7 @@ public class DataStoreExceptionHandler {
         return new ResponseEntity<ErrorsDTO>( HttpStatus.NOT_FOUND );
     }
 
-    @ExceptionHandler( { IllegalArgumentException.class, TypeExistsException.class, HttpMessageNotReadableException.class } )
+    @ExceptionHandler( { IllegalArgumentException.class, HttpMessageNotReadableException.class } )
     public ResponseEntity<ErrorsDTO> handleIllegalArgumentException( Exception e ) {
         logger.error( ERROR_MSG, e );
         return new ResponseEntity<ErrorsDTO>(
@@ -44,6 +44,14 @@ public class DataStoreExceptionHandler {
         return new ResponseEntity<ErrorsDTO>(
                 new ErrorsDTO( "IllegalStateException", e.getMessage() ),
                 HttpStatus.INTERNAL_SERVER_ERROR );
+    }
+
+    @ExceptionHandler( TypeExistsException.class )
+    public ResponseEntity<ErrorsDTO> handleTypeExistsException( Exception e ) {
+        logger.error( ERROR_MSG, e );
+        return new ResponseEntity<ErrorsDTO>(
+                new ErrorsDTO( "TypeExistsException", e.getMessage() ),
+                HttpStatus.CONFLICT );
     }
 
     @ExceptionHandler( ForbiddenException.class )

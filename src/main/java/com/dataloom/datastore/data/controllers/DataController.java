@@ -12,7 +12,6 @@ import javax.annotation.PostConstruct;
 import javax.inject.Inject;
 import javax.servlet.http.HttpServletResponse;
 
-import org.apache.commons.lang3.NotImplementedException;
 import org.apache.olingo.commons.api.edm.EdmPrimitiveTypeKind;
 import org.apache.olingo.commons.api.edm.FullQualifiedName;
 import org.slf4j.Logger;
@@ -20,7 +19,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -52,6 +50,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.SetMultimap;
 import com.google.common.collect.Sets;
 import com.kryptnostic.conductor.rpc.UUIDs.Syncs;
+import com.kryptnostic.datastore.exceptions.ResourceNotFoundException;
 import com.kryptnostic.datastore.services.EdmService;
 import com.kryptnostic.datastore.util.Util;
 
@@ -80,10 +79,31 @@ public class DataController implements DataApi {
 
     @RequestMapping(
         path = { "/" + ENTITY_DATA + "/" + SET_ID_PATH },
-        method = RequestMethod.POST,
-        consumes = MediaType.APPLICATION_JSON_VALUE,
+        method = RequestMethod.GET,
         produces = { MediaType.APPLICATION_JSON_VALUE, CustomMediaType.TEXT_CSV_VALUE } )
-    public Iterable<SetMultimap<FullQualifiedName, Object>> getEntitySetData(
+    public Iterable<SetMultimap<FullQualifiedName, Object>> loadEntitySetData(
+            @PathVariable( SET_ID ) UUID entitySetId,
+            @RequestParam(
+                value = FILE_TYPE,
+                required = false ) FileType fileType,
+            HttpServletResponse response ) {
+        setContentDisposition( response, entitySetId.toString(), fileType );
+        setDownloadContentType( response, fileType );
+        return loadEntitySetData( entitySetId, fileType );
+    }
+
+    @Override
+    public Iterable<SetMultimap<FullQualifiedName, Object>> loadEntitySetData(
+            UUID entitySetId,
+            FileType fileType ) {
+        return loadEntitySetData( entitySetId, Optional.absent(), Optional.absent() );
+    }
+
+    @RequestMapping(
+        path = { "/" + ENTITY_DATA + "/" + SET_ID_PATH },
+        method = RequestMethod.POST,
+        produces = { MediaType.APPLICATION_JSON_VALUE, CustomMediaType.TEXT_CSV_VALUE } )
+    public Iterable<SetMultimap<FullQualifiedName, Object>> loadEntitySetData(
             @PathVariable( SET_ID ) UUID entitySetId,
             @RequestBody(
                 required = false ) EntitySetSelection req,
@@ -166,10 +186,8 @@ public class DataController implements DataApi {
                 authorizedPropertiesWithDataType = primitiveTypeKinds
                         .getAll( authorizedProperties );
             } catch ( ExecutionException e ) {
-                logger.error( "Unable to load data types for authorized properties." );
-                throw new HttpServerErrorException(
-                        HttpStatus.NOT_FOUND,
-                        "Unable to load data types for authorized properties." );
+                logger.error( "Unable to load data types for authorized properties for user " + Principals.getCurrentUser() + " and entity set " + entitySetId + "." );
+                throw new ResourceNotFoundException( "Unable to load data types for authorized properties." );
             }
 
             cdm.createEntityData( entitySetId, syncId, entities, authorizedPropertiesWithDataType );
@@ -275,10 +293,8 @@ public class DataController implements DataApi {
             authorizedPropertiesWithDataType = primitiveTypeKinds
                     .getAll( authorizedProperties );
         } catch ( ExecutionException e ) {
-            logger.error( "Unable to load data types for authorized properties." );
-            throw new HttpServerErrorException(
-                    HttpStatus.NOT_FOUND,
-                    "Unable to load data types for authorized properties." );
+            logger.error( "Unable to load data types for authorized properties for user " + Principals.getCurrentUser() + " and entity set " + entitySetId + "." );
+            throw new ResourceNotFoundException( "Unable to load data types for authorized properties." );
         }
 
         cdm.createEntityData( entitySetId, syncId, entities, authorizedPropertiesWithDataType );

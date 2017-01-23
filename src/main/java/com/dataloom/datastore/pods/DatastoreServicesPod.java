@@ -5,6 +5,7 @@ import javax.inject.Inject;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
+import org.springframework.jca.cci.core.support.CciDaoSupport;
 
 import com.dataloom.authorization.AuthorizationManager;
 import com.dataloom.authorization.AuthorizationQueryService;
@@ -25,8 +26,10 @@ import com.dataloom.edm.schemas.manager.HazelcastSchemaManager;
 import com.dataloom.mappers.ObjectMappers;
 import com.dataloom.organizations.HazelcastOrganizationService;
 import com.dataloom.requests.HazelcastPermissionsRequestsService;
+import com.dataloom.requests.HazelcastRequestsManager;
 import com.dataloom.requests.PermissionsRequestsManager;
 import com.dataloom.requests.PermissionsRequestsQueryService;
+import com.dataloom.requests.RequestQueryService;
 import com.datastax.driver.core.Session;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.hazelcast.core.HazelcastInstance;
@@ -176,5 +179,15 @@ public class DatastoreServicesPod {
     @Bean
     public SyncTicketService sts() {
         return new SyncTicketService( hazelcastInstance );
+    }
+
+    @Bean
+    public RequestQueryService rqs() {
+        return new RequestQueryService( cassandraConfiguration.getKeyspace(), session );
+    }
+
+    @Bean
+    public HazelcastRequestsManager hazelcastRequestsManager() {
+        return new HazelcastRequestsManager( hazelcastInstance, rqs() );
     }
 }

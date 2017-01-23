@@ -61,9 +61,7 @@ public class PrincipalDirectoryController implements PrincipalApi {
 
     @Override
     @PutMapping(
-        path = USERS + USER_ID_PATH + ROLES + ROLE_PATH,
-        consumes = MediaType.APPLICATION_JSON_VALUE,
-        produces = MediaType.APPLICATION_JSON_VALUE )
+        path = USERS + USER_ID_PATH + ROLES + ROLE_PATH )
     @ResponseStatus( HttpStatus.OK )
     public Void addRoleToUser( @PathVariable( USER_ID ) String userId, @PathVariable( ROLE ) String role ) {
        userDirectoryService.addRoleToUser( userId, role );

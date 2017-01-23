@@ -4,6 +4,9 @@ import java.util.Map;
 
 import javax.inject.Inject;
 
+import com.dataloom.edm.internal.EntitySet;
+import com.kryptnostic.datastore.services.EdmService;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -26,6 +29,10 @@ public class SearchController implements SearchApi {
 
     @Inject
     private SearchService searchService;
+
+    @Inject
+    private EdmService edm;
+
 
     @RequestMapping(
         path = { "/", "" },
@@ -63,6 +70,15 @@ public class SearchController implements SearchApi {
                 request.getOptionalKeyword(),
                 request.getOptionalEntityType(),
                 request.getOptionalPropertyTypes() );
+    }
+
+    @RequestMapping(
+            path = { POPULAR },
+            method = RequestMethod.GET,
+            produces = { MediaType.APPLICATION_JSON_VALUE } )
+    @Override
+    public Iterable<EntitySet> getPopularEntitySet() {
+        return edm.getEntitySets();
     }
 
 }

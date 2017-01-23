@@ -2,6 +2,9 @@ package com.dataloom.datastore.search.controllers;
 
 import com.dataloom.auditing.AuditMetric;
 import com.dataloom.auditing.AuditQuerySerivce;
+import com.dataloom.authorization.AuthorizationManager;
+import com.dataloom.authorization.AuthorizingComponent;
+import com.dataloom.authorization.Permission;
 import com.dataloom.datastore.services.SearchService;
 import com.dataloom.edm.internal.EntitySet;
 import com.dataloom.mappers.ObjectMappers;
@@ -25,7 +28,7 @@ import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping( SearchApi.CONTROLLER )
-public class SearchController implements SearchApi {
+public class SearchController implements SearchApi, AuthorizingComponent {
 
     @Inject
     private SearchService searchService;
@@ -35,6 +38,9 @@ public class SearchController implements SearchApi {
 
     @Inject
     private AuditQuerySerivce aqs;
+
+    @Inject
+    private AuthorizationManager authorizations;
 
     @RequestMapping(
             path = { "/", "" },
@@ -84,13 +90,17 @@ public class SearchController implements SearchApi {
                 .map( AuditMetric::getAclKey )
                 .filter( aclKey -> aclKey.size() == 1 )
                 .map( aclKey -> edm.getEntitySet( aclKey.get( 0 ) ) )
-                .filter( es -> es != null )
+                .filter( es -> es != null && isAuthorizedObject( Permission.READ ).test( es ) )
                 .collect( Collectors.toSet() );
 
         if ( entitySets.size() == 0 ) {
             return edm.getEntitySets();
         }
+
         return entitySets;
     }
 
+    @Override public AuthorizationManager getAuthorizationManager() {
+        return authorizations;
+    }
 }

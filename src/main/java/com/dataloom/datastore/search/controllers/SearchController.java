@@ -1,27 +1,27 @@
 package com.dataloom.datastore.search.controllers;
 
-import java.util.Map;
-
-import javax.inject.Inject;
-
-import com.dataloom.edm.internal.EntitySet;
-import com.kryptnostic.datastore.services.EdmService;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.RestController;
-
+import com.dataloom.auditing.AuditMetric;
+import com.dataloom.auditing.AuditQuerySerivce;
 import com.dataloom.datastore.services.SearchService;
+import com.dataloom.edm.internal.EntitySet;
 import com.dataloom.mappers.ObjectMappers;
 import com.dataloom.search.SearchApi;
 import com.dataloom.search.requests.SearchRequest;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.google.common.collect.Lists;
 import com.kryptnostic.datastore.exceptions.BadRequestException;
-
+import com.kryptnostic.datastore.services.EdmService;
+import org.springframework.http.MediaType;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RestController;
 import retrofit2.http.Body;
+
+import javax.inject.Inject;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping( SearchApi.CONTROLLER )
@@ -33,11 +33,13 @@ public class SearchController implements SearchApi {
     @Inject
     private EdmService edm;
 
+    @Inject
+    private AuditQuerySerivce aqs;
 
     @RequestMapping(
-        path = { "/", "" },
-        method = RequestMethod.POST,
-        produces = { MediaType.APPLICATION_JSON_VALUE } )
+            path = { "/", "" },
+            method = RequestMethod.POST,
+            produces = { MediaType.APPLICATION_JSON_VALUE } )
     public String executeQueryJson( @RequestBody SearchRequest request ) {
         if ( !request.getOptionalKeyword().isPresent() && !request.getOptionalEntityType().isPresent()
                 && !request.getOptionalPropertyTypes().isPresent() ) {
@@ -57,9 +59,9 @@ public class SearchController implements SearchApi {
     }
 
     @RequestMapping(
-        path = { SEARCH_JAVA },
-        method = RequestMethod.POST,
-        produces = { MediaType.APPLICATION_JSON_VALUE } )
+            path = { SEARCH_JAVA },
+            method = RequestMethod.POST,
+            produces = { MediaType.APPLICATION_JSON_VALUE } )
     public Iterable<Map<String, Object>> executeQuery( @Body SearchRequest request ) {
         if ( !request.getOptionalKeyword().isPresent() && !request.getOptionalEntityType().isPresent()
                 && !request.getOptionalPropertyTypes().isPresent() ) {
@@ -78,7 +80,17 @@ public class SearchController implements SearchApi {
             produces = { MediaType.APPLICATION_JSON_VALUE } )
     @Override
     public Iterable<EntitySet> getPopularEntitySet() {
-        return edm.getEntitySets();
+        Set<EntitySet> entitySets = aqs.getTop100()
+                .map( AuditMetric::getAclKey )
+                .filter( aclKey -> aclKey.size() == 1 )
+                .map( aclKey -> edm.getEntitySet( aclKey.get( 0 ) ) )
+                .filter( es -> es != null )
+                .collect( Collectors.toSet() );
+
+        if ( entitySets.size() == 0 ) {
+            return edm.getEntitySets();
+        }
+        return entitySets;
     }
 
 }

@@ -10,6 +10,7 @@ import java.util.stream.Stream;
 import javax.inject.Inject;
 import javax.ws.rs.ForbiddenException;
 
+import com.google.common.base.Predicates;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -112,6 +113,7 @@ public class RequestsController implements RequestsApi, AuthorizingComponent {
     private Function<List<UUID>, Stream<Status>> getStatusesInStatus( RequestStatus requestStatus ) {
         return aclKey -> owns( aclKey ) ? hrm.getStatusesForAllUser( aclKey, requestStatus )
                 : hrm.getStatuses( Stream.of( new AceKey( aclKey, Principals.getCurrentUser() ) ) )
+                        .filter( Predicates.notNull()::apply)
                         .filter( status -> status.equals( requestStatus ) );
     }
 

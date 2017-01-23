@@ -1,17 +1,8 @@
 package com.dataloom.datastore.pods;
 
-import javax.inject.Inject;
-
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Import;
-import org.springframework.jca.cci.core.support.CciDaoSupport;
-
-import com.dataloom.authorization.AuthorizationManager;
-import com.dataloom.authorization.AuthorizationQueryService;
-import com.dataloom.authorization.EdmAuthorizationHelper;
-import com.dataloom.authorization.HazelcastAclKeyReservationService;
-import com.dataloom.authorization.HazelcastAuthorizationService;
+import com.dataloom.auditing.AuditQuerySerivce;
+import com.dataloom.auditing.HazelcastAuditLoggingService;
+import com.dataloom.authorization.*;
 import com.dataloom.data.serializers.FullQualifedNameJacksonDeserializer;
 import com.dataloom.data.serializers.FullQualifedNameJacksonSerializer;
 import com.dataloom.datastore.services.CassandraDataManager;
@@ -25,13 +16,10 @@ import com.dataloom.edm.schemas.cassandra.CassandraSchemaQueryService;
 import com.dataloom.edm.schemas.manager.HazelcastSchemaManager;
 import com.dataloom.mappers.ObjectMappers;
 import com.dataloom.organizations.HazelcastOrganizationService;
-import com.dataloom.requests.HazelcastPermissionsRequestsService;
-import com.dataloom.requests.HazelcastRequestsManager;
-import com.dataloom.requests.PermissionsRequestsManager;
-import com.dataloom.requests.PermissionsRequestsQueryService;
-import com.dataloom.requests.RequestQueryService;
+import com.dataloom.requests.*;
 import com.datastax.driver.core.Session;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.eventbus.EventBus;
 import com.hazelcast.core.HazelcastInstance;
 import com.kryptnostic.datastore.services.CassandraEntitySetManager;
 import com.kryptnostic.datastore.services.EdmManager;
@@ -39,9 +27,13 @@ import com.kryptnostic.datastore.services.EdmService;
 import com.kryptnostic.datastore.services.ODataStorageService;
 import com.kryptnostic.rhizome.configuration.cassandra.CassandraConfiguration;
 import com.kryptnostic.rhizome.pods.CassandraPod;
-
 import digital.loom.rhizome.authentication.Auth0Pod;
 import digital.loom.rhizome.configuration.auth0.Auth0Configuration;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Import;
+
+import javax.inject.Inject;
 
 @Configuration
 @Import( { CassandraPod.class, Auth0Pod.class } )
@@ -51,13 +43,16 @@ public class DatastoreServicesPod {
     private CassandraConfiguration cassandraConfiguration;
 
     @Inject
-    private HazelcastInstance      hazelcastInstance;
+    private HazelcastInstance hazelcastInstance;
 
     @Inject
-    private Session                session;
+    private Session session;
 
     @Inject
-    private Auth0Configuration     auth0Configuration;
+    private Auth0Configuration auth0Configuration;
+
+    @Inject
+    private EventBus eventBus;
 
     @Bean
     public ObjectMapper defaultObjectMapper() {
@@ -74,7 +69,7 @@ public class DatastoreServicesPod {
 
     @Bean
     public AuthorizationManager authorizationManager() {
-        return new HazelcastAuthorizationService( hazelcastInstance, authorizationQueryService() );
+        return new HazelcastAuthorizationService( hazelcastInstance, authorizationQueryService() , eventBus );
     }
 
     @Bean
@@ -189,5 +184,15 @@ public class DatastoreServicesPod {
     @Bean
     public HazelcastRequestsManager hazelcastRequestsManager() {
         return new HazelcastRequestsManager( hazelcastInstance, rqs() );
+    }
+
+    @Bean
+    public AuditQuerySerivce auditQuerySerivce() {
+        return new AuditQuerySerivce( cassandraConfiguration.getKeyspace(), session );
+    }
+
+    @Bean
+    public HazelcastAuditLoggingService auditLoggingService() {
+        return new HazelcastAuditLoggingService( hazelcastInstance, auditQuerySerivce(), eventBus );
     }
 }

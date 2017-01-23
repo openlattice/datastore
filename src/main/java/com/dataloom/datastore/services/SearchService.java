@@ -16,6 +16,7 @@ import com.dataloom.authorization.AclData;
 import com.dataloom.authorization.AuthorizationManager;
 import com.dataloom.authorization.Permission;
 import com.dataloom.authorization.Principal;
+import com.dataloom.authorization.events.AclUpdateEvent;
 import com.dataloom.edm.events.EntitySetCreatedEvent;
 import com.dataloom.edm.events.EntitySetDeletedEvent;
 import com.google.common.base.Optional;
@@ -72,12 +73,11 @@ public class SearchService {
     }
 
     @Subscribe
-    public void onAclUpdate( AclData req ) {
-        List<UUID> aclKeys = req.getAcl().getAclKey();
-        req.getAcl().getAces().forEach( ace -> updateEntitySetPermissions(
-                aclKeys,
-                ace.getPrincipal(),
-                authorizations.getSecurableObjectPermissions( aclKeys, Sets.newHashSet( ace.getPrincipal() ) ) ) );
+    public void onAclUpdate( AclUpdateEvent event ) {
+        event.getPrincipals().forEach( principal -> updateEntitySetPermissions(
+                event.getAclKeys(),
+                principal,
+                authorizations.getSecurableObjectPermissions( event.getAclKeys(), Sets.newHashSet( principal ) ) ) );
     }
 
     @Subscribe

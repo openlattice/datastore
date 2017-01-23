@@ -74,8 +74,8 @@ public class EdmController implements EdmApi, AuthorizingComponent {
         final Iterable<EntityType> entityTypes = getEntityTypes();
         final Iterable<PropertyType> propertyTypes = getPropertyTypes();
         final Set<String> namespaces = Sets.newHashSet();
-        entityTypes.forEach( entityType -> namespaces.add( entityType.getType().getNamespace() ) );
-        propertyTypes.forEach( propertyType -> namespaces.add( propertyType.getType().getNamespace() ) );
+        getEntityTypes().forEach( entityType -> namespaces.add( entityType.getType().getNamespace() ) );
+        getPropertyTypes().forEach( propertyType -> namespaces.add( propertyType.getType().getNamespace() ) );
 
         Iterable<EntitySet> authorizedEntitySets = Iterables.transform(
                 getAccessibleObjects( SecurableObjectType.EntitySet, EnumSet.of( Permission.READ ) ),
@@ -84,8 +84,8 @@ public class EdmController implements EdmApi, AuthorizingComponent {
         return new EntityDataModel(
                 namespaces,
                 schemas,
-                entityTypes::iterator,
-                propertyTypes::iterator,
+                entityTypes,
+                propertyTypes,
                 authorizedEntitySets::iterator );
     }
 

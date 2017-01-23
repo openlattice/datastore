@@ -48,7 +48,7 @@ public class BootstrapDatastoreWithCassandra extends CassandraBootstrap {
 
     protected static final String            PROPERTY_TYPE_EXISTS_MSG  = "Property Type of same name exists.";
     protected static final String            ENTITY_TYPE_EXISTS_MSG    = "Entity type of same name already exists.";
-    protected static final String            ENTITY_SET_EXISTS_MSG     = "Entity Set not created.";
+    protected static final String            ENTITY_SET_EXISTS_MSG     = "Entity set already exists.";
     protected static final String            SCHEMA_EXISTS_MSG         = "Failed to create schema.";
 
     protected static final String            ENTITY_TYPE_NAME          = "employee";
@@ -249,7 +249,7 @@ public class BootstrapDatastoreWithCassandra extends CassandraBootstrap {
             dms.createEntitySet(
                     principal,
                     EMPLOYEES );
-        } catch ( IllegalStateException e ) {
+        } catch ( TypeExistsException e ) {
             // Only acceptable exception is Entity Set already exists.
             Assert.assertEquals( ENTITY_SET_EXISTS_MSG, e.getMessage() );
         }

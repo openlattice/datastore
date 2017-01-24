@@ -3,6 +3,7 @@ package com.dataloom.datastore.requests.controllers;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Stream;
 
 import javax.inject.Inject;
 
@@ -24,7 +25,7 @@ import com.dataloom.requests.PermissionsRequest;
 import com.dataloom.requests.PermissionsRequestsApi;
 import com.dataloom.requests.PermissionsRequestsManager;
 import com.dataloom.requests.RequestStatus;
-import com.google.common.collect.Iterables;
+import com.dataloom.streams.StreamUtil;
 
 @RestController
 @RequestMapping( PermissionsRequestsApi.CONTROLLER )
@@ -108,19 +109,19 @@ public class PermissionsRequestsController implements PermissionsRequestsApi, Au
                 return prm.getAllUnresolvedRequestsOfAdmin( req.getAclRoot(), status );
             }
         } else {
-            Iterable<Iterable<PermissionsRequest>> requests;
+            Stream<Iterable<PermissionsRequest>> requests;
             if ( status.equals( EnumSet.allOf( RequestStatus.class ) ) ) {
-                requests = Iterables.transform(
+                requests = 
                         authorizations.getAuthorizedObjects( Principals.getCurrentPrincipals(),
-                                EnumSet.of( Permission.OWNER ) ),
+                                EnumSet.of( Permission.OWNER ) ).map(
                         aclRoot -> prm.getAllUnresolvedRequestsOfAdmin( aclRoot ) );
             } else {
-                requests = Iterables.transform(
+                requests = 
                         authorizations.getAuthorizedObjects( Principals.getCurrentPrincipals(),
-                                EnumSet.of( Permission.OWNER ) ),
+                                EnumSet.of( Permission.OWNER ) ).map( 
                         aclRoot -> prm.getAllUnresolvedRequestsOfAdmin( aclRoot, status ) );
             }
-            return Iterables.concat( requests );
+            return requests.flatMap( StreamUtil::stream )::iterator;
         }
     }
 

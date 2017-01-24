@@ -1,6 +1,6 @@
 package com.dataloom.datastore.pods;
 
-import com.dataloom.auditing.AuditQuerySerivce;
+import com.dataloom.auditing.AuditQueryService;
 import com.dataloom.auditing.HazelcastAuditLoggingService;
 import com.dataloom.authorization.*;
 import com.dataloom.data.serializers.FullQualifedNameJacksonDeserializer;
@@ -187,8 +187,8 @@ public class DatastoreServicesPod {
     }
 
     @Bean
-    public AuditQuerySerivce auditQuerySerivce() {
-        return new AuditQuerySerivce( cassandraConfiguration.getKeyspace(), session );
+    public AuditQueryService auditQuerySerivce() {
+        return new AuditQueryService( cassandraConfiguration.getKeyspace(), session );
     }
 
     @Bean

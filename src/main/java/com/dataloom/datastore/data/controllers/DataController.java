@@ -1,39 +1,9 @@
 package com.dataloom.datastore.data.controllers;
 
-import java.util.EnumSet;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
-
-import javax.annotation.PostConstruct;
-import javax.inject.Inject;
-import javax.servlet.http.HttpServletResponse;
-
-import org.apache.olingo.commons.api.edm.EdmPrimitiveTypeKind;
-import org.apache.olingo.commons.api.edm.FullQualifiedName;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.ResponseStatus;
-import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.client.HttpServerErrorException;
-
-import com.dataloom.authorization.AuthorizationManager;
-import com.dataloom.authorization.EdmAuthorizationHelper;
-import com.dataloom.authorization.ForbiddenException;
-import com.dataloom.authorization.Permission;
-import com.dataloom.authorization.Principals;
+import com.auth0.jwt.internal.org.apache.commons.lang3.StringUtils;
+import com.auth0.spring.security.api.Auth0JWTToken;
+import com.dataloom.authentication.LoomAuth0AuthenticationProvider;
+import com.dataloom.authorization.*;
 import com.dataloom.data.DataApi;
 import com.dataloom.data.requests.EntitySetSelection;
 import com.dataloom.datastore.constants.CustomMediaType;
@@ -53,63 +23,116 @@ import com.kryptnostic.conductor.rpc.UUIDs.Syncs;
 import com.kryptnostic.datastore.exceptions.ResourceNotFoundException;
 import com.kryptnostic.datastore.services.EdmService;
 import com.kryptnostic.datastore.util.Util;
+import org.apache.olingo.commons.api.edm.EdmPrimitiveTypeKind;
+import org.apache.olingo.commons.api.edm.FullQualifiedName;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.web.bind.annotation.*;
+
+import javax.annotation.PostConstruct;
+import javax.inject.Inject;
+import javax.servlet.http.HttpServletResponse;
+import java.util.EnumSet;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping( DataApi.CONTROLLER )
 public class DataController implements DataApi {
-    private static final Logger                       logger = LoggerFactory.getLogger( DataController.class );
+    private static final Logger logger = LoggerFactory.getLogger( DataController.class );
 
     @Inject
-    private SyncTicketService                         sts;
+    private SyncTicketService sts;
 
     @Inject
-    private EdmService                                dms;
+    private EdmService dms;
 
     @Inject
-    private CassandraDataManager                      cdm;
+    private CassandraDataManager cdm;
 
     @Inject
-    private AuthorizationManager                      authz;
+    private AuthorizationManager authz;
 
     @Inject
-    private EdmAuthorizationHelper                    authzHelper;
+    private EdmAuthorizationHelper authzHelper;
+
+    @Inject
+    private LoomAuth0AuthenticationProvider authProvider;
 
     private LoadingCache<UUID, EdmPrimitiveTypeKind>  primitiveTypeKinds;
     private LoadingCache<AuthorizationKey, Set<UUID>> authorizedPropertyCache;
 
+    /**
+     * Methods for setting http response header
+     */
+
+    private static void setDownloadContentType( HttpServletResponse response, FileType fileType ) {
+        if ( fileType == FileType.csv ) {
+            response.setContentType( CustomMediaType.TEXT_CSV_VALUE );
+        } else {
+            response.setContentType( MediaType.APPLICATION_JSON_VALUE );
+        }
+    }
+
+    private static void setContentDisposition(
+            HttpServletResponse response,
+            String fileName,
+            FileType fileType ) {
+        if ( fileType == FileType.csv || fileType == FileType.json ) {
+            response.setHeader( "Content-Disposition",
+                    "attachment; filename=" + fileName + "." + fileType.toString() );
+        }
+    }
+
     @RequestMapping(
-        path = { "/" + ENTITY_DATA + "/" + SET_ID_PATH },
-        method = RequestMethod.GET,
-        produces = { MediaType.APPLICATION_JSON_VALUE, CustomMediaType.TEXT_CSV_VALUE } )
+            path = { "/" + ENTITY_DATA + "/" + SET_ID_PATH },
+            method = RequestMethod.GET,
+            produces = { MediaType.APPLICATION_JSON_VALUE, CustomMediaType.TEXT_CSV_VALUE } )
     public Iterable<SetMultimap<FullQualifiedName, Object>> loadEntitySetData(
             @PathVariable( SET_ID ) UUID entitySetId,
             @RequestParam(
-                value = FILE_TYPE,
-                required = false ) FileType fileType,
+                    value = FILE_TYPE,
+                    required = false ) FileType fileType,
+            @RequestParam(value = TOKEN, required = false ) String token,
             HttpServletResponse response ) {
         setContentDisposition( response, entitySetId.toString(), fileType );
         setDownloadContentType( response, fileType );
-        return loadEntitySetData( entitySetId, fileType );
+
+        return loadEntitySetData( entitySetId, fileType, token );
     }
 
     @Override
     public Iterable<SetMultimap<FullQualifiedName, Object>> loadEntitySetData(
             UUID entitySetId,
-            FileType fileType ) {
+            FileType fileType,
+            String token ) {
+        if( StringUtils.isNotBlank( token ) ) {
+            Authentication authentication = authProvider.authenticate( new Auth0JWTToken( token ) );
+            SecurityContextHolder.getContext().setAuthentication( authentication );
+        }
         return loadEntitySetData( entitySetId, Optional.absent(), Optional.absent() );
     }
 
     @RequestMapping(
-        path = { "/" + ENTITY_DATA + "/" + SET_ID_PATH },
-        method = RequestMethod.POST,
-        produces = { MediaType.APPLICATION_JSON_VALUE, CustomMediaType.TEXT_CSV_VALUE } )
+            path = { "/" + ENTITY_DATA + "/" + SET_ID_PATH },
+            method = RequestMethod.POST,
+            produces = { MediaType.APPLICATION_JSON_VALUE, CustomMediaType.TEXT_CSV_VALUE } )
     public Iterable<SetMultimap<FullQualifiedName, Object>> loadEntitySetData(
             @PathVariable( SET_ID ) UUID entitySetId,
             @RequestBody(
-                required = false ) EntitySetSelection req,
+                    required = false ) EntitySetSelection req,
             @RequestParam(
-                value = FILE_TYPE,
-                required = false ) FileType fileType,
+                    value = FILE_TYPE,
+                    required = false ) FileType fileType,
             HttpServletResponse response ) {
         setContentDisposition( response, entitySetId.toString(), fileType );
         setDownloadContentType( response, fileType );
@@ -164,9 +187,9 @@ public class DataController implements DataApi {
     }
 
     @RequestMapping(
-        path = { "/" + ENTITY_DATA + "/" + SET_ID_PATH + "/" + SYNC_ID_PATH },
-        method = RequestMethod.PUT,
-        consumes = MediaType.APPLICATION_JSON_VALUE )
+            path = { "/" + ENTITY_DATA + "/" + SET_ID_PATH + "/" + SYNC_ID_PATH },
+            method = RequestMethod.PUT,
+            consumes = MediaType.APPLICATION_JSON_VALUE )
     public Void createEntityData(
             @PathVariable( SET_ID ) UUID entitySetId,
             @PathVariable( SYNC_ID ) UUID syncId,
@@ -186,7 +209,9 @@ public class DataController implements DataApi {
                 authorizedPropertiesWithDataType = primitiveTypeKinds
                         .getAll( authorizedProperties );
             } catch ( ExecutionException e ) {
-                logger.error( "Unable to load data types for authorized properties for user " + Principals.getCurrentUser() + " and entity set " + entitySetId + "." );
+                logger.error(
+                        "Unable to load data types for authorized properties for user " + Principals.getCurrentUser()
+                                + " and entity set " + entitySetId + "." );
                 throw new ResourceNotFoundException( "Unable to load data types for authorized properties." );
             }
 
@@ -203,14 +228,16 @@ public class DataController implements DataApi {
                 .build( new CacheLoader<UUID, EdmPrimitiveTypeKind>() {
                     @Override
                     public EdmPrimitiveTypeKind load( UUID key ) throws Exception {
-                        return Util.getSafely( dms.<EdmPrimitiveTypeKind> fromPropertyTypes( ImmutableSet.of( key ),
+                        return Util.getSafely( dms.<EdmPrimitiveTypeKind>fromPropertyTypes( ImmutableSet.of( key ),
                                 EdmPrimitiveTypeKindGetter.GETTER ), key );
                     }
 
                     @Override
                     public Map<UUID, EdmPrimitiveTypeKind> loadAll( Iterable<? extends UUID> keys ) throws Exception {
                         return dms.fromPropertyTypes( ImmutableSet.copyOf( keys ), EdmPrimitiveTypeKindGetter.GETTER );
-                    };
+                    }
+
+                    ;
                 } );
         authorizedPropertyCache = CacheBuilder.newBuilder().expireAfterWrite( 250, TimeUnit.MILLISECONDS )
                 .build( new CacheLoader<AuthorizationKey, Set<UUID>>() {
@@ -226,28 +253,6 @@ public class DataController implements DataApi {
     private Set<UUID> getLatestSyncIds() {
         // TODO Ho Chung: Should be obtained from DatasourcesApi once that is done.
         return ImmutableSet.of( Syncs.BASE.getSyncId() );
-    }
-
-    /**
-     * Methods for setting http response header
-     */
-
-    private static void setDownloadContentType( HttpServletResponse response, FileType fileType ) {
-        if ( fileType == FileType.csv ) {
-            response.setContentType( CustomMediaType.TEXT_CSV_VALUE );
-        } else {
-            response.setContentType( MediaType.APPLICATION_JSON_VALUE );
-        }
-    }
-
-    private static void setContentDisposition(
-            HttpServletResponse response,
-            String fileName,
-            FileType fileType ) {
-        if ( fileType == FileType.csv || fileType == FileType.json ) {
-            response.setHeader( "Content-Disposition",
-                    "attachment; filename=" + fileName + "." + fileType.toString() );
-        }
     }
 
     @Override
@@ -267,7 +272,7 @@ public class DataController implements DataApi {
 
     @Override
     @DeleteMapping(
-        value = "/" + TICKET + "/" + SET_ID_PATH )
+            value = "/" + TICKET + "/" + SET_ID_PATH )
     @ResponseStatus( HttpStatus.OK )
     public Void releaseSyncTicket( @PathVariable( TICKET ) UUID ticketId ) {
         sts.releaseTicket( Principals.getCurrentUser(), ticketId );
@@ -276,9 +281,9 @@ public class DataController implements DataApi {
 
     @Override
     @RequestMapping(
-        value = "/" + ENTITY_DATA + "/" + TICKET_PATH + "/" + SYNC_ID_PATH,
-        method = RequestMethod.PATCH,
-        consumes = MediaType.APPLICATION_JSON_VALUE )
+            value = "/" + ENTITY_DATA + "/" + TICKET_PATH + "/" + SYNC_ID_PATH,
+            method = RequestMethod.PATCH,
+            consumes = MediaType.APPLICATION_JSON_VALUE )
     public Void storeEntityData(
             @PathVariable( TICKET ) UUID ticket,
             @PathVariable( SYNC_ID ) UUID syncId,
@@ -293,7 +298,8 @@ public class DataController implements DataApi {
             authorizedPropertiesWithDataType = primitiveTypeKinds
                     .getAll( authorizedProperties );
         } catch ( ExecutionException e ) {
-            logger.error( "Unable to load data types for authorized properties for user " + Principals.getCurrentUser() + " and entity set " + entitySetId + "." );
+            logger.error( "Unable to load data types for authorized properties for user " + Principals.getCurrentUser()
+                    + " and entity set " + entitySetId + "." );
             throw new ResourceNotFoundException( "Unable to load data types for authorized properties." );
         }
 

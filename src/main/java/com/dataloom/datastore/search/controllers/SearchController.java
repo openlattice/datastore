@@ -1,7 +1,7 @@
 package com.dataloom.datastore.search.controllers;
 
 import com.dataloom.auditing.AuditMetric;
-import com.dataloom.auditing.AuditQuerySerivce;
+import com.dataloom.auditing.AuditQueryService;
 import com.dataloom.authorization.AuthorizationManager;
 import com.dataloom.authorization.AuthorizingComponent;
 import com.dataloom.authorization.Permission;
@@ -37,7 +37,7 @@ public class SearchController implements SearchApi, AuthorizingComponent {
     private EdmService edm;
 
     @Inject
-    private AuditQuerySerivce aqs;
+    private AuditQueryService aqs;
 
     @Inject
     private AuthorizationManager authorizations;

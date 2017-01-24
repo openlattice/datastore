@@ -10,7 +10,9 @@ import java.util.stream.Stream;
 import javax.inject.Inject;
 import javax.ws.rs.ForbiddenException;
 
+import com.dataloom.authorization.*;
 import com.google.common.base.Predicates;
+import com.google.common.collect.ImmutableMap;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -21,10 +23,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.dataloom.authorization.AceKey;
-import com.dataloom.authorization.AuthorizationManager;
-import com.dataloom.authorization.AuthorizingComponent;
-import com.dataloom.authorization.Principals;
 import com.dataloom.requests.HazelcastRequestsManager;
 import com.dataloom.requests.Request;
 import com.dataloom.requests.RequestStatus;
@@ -104,7 +102,10 @@ public class RequestsController implements RequestsApi, AuthorizingComponent {
     public Void updateStatuses( @RequestBody Set<Status> statuses ) {
         if ( statuses.stream().map( Status::getAclKey ).allMatch( this::owns ) ) {
             Map<AceKey, Status> statusMap = RequestUtil.statusMap( statuses );
-            hrm.submitAll( statusMap );
+            for( Status status : statuses ) {
+                Map<AceKey,Status> s = ImmutableMap.of( RequestUtil.aceKey( status ), status);
+                hrm.submitAll( s );
+            }
             return null;
         }
         throw new ForbiddenException();

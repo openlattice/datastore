@@ -26,13 +26,13 @@ import com.dataloom.authorization.Principal;
 import com.dataloom.authorization.PrincipalType;
 import com.dataloom.authorization.Principals;
 import com.dataloom.authorization.SecurableObjectType;
+import com.dataloom.authorization.util.AuthorizationUtils;
 import com.dataloom.organization.Organization;
 import com.dataloom.organization.OrganizationsApi;
 import com.dataloom.organizations.HazelcastOrganizationService;
 import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
 
 @RestController
 @RequestMapping( OrganizationsApi.CONTROLLER )
@@ -49,13 +49,9 @@ public class OrganizationsController implements AuthorizingComponent, Organizati
         value = { "", "/" },
         produces = MediaType.APPLICATION_JSON_VALUE )
     public Iterable<Organization> getOrganizations() {
-        Iterable<UUID> orgs = Iterables.filter(
-                getAccessibleObjects( SecurableObjectType.Organization, EnumSet.of( Permission.READ ) ),
-                Predicates.notNull() );
-
-        return Iterables.transform(
-                orgs,
-                organizations::getOrganization )::iterator;
+        return getAccessibleObjects( SecurableObjectType.Organization, EnumSet.of( Permission.READ ) )
+                .filter( Predicates.notNull()::apply ).map( AuthorizationUtils::getLastAclKeySafely )
+                .map( organizations::getOrganization )::iterator;
     }
 
     @Override

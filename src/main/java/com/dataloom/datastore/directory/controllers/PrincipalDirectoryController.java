@@ -70,9 +70,7 @@ public class PrincipalDirectoryController implements PrincipalApi {
 
     @Override
     @DeleteMapping(
-        path = USERS + USER_ID_PATH + ROLES + ROLE_PATH,
-        consumes = MediaType.APPLICATION_JSON_VALUE,
-        produces = MediaType.APPLICATION_JSON_VALUE )
+        path = USERS + USER_ID_PATH + ROLES + ROLE_PATH )
     @ResponseStatus( HttpStatus.OK )
     public Void removeRoleFromUser( @PathVariable( USER_ID ) String userId, @PathVariable( ROLE ) String role ) {
         userDirectoryService.removeRoleFromUser( userId, role );

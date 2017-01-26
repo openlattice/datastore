@@ -1,6 +1,7 @@
 package com.dataloom.requests;
 
 import java.util.EnumSet;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -18,8 +19,10 @@ import org.junit.runners.MethodSorters;
 import com.auth0.jwt.internal.org.apache.commons.lang3.RandomStringUtils;
 import com.dataloom.authorization.AccessCheck;
 import com.dataloom.authorization.Authorization;
+import com.dataloom.authorization.AuthorizationsApi;
 import com.dataloom.authorization.Permission;
-import com.dataloom.datastore.authentication.AuthenticationTestBase;
+import com.dataloom.datastore.BootstrapDatastoreWithCassandra;
+import com.dataloom.edm.EdmApi;
 import com.dataloom.edm.internal.EntitySet;
 import com.dataloom.edm.internal.EntityType;
 import com.dataloom.edm.internal.PropertyType;
@@ -30,9 +33,15 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 
+import retrofit2.Retrofit;
+
 //Awkward test naming, to force JUnit Test runs in correct order
 @FixMethodOrder( MethodSorters.NAME_ASCENDING )
-public class RequestsControllerTest extends AuthenticationTestBase {
+public class RequestsControllerTest extends BootstrapDatastoreWithCassandra {
+    protected static Map<String, Retrofit> retrofitMap = new HashMap<>();
+    protected static EdmApi edmApi;
+    protected static RequestsApi requestsApi;
+    protected static AuthorizationsApi authorizationsApi;
     protected static EntityType          et;
     protected static EntitySet           es;
 
@@ -46,16 +55,23 @@ public class RequestsControllerTest extends AuthenticationTestBase {
     protected static int                 propertiesRequestMade = 0;
     protected static int                 totalRequestMade      = 0;
 
+    static{
+        retrofitMap.put( "admin", retrofit );
+        retrofitMap.put( "user1", retrofit1 );
+        retrofitMap.put( "user2", retrofit2 );
+        retrofitMap.put( "user3", retrofit3 );
+    }
+    
     @BeforeClass
     public static void init() {
-        loginAs( "support" );
+        loginAs( "admin" );
         createEntitySet();
         updateAclKeys();
     }
 
     @Test
     public void test1RequestPermissions() {
-        loginAs( "dummyuser" );
+        loginAs( "user1" );
 
         Set<Request> req = new HashSet<>();
 
@@ -77,7 +93,7 @@ public class RequestsControllerTest extends AuthenticationTestBase {
     @Test
     public void test2CheckSubmittedRequests() {
         // Check user submitted requests
-        loginAs( "dummyuser" );
+        loginAs( "user1" );
         Assert.assertEquals( totalRequestMade, Iterables.size( requestsApi.getMyRequests() ) );
         Assert.assertEquals( totalRequestMade, Iterables.size( requestsApi.getMyRequests( RequestStatus.SUBMITTED ) ) );
         Assert.assertEquals( 0, Iterables.size( requestsApi.getMyRequests( RequestStatus.APPROVED ) ) );
@@ -93,7 +109,7 @@ public class RequestsControllerTest extends AuthenticationTestBase {
                         Sets.union( ImmutableSet.of( entitySetAclKey ), propertiesAclKeys ) ) ) );
 
         // Check owner received requests
-        loginAs( "support" );
+        loginAs( "admin" );
         Assert.assertEquals( totalRequestMade,
                 Iterables.size( requestsApi
                         .getStatuses( Sets.union( ImmutableSet.of( entitySetAclKey ), propertiesAclKeys ) ) ) );
@@ -107,7 +123,7 @@ public class RequestsControllerTest extends AuthenticationTestBase {
 
     @Test
     public void test3ApproveRequests() {
-        loginAs( "support" );
+        loginAs( "admin" );
         Set<Status> approvedSet = StreamSupport.stream( requestsApi.getStatuses( RequestStatus.SUBMITTED,
                 Sets.union( ImmutableSet.of( entitySetAclKey ), propertiesAclKeys ) ).spliterator(), false )
                 .map( status -> {
@@ -135,7 +151,7 @@ public class RequestsControllerTest extends AuthenticationTestBase {
 
     @Test
     public void test4CheckPermissions() {
-        loginAs( "dummyuser" );
+        loginAs( "user1" );
         Assert.assertEquals( totalRequestMade, Iterables.size( requestsApi.getMyRequests() ) );
         Assert.assertEquals( 0, Iterables.size( requestsApi.getMyRequests( RequestStatus.SUBMITTED ) ) );
         Assert.assertEquals( totalRequestMade, Iterables.size( requestsApi.getMyRequests( RequestStatus.APPROVED ) ) );
@@ -165,6 +181,17 @@ public class RequestsControllerTest extends AuthenticationTestBase {
      * Auxiliary functions for the test
      */
 
+    public static void loginAs( String user ){
+        //update Api instances involved
+        Retrofit currentRetrofit = retrofitMap.get( user );
+        if( currentRetrofit == null ){
+            throw new IllegalArgumentException( "User does not exist in Retrofit map." );
+        }
+        edmApi = currentRetrofit.create( EdmApi.class );
+        requestsApi = currentRetrofit.create( RequestsApi.class );
+        authorizationsApi = currentRetrofit.create( AuthorizationsApi.class );
+    }
+    
     public static void updateAclKeys() {
         entitySetAclKey = ImmutableList.of( es.getId() );
 

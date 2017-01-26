@@ -115,7 +115,7 @@ public class RequestsController implements RequestsApi, AuthorizingComponent {
         return aclKey -> owns( aclKey ) ? hrm.getStatusesForAllUser( aclKey, requestStatus )
                 : hrm.getStatuses( Stream.of( new AceKey( aclKey, Principals.getCurrentUser() ) ) )
                         .filter( Predicates.notNull()::apply)
-                        .filter( status -> status.equals( requestStatus ) );
+                        .filter( status -> status.getStatus().equals( requestStatus ) );
     }
 
     private Stream<Status> getStatuses( List<UUID> aclKey ) {

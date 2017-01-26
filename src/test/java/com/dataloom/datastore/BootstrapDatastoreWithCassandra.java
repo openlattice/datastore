@@ -1,5 +1,11 @@
 package com.dataloom.datastore;
 
+import java.util.Set;
+
+import org.junit.AfterClass;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.auth0.spring.security.api.Auth0JWTToken;
 import com.dataloom.authentication.LoomAuth0AuthenticationProvider;
 import com.dataloom.authentication.LoomAuthentication;
@@ -12,14 +18,10 @@ import com.geekbeast.rhizome.tests.bootstrap.CassandraBootstrap;
 import com.google.common.collect.Sets;
 import com.kryptnostic.datastore.services.EdmManager;
 import com.kryptnostic.rhizome.pods.SparkPod;
+
 import digital.loom.rhizome.authentication.AuthenticationTest;
 import digital.loom.rhizome.authentication.AuthenticationTestRequestOptions;
-import org.junit.AfterClass;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import retrofit2.Retrofit;
-
-import java.util.Set;
 
 public class BootstrapDatastoreWithCassandra extends CassandraBootstrap {
     protected static final Datastore     ds       = new Datastore();
@@ -29,10 +31,10 @@ public class BootstrapDatastoreWithCassandra extends CassandraBootstrap {
     protected static final Principal                       user1;
     protected static final Principal                       user2;
     protected static final Principal                       user3;
-    private static final   Retrofit                        retrofit;
-    private static final   Retrofit                        retrofit1;
-    private static final   Retrofit                        retrofit2;
-    private static final   Retrofit                        retrofit3;
+    protected static final   Retrofit                        retrofit;
+    protected static final   Retrofit                        retrofit1;
+    protected static final   Retrofit                        retrofit2;
+    protected static final   Retrofit                        retrofit3;
     protected static       LoomAuth0AuthenticationProvider loomAuthProvider;
     protected static       EdmManager                      dms;
     protected static       AuthorizationManager            am;
@@ -44,10 +46,10 @@ public class BootstrapDatastoreWithCassandra extends CassandraBootstrap {
                 .setUsernameOrEmail( "tests1@kryptnostic.com" )
                 .setPassword( "abracadabra" );
         AuthenticationTestRequestOptions authOptions2 = new AuthenticationTestRequestOptions()
-                .setUsernameOrEmail( "tests1@kryptnostic.com" )
+                .setUsernameOrEmail( "tests2@kryptnostic.com" )
                 .setPassword( "abracadabra" );
         AuthenticationTestRequestOptions authOptions3 = new AuthenticationTestRequestOptions()
-                .setUsernameOrEmail( "tests1@kryptnostic.com" )
+                .setUsernameOrEmail( "tests3@kryptnostic.com" )
                 .setPassword( "abracadabra" );
 
         String jwtAdmin = AuthenticationTest.authenticate().getCredentials().getIdToken();

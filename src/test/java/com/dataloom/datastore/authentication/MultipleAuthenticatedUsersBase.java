@@ -13,6 +13,7 @@ import com.dataloom.authorization.AccessCheck;
 import com.dataloom.authorization.AuthorizationsApi;
 import com.dataloom.authorization.Permission;
 import com.dataloom.authorization.PermissionsApi;
+import com.dataloom.data.DataApi;
 import com.dataloom.datastore.BootstrapDatastoreWithCassandra;
 import com.dataloom.edm.EdmApi;
 import com.dataloom.edm.internal.EntitySet;
@@ -32,6 +33,7 @@ public class MultipleAuthenticatedUsersBase extends BootstrapDatastoreWithCassan
     protected static PermissionsApi permissionsApi;
     protected static AuthorizationsApi authorizationsApi;
     protected static RequestsApi requestsApi;
+    protected static DataApi dataApi;
 
     static{
         retrofitMap.put( "admin", retrofit );
@@ -54,6 +56,7 @@ public class MultipleAuthenticatedUsersBase extends BootstrapDatastoreWithCassan
         permissionsApi = currentRetrofit.create( PermissionsApi.class );
         authorizationsApi = currentRetrofit.create( AuthorizationsApi.class );
         requestsApi = currentRetrofit.create( RequestsApi.class );
+        dataApi = currentRetrofit.create( DataApi.class );
     }
     
     /**

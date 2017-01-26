@@ -4,6 +4,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
+import com.dataloom.datastore.BootstrapDatastoreWithCassandra;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.Test;
@@ -20,9 +21,9 @@ import com.dataloom.mapstores.TestDataFactory;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableSet;
 
-public class EdmControllerTests extends AuthenticatedRestCallsTest {
+public class EdmControllerTests extends BootstrapDatastoreWithCassandra {
     private final static Logger logger = LoggerFactory.getLogger( AuthenticatedRestCallsTest.class );
-    private final EdmApi        edm    = getApi( EdmApi.class );
+    private final EdmApi        edm    = getApiAdmin( EdmApi.class );
 
     public PropertyType createPropertyType() {
         PropertyType expected = TestDataFactory.propertyType();

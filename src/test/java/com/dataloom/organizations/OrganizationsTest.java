@@ -3,6 +3,7 @@ package com.dataloom.organizations;
 import java.util.Set;
 import java.util.UUID;
 
+import com.dataloom.datastore.BootstrapDatastoreWithCassandra;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -13,8 +14,8 @@ import com.dataloom.organization.Organization;
 import com.dataloom.organization.OrganizationsApi;
 import com.google.common.collect.ImmutableSet;
 
-public class OrganizationsTest extends AuthenticatedRestCallsTest {
-    private final OrganizationsApi organizations = getApi( OrganizationsApi.class );
+public class OrganizationsTest extends BootstrapDatastoreWithCassandra {
+    private final OrganizationsApi organizations = getApiUser1( OrganizationsApi.class );
 
     private Organization createOrganization() {
         UUID orgId = organizations.createOrganizationIfNotExists( TestDataFactory.organization() );

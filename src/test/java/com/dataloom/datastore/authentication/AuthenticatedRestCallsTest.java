@@ -1,11 +1,9 @@
 package com.dataloom.datastore.authentication;
 
-import org.apache.commons.lang3.tuple.Pair;
 import org.junit.Assert;
 import org.junit.Test;
 
 import com.auth0.authentication.result.Authentication;
-import com.auth0.authentication.result.Credentials;
 import com.dataloom.client.RetrofitFactory;
 import com.dataloom.client.RetrofitFactory.Environment;
 import com.dataloom.datastore.BootstrapDatastoreWithCassandra;
@@ -16,13 +14,13 @@ import digital.loom.rhizome.authentication.AuthenticationTest;
 import retrofit2.Retrofit;
 
 public class AuthenticatedRestCallsTest extends BootstrapDatastoreWithCassandra {
-    private static Retrofit                          retrofit;
-    protected static EdmApi                          edmApi;
-    private static Pair<Credentials, Authentication> authPair;
+    private static Retrofit       retrofit;
+    protected static EdmApi       edmApi;
+    private static Authentication auth;
 
     static {
-        authPair = AuthenticationTest.authenticate();
-        String jwtToken = authPair.getLeft().getIdToken();
+        auth = AuthenticationTest.authenticate();
+        String jwtToken = auth.getCredentials().getIdToken();
         retrofit = RetrofitFactory.newClient( Environment.TESTING, () -> jwtToken );
         edmApi = getApi( EdmApi.class );
     }

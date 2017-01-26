@@ -8,6 +8,7 @@ import java.util.Arrays;
 import java.util.Set;
 import java.util.UUID;
 
+import com.dataloom.datastore.TestEdmConfigurer;
 import org.apache.olingo.commons.api.data.Entity;
 import org.apache.olingo.commons.api.data.EntityCollection;
 import org.apache.olingo.commons.api.data.Property;
@@ -51,6 +52,9 @@ import com.kryptnostic.conductor.rpc.UUIDs.Syncs;
 import com.kryptnostic.datastore.services.EdmManager;
 import com.kryptnostic.datastore.services.ODataStorageService;
 
+import static com.dataloom.datastore.TestEdmConfigurer.*;
+import static com.dataloom.datastore.TestEdmConfigurer.SALARY;
+
 public class DatastoreTests extends BootstrapDatastoreWithCassandra {
 
     private static final Multimap<String, Object> m = HashMultimap.create();
@@ -75,7 +79,7 @@ public class DatastoreTests extends BootstrapDatastoreWithCassandra {
                 return System.out;
             }
         } );
-    }
+        }
 
     @Test
     public void testCreateEntityByOData() {

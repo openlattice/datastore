@@ -221,7 +221,7 @@ public class RequestsControllerTest extends AuthenticationTestBase {
                 Optional.<String> of( "barred" ) );
 
         Map<String, UUID> entitySetIds = edmApi.createEntitySets( ImmutableSet.of( newES ) );
-        //debug by Ho Chung
+
         Assert.assertTrue( "Entity Set creation does not return correct UUID",
                 entitySetIds.values().contains( newES.getId() ) );
 

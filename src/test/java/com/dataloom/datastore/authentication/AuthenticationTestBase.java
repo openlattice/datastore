@@ -41,7 +41,6 @@ public class AuthenticationTestBase extends BootstrapDatastoreWithCassandra {
         String jwtToken = auth.getCredentials().getIdToken();
         retrofit = RetrofitFactory.newClient( Environment.TESTING, () -> jwtToken );
         
-        System.out.println( "Retrofit baseUrl: " + retrofit.baseUrl() );
         edmApi = getApi( EdmApi.class );
         requestsApi = getApi( RequestsApi.class );
         authorizationsApi = getApi( AuthorizationsApi.class );

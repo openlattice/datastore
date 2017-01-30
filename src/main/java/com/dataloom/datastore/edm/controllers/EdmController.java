@@ -462,6 +462,37 @@ public class EdmController implements EdmApi, AuthorizingComponent {
                 fqn.getFullQualifiedNameAsString() );
     }
 
+
+    @Override
+    @RequestMapping(
+            path = PROPERTY_TYPE_PATH + ID_PATH,
+            method = RequestMethod.PATCH )
+    public Void renamePropertyType( @PathVariable( ID ) UUID propertyTypeId, @RequestBody FullQualifiedName newFqn ) {
+        ensureAdminAccess();
+        modelService.renamePropertyType( propertyTypeId, newFqn );
+        return null;
+    }
+
+    @Override
+    @RequestMapping(
+            path = ENTITY_TYPE_PATH + ID_PATH,
+            method = RequestMethod.PATCH )
+    public Void renameEntityType( @PathVariable( ID ) UUID entityTypeId, @RequestBody FullQualifiedName newFqn ) {
+        ensureAdminAccess();
+        modelService.renameEntityType( entityTypeId, newFqn );
+        return null;
+    }
+
+    @Override
+    @RequestMapping(
+            path = ENTITY_SETS_PATH + ID_PATH,
+            method = RequestMethod.PATCH )
+    public Void renameEntitySet( @PathVariable( ID ) UUID entitySetId, @RequestBody String newName ) {
+        ensureAdminAccess();
+        modelService.renameEntitySet( entitySetId, newName );
+        return null;
+    }
+
     @Override
     public AuthorizationManager getAuthorizationManager() {
         return authorizations;

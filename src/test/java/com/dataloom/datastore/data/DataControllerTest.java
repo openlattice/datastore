@@ -13,6 +13,7 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 import com.dataloom.data.requests.EntitySetSelection;
+import com.dataloom.datasource.UUIDs.Syncs;
 import com.dataloom.datastore.authentication.MultipleAuthenticatedUsersBase;
 import com.dataloom.edm.internal.EntitySet;
 import com.dataloom.edm.internal.EntityType;
@@ -21,7 +22,6 @@ import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.SetMultimap;
-import com.kryptnostic.conductor.rpc.UUIDs.Syncs;
 
 public class DataControllerTest extends MultipleAuthenticatedUsersBase {
 

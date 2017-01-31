@@ -33,6 +33,8 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpOutputMessage;
 import org.springframework.http.converter.HttpMessageNotWritableException;
 
+import com.dataloom.datasource.UUIDs.ACLs;
+import com.dataloom.datasource.UUIDs.Syncs;
 import com.dataloom.datastore.BootstrapDatastoreWithCassandra;
 import com.dataloom.datastore.converters.IterableCsvHttpMessageConverter;
 import com.dataloom.datastore.odata.LoomEdmProvider;
@@ -47,8 +49,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
 import com.kryptnostic.conductor.rpc.Employee;
-import com.kryptnostic.conductor.rpc.UUIDs.ACLs;
-import com.kryptnostic.conductor.rpc.UUIDs.Syncs;
 import com.kryptnostic.datastore.services.EdmManager;
 import com.kryptnostic.datastore.services.ODataStorageService;
 

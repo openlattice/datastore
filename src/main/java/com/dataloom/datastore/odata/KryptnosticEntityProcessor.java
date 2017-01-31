@@ -26,6 +26,7 @@ import org.apache.olingo.server.api.uri.UriInfo;
 import org.apache.olingo.server.api.uri.UriParameter;
 import org.apache.olingo.server.api.uri.UriResourceEntitySet;
 
+import com.dataloom.datasource.UUIDs.ACLs;
 import com.dataloom.datasource.UUIDs.Syncs;
 import com.dataloom.datastore.DatastoreUtil;
 import com.dataloom.datastore.services.DatasourceManager;
@@ -98,7 +99,7 @@ public class KryptnosticEntityProcessor implements EntityProcessor {
 
         // 2.2 do the creation in backend, which returns the newly created entity
         Entity createdEntity = storage.createEntityData( 
-                Syncs.BASE.getSyncId(),
+                ACLs.EVERYONE_ACL,
                 Syncs.BASE.getSyncId(),
                 edmEntitySet,
                 requestEntity );

@@ -272,7 +272,7 @@ public class DataController implements DataApi {
 
     @Override
     @DeleteMapping(
-            value = "/" + TICKET + "/" + SET_ID_PATH )
+            value = "/" + TICKET + "/" + TICKET_PATH )
     @ResponseStatus( HttpStatus.OK )
     public Void releaseSyncTicket( @PathVariable( TICKET ) UUID ticketId ) {
         sts.releaseTicket( Principals.getCurrentUser(), ticketId );

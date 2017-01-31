@@ -22,6 +22,8 @@ import com.dataloom.edm.internal.PropertyType;
 import com.dataloom.mapstores.TestDataFactory;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableSet;
+import com.squareup.okhttp.MediaType;
+import com.squareup.okhttp.RequestBody;
 
 public class EdmControllerTests extends BootstrapDatastoreWithCassandra {
     private final static Logger logger = LoggerFactory.getLogger( AuthenticatedRestCallsTest.class );

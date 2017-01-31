@@ -1,5 +1,17 @@
 package com.dataloom.datastore.search.controllers;
 
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
+
+import javax.inject.Inject;
+
+import org.springframework.http.MediaType;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RestController;
+
 import com.dataloom.auditing.AuditMetric;
 import com.dataloom.auditing.AuditQueryService;
 import com.dataloom.authorization.AuthorizationManager;
@@ -14,17 +26,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.google.common.collect.Lists;
 import com.kryptnostic.datastore.exceptions.BadRequestException;
 import com.kryptnostic.datastore.services.EdmService;
-import org.springframework.http.MediaType;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.RestController;
-import retrofit2.http.Body;
-
-import javax.inject.Inject;
-import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping( SearchApi.CONTROLLER )
@@ -68,7 +69,7 @@ public class SearchController implements SearchApi, AuthorizingComponent {
             path = { SEARCH_JAVA },
             method = RequestMethod.POST,
             produces = { MediaType.APPLICATION_JSON_VALUE } )
-    public Iterable<Map<String, Object>> executeQuery( @Body SearchRequest request ) {
+    public Iterable<Map<String, Object>> executeQuery( @RequestBody SearchRequest request ) {
         if ( !request.getOptionalKeyword().isPresent() && !request.getOptionalEntityType().isPresent()
                 && !request.getOptionalPropertyTypes().isPresent() ) {
             throw new BadRequestException(

@@ -21,6 +21,7 @@ import com.dataloom.edm.internal.EntityType;
 import com.dataloom.edm.internal.PropertyType;
 import com.dataloom.mapstores.TestDataFactory;
 import com.dataloom.requests.RequestsApi;
+import com.dataloom.search.SearchApi;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableSet;
 
@@ -34,6 +35,7 @@ public class MultipleAuthenticatedUsersBase extends BootstrapDatastoreWithCassan
     protected static AuthorizationsApi authorizationsApi;
     protected static RequestsApi requestsApi;
     protected static DataApi dataApi;
+    protected static SearchApi searchApi;
 
     static{
         retrofitMap.put( "admin", retrofit );
@@ -57,6 +59,7 @@ public class MultipleAuthenticatedUsersBase extends BootstrapDatastoreWithCassan
         authorizationsApi = currentRetrofit.create( AuthorizationsApi.class );
         requestsApi = currentRetrofit.create( RequestsApi.class );
         dataApi = currentRetrofit.create( DataApi.class );
+        searchApi = currentRetrofit.create( SearchApi.class );
     }
     
     /**
@@ -110,6 +113,7 @@ public class MultipleAuthenticatedUsersBase extends BootstrapDatastoreWithCassan
         return createEntitySet( entityType );
     }
 
+    
     public static EntitySet createEntitySet( EntityType entityType ){
         EntitySet newES = new EntitySet(
                 UUID.randomUUID(),

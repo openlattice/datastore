@@ -33,7 +33,6 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpOutputMessage;
 import org.springframework.http.converter.HttpMessageNotWritableException;
 
-import com.dataloom.datasource.UUIDs.ACLs;
 import com.dataloom.datasource.UUIDs.Syncs;
 import com.dataloom.datastore.BootstrapDatastoreWithCassandra;
 import com.dataloom.datastore.converters.IterableCsvHttpMessageConverter;
@@ -107,12 +106,13 @@ public class DatastoreTests extends BootstrapDatastoreWithCassandra {
         Entity e = new Entity();
         e.setType( ENTITY_TYPE.getFullQualifiedNameAsString() );
         e.addProperty( empId ).addProperty( empName ).addProperty( empTitle ).addProperty( empSalary );
+        /**
         esc.createEntityData( ACLs.EVERYONE_ACL,
                 Syncs.BASE.getSyncId(),
                 ENTITY_SET_NAME,
                 ENTITY_TYPE,
                 e );
-
+        */
         // esc.readEntityData( edmEntitySet, keyParams );
     }
 
@@ -168,7 +168,7 @@ public class DatastoreTests extends BootstrapDatastoreWithCassandra {
                         .addProperty( employeeTitle )
                         .addProperty( employeeDept )
                         .addProperty( employeeSalary );
-
+                /**
                 esc.createEntityData( ACLs.EVERYONE_ACL,
                         Syncs.BASE.getSyncId(),
                         ENTITY_SET_NAME,
@@ -188,7 +188,7 @@ public class DatastoreTests extends BootstrapDatastoreWithCassandra {
                         ENTITY_SET_NAME,
                         ENTITY_TYPE_SATURN,
                         entity );
-
+                */
             }
         }
     }

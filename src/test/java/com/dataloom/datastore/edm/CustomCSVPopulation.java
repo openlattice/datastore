@@ -25,7 +25,6 @@ import org.apache.olingo.commons.api.edm.FullQualifiedName;
 
 import com.dataloom.authorization.Principal;
 import com.dataloom.authorization.PrincipalType;
-import com.dataloom.datasource.UUIDs.ACLs;
 import com.dataloom.datasource.UUIDs.Syncs;
 import com.dataloom.datastore.services.CassandraDataManager;
 import com.dataloom.edm.internal.EntitySet;
@@ -381,6 +380,7 @@ public class CustomCSVPopulation {
     }
 
     public static void writeCSVToDB( String location ) throws JsonProcessingException, IOException {
+        /**
         int numOfEntitySets = EntitySetsList.size();
         Random rand = new Random();
 
@@ -417,6 +417,7 @@ public class CustomCSVPopulation {
                     entityTypeFQN,
                     entity );
         }
+        */
     }
 
     /**

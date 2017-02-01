@@ -77,7 +77,7 @@ public class DataControllerTest extends MultipleAuthenticatedUsersBase {
             expectedValues
                     .add( entity.asMap().entrySet().stream()
                             // filter the entries with key (propertyId) in the selected set
-                            .filter( e -> selectedProperties.contains( e.getKey() ) )
+                            .filter( e -> ( selectedProperties.isEmpty() || selectedProperties.contains( e.getKey() ) ) )
                             // Put all the property values in the same stream, and cast them back to strings
                             .flatMap( e -> e.getValue().stream() )
                             .map( o -> (String) o )

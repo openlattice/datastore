@@ -5,6 +5,8 @@ import java.util.Set;
 import java.util.UUID;
 
 import com.dataloom.datastore.BootstrapDatastoreWithCassandra;
+
+import org.apache.olingo.commons.api.edm.FullQualifiedName;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.Test;
@@ -20,6 +22,8 @@ import com.dataloom.edm.internal.PropertyType;
 import com.dataloom.mapstores.TestDataFactory;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableSet;
+import com.squareup.okhttp.MediaType;
+import com.squareup.okhttp.RequestBody;
 
 public class EdmControllerTests extends BootstrapDatastoreWithCassandra {
     private final static Logger logger = LoggerFactory.getLogger( AuthenticatedRestCallsTest.class );
@@ -51,6 +55,30 @@ public class EdmControllerTests extends BootstrapDatastoreWithCassandra {
         Assert.assertNotNull( "Entity type creation shouldn't return null UUID.", entityTypeId );
 
         return expected;
+    }
+    
+    public EntitySet createEntitySet() {
+        EntityType entityType = createEntityType();
+
+        EntitySet es = new EntitySet(
+                UUID.randomUUID(),
+                entityType.getId(),
+                TestDataFactory.name(),
+                "foobar",
+                Optional.<String> of( "barred" ) );
+
+        Set<EntitySet> ees = ImmutableSet.copyOf( edm.getEntitySets() );
+
+        Assert.assertFalse( ees.contains( es ) );
+
+        Map<String, UUID> entitySetIds = edm.createEntitySets( ImmutableSet.of( es ) );
+        entitySetIds.values().contains( es.getId() );
+
+        Set<EntitySet> aes = ImmutableSet.copyOf( edm.getEntitySets() );
+
+        Assert.assertTrue( aes.contains( es ) );
+        
+        return es;
     }
 
     @Test
@@ -88,28 +116,10 @@ public class EdmControllerTests extends BootstrapDatastoreWithCassandra {
         EntityDataModel dm = edm.getEntityDataModel();
         Assert.assertNotNull( dm );
     }
-
+    
     @Test
-    public void createEntitySet() {
-        EntityType entityType = createEntityType();
-
-        EntitySet es = new EntitySet(
-                UUID.randomUUID(),
-                entityType.getId(),
-                "foo",
-                "foobar",
-                Optional.<String> of( "barred" ) );
-
-        Set<EntitySet> ees = ImmutableSet.copyOf( edm.getEntitySets() );
-
-        Assert.assertFalse( ees.contains( es ) );
-
-        Map<String, UUID> entitySetIds = edm.createEntitySets( ImmutableSet.of( es ) );
-        entitySetIds.values().contains( es.getId() );
-
-        Set<EntitySet> aes = ImmutableSet.copyOf( edm.getEntitySets() );
-
-        Assert.assertTrue( aes.contains( es ) );
+    public void testCreateEntitySet(){
+        createEntitySet();
     }
 
     @Test
@@ -121,6 +131,25 @@ public class EdmControllerTests extends BootstrapDatastoreWithCassandra {
         Assert.assertTrue( apts.contains( propertyType ) );
     }
 
+    @Test
+    public void testRenameTypes(){
+        PropertyType pt = createPropertyType();
+        EntityType et = createEntityType();
+        EntitySet es = createEntitySet();
+        
+        FullQualifiedName newPtFqn = TestDataFactory.fqn();
+        FullQualifiedName newEtFqn = TestDataFactory.fqn();
+        String newEsName = TestDataFactory.name();
+        
+        edm.renamePropertyType( pt.getId(), newPtFqn );
+        edm.renameEntityType( et.getId(), newEtFqn );
+        edm.renameEntitySet( es.getId(), newEsName );
+        
+        Assert.assertEquals( newPtFqn, edm.getPropertyType( pt.getId() ).getType() );
+        Assert.assertEquals( newEtFqn, edm.getEntityType( et.getId() ).getType() );
+        Assert.assertEquals( newEsName, edm.getEntitySet( es.getId() ).getName() );
+    }
+    
     @AfterClass
     public static void testsComplete() {
         logger.info( "This is for setting breakpoints." );

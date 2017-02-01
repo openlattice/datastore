@@ -33,6 +33,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpOutputMessage;
 import org.springframework.http.converter.HttpMessageNotWritableException;
 
+import com.dataloom.datasource.UUIDs.Syncs;
 import com.dataloom.datastore.BootstrapDatastoreWithCassandra;
 import com.dataloom.datastore.converters.IterableCsvHttpMessageConverter;
 import com.dataloom.datastore.odata.LoomEdmProvider;
@@ -47,8 +48,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
 import com.kryptnostic.conductor.rpc.Employee;
-import com.kryptnostic.conductor.rpc.UUIDs.ACLs;
-import com.kryptnostic.conductor.rpc.UUIDs.Syncs;
 import com.kryptnostic.datastore.services.EdmManager;
 import com.kryptnostic.datastore.services.ODataStorageService;
 
@@ -107,12 +106,13 @@ public class DatastoreTests extends BootstrapDatastoreWithCassandra {
         Entity e = new Entity();
         e.setType( ENTITY_TYPE.getFullQualifiedNameAsString() );
         e.addProperty( empId ).addProperty( empName ).addProperty( empTitle ).addProperty( empSalary );
+        /**
         esc.createEntityData( ACLs.EVERYONE_ACL,
                 Syncs.BASE.getSyncId(),
                 ENTITY_SET_NAME,
                 ENTITY_TYPE,
                 e );
-
+        */
         // esc.readEntityData( edmEntitySet, keyParams );
     }
 
@@ -168,7 +168,7 @@ public class DatastoreTests extends BootstrapDatastoreWithCassandra {
                         .addProperty( employeeTitle )
                         .addProperty( employeeDept )
                         .addProperty( employeeSalary );
-
+                /**
                 esc.createEntityData( ACLs.EVERYONE_ACL,
                         Syncs.BASE.getSyncId(),
                         ENTITY_SET_NAME,
@@ -188,7 +188,7 @@ public class DatastoreTests extends BootstrapDatastoreWithCassandra {
                         ENTITY_SET_NAME,
                         ENTITY_TYPE_SATURN,
                         entity );
-
+                */
             }
         }
     }

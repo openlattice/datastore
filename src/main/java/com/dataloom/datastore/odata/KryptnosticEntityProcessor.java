@@ -26,10 +26,9 @@ import org.apache.olingo.server.api.uri.UriInfo;
 import org.apache.olingo.server.api.uri.UriParameter;
 import org.apache.olingo.server.api.uri.UriResourceEntitySet;
 
+import com.dataloom.datasource.UUIDs.Syncs;
 import com.dataloom.datastore.DatastoreUtil;
 import com.dataloom.datastore.services.DatasourceManager;
-import com.kryptnostic.conductor.rpc.UUIDs.ACLs;
-import com.kryptnostic.conductor.rpc.UUIDs.Syncs;
 import com.kryptnostic.datastore.services.ODataStorageService;
 
 public class KryptnosticEntityProcessor implements EntityProcessor {
@@ -85,6 +84,7 @@ public class KryptnosticEntityProcessor implements EntityProcessor {
             UriInfo uriInfo,
             ContentType requestFormat,
             ContentType responseFormat ) throws ODataApplicationException, ODataLibraryException {
+        /**
         // 1. Retrieve the entity type from the URI
         EdmEntitySet edmEntitySet = DatastoreUtil.getEdmEntitySet( uriInfo );
         EdmEntityType edmEntityType = edmEntitySet.getEntityType();
@@ -119,7 +119,7 @@ public class KryptnosticEntityProcessor implements EntityProcessor {
         response.setContent( serializedResponse.getContent() );
         response.setStatusCode( HttpStatusCode.CREATED.getStatusCode() );
         response.setHeader( HttpHeader.CONTENT_TYPE, responseFormat.toContentTypeString() );
-
+        */
     }
 
     @Override

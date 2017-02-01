@@ -5,6 +5,7 @@ import java.util.Set;
 
 import org.junit.Assert;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import com.dataloom.datastore.authentication.MultipleAuthenticatedUsersBase;
@@ -18,6 +19,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.kryptnostic.conductor.rpc.ConductorElasticsearchApi;
 
+@Ignore
 public class SearchControllerTest extends MultipleAuthenticatedUsersBase {
 
     // All random entity sets generated has title foobar and description barred

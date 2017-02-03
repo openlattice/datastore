@@ -12,11 +12,11 @@ import javax.inject.Inject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.dataloom.authorization.AclData;
 import com.dataloom.authorization.AuthorizationManager;
 import com.dataloom.authorization.Permission;
 import com.dataloom.authorization.Principal;
 import com.dataloom.authorization.events.AclUpdateEvent;
+import com.dataloom.data.events.EntityDataCreatedEvent;
 import com.dataloom.edm.events.EntitySetCreatedEvent;
 import com.dataloom.edm.events.EntitySetDeletedEvent;
 import com.google.common.base.Optional;
@@ -26,6 +26,7 @@ import com.google.common.eventbus.Subscribe;
 import com.hazelcast.core.HazelcastInstance;
 import com.hazelcast.durableexecutor.DurableExecutorService;
 import com.kryptnostic.conductor.rpc.ConductorCall;
+import com.kryptnostic.conductor.rpc.EntityDataLambdas;
 import com.kryptnostic.conductor.rpc.Lambdas;
 
 public class SearchService {
@@ -93,6 +94,11 @@ public class SearchService {
     public void deleteEntitySet( EntitySetDeletedEvent event ) {
         executor.submit( ConductorCall
                 .wrap( Lambdas.deleteEntitySet( event.getEntitySetId() ) ) );
+    }
+    
+    @Subscribe
+    public void createEntityData( EntityDataCreatedEvent event ) {
+        executor.submit( ConductorCall.wrap( new EntityDataLambdas( event.getEntitySetId(), event.getEntityId(), event.getPropertyValues() ) ) );
     }
 
 }

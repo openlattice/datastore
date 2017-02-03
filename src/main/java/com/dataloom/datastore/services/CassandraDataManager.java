@@ -1,6 +1,11 @@
 package com.dataloom.datastore.services;
 
 import java.util.*;
+import java.util.Map.Entry;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+import javax.inject.Inject;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.olingo.commons.api.edm.EdmPrimitiveTypeKind;
@@ -8,7 +13,9 @@ import org.apache.olingo.commons.api.edm.FullQualifiedName;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.dataloom.data.events.EntityDataCreatedEvent;
 import com.dataloom.edm.internal.PropertyType;
+import com.dataloom.mappers.ObjectMappers;
 import com.datastax.driver.core.BoundStatement;
 import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.ResultSet;
@@ -17,16 +24,27 @@ import com.datastax.driver.core.Session;
 import com.datastax.driver.core.querybuilder.Insert;
 import com.datastax.driver.core.querybuilder.QueryBuilder;
 import com.datastax.driver.core.querybuilder.Select;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Multimaps;
 import com.google.common.collect.SetMultimap;
+import com.google.common.eventbus.EventBus;
+import com.kryptnostic.conductor.rpc.ConductorSparkApi;
 import com.kryptnostic.conductor.rpc.odata.Tables;
 import com.kryptnostic.datastore.cassandra.CommonColumns;
 import com.kryptnostic.datastore.cassandra.RowAdapters;
 import com.kryptnostic.datastore.util.Util;
 import com.kryptnostic.rhizome.cassandra.CassandraTableBuilder;
 
+import jersey.repackaged.com.google.common.collect.Maps;
+
 public class CassandraDataManager {
+    
+    @Inject
+    private EventBus                                eventBus;
+    
     private static final Logger     logger = LoggerFactory
             .getLogger( CassandraDataManager.class );
 
@@ -105,9 +123,10 @@ public class CassandraDataManager {
                             .setString( CommonColumns.ENTITYID.cql(), entity.getKey() ) ) );
 
             SetMultimap<UUID, Object> propertyValues = entity.getValue();
-
-            propertyValues.entries().stream().filter( entry -> authorizedProperties.contains( entry.getKey() ) )
-                    .forEach( entry -> {
+            
+            Map<UUID, String> authorizedPropertyValues = Maps.newHashMap();
+            //Stream<Entry<UUID, Object>> authorizedPropertyValues = propertyValues.entries().stream().filter( entry -> authorizedProperties.contains( entry.getKey() ) );
+            propertyValues.entries().stream().filter( entry -> authorizedProperties.contains( entry.getKey() ) ).forEach( entry -> {
                         results.add( session.executeAsync(
                                 writeDataQuery.bind()
                                         .setString( CommonColumns.ENTITYID.cql(), entity.getKey() )
@@ -119,7 +138,13 @@ public class CassandraDataManager {
                                                         authorizedPropertiesWithDataType
                                                                 .get( entry.getKey() ),
                                                         entity.getKey() ) ) ) );
+                        try {
+                            authorizedPropertyValues.put( entry.getKey(), ObjectMappers.getJsonMapper().writeValueAsString( entry.getValue() ) );
+                        } catch ( JsonProcessingException e ) {
+                            e.printStackTrace();
+                        }
                     } );
+            eventBus.post( new EntityDataCreatedEvent( entitySetId, entity.getKey(), authorizedPropertyValues ) );
         } );
 
         results.forEach( ResultSetFuture::getUninterruptibly );

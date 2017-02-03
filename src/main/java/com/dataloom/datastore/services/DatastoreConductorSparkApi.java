@@ -2,6 +2,7 @@ package com.dataloom.datastore.services;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.UUID;
 
@@ -93,6 +94,12 @@ public class DatastoreConductorSparkApi implements ConductorSparkApi {
             UUID entitySetId,
             Principal principal,
             Set<Permission> permissions ) {
+        throw new NotImplementedException(
+                "You are trying to invoke ConductorSparkApi from somehwere else other than conductor." );
+    }
+
+    @Override
+    public Boolean createEntityData( UUID entitySetId, String entityId, Map<UUID, String> propertyValues ) {
         throw new NotImplementedException(
                 "You are trying to invoke ConductorSparkApi from somehwere else other than conductor." );
     }

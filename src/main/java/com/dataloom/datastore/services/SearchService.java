@@ -19,6 +19,9 @@ import com.dataloom.authorization.Principal;
 import com.dataloom.authorization.events.AclUpdateEvent;
 import com.dataloom.edm.events.EntitySetCreatedEvent;
 import com.dataloom.edm.events.EntitySetDeletedEvent;
+import com.dataloom.organizations.events.OrganizationCreatedEvent;
+import com.dataloom.organizations.events.OrganizationDeletedEvent;
+import com.dataloom.organizations.events.OrganizationUpdatedEvent;
 import com.google.common.base.Optional;
 import com.google.common.collect.Sets;
 import com.google.common.eventbus.EventBus;
@@ -93,6 +96,36 @@ public class SearchService {
     public void deleteEntitySet( EntitySetDeletedEvent event ) {
         executor.submit( ConductorCall
                 .wrap( Lambdas.deleteEntitySet( event.getEntitySetId() ) ) );
+    }
+    
+    @Subscribe
+    public void createOrganization( OrganizationCreatedEvent event ) {
+        executor.submit( ConductorCall
+                .wrap( Lambdas.createOrganization( event.getOrganization(), event.getPrincipal() ) ) );
+    }
+    
+    public List<Map<String, Object>> executeOrganizationKeywordSearch( String searchTerm ) {
+        try {
+            List<Map<String, Object>> queryResults = executor.submit( ConductorCall
+                    .wrap( Lambdas.executeOrganizationKeywordSearch( searchTerm ) ) )
+                    .get();
+            return queryResults;
+        } catch ( InterruptedException | ExecutionException e ) {
+            logger.error( "Unable to to perofrm keyword search.", e );
+        }
+        return null;
+    }
+    
+    @Subscribe
+    public void updateOrganization( OrganizationUpdatedEvent event ) {
+        executor.submit( ConductorCall
+                .wrap( Lambdas.updateOrganization( event.getId(), event.getOptionalTitle(), event.getOptionalDescription() ) ) );
+    }
+    
+    @Subscribe
+    public void deleteOrganization( OrganizationDeletedEvent event ) {
+        executor.submit( ConductorCall
+                .wrap( Lambdas.deleteOrganization( event.getOrganizationId() ) ) );
     }
 
 }

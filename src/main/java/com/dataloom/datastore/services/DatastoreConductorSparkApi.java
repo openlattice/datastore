@@ -15,6 +15,7 @@ import com.dataloom.authorization.Principal;
 import com.dataloom.data.requests.LookupEntitiesRequest;
 import com.dataloom.edm.internal.EntitySet;
 import com.dataloom.edm.internal.PropertyType;
+import com.dataloom.organization.Organization;
 import com.google.common.base.Optional;
 import com.kryptnostic.conductor.rpc.ConductorSparkApi;
 import com.kryptnostic.conductor.rpc.QueryResult;
@@ -91,6 +92,39 @@ public class DatastoreConductorSparkApi implements ConductorSparkApi {
     @Override
     public Boolean updateEntitySetPermissions(
             UUID entitySetId,
+            Principal principal,
+            Set<Permission> permissions ) {
+        throw new NotImplementedException(
+                "You are trying to invoke ConductorSparkApi from somehwere else other than conductor." );
+    }
+
+    @Override
+    public Boolean createOrganization( Organization organization, Principal principal ) {
+        throw new NotImplementedException(
+                "You are trying to invoke ConductorSparkApi from somehwere else other than conductor." );
+    }
+
+    @Override
+    public List<Map<String, Object>> executeOrganizationKeywordSearch( String searchTerm, Set<Principal> principals ) {
+        throw new NotImplementedException(
+                "You are trying to invoke ConductorSparkApi from somehwere else other than conductor." );
+    }
+
+    @Override
+    public Boolean updateOrganization( UUID id, Optional<String> optionalTitle, Optional<String> optionalDescription ) {
+        throw new NotImplementedException(
+                "You are trying to invoke ConductorSparkApi from somehwere else other than conductor." );
+    }
+
+    @Override
+    public Boolean deleteOrganization( UUID organizationId ) {
+        throw new NotImplementedException(
+                "You are trying to invoke ConductorSparkApi from somehwere else other than conductor." );
+    }
+
+    @Override
+    public Boolean updateOrganizationPermissions(
+            UUID organizationId,
             Principal principal,
             Set<Permission> permissions ) {
         throw new NotImplementedException(

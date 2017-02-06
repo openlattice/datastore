@@ -81,13 +81,14 @@ public class OrganizationsController implements AuthorizingComponent, Organizati
         List<UUID> aclKey = ensureOwner( organizationId );
         authorizations.deletePermissions( aclKey );
         organizations.destroyOrganization( organizationId );
+        securableObjectTypes.deleteSecurableObjectType( ImmutableList.of( organizationId ) );
         return null;
     }
 
     @Override
     @PutMapping(
         value = ID_PATH + TITLE,
-        consumes = MediaType.TEXT_PLAIN_VALUE )
+        consumes = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
     public Void updateTitle( @PathVariable( ID ) UUID organizationId, @RequestBody String title ) {
         ensureOwner( organizationId );
@@ -98,7 +99,7 @@ public class OrganizationsController implements AuthorizingComponent, Organizati
     @Override
     @PutMapping(
         value = ID_PATH + DESCRIPTION,
-        consumes = MediaType.TEXT_PLAIN_VALUE )
+        consumes = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
     public Void updateDescription( @PathVariable( ID ) UUID organizationId, @RequestBody String description ) {
         ensureOwner( organizationId );

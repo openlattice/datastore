@@ -71,6 +71,11 @@ public class DatastoreServicesPod {
     public AuthorizationManager authorizationManager() {
         return new HazelcastAuthorizationService( hazelcastInstance, authorizationQueryService() , eventBus );
     }
+    
+    @Bean
+    public AbstractSecurableObjectResolveTypeService securableObjectTypes() {
+        return new HazelcastAbstractSecurableObjectResolveTypeService( hazelcastInstance );
+    }
 
     @Bean
     public SchemaQueryService schemaQueryService() {

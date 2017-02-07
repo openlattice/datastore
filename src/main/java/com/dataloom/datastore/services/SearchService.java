@@ -12,10 +12,12 @@ import javax.inject.Inject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.dataloom.authorization.AbstractSecurableObjectResolveTypeService;
 import com.dataloom.authorization.AclData;
 import com.dataloom.authorization.AuthorizationManager;
 import com.dataloom.authorization.Permission;
 import com.dataloom.authorization.Principal;
+import com.dataloom.authorization.SecurableObjectType;
 import com.dataloom.authorization.events.AclUpdateEvent;
 import com.dataloom.edm.events.EntitySetCreatedEvent;
 import com.dataloom.edm.events.EntitySetDeletedEvent;
@@ -39,6 +41,9 @@ public class SearchService {
 
     @Inject
     private AuthorizationManager         authorizations;
+    
+    @Inject
+    private AbstractSecurableObjectResolveTypeService securableObjectTypes;
 
     private final DurableExecutorService executor;
 
@@ -74,13 +79,28 @@ public class SearchService {
                     .wrap( Lambdas.updateEntitySetPermissions( aclKey, principal, permissions ) ) );
         } );
     }
+    
+    public void updateOrganizationPermissions( List<UUID> aclKeys, Principal principal, Set<Permission> permissions ) {
+        aclKeys.forEach( aclKey -> {
+            executor.submit( ConductorCall
+                    .wrap( Lambdas.updateOrganizationPermissions( aclKey, principal, permissions ) ) );
+        } );
+    }
 
     @Subscribe
     public void onAclUpdate( AclUpdateEvent event ) {
-        event.getPrincipals().forEach( principal -> updateEntitySetPermissions(
-                event.getAclKeys(),
-                principal,
-                authorizations.getSecurableObjectPermissions( event.getAclKeys(), Sets.newHashSet( principal ) ) ) );
+        SecurableObjectType type = securableObjectTypes.getSecurableObjectType( event.getAclKeys() );
+        if ( type == SecurableObjectType.EntitySet ) {
+            event.getPrincipals().forEach( principal -> updateEntitySetPermissions(
+                    event.getAclKeys(),
+                    principal,
+                    authorizations.getSecurableObjectPermissions( event.getAclKeys(), Sets.newHashSet( principal ) ) ) );
+        } else if ( type == SecurableObjectType.Organization ) {
+            event.getPrincipals().forEach( principal -> updateOrganizationPermissions(
+                    event.getAclKeys(),
+                    principal,
+                    authorizations.getSecurableObjectPermissions( event.getAclKeys(), Sets.newHashSet( principal ) ) ) );
+        }
     }
 
     @Subscribe

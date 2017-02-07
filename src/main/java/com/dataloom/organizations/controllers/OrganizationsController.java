@@ -19,6 +19,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.dataloom.authorization.AbstractSecurableObjectResolveTypeService;
 import com.dataloom.authorization.AuthorizationManager;
 import com.dataloom.authorization.AuthorizingComponent;
 import com.dataloom.authorization.Permission;
@@ -43,6 +44,9 @@ public class OrganizationsController implements AuthorizingComponent, Organizati
 
     @Inject
     private HazelcastOrganizationService organizations;
+    
+    @Inject
+    private AbstractSecurableObjectResolveTypeService securableObjectTypes;
 
     @Override
     @GetMapping(
@@ -60,6 +64,7 @@ public class OrganizationsController implements AuthorizingComponent, Organizati
         consumes = MediaType.APPLICATION_JSON_VALUE )
     public UUID createOrganizationIfNotExists( @RequestBody Organization organization ) {
         organizations.createOrganization( Principals.getCurrentUser(), organization );
+        securableObjectTypes.createSecurableObjectType( ImmutableList.of( organization.getId() ), SecurableObjectType.Organization );
         return organization.getId();
     }
 

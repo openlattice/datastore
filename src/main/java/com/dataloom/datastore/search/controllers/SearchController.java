@@ -1,12 +1,15 @@
 package com.dataloom.datastore.search.controllers;
 
+import java.util.EnumSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 import javax.inject.Inject;
 
 import org.springframework.http.MediaType;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
@@ -16,13 +19,16 @@ import com.dataloom.auditing.AuditMetric;
 import com.dataloom.auditing.AuditQueryService;
 import com.dataloom.authorization.AuthorizationManager;
 import com.dataloom.authorization.AuthorizingComponent;
+import com.dataloom.authorization.EdmAuthorizationHelper;
 import com.dataloom.authorization.Permission;
+import com.dataloom.authorization.Principals;
 import com.dataloom.datastore.services.SearchService;
 import com.dataloom.edm.internal.EntitySet;
 import com.dataloom.mappers.ObjectMappers;
 import com.dataloom.search.SearchApi;
 import com.dataloom.search.requests.SearchRequest;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.kryptnostic.datastore.exceptions.BadRequestException;
 import com.kryptnostic.datastore.services.EdmService;
@@ -42,6 +48,9 @@ public class SearchController implements SearchApi, AuthorizingComponent {
 
     @Inject
     private AuthorizationManager authorizations;
+    
+    @Inject
+    private EdmAuthorizationHelper authorizationsHelper;
 
     @RequestMapping(
             path = { "/", "" },
@@ -103,5 +112,28 @@ public class SearchController implements SearchApi, AuthorizingComponent {
 
     @Override public AuthorizationManager getAuthorizationManager() {
         return authorizations;
+    }
+
+    @RequestMapping(
+            path = { ENTITY_SET_ID_PATH },
+            method = RequestMethod.POST,
+            produces = { MediaType.APPLICATION_JSON_VALUE } )
+    @Override
+    public String executeEntitySetDataQuery(
+            @PathVariable( ENTITY_SET_ID ) UUID entitySetId,
+            @RequestBody String searchTerm ) {
+        if ( authorizations.checkIfHasPermissions( ImmutableList.of( entitySetId ),
+                Principals.getCurrentPrincipals(),
+                EnumSet.of( Permission.READ ) ) ) {
+            Set<UUID> authorizedProperties = authorizationsHelper.getAuthorizedPropertiesOnEntitySet( entitySetId,
+                    EnumSet.of( Permission.READ ) );
+            try {
+                return ObjectMappers.getJsonMapper().writeValueAsString( searchService
+                        .executeEntitySetDataSearch( entitySetId, searchTerm, authorizedProperties ) );
+            } catch ( JsonProcessingException e ) {
+                e.printStackTrace();
+            }
+        }
+        return "[]";
     }
 }

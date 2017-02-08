@@ -12,6 +12,7 @@ import javax.inject.Inject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.clearspring.analytics.util.Lists;
 import com.dataloom.authorization.AuthorizationManager;
 import com.dataloom.authorization.Permission;
 import com.dataloom.authorization.Principal;
@@ -28,6 +29,7 @@ import com.hazelcast.durableexecutor.DurableExecutorService;
 import com.kryptnostic.conductor.rpc.ConductorCall;
 import com.kryptnostic.conductor.rpc.EntityDataLambdas;
 import com.kryptnostic.conductor.rpc.Lambdas;
+import com.kryptnostic.conductor.rpc.SearchEntitySetDataLambda;
 
 public class SearchService {
     private static final Logger          logger = LoggerFactory.getLogger( SearchService.class );
@@ -99,6 +101,19 @@ public class SearchService {
     @Subscribe
     public void createEntityData( EntityDataCreatedEvent event ) {
         executor.submit( ConductorCall.wrap( new EntityDataLambdas( event.getEntitySetId(), event.getEntityId(), event.getPropertyValues() ) ) );
+    }
+    
+    public List<Map<String, Object>> executeEntitySetDataSearch( UUID entitySetId, String searchTerm, Set<UUID> authorizedProperties ) {
+        List<Map<String, Object>> queryResults;
+        try {
+            queryResults = executor.submit( ConductorCall.wrap( 
+                    new SearchEntitySetDataLambda( entitySetId, searchTerm, authorizedProperties ) ) ).get();
+            return queryResults;
+
+        } catch ( InterruptedException | ExecutionException e ) {
+            e.printStackTrace();
+            return Lists.newArrayList();
+        }
     }
 
 }

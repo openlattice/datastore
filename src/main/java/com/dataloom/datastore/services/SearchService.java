@@ -25,6 +25,7 @@ import com.dataloom.organizations.events.OrganizationCreatedEvent;
 import com.dataloom.organizations.events.OrganizationDeletedEvent;
 import com.dataloom.organizations.events.OrganizationUpdatedEvent;
 import com.google.common.base.Optional;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.google.common.eventbus.EventBus;
 import com.google.common.eventbus.Subscribe;
@@ -132,8 +133,8 @@ public class SearchService {
             return queryResults;
         } catch ( InterruptedException | ExecutionException e ) {
             logger.error( "Unable to to perofrm keyword search.", e );
+            return Lists.newArrayList();
         }
-        return null;
     }
     
     @Subscribe

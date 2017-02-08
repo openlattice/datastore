@@ -115,7 +115,7 @@ public class SearchController implements SearchApi, AuthorizingComponent {
             return ObjectMappers.getJsonMapper().writeValueAsString( searchService.executeOrganizationKeywordSearch( searchTerm ) );
         } catch ( JsonProcessingException e ) {
             e.printStackTrace();
+            return "[]";
         }
-        return "[]";
     }
 }

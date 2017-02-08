@@ -36,6 +36,8 @@ import com.dataloom.edm.internal.Schema;
 import com.dataloom.edm.requests.EdmDetailsSelector;
 import com.dataloom.edm.requests.EdmRequest;
 import com.dataloom.edm.schemas.manager.HazelcastSchemaManager;
+import com.dataloom.mappers.ObjectMappers;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -195,6 +197,22 @@ public class EdmController implements EdmApi, AuthorizingComponent {
             @PathVariable( NAMESPACE ) String namespace,
             @PathVariable( NAME ) String name ) {
         return schemaManager.getSchema( namespace, name );
+    }
+    
+    @Override
+    @RequestMapping(
+            path = SCHEMA_PATH + NAMESPACE_PATH + NAME_PATH + YAML_PATH,
+            method = RequestMethod.GET,
+            produces = MediaType.TEXT_PLAIN_VALUE )
+    public String getSchemaContentsAsYaml(
+            @PathVariable( NAMESPACE ) String namespace,
+            @PathVariable( NAME ) String name ) {
+        try {
+            return ObjectMappers.getYamlMapper().writeValueAsString( schemaManager.getSchema( namespace, name ) );
+        } catch ( JsonProcessingException e ) {
+            e.printStackTrace();
+            return "";
+        }
     }
 
     @Override

@@ -224,7 +224,7 @@ public class EdmController implements EdmApi, AuthorizingComponent {
             path = SCHEMA_PATH + NAMESPACE_PATH + NAME_PATH,
             method = RequestMethod.GET,
             produces = { MediaType.APPLICATION_JSON_VALUE, CustomMediaType.TEXT_YAML_VALUE } )
-    public String getSchemaContentsFormatted(
+    public Schema getSchemaContentsFormatted(
             @PathVariable( NAMESPACE ) String namespace,
             @PathVariable( NAME ) String name,
             @RequestParam(
@@ -238,21 +238,11 @@ public class EdmController implements EdmApi, AuthorizingComponent {
     }
 
     @Override
-    public String getSchemaContentsFormatted(
+    public Schema getSchemaContentsFormatted(
             String namespace,
             String name,
             FileType fileType ) {
-        Schema schema = schemaManager.getSchema( namespace, name );
-        try {
-            if ( fileType == FileType.json) {
-                return ObjectMappers.getJsonMapper().writeValueAsString( schema );
-            } else {
-                return ObjectMappers.getYamlMapper().writeValueAsString( schema );
-            }
-        } catch ( JsonProcessingException e ) {
-            e.printStackTrace();
-            return "";
-        }
+        return schemaManager.getSchema( namespace, name );
     }
 
     @Override

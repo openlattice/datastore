@@ -12,13 +12,14 @@ import javax.inject.Inject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.dataloom.authorization.AclData;
 import com.dataloom.authorization.AuthorizationManager;
 import com.dataloom.authorization.Permission;
 import com.dataloom.authorization.Principal;
 import com.dataloom.authorization.events.AclUpdateEvent;
 import com.dataloom.edm.events.EntitySetCreatedEvent;
 import com.dataloom.edm.events.EntitySetDeletedEvent;
+import com.dataloom.edm.events.EntitySetMetadataUpdatedEvent;
+import com.dataloom.edm.events.PropertyTypesInEntitySetUpdatedEvent;
 import com.google.common.base.Optional;
 import com.google.common.collect.Sets;
 import com.google.common.eventbus.EventBus;
@@ -93,6 +94,18 @@ public class SearchService {
     public void deleteEntitySet( EntitySetDeletedEvent event ) {
         executor.submit( ConductorCall
                 .wrap( Lambdas.deleteEntitySet( event.getEntitySetId() ) ) );
+    }
+    
+    @Subscribe
+    public void updateEntitySetMetadata( EntitySetMetadataUpdatedEvent event ) {
+        executor.submit( ConductorCall
+                .wrap( Lambdas.updateEntitySetMetadata( event.getEntitySet() ) ) );
+    }
+    
+    @Subscribe
+    public void updatePropertyTypesInEntitySet( PropertyTypesInEntitySetUpdatedEvent event ) {
+        executor.submit( ConductorCall
+                .wrap( Lambdas.updatePropertyTypesInEntitySet( event.getEntitySetId(), event.getNewPropertyTypes() ) ) );
     }
 
 }

@@ -93,7 +93,7 @@ public class OrganizationsController implements AuthorizingComponent, Organizati
     @Override
     @PutMapping(
         value = ID_PATH + TITLE,
-        consumes = MediaType.APPLICATION_JSON_VALUE )
+        consumes = MediaType.TEXT_PLAIN_VALUE )
     @ResponseStatus( HttpStatus.OK )
     public Void updateTitle( @PathVariable( ID ) UUID organizationId, @RequestBody String title ) {
         ensureOwner( organizationId );
@@ -104,7 +104,7 @@ public class OrganizationsController implements AuthorizingComponent, Organizati
     @Override
     @PutMapping(
         value = ID_PATH + DESCRIPTION,
-        consumes = MediaType.APPLICATION_JSON_VALUE )
+        consumes = MediaType.TEXT_PLAIN_VALUE )
     @ResponseStatus( HttpStatus.OK )
     public Void updateDescription( @PathVariable( ID ) UUID organizationId, @RequestBody String description ) {
         ensureOwner( organizationId );

@@ -104,7 +104,7 @@ public class DatastoreConductorSparkApi implements ConductorSparkApi {
     }
 
     @Override
-    public Boolean updatePropertyTypesInEntitySet( UUID entitySetId, Set<PropertyType> newPropertyTypes ) {
+    public Boolean updatePropertyTypesInEntitySet( UUID entitySetId, List<PropertyType> newPropertyTypes ) {
         throw new NotImplementedException(
                 "You are trying to invoke ConductorSparkApi from somehwere else other than conductor." );
     }

@@ -78,6 +78,7 @@ public class DatastoreMvcPod extends WebMvcConfigurationSupport {
                 .favorParameter( true )
                 .mediaType( "csv", CustomMediaType.TEXT_CSV )
                 .mediaType( "json", MediaType.APPLICATION_JSON )
+                .mediaType( "yaml", CustomMediaType.TEXT_YAML )
                 .defaultContentType( MediaType.APPLICATION_JSON );
     }
 }

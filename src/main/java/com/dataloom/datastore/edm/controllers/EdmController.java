@@ -8,6 +8,7 @@ import java.util.Set;
 import java.util.UUID;
 
 import javax.inject.Inject;
+import javax.servlet.http.HttpServletResponse;
 
 import org.apache.olingo.commons.api.edm.FullQualifiedName;
 import org.springframework.http.HttpStatus;
@@ -16,6 +17,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -26,6 +28,7 @@ import com.dataloom.authorization.Permission;
 import com.dataloom.authorization.Principals;
 import com.dataloom.authorization.SecurableObjectType;
 import com.dataloom.authorization.util.AuthorizationUtils;
+import com.dataloom.datastore.constants.CustomMediaType;
 import com.dataloom.edm.EdmApi;
 import com.dataloom.edm.EntityDataModel;
 import com.dataloom.edm.internal.EdmDetails;
@@ -199,16 +202,53 @@ public class EdmController implements EdmApi, AuthorizingComponent {
         return schemaManager.getSchema( namespace, name );
     }
     
-    @Override
+    private static void setDownloadContentType( HttpServletResponse response, FileType fileType ) {
+        if ( fileType == FileType.json ) {
+            response.setContentType( MediaType.APPLICATION_JSON_VALUE );
+        } else {
+            response.setContentType( CustomMediaType.TEXT_YAML_VALUE );
+        }
+    }
+
+    private static void setContentDisposition(
+            HttpServletResponse response,
+            String fileName,
+            FileType fileType ) {
+        if ( fileType == FileType.yaml || fileType == FileType.json ) {
+            response.setHeader( "Content-Disposition",
+                    "attachment; filename=" + fileName + "." + fileType.toString() );
+        }
+    }
+    
     @RequestMapping(
-            path = SCHEMA_PATH + NAMESPACE_PATH + NAME_PATH + YAML_PATH,
+            path = SCHEMA_PATH + NAMESPACE_PATH + NAME_PATH,
             method = RequestMethod.GET,
-            produces = MediaType.TEXT_PLAIN_VALUE )
-    public String getSchemaContentsAsYaml(
+            produces = { MediaType.APPLICATION_JSON_VALUE, CustomMediaType.TEXT_YAML_VALUE } )
+    public String getSchemaContentsFormatted(
             @PathVariable( NAMESPACE ) String namespace,
-            @PathVariable( NAME ) String name ) {
+            @PathVariable( NAME ) String name,
+            @RequestParam(
+                    value = FILE_TYPE,
+                    required = true ) FileType fileType,
+            HttpServletResponse response ) {
+        setContentDisposition( response, namespace + "." + name, fileType );
+        setDownloadContentType( response, fileType );
+
+        return getSchemaContentsFormatted( namespace, name, fileType );
+    }
+
+    @Override
+    public String getSchemaContentsFormatted(
+            String namespace,
+            String name,
+            FileType fileType ) {
+        Schema schema = schemaManager.getSchema( namespace, name );
         try {
-            return ObjectMappers.getYamlMapper().writeValueAsString( schemaManager.getSchema( namespace, name ) );
+            if ( fileType == FileType.json) {
+                return ObjectMappers.getJsonMapper().writeValueAsString( schema );
+            } else {
+                return ObjectMappers.getYamlMapper().writeValueAsString( schema );
+            }
         } catch ( JsonProcessingException e ) {
             e.printStackTrace();
             return "";

@@ -57,7 +57,7 @@ dependencies {
     if( project.hasProperty('developmentMode') && project.developmentMode ) {
         logger.quiet(project.name + " using project dependencies.")
         compile project(":rhizome")
-        compile project(":kryptnostic-conductor-client")
+        compile project(":conductor-client")
         compile project(":loom-api")
         testCompile( project(path: ":loom-api", configuration: "tests"))
         testCompile( project(path: ":rhizome", configuration: "tests"))
@@ -65,7 +65,7 @@ dependencies {
     } else {
         logger.quiet(project.name + " using jar dependencies.")
         compile "com.kryptnostic:rhizome:${rhizome_version}"
-        compile "com.kryptnostic:kryptnostic-conductor-client:${conductor_client_version}"
+        compile "com.kryptnostic:conductor-client:${conductor_client_version}"
         compile ("com.kryptnostic:loom-api:${loom_api_version}")
         testCompile "com.kryptnostic:loom-api:${loom_api_version}:tests"
         testCompile "com.kryptnostic:rhizome:${rhizome_version}:tests"

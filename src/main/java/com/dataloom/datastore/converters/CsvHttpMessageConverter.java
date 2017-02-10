@@ -11,6 +11,7 @@ import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.http.converter.HttpMessageNotWritableException;
 
 import com.dataloom.datastore.constants.CustomMediaType;
+import com.fasterxml.jackson.dataformat.csv.CsvGenerator;
 import com.fasterxml.jackson.dataformat.csv.CsvMapper;
 import com.fasterxml.jackson.dataformat.csv.CsvSchema;
 import com.fasterxml.jackson.dataformat.csv.CsvSchema.Builder;
@@ -30,6 +31,7 @@ public class CsvHttpMessageConverter
         csvMapper.registerModule( new AfterburnerModule() );
         csvMapper.registerModule( new GuavaModule() );
         csvMapper.registerModule( new JodaModule() );
+        csvMapper.configure( CsvGenerator.Feature.STRICT_CHECK_FOR_QUOTING, true );
     }
 
     @Override
@@ -78,6 +80,6 @@ public class CsvHttpMessageConverter
         for ( FullQualifiedName type : obj.keySet() ) {
             schemaBuilder.addColumn( type.toString(), ColumnType.NUMBER_OR_STRING );
         }
-        return schemaBuilder.build();
+        return schemaBuilder.setUseHeader( true ).build();
     }
 }

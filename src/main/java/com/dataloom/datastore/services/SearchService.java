@@ -12,7 +12,6 @@ import javax.inject.Inject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.clearspring.analytics.util.Lists;
 import com.dataloom.authorization.AuthorizationManager;
 import com.dataloom.authorization.Permission;
 import com.dataloom.authorization.Principal;
@@ -20,7 +19,10 @@ import com.dataloom.authorization.events.AclUpdateEvent;
 import com.dataloom.data.events.EntityDataCreatedEvent;
 import com.dataloom.edm.events.EntitySetCreatedEvent;
 import com.dataloom.edm.events.EntitySetDeletedEvent;
+import com.dataloom.edm.events.EntitySetMetadataUpdatedEvent;
+import com.dataloom.edm.events.PropertyTypesInEntitySetUpdatedEvent;
 import com.google.common.base.Optional;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.google.common.eventbus.EventBus;
 import com.google.common.eventbus.Subscribe;
@@ -114,6 +116,17 @@ public class SearchService {
             e.printStackTrace();
             return Lists.newArrayList();
         }
+    }
+
+    public void updateEntitySetMetadata( EntitySetMetadataUpdatedEvent event ) {
+        executor.submit( ConductorCall
+                .wrap( Lambdas.updateEntitySetMetadata( event.getEntitySet() ) ) );
+    }
+    
+    @Subscribe
+    public void updatePropertyTypesInEntitySet( PropertyTypesInEntitySetUpdatedEvent event ) {
+        executor.submit( ConductorCall
+                .wrap( Lambdas.updatePropertyTypesInEntitySet( event.getEntitySetId(), event.getNewPropertyTypes() ) ) );
     }
 
 }

@@ -1,6 +1,7 @@
 package com.dataloom.datastore.search.controllers;
 
 import java.util.EnumSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -119,7 +120,7 @@ public class SearchController implements SearchApi, AuthorizingComponent {
             method = RequestMethod.POST,
             produces = { MediaType.APPLICATION_JSON_VALUE } )
     @Override
-    public String executeEntitySetDataQuery(
+    public List<Map<String, Object>> executeEntitySetDataQuery(
             @PathVariable( ENTITY_SET_ID ) UUID entitySetId,
             @RequestBody String searchTerm ) {
         if ( authorizations.checkIfHasPermissions( ImmutableList.of( entitySetId ),
@@ -127,13 +128,8 @@ public class SearchController implements SearchApi, AuthorizingComponent {
                 EnumSet.of( Permission.READ ) ) ) {
             Set<UUID> authorizedProperties = authorizationsHelper.getAuthorizedPropertiesOnEntitySet( entitySetId,
                     EnumSet.of( Permission.READ ) );
-            try {
-                return ObjectMappers.getJsonMapper().writeValueAsString( searchService
-                        .executeEntitySetDataSearch( entitySetId, searchTerm, authorizedProperties ) );
-            } catch ( JsonProcessingException e ) {
-                e.printStackTrace();
-            }
+            return searchService.executeEntitySetDataSearch( entitySetId, searchTerm, authorizedProperties );
         }
-        return "[]";
+        return Lists.newArrayList();
     }
 }

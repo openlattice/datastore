@@ -136,6 +136,12 @@ public class DatastoreConductorSparkApi implements ConductorSparkApi {
     }
 
     @Override
+    public Boolean updateEntitySetMetadata( EntitySet entitySet ) {
+        throw new NotImplementedException(
+                "You are trying to invoke ConductorSparkApi from somehwere else other than conductor." );
+    }
+
+    @Override
     public Boolean createEntityData( UUID entitySetId, String entityId, Map<UUID, String> propertyValues ) {
         throw new NotImplementedException(
                 "You are trying to invoke ConductorSparkApi from somehwere else other than conductor." );
@@ -146,6 +152,12 @@ public class DatastoreConductorSparkApi implements ConductorSparkApi {
             UUID entitySetId,
             String searchTerm,
             Set<UUID> authorizedPropertyTypes ) {
+        throw new NotImplementedException(
+                "You are trying to invoke ConductorSparkApi from somehwere else other than conductor." );
+    }
+
+    @Override
+    public Boolean updatePropertyTypesInEntitySet( UUID entitySetId, List<PropertyType> newPropertyTypes ) {
         throw new NotImplementedException(
                 "You are trying to invoke ConductorSparkApi from somehwere else other than conductor." );
     }

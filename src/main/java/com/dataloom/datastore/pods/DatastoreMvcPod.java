@@ -19,6 +19,7 @@ import com.dataloom.data.DataApi;
 import com.dataloom.datastore.authorization.controllers.AuthorizationsController;
 import com.dataloom.datastore.constants.CustomMediaType;
 import com.dataloom.datastore.converters.CsvHttpMessageConverter;
+import com.dataloom.datastore.converters.YamlHttpMessageConverter;
 import com.dataloom.datastore.data.controllers.DataController;
 import com.dataloom.datastore.directory.controllers.PrincipalDirectoryController;
 import com.dataloom.datastore.edm.controllers.EdmController;
@@ -59,6 +60,7 @@ public class DatastoreMvcPod extends WebMvcConfigurationSupport {
             }
         }
         converters.add( new CsvHttpMessageConverter() );
+        converters.add( new YamlHttpMessageConverter() );
     }
 
     // TODO: We need to lock this down. Since all endpoints are stateless + authenticated this is more a
@@ -78,6 +80,7 @@ public class DatastoreMvcPod extends WebMvcConfigurationSupport {
                 .favorParameter( true )
                 .mediaType( "csv", CustomMediaType.TEXT_CSV )
                 .mediaType( "json", MediaType.APPLICATION_JSON )
+                .mediaType( "yaml", CustomMediaType.TEXT_YAML )
                 .defaultContentType( MediaType.APPLICATION_JSON );
     }
 }

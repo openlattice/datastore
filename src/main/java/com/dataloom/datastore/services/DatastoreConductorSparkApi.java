@@ -5,11 +5,9 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
+import org.apache.commons.lang3.NotImplementedException;
 import org.apache.olingo.commons.api.edm.FullQualifiedName;
-import org.apache.spark.sql.Dataset;
-import org.apache.spark.sql.Row;
 
-import com.auth0.jwt.internal.org.apache.commons.lang3.NotImplementedException;
 import com.dataloom.authorization.Permission;
 import com.dataloom.authorization.Principal;
 import com.dataloom.data.requests.LookupEntitiesRequest;
@@ -74,12 +72,6 @@ public class DatastoreConductorSparkApi implements ConductorSparkApi {
     }
 
     @Override
-    public Boolean submitEntitySetDataToElasticsearch( EntitySet entitySet, Dataset<Row> entitySetData ) {
-        throw new NotImplementedException(
-                "You are trying to invoke ConductorSparkApi from somehwere else other than conductor." );
-    }
-
-    @Override
     public List<Map<String, Object>> executeElasticsearchMetadataQuery(
             Optional<String> query,
             Optional<UUID> optionalEntityType,
@@ -131,4 +123,40 @@ public class DatastoreConductorSparkApi implements ConductorSparkApi {
                 "You are trying to invoke ConductorSparkApi from somehwere else other than conductor." );
     }
 
+    @Override
+    public Boolean updateEntitySetMetadata( EntitySet entitySet ) {
+        throw new NotImplementedException(
+                "You are trying to invoke ConductorSparkApi from somehwere else other than conductor." );
+    }
+
+    @Override
+    public Boolean createEntityData( UUID entitySetId, String entityId, Map<UUID, String> propertyValues ) {
+        throw new NotImplementedException(
+                "You are trying to invoke ConductorSparkApi from somehwere else other than conductor." );
+    }
+
+    @Override
+    public List<Map<String, Object>> executeEntitySetDataSearch(
+            UUID entitySetId,
+            String searchTerm,
+            Set<UUID> authorizedPropertyTypes ) {
+        throw new NotImplementedException(
+                "You are trying to invoke ConductorSparkApi from somehwere else other than conductor." );
+    }
+
+    @Override
+    public Boolean updatePropertyTypesInEntitySet( UUID entitySetId, List<PropertyType> newPropertyTypes ) {
+        throw new NotImplementedException(
+                "You are trying to invoke ConductorSparkApi from somehwere else other than conductor." );
+    }
+
+    @Override
+    public List<Map<String, Object>> executeEntitySetDataSearchAcrossIndices(
+            Set<UUID> entitySetIds,
+            Map<UUID, String> fieldSearches,
+            int size,
+            boolean explain ) {
+        throw new NotImplementedException(
+                "You are trying to invoke ConductorSparkApi from somehwere else other than conductor." );
+    }
 }

@@ -24,6 +24,8 @@ import com.dataloom.edm.events.EntitySetDeletedEvent;
 import com.dataloom.organizations.events.OrganizationCreatedEvent;
 import com.dataloom.organizations.events.OrganizationDeletedEvent;
 import com.dataloom.organizations.events.OrganizationUpdatedEvent;
+import com.dataloom.edm.events.EntitySetMetadataUpdatedEvent;
+import com.dataloom.edm.events.PropertyTypesInEntitySetUpdatedEvent;
 import com.google.common.base.Optional;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
@@ -147,6 +149,18 @@ public class SearchService {
     public void deleteOrganization( OrganizationDeletedEvent event ) {
         executor.submit( ConductorCall
                 .wrap( Lambdas.deleteOrganization( event.getOrganizationId() ) ) );
+    }
+     
+    @Subscribe
+    public void updateEntitySetMetadata( EntitySetMetadataUpdatedEvent event ) {
+        executor.submit( ConductorCall
+                .wrap( Lambdas.updateEntitySetMetadata( event.getEntitySet() ) ) );
+    }
+    
+    @Subscribe
+    public void updatePropertyTypesInEntitySet( PropertyTypesInEntitySetUpdatedEvent event ) {
+        executor.submit( ConductorCall
+                .wrap( Lambdas.updatePropertyTypesInEntitySet( event.getEntitySetId(), event.getNewPropertyTypes() ) ) );
     }
 
 }

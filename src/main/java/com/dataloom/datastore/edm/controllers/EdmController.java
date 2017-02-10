@@ -21,6 +21,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.dataloom.authorization.AbstractSecurableObjectResolveTypeService;
 import com.dataloom.authorization.AuthorizationManager;
 import com.dataloom.authorization.AuthorizingComponent;
 import com.dataloom.authorization.ForbiddenException;
@@ -67,6 +68,9 @@ public class EdmController implements EdmApi, AuthorizingComponent {
 
     @Inject
     private CassandraEntitySetManager entitySetManager;
+    
+    @Inject
+    private AbstractSecurableObjectResolveTypeService securableObjectTypes;
 
     @Override
     @RequestMapping(
@@ -291,6 +295,7 @@ public class EdmController implements EdmApi, AuthorizingComponent {
             try {
                 modelService.createEntitySet( Principals.getCurrentUser(), entitySet );
                 createdEntitySets.put( entitySet.getName(), entitySet.getId() );
+                securableObjectTypes.createSecurableObjectType( ImmutableList.of( entitySet.getId() ), SecurableObjectType.EntitySet );
             } catch ( Exception e ) {
                 dto.addError( e.getClass().getSimpleName(), entitySet.getName() + ": " + e.getMessage() );
             }
@@ -335,6 +340,7 @@ public class EdmController implements EdmApi, AuthorizingComponent {
     public Void deleteEntitySet( @PathVariable( ID ) UUID entitySetId ) {
         ensureOwnerAccess( Arrays.asList( entitySetId ) );
         modelService.deleteEntitySet( entitySetId );
+        securableObjectTypes.deleteSecurableObjectType( ImmutableList.of( entitySetId ) );
         return null;
     }
 

@@ -116,6 +116,20 @@ public class SearchController implements SearchApi, AuthorizingComponent {
     }
 
     @RequestMapping(
+            path = { ORGANIZATIONS },
+            method = RequestMethod.POST,
+            produces = { MediaType.APPLICATION_JSON_VALUE } )
+    @Override
+    public String executeOrganizationSearch( @RequestBody String searchTerm ) {
+        try {
+            return ObjectMappers.getJsonMapper().writeValueAsString( searchService.executeOrganizationKeywordSearch( searchTerm ) );
+        } catch ( JsonProcessingException e ) {
+            e.printStackTrace();
+            return "[]";
+        }
+    }
+    
+    @RequestMapping(
             path = { ENTITY_SET_ID_PATH },
             method = RequestMethod.POST,
             produces = { MediaType.APPLICATION_JSON_VALUE } )

@@ -12,13 +12,19 @@ import javax.inject.Inject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.dataloom.authorization.AbstractSecurableObjectResolveTypeService;
+import com.dataloom.authorization.AclData;
 import com.dataloom.authorization.AuthorizationManager;
 import com.dataloom.authorization.Permission;
 import com.dataloom.authorization.Principal;
+import com.dataloom.authorization.SecurableObjectType;
 import com.dataloom.authorization.events.AclUpdateEvent;
 import com.dataloom.data.events.EntityDataCreatedEvent;
 import com.dataloom.edm.events.EntitySetCreatedEvent;
 import com.dataloom.edm.events.EntitySetDeletedEvent;
+import com.dataloom.organizations.events.OrganizationCreatedEvent;
+import com.dataloom.organizations.events.OrganizationDeletedEvent;
+import com.dataloom.organizations.events.OrganizationUpdatedEvent;
 import com.dataloom.edm.events.EntitySetMetadataUpdatedEvent;
 import com.dataloom.edm.events.PropertyTypesInEntitySetUpdatedEvent;
 import com.google.common.base.Optional;
@@ -41,6 +47,9 @@ public class SearchService {
 
     @Inject
     private AuthorizationManager         authorizations;
+    
+    @Inject
+    private AbstractSecurableObjectResolveTypeService securableObjectTypes;
 
     private final DurableExecutorService executor;
 
@@ -76,13 +85,28 @@ public class SearchService {
                     .wrap( Lambdas.updateEntitySetPermissions( aclKey, principal, permissions ) ) );
         } );
     }
+    
+    public void updateOrganizationPermissions( List<UUID> aclKeys, Principal principal, Set<Permission> permissions ) {
+        aclKeys.forEach( aclKey -> {
+            executor.submit( ConductorCall
+                    .wrap( Lambdas.updateOrganizationPermissions( aclKey, principal, permissions ) ) );
+        } );
+    }
 
     @Subscribe
     public void onAclUpdate( AclUpdateEvent event ) {
-        event.getPrincipals().forEach( principal -> updateEntitySetPermissions(
-                event.getAclKeys(),
-                principal,
-                authorizations.getSecurableObjectPermissions( event.getAclKeys(), Sets.newHashSet( principal ) ) ) );
+        SecurableObjectType type = securableObjectTypes.getSecurableObjectType( event.getAclKeys() );
+        if ( type == SecurableObjectType.EntitySet ) {
+            event.getPrincipals().forEach( principal -> updateEntitySetPermissions(
+                    event.getAclKeys(),
+                    principal,
+                    authorizations.getSecurableObjectPermissions( event.getAclKeys(), Sets.newHashSet( principal ) ) ) );
+        } else if ( type == SecurableObjectType.Organization ) {
+            event.getPrincipals().forEach( principal -> updateOrganizationPermissions(
+                    event.getAclKeys(),
+                    principal,
+                    authorizations.getSecurableObjectPermissions( event.getAclKeys(), Sets.newHashSet( principal ) ) ) );
+        }
     }
 
     @Subscribe
@@ -98,6 +122,36 @@ public class SearchService {
     public void deleteEntitySet( EntitySetDeletedEvent event ) {
         executor.submit( ConductorCall
                 .wrap( Lambdas.deleteEntitySet( event.getEntitySetId() ) ) );
+    }
+    
+    @Subscribe
+    public void createOrganization( OrganizationCreatedEvent event ) {
+        executor.submit( ConductorCall
+                .wrap( Lambdas.createOrganization( event.getOrganization(), event.getPrincipal() ) ) );
+    }
+    
+    public List<Map<String, Object>> executeOrganizationKeywordSearch( String searchTerm ) {
+        try {
+            List<Map<String, Object>> queryResults = executor.submit( ConductorCall
+                    .wrap( Lambdas.executeOrganizationKeywordSearch( searchTerm ) ) )
+                    .get();
+            return queryResults;
+        } catch ( InterruptedException | ExecutionException e ) {
+            logger.error( "Unable to to perofrm keyword search.", e );
+            return Lists.newArrayList();
+        }
+    }
+    
+    @Subscribe
+    public void updateOrganization( OrganizationUpdatedEvent event ) {
+        executor.submit( ConductorCall
+                .wrap( Lambdas.updateOrganization( event.getId(), event.getOptionalTitle(), event.getOptionalDescription() ) ) );
+    }
+    
+    @Subscribe
+    public void deleteOrganization( OrganizationDeletedEvent event ) {
+        executor.submit( ConductorCall
+                .wrap( Lambdas.deleteOrganization( event.getOrganizationId() ) ) );
     }
     
     @Subscribe
@@ -118,6 +172,7 @@ public class SearchService {
         }
     }
 
+    @Subscribe
     public void updateEntitySetMetadata( EntitySetMetadataUpdatedEvent event ) {
         executor.submit( ConductorCall
                 .wrap( Lambdas.updateEntitySetMetadata( event.getEntitySet() ) ) );

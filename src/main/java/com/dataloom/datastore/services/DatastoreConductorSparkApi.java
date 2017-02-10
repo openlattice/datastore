@@ -89,6 +89,17 @@ public class DatastoreConductorSparkApi implements ConductorSparkApi {
                 "You are trying to invoke ConductorSparkApi from somehwere else other than conductor." );
     }
 
+    @Override public Boolean updateEntitySetMetadata( EntitySet entitySet ) {
+        throw new NotImplementedException(
+                "You are trying to invoke ConductorSparkApi from somehwere else other than conductor." );
+    }
+
+    @Override public Boolean updatePropertyTypesInEntitySet(
+            UUID entitySetId, Set<PropertyType> newPropertyTypes ) {
+        throw new NotImplementedException(
+                "You are trying to invoke ConductorSparkApi from somehwere else other than conductor." );
+    }
+
     @Override
     public Boolean updateEntitySetPermissions(
             UUID entitySetId,
@@ -129,6 +140,16 @@ public class DatastoreConductorSparkApi implements ConductorSparkApi {
             Set<Permission> permissions ) {
         throw new NotImplementedException(
                 "You are trying to invoke ConductorSparkApi from somehwere else other than conductor." );
+    }
+
+    @Override public Boolean createEntityData(
+            UUID entitySetId, String entityId, Map<UUID, String> propertyValues ) {
+        return null;
+    }
+
+    @Override public List<Map<String, Object>> executeEntitySetDataSearch(
+            UUID entitySetId, String searchTerm, Set<UUID> authorizedPropertyTypes ) {
+        return null;
     }
 
 }

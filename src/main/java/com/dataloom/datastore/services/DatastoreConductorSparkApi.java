@@ -5,9 +5,9 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
+import org.apache.commons.lang3.NotImplementedException;
 import org.apache.olingo.commons.api.edm.FullQualifiedName;
 
-import com.auth0.jwt.internal.org.apache.commons.lang3.NotImplementedException;
 import com.dataloom.authorization.Permission;
 import com.dataloom.authorization.Principal;
 import com.dataloom.data.requests.LookupEntitiesRequest;

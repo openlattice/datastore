@@ -16,18 +16,22 @@ import com.dataloom.authorization.AuthorizationManager;
 import com.dataloom.authorization.Permission;
 import com.dataloom.authorization.Principal;
 import com.dataloom.authorization.events.AclUpdateEvent;
+import com.dataloom.data.events.EntityDataCreatedEvent;
 import com.dataloom.edm.events.EntitySetCreatedEvent;
 import com.dataloom.edm.events.EntitySetDeletedEvent;
 import com.dataloom.edm.events.EntitySetMetadataUpdatedEvent;
 import com.dataloom.edm.events.PropertyTypesInEntitySetUpdatedEvent;
 import com.google.common.base.Optional;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.google.common.eventbus.EventBus;
 import com.google.common.eventbus.Subscribe;
 import com.hazelcast.core.HazelcastInstance;
 import com.hazelcast.durableexecutor.DurableExecutorService;
 import com.kryptnostic.conductor.rpc.ConductorCall;
+import com.kryptnostic.conductor.rpc.EntityDataLambdas;
 import com.kryptnostic.conductor.rpc.Lambdas;
+import com.kryptnostic.conductor.rpc.SearchEntitySetDataLambda;
 
 public class SearchService {
     private static final Logger          logger = LoggerFactory.getLogger( SearchService.class );
@@ -97,6 +101,23 @@ public class SearchService {
     }
     
     @Subscribe
+    public void createEntityData( EntityDataCreatedEvent event ) {
+        executor.submit( ConductorCall.wrap( new EntityDataLambdas( event.getEntitySetId(), event.getEntityId(), event.getPropertyValues() ) ) );
+    }
+    
+    public List<Map<String, Object>> executeEntitySetDataSearch( UUID entitySetId, String searchTerm, Set<UUID> authorizedProperties ) {
+        List<Map<String, Object>> queryResults;
+        try {
+            queryResults = executor.submit( ConductorCall.wrap( 
+                    new SearchEntitySetDataLambda( entitySetId, searchTerm, authorizedProperties ) ) ).get();
+            return queryResults;
+
+        } catch ( InterruptedException | ExecutionException e ) {
+            e.printStackTrace();
+            return Lists.newArrayList();
+        }
+    }
+
     public void updateEntitySetMetadata( EntitySetMetadataUpdatedEvent event ) {
         executor.submit( ConductorCall
                 .wrap( Lambdas.updateEntitySetMetadata( event.getEntitySet() ) ) );

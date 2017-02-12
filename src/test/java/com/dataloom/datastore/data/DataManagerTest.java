@@ -44,7 +44,7 @@ import org.junit.Ignore;
 import org.junit.Test;
 
 import com.dataloom.datastore.BootstrapDatastoreWithCassandra;
-import com.dataloom.edm.internal.PropertyType;
+import com.dataloom.edm.PropertyType;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Optional;
 import com.google.common.collect.HashMultimap;

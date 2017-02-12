@@ -27,7 +27,6 @@ import java.util.Arrays;
 import java.util.Set;
 import java.util.UUID;
 
-import com.dataloom.datastore.TestEdmConfigurer;
 import org.apache.olingo.commons.api.data.Entity;
 import org.apache.olingo.commons.api.data.EntityCollection;
 import org.apache.olingo.commons.api.data.Property;
@@ -52,14 +51,13 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpOutputMessage;
 import org.springframework.http.converter.HttpMessageNotWritableException;
 
-import com.dataloom.datasource.UUIDs.Syncs;
 import com.dataloom.datastore.BootstrapDatastoreWithCassandra;
 import com.dataloom.datastore.converters.IterableCsvHttpMessageConverter;
 import com.dataloom.datastore.odata.LoomEdmProvider;
 import com.dataloom.datastore.odata.Transformers.EntitySetTransformer;
 import com.dataloom.datastore.odata.Transformers.EntityTypeTransformer;
 import com.dataloom.edm.exceptions.TypeExistsException;
-import com.dataloom.edm.internal.PropertyType;
+import com.dataloom.edm.PropertyType;
 import com.dataloom.edm.schemas.manager.HazelcastSchemaManager;
 import com.google.common.base.Optional;
 import com.google.common.collect.HashMultimap;

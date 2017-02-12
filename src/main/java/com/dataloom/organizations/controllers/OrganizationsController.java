@@ -45,7 +45,7 @@ import com.dataloom.authorization.Permission;
 import com.dataloom.authorization.Principal;
 import com.dataloom.authorization.PrincipalType;
 import com.dataloom.authorization.Principals;
-import com.dataloom.authorization.SecurableObjectType;
+import com.dataloom.authorization.securable.SecurableObjectType;
 import com.dataloom.authorization.util.AuthorizationUtils;
 import com.dataloom.organization.Organization;
 import com.dataloom.organization.OrganizationsApi;

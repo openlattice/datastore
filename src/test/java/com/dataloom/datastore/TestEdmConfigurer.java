@@ -21,10 +21,10 @@ package com.dataloom.datastore;
 
 import com.dataloom.authorization.Principal;
 import com.dataloom.edm.exceptions.TypeExistsException;
-import com.dataloom.edm.internal.EntitySet;
-import com.dataloom.edm.internal.EntityType;
-import com.dataloom.edm.internal.PropertyType;
-import com.dataloom.edm.internal.Schema;
+import com.dataloom.edm.EntitySet;
+import com.dataloom.edm.EntityType;
+import com.dataloom.edm.PropertyType;
+import com.dataloom.edm.Schema;
 import com.dataloom.edm.schemas.manager.HazelcastSchemaManager;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableSet;

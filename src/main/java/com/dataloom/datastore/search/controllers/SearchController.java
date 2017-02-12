@@ -43,7 +43,7 @@ import com.dataloom.authorization.EdmAuthorizationHelper;
 import com.dataloom.authorization.Permission;
 import com.dataloom.authorization.Principals;
 import com.dataloom.datastore.services.SearchService;
-import com.dataloom.edm.internal.EntitySet;
+import com.dataloom.edm.EntitySet;
 import com.dataloom.mappers.ObjectMappers;
 import com.dataloom.search.SearchApi;
 import com.dataloom.search.requests.SearchRequest;

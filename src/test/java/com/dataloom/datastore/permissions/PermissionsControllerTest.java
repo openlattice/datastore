@@ -20,9 +20,7 @@
 package com.dataloom.datastore.permissions;
 
 import java.util.EnumSet;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 
 import org.junit.Assert;
@@ -30,27 +28,15 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.spark_project.guava.collect.Iterables;
 
-import com.auth0.jwt.internal.org.apache.commons.lang3.RandomStringUtils;
-import com.dataloom.authorization.AccessCheck;
 import com.dataloom.authorization.Ace;
 import com.dataloom.authorization.Acl;
 import com.dataloom.authorization.AclData;
 import com.dataloom.authorization.Action;
-import com.dataloom.authorization.AuthorizationsApi;
 import com.dataloom.authorization.Permission;
-import com.dataloom.authorization.PermissionsApi;
-import com.dataloom.datastore.BootstrapDatastoreWithCassandra;
 import com.dataloom.datastore.authentication.MultipleAuthenticatedUsersBase;
-import com.dataloom.edm.EdmApi;
-import com.dataloom.edm.internal.EntitySet;
-import com.dataloom.edm.internal.EntityType;
-import com.dataloom.edm.internal.PropertyType;
-import com.dataloom.mapstores.TestDataFactory;
-import com.google.common.base.Optional;
+import com.dataloom.edm.EntitySet;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-
-import retrofit2.Retrofit;
 
 public class PermissionsControllerTest extends MultipleAuthenticatedUsersBase {
     protected static List<UUID> entitySetAclKey;

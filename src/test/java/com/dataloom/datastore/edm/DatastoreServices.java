@@ -29,6 +29,6 @@ public class DatastoreServices extends RhizomeApplicationServer {
                 Pods.concatenate( pods,
                         Datastore.datastorePods,
                         Datastore.rhizomePods,
-                        RhizomeApplicationServer.defaultPods ) );
+                        RhizomeApplicationServer.DEFAULT_PODS ) );
     }
 }

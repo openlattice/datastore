@@ -34,7 +34,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.dataloom.data.events.EntityDataCreatedEvent;
-import com.dataloom.edm.internal.PropertyType;
+import com.dataloom.edm.PropertyType;
 import com.dataloom.mappers.ObjectMappers;
 import com.datastax.driver.core.BoundStatement;
 import com.datastax.driver.core.PreparedStatement;
@@ -141,7 +141,9 @@ public class CassandraDataManager {
             
             Map<UUID, String> authorizedPropertyValues = Maps.newHashMap();
             //Stream<Entry<UUID, Object>> authorizedPropertyValues = propertyValues.entries().stream().filter( entry -> authorizedProperties.contains( entry.getKey() ) );
-            propertyValues.entries().stream().filter( entry -> authorizedProperties.contains( entry.getKey() ) ).forEach( entry -> {
+            propertyValues.entries().stream()
+                    .filter( entry -> authorizedProperties.contains( entry.getKey() ) )
+                    .forEach( entry -> {
                         results.add( session.executeAsync(
                                 writeDataQuery.bind()
                                         .setString( CommonColumns.ENTITYID.cql(), entity.getKey() )
@@ -153,6 +155,7 @@ public class CassandraDataManager {
                                                         authorizedPropertiesWithDataType
                                                                 .get( entry.getKey() ),
                                                         entity.getKey() ) ) ) );
+                        //TODO: wtf move this
                         try {
                             authorizedPropertyValues.put( entry.getKey(), ObjectMappers.getJsonMapper().writeValueAsString( entry.getValue() ) );
                         } catch ( JsonProcessingException e ) {

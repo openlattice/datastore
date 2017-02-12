@@ -29,7 +29,7 @@ import com.dataloom.datasource.UUIDs.Syncs;
 import com.dataloom.datastore.constants.CustomMediaType;
 import com.dataloom.datastore.services.CassandraDataManager;
 import com.dataloom.datastore.services.SyncTicketService;
-import com.dataloom.edm.PropertyType;
+import com.dataloom.edm.type.PropertyType;
 import com.dataloom.edm.processors.EdmPrimitiveTypeKindGetter;
 import com.google.common.base.Optional;
 import com.google.common.cache.CacheBuilder;

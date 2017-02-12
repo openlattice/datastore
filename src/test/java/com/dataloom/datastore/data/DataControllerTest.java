@@ -35,7 +35,7 @@ import com.dataloom.data.requests.EntitySetSelection;
 import com.dataloom.datasource.UUIDs.Syncs;
 import com.dataloom.datastore.authentication.MultipleAuthenticatedUsersBase;
 import com.dataloom.edm.EntitySet;
-import com.dataloom.edm.EntityType;
+import com.dataloom.edm.type.EntityType;
 import com.dataloom.mapstores.TestDataFactory;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableSet;

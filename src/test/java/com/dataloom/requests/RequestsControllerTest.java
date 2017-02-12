@@ -38,7 +38,7 @@ import com.dataloom.authorization.Authorization;
 import com.dataloom.authorization.Permission;
 import com.dataloom.datastore.authentication.MultipleAuthenticatedUsersBase;
 import com.dataloom.edm.EntitySet;
-import com.dataloom.edm.EntityType;
+import com.dataloom.edm.type.EntityType;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;

@@ -29,7 +29,7 @@ import org.junit.Test;
 
 import com.dataloom.datastore.authentication.MultipleAuthenticatedUsersBase;
 import com.dataloom.edm.EntitySet;
-import com.dataloom.edm.EntityType;
+import com.dataloom.edm.type.EntityType;
 import com.dataloom.mappers.ObjectMappers;
 import com.dataloom.search.requests.SearchRequest;
 import com.fasterxml.jackson.core.JsonProcessingException;

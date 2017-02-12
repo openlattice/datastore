@@ -34,7 +34,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.dataloom.data.events.EntityDataCreatedEvent;
-import com.dataloom.edm.PropertyType;
+import com.dataloom.edm.type.PropertyType;
 import com.dataloom.mappers.ObjectMappers;
 import com.datastax.driver.core.BoundStatement;
 import com.datastax.driver.core.PreparedStatement;

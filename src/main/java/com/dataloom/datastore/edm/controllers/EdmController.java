@@ -32,6 +32,8 @@ import javax.servlet.http.HttpServletResponse;
 import org.apache.olingo.commons.api.edm.FullQualifiedName;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -40,6 +42,9 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.auth0.jwt.internal.org.apache.commons.lang3.StringUtils;
+import com.auth0.spring.security.api.Auth0JWTToken;
+import com.dataloom.authentication.LoomAuth0AuthenticationProvider;
 import com.dataloom.authorization.AbstractSecurableObjectResolveTypeService;
 import com.dataloom.authorization.AuthorizationManager;
 import com.dataloom.authorization.AuthorizingComponent;
@@ -88,6 +93,9 @@ public class EdmController implements EdmApi, AuthorizingComponent {
     
     @Inject
     private AbstractSecurableObjectResolveTypeService securableObjectTypes;
+    
+    @Inject
+    private LoomAuth0AuthenticationProvider authProvider;
 
     @Override
     @RequestMapping(
@@ -251,18 +259,26 @@ public class EdmController implements EdmApi, AuthorizingComponent {
             @RequestParam(
                     value = FILE_TYPE,
                     required = true ) FileType fileType,
+            @RequestParam(
+                    value = TOKEN,
+                    required = false ) String token,
             HttpServletResponse response ) {
         setContentDisposition( response, namespace + "." + name, fileType );
         setDownloadContentType( response, fileType );
 
-        return getSchemaContentsFormatted( namespace, name, fileType );
+        return getSchemaContentsFormatted( namespace, name, fileType, token );
     }
 
     @Override
     public Schema getSchemaContentsFormatted(
             String namespace,
             String name,
-            FileType fileType ) {
+            FileType fileType,
+            String token ) {
+    	if( StringUtils.isNotBlank( token ) ) {
+            Authentication authentication = authProvider.authenticate( new Auth0JWTToken( token ) );
+            SecurityContextHolder.getContext().setAuthentication( authentication );
+        }
         return schemaManager.getSchema( namespace, name );
     }
 

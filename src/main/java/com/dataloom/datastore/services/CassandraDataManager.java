@@ -86,13 +86,36 @@ public class CassandraDataManager {
             UUID entitySetId,
             Set<UUID> syncIds,
             Map<UUID, PropertyType> authorizedPropertyTypes ) {
-        Set<UUID> authorizedProperties = authorizedPropertyTypes.keySet();
+        Iterable<ResultSet> entityRows = getRows( entitySetId, syncIds, authorizedPropertyTypes.keySet() );
+        return Iterables.transform( entityRows,
+                rs -> rowToEntity( rs, authorizedPropertyTypes ) )::iterator;
+    }
+
+    public Iterable<SetMultimap<UUID, Object>> getEntitySetDataIndexedById(
+            UUID entitySetId,
+            Set<UUID> syncIds,
+            Map<UUID, PropertyType> authorizedPropertyTypes ) {
+        Iterable<ResultSet> entityRows = getRows( entitySetId, syncIds, authorizedPropertyTypes.keySet() );
+        return Iterables.transform( entityRows,
+                rs -> rowToEntityIndexedById( rs, authorizedPropertyTypes ) )::iterator;
+    }
+
+    public SetMultimap<FullQualifiedName, Object> rowToEntity( ResultSet rs, Map<UUID, PropertyType> authorizedPropertyTypes ){
+        return RowAdapters.entity( rs, authorizedPropertyTypes, mapper );
+    }
+
+    public SetMultimap<UUID, Object> rowToEntityIndexedById( ResultSet rs, Map<UUID, PropertyType> authorizedPropertyTypes ){
+        return RowAdapters.entityIndexedById( rs, authorizedPropertyTypes, mapper );
+    }
+    
+    private Iterable<ResultSet> getRows(
+            UUID entitySetId,
+            Set<UUID> syncIds,
+            Set<UUID> authorizedProperties ) {
         Iterable<String> entityIds = getEntityIds( entitySetId, syncIds );
         Iterable<ResultSetFuture> entityFutures = Iterables.transform( entityIds,
                 entityId -> asyncLoadEntity( entityId, syncIds, authorizedProperties ) );
-        Iterable<ResultSet> entityRows = Iterables.transform( entityFutures, ResultSetFuture::getUninterruptibly );
-        return Iterables.transform( entityRows,
-                rs -> RowAdapters.entity( rs, authorizedPropertyTypes, mapper ) )::iterator;
+        return Iterables.transform( entityFutures, ResultSetFuture::getUninterruptibly );
     }
 
     // TODO Unexposed (yet) method. Would you batch this with the previous one? If yes, their return type needs to match
@@ -114,7 +137,7 @@ public class CassandraDataManager {
         return Iterables.filter( Iterables.transform( entityIds, RowAdapters::entityId ), StringUtils::isNotBlank );
     }
 
-    private ResultSetFuture asyncLoadEntity( String entityId, Set<UUID> syncIds, Set<UUID> authorizedProperties ) {
+    public ResultSetFuture asyncLoadEntity( String entityId, Set<UUID> syncIds, Set<UUID> authorizedProperties ) {
         return session.executeAsync( entitySetQuery.bind()
                 .setString( CommonColumns.ENTITYID.cql(), entityId )
                 .setSet( CommonColumns.SYNCID.cql(), syncIds )

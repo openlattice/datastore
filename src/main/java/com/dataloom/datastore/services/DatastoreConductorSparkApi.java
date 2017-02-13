@@ -174,7 +174,7 @@ public class DatastoreConductorSparkApi implements ConductorSparkApi {
     @Override
     public List<Map<String, Object>> executeEntitySetDataSearchAcrossIndices(
             Set<UUID> entitySetIds,
-            Map<UUID, String> fieldSearches,
+            Map<UUID, Set<String>> fieldSearches,
             int size,
             boolean explain ) {
         throw new NotImplementedException(

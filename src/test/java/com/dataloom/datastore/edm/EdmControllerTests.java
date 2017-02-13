@@ -35,14 +35,12 @@ import org.slf4j.LoggerFactory;
 import com.dataloom.datastore.authentication.AuthenticatedRestCallsTest;
 import com.dataloom.edm.EdmApi;
 import com.dataloom.edm.EntityDataModel;
-import com.dataloom.edm.internal.EntitySet;
-import com.dataloom.edm.internal.EntityType;
-import com.dataloom.edm.internal.PropertyType;
+import com.dataloom.edm.EntitySet;
+import com.dataloom.edm.type.EntityType;
+import com.dataloom.edm.type.PropertyType;
 import com.dataloom.mapstores.TestDataFactory;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableSet;
-import com.squareup.okhttp.MediaType;
-import com.squareup.okhttp.RequestBody;
 
 public class EdmControllerTests extends BootstrapDatastoreWithCassandra {
     private final static Logger logger = LoggerFactory.getLogger( AuthenticatedRestCallsTest.class );

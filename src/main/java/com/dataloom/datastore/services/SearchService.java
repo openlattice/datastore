@@ -32,11 +32,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.dataloom.authorization.AbstractSecurableObjectResolveTypeService;
-import com.dataloom.authorization.AclData;
 import com.dataloom.authorization.AuthorizationManager;
 import com.dataloom.authorization.Permission;
 import com.dataloom.authorization.Principal;
-import com.dataloom.authorization.SecurableObjectType;
+import com.dataloom.authorization.securable.SecurableObjectType;
 import com.dataloom.authorization.events.AclUpdateEvent;
 import com.dataloom.data.events.EntityDataCreatedEvent;
 import com.dataloom.edm.events.EntitySetCreatedEvent;

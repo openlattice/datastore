@@ -34,7 +34,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.dataloom.data.events.EntityDataCreatedEvent;
-import com.dataloom.edm.internal.PropertyType;
+import com.dataloom.edm.type.PropertyType;
 import com.dataloom.mappers.ObjectMappers;
 import com.datastax.driver.core.BoundStatement;
 import com.datastax.driver.core.PreparedStatement;
@@ -50,7 +50,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import com.google.common.collect.SetMultimap;
 import com.google.common.eventbus.EventBus;
-import com.kryptnostic.conductor.rpc.odata.Tables;
+import com.kryptnostic.conductor.rpc.odata.Table;
 import com.kryptnostic.datastore.cassandra.CommonColumns;
 import com.kryptnostic.datastore.cassandra.RowAdapters;
 import com.kryptnostic.rhizome.cassandra.CassandraTableBuilder;
@@ -73,8 +73,8 @@ public class CassandraDataManager {
     public CassandraDataManager( Session session, ObjectMapper mapper ) {
         this.session = session;
         this.mapper = mapper;
-        CassandraTableBuilder idLookupTableDefinitions = Tables.ENTITY_ID_LOOKUP.getBuilder();
-        CassandraTableBuilder dataTableDefinitions = Tables.DATA.getBuilder();
+        CassandraTableBuilder idLookupTableDefinitions = Table.ENTITY_ID_LOOKUP.getBuilder();
+        CassandraTableBuilder dataTableDefinitions = Table.DATA.getBuilder();
 
         this.entitySetQuery = prepareEntitySetQuery( session, dataTableDefinitions );
         this.entityIdsQuery = prepareEntityIdsQuery( session );
@@ -141,7 +141,9 @@ public class CassandraDataManager {
             
             Map<UUID, String> authorizedPropertyValues = Maps.newHashMap();
             //Stream<Entry<UUID, Object>> authorizedPropertyValues = propertyValues.entries().stream().filter( entry -> authorizedProperties.contains( entry.getKey() ) );
-            propertyValues.entries().stream().filter( entry -> authorizedProperties.contains( entry.getKey() ) ).forEach( entry -> {
+            propertyValues.entries().stream()
+                    .filter( entry -> authorizedProperties.contains( entry.getKey() ) )
+                    .forEach( entry -> {
                         results.add( session.executeAsync(
                                 writeDataQuery.bind()
                                         .setString( CommonColumns.ENTITYID.cql(), entity.getKey() )
@@ -153,6 +155,7 @@ public class CassandraDataManager {
                                                         authorizedPropertiesWithDataType
                                                                 .get( entry.getKey() ),
                                                         entity.getKey() ) ) ) );
+                        //TODO: wtf move this
                         try {
                             authorizedPropertyValues.put( entry.getKey(), ObjectMappers.getJsonMapper().writeValueAsString( entry.getValue() ) );
                         } catch ( JsonProcessingException e ) {
@@ -192,7 +195,7 @@ public class CassandraDataManager {
     private static PreparedStatement prepareEntityIdsQuery( Session session ) {
         return session.prepare( QueryBuilder
                 .select( CommonColumns.ENTITYID.cql() )
-                .from( Tables.ENTITY_ID_LOOKUP.getKeyspace(), Tables.ENTITY_ID_LOOKUP.getName() )
+                .from( Table.ENTITY_ID_LOOKUP.getKeyspace(), Table.ENTITY_ID_LOOKUP.getName() )
                 .where( QueryBuilder.eq( CommonColumns.ENTITY_SET_ID.cql(), QueryBuilder.bindMarker() ) )
                 .and( QueryBuilder.in( CommonColumns.SYNCID.cql(), CommonColumns.SYNCID.bindMarker() ) ) );
     }

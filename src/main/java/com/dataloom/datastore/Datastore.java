@@ -68,7 +68,7 @@ public class Datastore extends BaseRhizomeServer {
                 pods,
                 webPods,
                 rhizomePods,
-                RhizomeApplicationServer.defaultPods,
+                RhizomeApplicationServer.DEFAULT_PODS,
                 datastorePods ) );
     }
 

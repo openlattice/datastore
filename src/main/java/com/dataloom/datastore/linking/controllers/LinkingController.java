@@ -80,12 +80,13 @@ public class LinkingController implements LinkingApi, AuthorizingComponent {
             + SET, consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE )
     public UUID linkEntitySets( @RequestBody LinkingEntitySet linkingEntitySet ) {
         EntitySet entitySet = linkingEntitySet.getEntitySet();
+        //TODO do you need to call createEntitySet in Edm here?
         Set<Map<UUID, UUID>> linkingProperties = linkingEntitySet.getLinkingProperties();
 
         // Validate, compute the set of property types after merging - by default PII fields are left out.
         Multimap<UUID, UUID> linkingMap = validateAndGetLinkingMultimap( linkingProperties );
 
-        return linkingService.link( linkingMap, linkingProperties );
+        return linkingService.link( entitySet, linkingMap, linkingProperties );
     }
 
     @Override public UUID linkEntities(

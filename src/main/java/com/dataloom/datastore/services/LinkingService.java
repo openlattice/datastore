@@ -14,6 +14,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.dataloom.datasource.UUIDs.Syncs;
+import com.dataloom.edm.EntitySet;
 import com.dataloom.graph.GraphUtil;
 import com.dataloom.graph.HazelcastLinkingGraphs;
 import com.dataloom.graph.LinkingEdge;
@@ -55,14 +56,14 @@ public class LinkingService {
         eventBus.register( this );
     }
     
-    public UUID link( Multimap<UUID, UUID> linkingMap, Set<Map<UUID, UUID>> linkingProperties ){
+    public UUID link( EntitySet entitySet, Multimap<UUID, UUID> linkingMap, Set<Map<UUID, UUID>> linkingProperties ){
         Map<UUID, UUID> entitySetsWithSyncIds = linkingMap.keySet().stream().collect( Collectors.toMap( esId -> esId, esId -> Syncs.BASE.getSyncId() ) );
 
         initialize( entitySetsWithSyncIds, linkingMap, linkingProperties );
 
         //Create Linked Entity Set
         //TODO Fix
-        UUID linkedEntitySetId = UUID.randomUUID();
+        UUID linkedEntitySetId = entitySet.getId();
         
         //Blocking: For each row in the entity sets turned dataframes, fire off query to elasticsearch
         Stream<UnorderedPair<Entity>> pairs = blocker.block();
@@ -87,6 +88,7 @@ public class LinkingService {
             executor.submit( ConductorCall
                     .wrap( Lambdas.clustering( linkedEntitySetId ) ) )
                     .get();
+            return linkedEntitySetId;
         } catch ( InterruptedException | ExecutionException e ) {
             logger.error( "Linking entity sets failed.", e );
         }

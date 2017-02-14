@@ -4,6 +4,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import javax.annotation.PostConstruct;
@@ -12,6 +13,7 @@ import javax.inject.Inject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.dataloom.datasource.UUIDs.Syncs;
 import com.dataloom.graph.GraphUtil;
 import com.dataloom.graph.HazelcastLinkingGraphs;
 import com.dataloom.graph.LinkingEdge;
@@ -53,7 +55,9 @@ public class LinkingService {
         eventBus.register( this );
     }
     
-    public UUID link( Map<UUID, UUID> entitySetsWithSyncIds, Multimap<UUID, UUID> linkingMap, Set<Map<UUID, UUID>> linkingProperties ){
+    public UUID link( Multimap<UUID, UUID> linkingMap, Set<Map<UUID, UUID>> linkingProperties ){
+        Map<UUID, UUID> entitySetsWithSyncIds = linkingMap.keySet().stream().collect( Collectors.toMap( esId -> esId, esId -> Syncs.BASE.getSyncId() ) );
+
         initialize( entitySetsWithSyncIds, linkingMap, linkingProperties );
 
         //Create Linked Entity Set

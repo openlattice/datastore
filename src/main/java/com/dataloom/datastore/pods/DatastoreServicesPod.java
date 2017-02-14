@@ -33,6 +33,7 @@ import com.dataloom.edm.properties.CassandraTypeManager;
 import com.dataloom.edm.schemas.SchemaQueryService;
 import com.dataloom.edm.schemas.cassandra.CassandraSchemaQueryService;
 import com.dataloom.edm.schemas.manager.HazelcastSchemaManager;
+import com.dataloom.linking.HazelcastListingService;
 import com.dataloom.mappers.ObjectMappers;
 import com.dataloom.organizations.HazelcastOrganizationService;
 import com.dataloom.requests.*;
@@ -135,6 +136,11 @@ public class DatastoreServicesPod {
     @Bean
     public HazelcastAclKeyReservationService aclKeyReservationService() {
         return new HazelcastAclKeyReservationService( hazelcastInstance );
+    }
+
+    @Bean
+    public HazelcastListingService hazelcastListingService(){
+        return new HazelcastListingService( hazelcastInstance );
     }
 
     @Bean

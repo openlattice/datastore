@@ -210,7 +210,6 @@ public class CassandraDataManager {
     private static Select.Where entitySetQuery( CassandraTableBuilder ctb ) {
         return ctb.buildLoadAllQuery().where( QueryBuilder
                 .eq( CommonColumns.ENTITYID.cql(), CommonColumns.ENTITYID.bindMarker() ) )
-                .and( QueryBuilder.in( CommonColumns.SYNCID.cql(), CommonColumns.SYNCID.bindMarker() ) )
                 .and( QueryBuilder.in( CommonColumns.PROPERTY_TYPE_ID.cql(),
                         CommonColumns.PROPERTY_TYPE_ID.bindMarker() ) );
     }

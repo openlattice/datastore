@@ -1,13 +1,23 @@
+/*
+ * Copyright (C) 2017. Kryptnostic, Inc (dba Loom)
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * You can contact the owner of the copyright at support@thedataloom.com
+ */
+
 package com.dataloom.datastore.linking.controllers;
-
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
-import java.util.UUID;
-
-import javax.inject.Inject;
 
 import com.dataloom.authorization.AuthorizationManager;
 import com.dataloom.authorization.AuthorizingComponent;
@@ -15,60 +25,105 @@ import com.dataloom.authorization.Permission;
 import com.dataloom.data.EntityKey;
 import com.dataloom.datastore.services.LinkingService;
 import com.dataloom.edm.EntitySet;
+import com.dataloom.edm.set.LinkingEntitySet;
 import com.dataloom.edm.type.EntityType;
+import com.dataloom.edm.type.LinkingEntityType;
+import com.dataloom.linking.HazelcastListingService;
 import com.dataloom.linking.LinkingApi;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 import com.kryptnostic.datastore.services.EdmManager;
+import org.springframework.http.MediaType;
+import org.springframework.web.bind.annotation.*;
+import retrofit2.http.Body;
+import retrofit2.http.Path;
 
+import javax.inject.Inject;
+import java.util.*;
+
+/**
+ * @author Matthew Tamayo-Rios &lt;matthew@kryptnostic.com&gt;
+ */
+@RestController
+@RequestMapping( LinkingApi.CONTROLLER )
 public class LinkingController implements LinkingApi, AuthorizingComponent {
 
     @Inject
-    private AuthorizationManager authz;
+    private AuthorizationManager authorizationManager;
 
     @Inject
-    private EdmManager           dms;
+    private EdmManager edm;
 
     @Inject
-    private LinkingService       linkingService;
+    private HazelcastListingService listings;
+
+
+    @Inject
+    private LinkingService linkingService;
 
     @Override
-    public UUID linkEntitySets( Map<UUID, UUID> entitySetsWithSyncIds, Set<Map<UUID, UUID>> linkingProperties ) {
+    @PostMapping( value = "/"
+            + TYPE, consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE )
+    public UUID createLinkingEntityType( @RequestBody LinkingEntityType linkingEntityType ) {
+        EntityType entityType = linkingEntityType.getLinkingEntityType();
+        edm.createEntityType( entityType );
+        listings.setLinkedEntityTypes( entityType.getId(), linkingEntityType.getLinkedEntityTypes() );
+        return entityType.getId();
+    }
+
+    @Override
+    @PostMapping( value = "/"
+            + SET, consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE )
+    public UUID linkEntitySets( @RequestBody LinkingEntitySet linkingEntitySet ) {
+        EntitySet entitySet = linkingEntitySet.getEntitySet();
+        Set<Map<UUID,UUID>> linkingProperties = linkingEntitySet.getLinkingProperties();
+        
         // Validate, compute the set of property types after merging - by default PII fields are left out.
         Multimap<UUID, UUID> linkingMap = validateAndGetLinkingMultimap( entitySetsWithSyncIds, linkingProperties );
 
         return linkingService.link( entitySetsWithSyncIds, linkingMap, linkingProperties );
     }
 
-    @Override
-    public UUID linkEntities( UUID syncId, UUID entitySetId, UUID entityId, Set<EntityKey> entities ) {
-        // TODO Auto-generated method stub
+    @Override public UUID linkEntities(
+            @Path( SYNC_ID ) UUID syncId,
+            @Path( SET_ID ) UUID entitySetId,
+            @Path( ENTITY_ID ) UUID entityId,
+            @Body Set<EntityKey> entities ) {
         return null;
     }
 
-    @Override
-    public Void setLinkedEntities( UUID syncId, UUID entitySetId, UUID entityId, Set<EntityKey> entities ) {
-        // TODO Auto-generated method stub
+    @Override public Void setLinkedEntities(
+            @Path( SYNC_ID ) UUID syncId,
+            @Path( SET_ID ) UUID entitySetId,
+            @Path( ENTITY_ID ) UUID entityId,
+            @Body Set<EntityKey> entities ) {
         return null;
     }
 
-    @Override
-    public Void deleteLinkedEntities( UUID syncId, UUID entitySetId, UUID entityId ) {
-        // TODO Auto-generated method stub
+    @Override public Void deleteLinkedEntities(
+            @Path( SYNC_ID ) UUID syncId, @Path( SET_ID ) UUID entitySetId, @Path( ENTITY_ID ) UUID entityId ) {
         return null;
     }
 
-    @Override
-    public Void addLinkedEntities( UUID syncId, UUID entitySetId, UUID entityId, UUID linkedEntityId ) {
-        // TODO Auto-generated method stub
+    @Override public Void addLinkedEntities(
+            @Path( SYNC_ID ) UUID syncId,
+            @Path( SET_ID ) UUID entitySetId,
+            @Path( ENTITY_ID ) UUID entityId,
+            @Path( LINKED_ENTITY_ID ) UUID linkedEntityId ) {
         return null;
     }
 
-    @Override
-    public Void removeLinkedEntity( UUID syncId, UUID entitySetId, UUID entityId, UUID linkedEntityId ) {
-        // TODO Auto-generated method stub
+    @Override public Void removeLinkedEntity(
+            @Path( SYNC_ID ) UUID syncId,
+            @Path( SET_ID ) UUID entitySetId,
+            @Path( ENTITY_ID ) UUID entityId,
+            @Path( LINKED_ENTITY_ID ) UUID linkedEntityId ) {
         return null;
+    }
+
+    @Override public AuthorizationManager getAuthorizationManager() {
+        return authorizationManager;
     }
 
     private Multimap<UUID, UUID> validateAndGetLinkingMultimap( Map<UUID, UUID> entitySetsWithSyncIds, Set<Map<UUID, UUID>> linkingProperties ) {
@@ -90,17 +145,17 @@ public class LinkingController implements LinkingApi, AuthorizingComponent {
 
         // Sanity check
         linkingES.stream().forEach( entitySetId -> ensureLinkAccess( Arrays.asList( entitySetId ) ) );
-        
+
         Preconditions.checkArgument( linkingES.equals( entitySetsWithSyncIds.keySet() ), "Entity Sets and Linking Properties are not compatible." );
-        
+
         // Compute the set of property types needed for each entity set + the property types needed after merging.
         // Select the entity set with linked properties, read them in spark.
         Multimap<UUID, UUID> readablePropertiesMap = HashMultimap.create();
         for ( UUID esId : linkingES ) {
             // add readable properties
-            EntitySet es = dms.getEntitySet( esId );
-            EntityType et = dms.getEntityType( es.getEntityTypeId() );
-            dms.getPropertyTypes( et.getProperties() ).stream().filter( pt -> {
+            EntitySet es = edm.getEntitySet( esId );
+            EntityType et = edm.getEntityType( es.getEntityTypeId() );
+            edm.getPropertyTypes( et.getProperties() ).stream().filter( pt -> {
                 List<UUID> aclKey = Arrays.asList( esId, pt.getId() );
                 // By default, remove PII fields in linked entity set
                 return isAuthorized( Permission.READ ).test( aclKey ) && !pt.isPIIfield();
@@ -111,11 +166,6 @@ public class LinkingController implements LinkingApi, AuthorizingComponent {
         }
 
         return linkingMap;
-    }
-
-    @Override
-    public AuthorizationManager getAuthorizationManager() {
-        return authz;
     }
 
 }

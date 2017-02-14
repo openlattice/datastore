@@ -27,9 +27,9 @@ import com.dataloom.edm.type.LinkingEntityType;
 import com.dataloom.linking.HazelcastListingService;
 import com.dataloom.linking.LinkingApi;
 import com.kryptnostic.datastore.services.EdmManager;
+import org.springframework.web.bind.annotation.*;
 import retrofit2.http.Body;
 import retrofit2.http.Path;
-import retrofit2.http.Query;
 
 import javax.inject.Inject;
 import java.util.Map;
@@ -39,7 +39,9 @@ import java.util.UUID;
 /**
  * @author Matthew Tamayo-Rios &lt;matthew@kryptnostic.com&gt;
  */
-public class LinkingController implements LinkingApi,AuthorizingComponent{
+@RestController
+@RequestMapping( LinkingApi.CONTROLLER )
+public class LinkingController implements LinkingApi, AuthorizingComponent {
 
     @Inject
     private AuthorizationManager authorizationManager;
@@ -51,15 +53,18 @@ public class LinkingController implements LinkingApi,AuthorizingComponent{
     private HazelcastListingService listings;
 
     @Override
-    public UUID createLinkingEntityType( LinkingEntityType linkingEntityType ) {
+    @PostMapping( "/" + TYPE )
+    public UUID createLinkingEntityType( @RequestBody LinkingEntityType linkingEntityType ) {
         EntityType entityType = linkingEntityType.getLinkingEntityType();
         edm.createEntityType( entityType );
         listings.setLinkedEntityTypes( entityType.getId(), linkingEntityType.getLinkedEntityTypes() );
         return entityType.getId();
     }
 
-    @Override public UUID linkEntitySets(
-            @Query( TYPE ) UUID linkingEntityType, @Body Set<Map<UUID, UUID>> linkingProperties ) {
+    @Override
+    @PostMapping( "/" + SET )
+    public UUID linkEntitySets(
+            @RequestParam( TYPE ) UUID linkingEntityType, @RequestBody Set<Map<UUID, UUID>> linkingProperties ) {
         return null;
     }
 

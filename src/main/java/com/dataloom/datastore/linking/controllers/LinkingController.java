@@ -19,21 +19,13 @@
 
 package com.dataloom.datastore.linking.controllers;
 
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
-import java.util.UUID;
-
-import javax.inject.Inject;
-
 import com.dataloom.authorization.AuthorizationManager;
 import com.dataloom.authorization.AuthorizingComponent;
 import com.dataloom.authorization.Permission;
 import com.dataloom.data.EntityKey;
 import com.dataloom.datastore.services.LinkingService;
 import com.dataloom.edm.EntitySet;
+import com.dataloom.edm.set.LinkingEntitySet;
 import com.dataloom.edm.type.EntityType;
 import com.dataloom.edm.type.LinkingEntityType;
 import com.dataloom.linking.HazelcastListingService;
@@ -43,9 +35,16 @@ import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 import com.kryptnostic.datastore.services.EdmManager;
 import org.springframework.http.MediaType;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 import retrofit2.http.Body;
 import retrofit2.http.Path;
+
+import javax.inject.Inject;
+import java.util.*;
+import java.util.Map.Entry;
 
 /**
  * @author Matthew Tamayo-Rios &lt;matthew@kryptnostic.com&gt;
@@ -62,9 +61,9 @@ public class LinkingController implements LinkingApi, AuthorizingComponent {
 
     @Inject
     private HazelcastListingService listings;
-    
+
     @Inject
-    private LinkingService       linkingService;
+    private LinkingService linkingService;
 
     @Override
     @PostMapping( value = "/"
@@ -79,12 +78,14 @@ public class LinkingController implements LinkingApi, AuthorizingComponent {
     @Override
     @PostMapping( value = "/"
             + SET, consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE )
-    public UUID linkEntitySets(
-            @RequestParam( TYPE ) UUID linkingEntityType, @RequestBody Set<Map<UUID, UUID>> linkingProperties ) {
-    // Validate, compute the set of property types after merging - by default PII fields are left out.
-    Multimap<UUID, UUID> linkingMap = validateAndGetLinkingMultimap( linkingProperties );
+    public UUID linkEntitySets( @RequestBody LinkingEntitySet linkingEntitySet ) {
+        EntitySet entitySet = linkingEntitySet.getEntitySet();
+        Set<Map<UUID, UUID>> linkingProperties = linkingEntitySet.getLinkingProperties();
 
-    return linkingService.link( linkingMap, linkingProperties );
+        // Validate, compute the set of property types after merging - by default PII fields are left out.
+        Multimap<UUID, UUID> linkingMap = validateAndGetLinkingMultimap( linkingProperties );
+
+        return linkingService.link( linkingMap, linkingProperties );
     }
 
     @Override public UUID linkEntities(
@@ -127,7 +128,9 @@ public class LinkingController implements LinkingApi, AuthorizingComponent {
     @Override public AuthorizationManager getAuthorizationManager() {
         return authorizationManager;
     }
+
     private Multimap<UUID, UUID> validateAndGetLinkingMultimap( Set<Map<UUID, UUID>> linkingProperties ) {
+
         Multimap<UUID, UUID> linkingMap = HashMultimap.create();
 
         linkingProperties.stream().map( m -> m.entrySet() )
@@ -146,7 +149,7 @@ public class LinkingController implements LinkingApi, AuthorizingComponent {
 
         // Sanity check
         linkingES.stream().forEach( entitySetId -> ensureLinkAccess( Arrays.asList( entitySetId ) ) );
-        
+
         // Compute the set of property types needed for each entity set + the property types needed after merging.
         // Select the entity set with linked properties, read them in spark.
         Multimap<UUID, UUID> readablePropertiesMap = HashMultimap.create();

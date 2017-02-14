@@ -140,7 +140,6 @@ public class CassandraDataManager {
     public ResultSetFuture asyncLoadEntity( String entityId, Set<UUID> syncIds, Set<UUID> authorizedProperties ) {
         return session.executeAsync( entitySetQuery.bind()
                 .setString( CommonColumns.ENTITYID.cql(), entityId )
-                .setSet( CommonColumns.SYNCID.cql(), syncIds )
                 .setSet( CommonColumns.PROPERTY_TYPE_ID.cql(), authorizedProperties ) );
     }
 

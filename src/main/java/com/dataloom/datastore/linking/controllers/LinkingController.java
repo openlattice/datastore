@@ -14,8 +14,8 @@ import com.dataloom.authorization.AuthorizingComponent;
 import com.dataloom.authorization.Permission;
 import com.dataloom.data.EntityKey;
 import com.dataloom.datastore.services.LinkingService;
-import com.dataloom.edm.internal.EntitySet;
-import com.dataloom.edm.internal.EntityType;
+import com.dataloom.edm.EntitySet;
+import com.dataloom.edm.type.EntityType;
 import com.dataloom.linking.LinkingApi;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultimap;
@@ -38,7 +38,7 @@ public class LinkingController implements LinkingApi, AuthorizingComponent {
         // Validate, compute the set of property types after merging - by default PII fields are left out.
         Multimap<UUID, UUID> linkingMap = validateAndGetLinkingMultimap( entitySetsWithSyncIds, linkingProperties );
 
-        return linkingService.executeLinking( entitySetsWithSyncIds, linkingMap, linkingProperties );
+        return linkingService.link( entitySetsWithSyncIds, linkingMap, linkingProperties );
     }
 
     @Override

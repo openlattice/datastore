@@ -27,6 +27,7 @@ import com.dataloom.edm.type.LinkingEntityType;
 import com.dataloom.linking.HazelcastListingService;
 import com.dataloom.linking.LinkingApi;
 import com.kryptnostic.datastore.services.EdmManager;
+import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
 import retrofit2.http.Body;
 import retrofit2.http.Path;
@@ -53,7 +54,8 @@ public class LinkingController implements LinkingApi, AuthorizingComponent {
     private HazelcastListingService listings;
 
     @Override
-    @PostMapping( "/" + TYPE )
+    @PostMapping( value = "/"
+            + TYPE, consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE )
     public UUID createLinkingEntityType( @RequestBody LinkingEntityType linkingEntityType ) {
         EntityType entityType = linkingEntityType.getLinkingEntityType();
         edm.createEntityType( entityType );
@@ -62,7 +64,8 @@ public class LinkingController implements LinkingApi, AuthorizingComponent {
     }
 
     @Override
-    @PostMapping( "/" + SET )
+    @PostMapping( value = "/"
+            + SET, consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE )
     public UUID linkEntitySets(
             @RequestParam( TYPE ) UUID linkingEntityType, @RequestBody Set<Map<UUID, UUID>> linkingProperties ) {
         return null;

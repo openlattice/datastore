@@ -50,7 +50,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import com.google.common.collect.SetMultimap;
 import com.google.common.eventbus.EventBus;
-import com.kryptnostic.conductor.rpc.odata.Tables;
+import com.kryptnostic.conductor.rpc.odata.Table;
 import com.kryptnostic.datastore.cassandra.CommonColumns;
 import com.kryptnostic.datastore.cassandra.RowAdapters;
 import com.kryptnostic.rhizome.cassandra.CassandraTableBuilder;
@@ -73,8 +73,8 @@ public class CassandraDataManager {
     public CassandraDataManager( Session session, ObjectMapper mapper ) {
         this.session = session;
         this.mapper = mapper;
-        CassandraTableBuilder idLookupTableDefinitions = Tables.ENTITY_ID_LOOKUP.getBuilder();
-        CassandraTableBuilder dataTableDefinitions = Tables.DATA.getBuilder();
+        CassandraTableBuilder idLookupTableDefinitions = Table.ENTITY_ID_LOOKUP.getBuilder();
+        CassandraTableBuilder dataTableDefinitions = Table.DATA.getBuilder();
 
         this.entitySetQuery = prepareEntitySetQuery( session, dataTableDefinitions );
         this.entityIdsQuery = prepareEntityIdsQuery( session );
@@ -210,7 +210,6 @@ public class CassandraDataManager {
     private static Select.Where entitySetQuery( CassandraTableBuilder ctb ) {
         return ctb.buildLoadAllQuery().where( QueryBuilder
                 .eq( CommonColumns.ENTITYID.cql(), CommonColumns.ENTITYID.bindMarker() ) )
-                .and( QueryBuilder.in( CommonColumns.SYNCID.cql(), CommonColumns.SYNCID.bindMarker() ) )
                 .and( QueryBuilder.in( CommonColumns.PROPERTY_TYPE_ID.cql(),
                         CommonColumns.PROPERTY_TYPE_ID.bindMarker() ) );
     }
@@ -218,7 +217,7 @@ public class CassandraDataManager {
     private static PreparedStatement prepareEntityIdsQuery( Session session ) {
         return session.prepare( QueryBuilder
                 .select( CommonColumns.ENTITYID.cql() )
-                .from( Tables.ENTITY_ID_LOOKUP.getKeyspace(), Tables.ENTITY_ID_LOOKUP.getName() )
+                .from( Table.ENTITY_ID_LOOKUP.getKeyspace(), Table.ENTITY_ID_LOOKUP.getName() )
                 .where( QueryBuilder.eq( CommonColumns.ENTITY_SET_ID.cql(), QueryBuilder.bindMarker() ) )
                 .and( QueryBuilder.in( CommonColumns.SYNCID.cql(), CommonColumns.SYNCID.bindMarker() ) ) );
     }

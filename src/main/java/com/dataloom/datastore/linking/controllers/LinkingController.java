@@ -19,25 +19,13 @@
 
 package com.dataloom.datastore.linking.controllers;
 
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
-import java.util.UUID;
-
-import javax.inject.Inject;
-
 import com.dataloom.authorization.AuthorizationManager;
 import com.dataloom.authorization.AuthorizingComponent;
 import com.dataloom.authorization.Permission;
 import com.dataloom.data.EntityKey;
 import com.dataloom.datastore.services.LinkingService;
 import com.dataloom.edm.EntitySet;
-<<<<<<< HEAD
 import com.dataloom.edm.set.LinkingEntitySet;
-=======
->>>>>>> fa5d859721b504133fd5ea5415d2eff9dd1d4984
 import com.dataloom.edm.type.EntityType;
 import com.dataloom.edm.type.LinkingEntityType;
 import com.dataloom.linking.HazelcastListingService;
@@ -47,16 +35,17 @@ import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 import com.kryptnostic.datastore.services.EdmManager;
 import org.springframework.http.MediaType;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 import retrofit2.http.Body;
 import retrofit2.http.Path;
 
-<<<<<<< HEAD
 import javax.inject.Inject;
 import java.util.*;
+import java.util.Map.Entry;
 
-=======
->>>>>>> fa5d859721b504133fd5ea5415d2eff9dd1d4984
 /**
  * @author Matthew Tamayo-Rios &lt;matthew@kryptnostic.com&gt;
  */
@@ -72,10 +61,6 @@ public class LinkingController implements LinkingApi, AuthorizingComponent {
 
     @Inject
     private HazelcastListingService listings;
-    
-    @Inject
-    private LinkingService       linkingService;
-
 
     @Inject
     private LinkingService linkingService;

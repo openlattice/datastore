@@ -42,15 +42,17 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 import com.kryptnostic.datastore.services.EdmManager;
-
+import org.springframework.http.MediaType;
+import org.springframework.web.bind.annotation.*;
 import retrofit2.http.Body;
 import retrofit2.http.Path;
-import retrofit2.http.Query;
 
 /**
  * @author Matthew Tamayo-Rios &lt;matthew@kryptnostic.com&gt;
  */
-public class LinkingController implements LinkingApi,AuthorizingComponent{
+@RestController
+@RequestMapping( LinkingApi.CONTROLLER )
+public class LinkingController implements LinkingApi, AuthorizingComponent {
 
     @Inject
     private AuthorizationManager authorizationManager;
@@ -65,19 +67,24 @@ public class LinkingController implements LinkingApi,AuthorizingComponent{
     private LinkingService       linkingService;
 
     @Override
-    public UUID createLinkingEntityType( LinkingEntityType linkingEntityType ) {
+    @PostMapping( value = "/"
+            + TYPE, consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE )
+    public UUID createLinkingEntityType( @RequestBody LinkingEntityType linkingEntityType ) {
         EntityType entityType = linkingEntityType.getLinkingEntityType();
         edm.createEntityType( entityType );
         listings.setLinkedEntityTypes( entityType.getId(), linkingEntityType.getLinkedEntityTypes() );
         return entityType.getId();
     }
 
-    @Override public UUID linkEntitySets(
-            @Query( TYPE ) UUID linkingEntityType, @Body Set<Map<UUID, UUID>> linkingProperties ) {
-        // Validate, compute the set of property types after merging - by default PII fields are left out.
-        Multimap<UUID, UUID> linkingMap = validateAndGetLinkingMultimap( linkingProperties );
+    @Override
+    @PostMapping( value = "/"
+            + SET, consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE )
+    public UUID linkEntitySets(
+            @RequestParam( TYPE ) UUID linkingEntityType, @RequestBody Set<Map<UUID, UUID>> linkingProperties ) {
+    // Validate, compute the set of property types after merging - by default PII fields are left out.
+    Multimap<UUID, UUID> linkingMap = validateAndGetLinkingMultimap( linkingProperties );
 
-        return linkingService.link( linkingMap, linkingProperties );
+    return linkingService.link( linkingMap, linkingProperties );
     }
 
     @Override public UUID linkEntities(

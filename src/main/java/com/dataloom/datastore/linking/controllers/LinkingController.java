@@ -19,6 +19,22 @@
 
 package com.dataloom.datastore.linking.controllers;
 
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+import java.util.stream.Collectors;
+
+import javax.inject.Inject;
+
+import org.springframework.http.MediaType;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
 import com.dataloom.authorization.AuthorizationManager;
 import com.dataloom.authorization.AuthorizingComponent;
 import com.dataloom.authorization.Permission;
@@ -33,20 +49,11 @@ import com.dataloom.linking.HazelcastListingService;
 import com.dataloom.linking.LinkingApi;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultimap;
-import com.google.common.collect.Multimap;
 import com.google.common.collect.SetMultimap;
 import com.kryptnostic.datastore.services.EdmManager;
-import org.springframework.http.MediaType;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+
 import retrofit2.http.Body;
 import retrofit2.http.Path;
-
-import javax.inject.Inject;
-import java.util.*;
-import java.util.Map.Entry;
 
 /**
  * @author Matthew Tamayo-Rios &lt;matthew@kryptnostic.com&gt;
@@ -56,34 +63,47 @@ import java.util.Map.Entry;
 public class LinkingController implements LinkingApi, AuthorizingComponent {
 
     @Inject
-    private AuthorizationManager authorizationManager;
+    private AuthorizationManager    authorizationManager;
 
     @Inject
-    private EdmManager edm;
+    private EdmManager              edm;
 
     @Inject
     private HazelcastListingService listings;
 
     @Inject
-    private LinkingService linkingService;
+    private LinkingService          linkingService;
 
     @Override
-    @PostMapping( value = "/"
-            + TYPE, consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE )
+    @PostMapping(
+        value = "/"
+                + TYPE,
+        consumes = MediaType.APPLICATION_JSON_VALUE,
+        produces = MediaType.APPLICATION_JSON_VALUE )
     public UUID createLinkingEntityType( @RequestBody LinkingEntityType linkingEntityType ) {
         EntityType entityType = linkingEntityType.getLinkingEntityType();
+        // remove PII properties of linked entity type if deidentified flag is on.
+        if ( linkingEntityType.isDeidentified() ) {
+            Set<UUID> piiTypes = entityType.getProperties().stream()
+                    .map( propertyTypeId -> edm.getPropertyType( propertyTypeId ) ).filter( pt -> pt.isPIIfield() )
+                    .map( pt -> pt.getId() ).collect( Collectors.toSet() );
+            entityType.removePropertyTypes( piiTypes );
+        }
         edm.createEntityType( entityType );
         listings.setLinkedEntityTypes( entityType.getId(), linkingEntityType.getLinkedEntityTypes() );
         return entityType.getId();
     }
 
     @Override
-    @PostMapping( value = "/"
-            + SET, consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE )
+    @PostMapping(
+        value = "/"
+                + SET,
+        consumes = MediaType.APPLICATION_JSON_VALUE,
+        produces = MediaType.APPLICATION_JSON_VALUE )
     public UUID linkEntitySets( @RequestBody LinkingEntitySet linkingEntitySet ) {
         Set<Map<UUID, UUID>> linkingProperties = linkingEntitySet.getLinkingProperties();
 
-        // Validate, compute the ownable property types after merging - by default PII fields are left out.
+        // Validate, compute the ownable property types after merging.
         Set<UUID> ownablePropertyTypes = validateAndGetOwnablePropertyTypes( linkingProperties );
 
         EntitySet entitySet = linkingEntitySet.getEntitySet();
@@ -93,7 +113,8 @@ public class LinkingController implements LinkingApi, AuthorizingComponent {
         return linkingService.link( linkedEntitySetId, linkingProperties );
     }
 
-    @Override public UUID linkEntities(
+    @Override
+    public UUID linkEntities(
             @Path( SYNC_ID ) UUID syncId,
             @Path( SET_ID ) UUID entitySetId,
             @Path( ENTITY_ID ) UUID entityId,
@@ -101,7 +122,8 @@ public class LinkingController implements LinkingApi, AuthorizingComponent {
         return null;
     }
 
-    @Override public Void setLinkedEntities(
+    @Override
+    public Void setLinkedEntities(
             @Path( SYNC_ID ) UUID syncId,
             @Path( SET_ID ) UUID entitySetId,
             @Path( ENTITY_ID ) UUID entityId,
@@ -109,12 +131,16 @@ public class LinkingController implements LinkingApi, AuthorizingComponent {
         return null;
     }
 
-    @Override public Void deleteLinkedEntities(
-            @Path( SYNC_ID ) UUID syncId, @Path( SET_ID ) UUID entitySetId, @Path( ENTITY_ID ) UUID entityId ) {
+    @Override
+    public Void deleteLinkedEntities(
+            @Path( SYNC_ID ) UUID syncId,
+            @Path( SET_ID ) UUID entitySetId,
+            @Path( ENTITY_ID ) UUID entityId ) {
         return null;
     }
 
-    @Override public Void addLinkedEntities(
+    @Override
+    public Void addLinkedEntities(
             @Path( SYNC_ID ) UUID syncId,
             @Path( SET_ID ) UUID entitySetId,
             @Path( ENTITY_ID ) UUID entityId,
@@ -122,7 +148,8 @@ public class LinkingController implements LinkingApi, AuthorizingComponent {
         return null;
     }
 
-    @Override public Void removeLinkedEntity(
+    @Override
+    public Void removeLinkedEntity(
             @Path( SYNC_ID ) UUID syncId,
             @Path( SET_ID ) UUID entitySetId,
             @Path( ENTITY_ID ) UUID entityId,
@@ -130,43 +157,50 @@ public class LinkingController implements LinkingApi, AuthorizingComponent {
         return null;
     }
 
-    @Override public AuthorizationManager getAuthorizationManager() {
+    @Override
+    public AuthorizationManager getAuthorizationManager() {
         return authorizationManager;
     }
 
     private Set<UUID> validateAndGetOwnablePropertyTypes( Set<Map<UUID, UUID>> linkingProperties ) {
 
-        //Validate: each map in the set should have a unique value, which is distinct across the linking properties set.
+        // Validate: each map in the set should have a unique value, which is distinct across the linking properties
+        // set.
         Set<UUID> linkingES = new HashSet<>();
         Set<UUID> validatedProperties = new HashSet<>();
         SetMultimap<UUID, UUID> linkIndexedByProperties = HashMultimap.create();
-        
-        linkingProperties.stream().forEach( link -> {
-            Preconditions.checkArgument( link.values().size() == 1, "Each linking map should involve a unique property type." );
-            Preconditions.checkArgument( link.entrySet().size() > 1, "Each linking map must be matching at least two entity sets." );
-            //Get the value of common property type id in the linking map.
-            UUID propertyId = link.values().iterator().next();
-            Preconditions.checkArgument( !validatedProperties.contains( propertyId ), "There should be only one linking map that involves property id " + propertyId );
 
-            for( UUID esId : link.keySet() ){
+        linkingProperties.stream().forEach( link -> {
+            Preconditions.checkArgument( link.values().size() == 1,
+                    "Each linking map should involve a unique property type." );
+            Preconditions.checkArgument( link.entrySet().size() > 1,
+                    "Each linking map must be matching at least two entity sets." );
+            // Get the value of common property type id in the linking map.
+            UUID propertyId = link.values().iterator().next();
+            Preconditions.checkArgument( !validatedProperties.contains( propertyId ),
+                    "There should be only one linking map that involves property id " + propertyId );
+
+            for ( UUID esId : link.keySet() ) {
                 List<UUID> aclKey = Arrays.asList( esId, propertyId );
                 ensureLinkAccess( aclKey );
                 linkingES.add( esId );
                 linkIndexedByProperties.put( propertyId, esId );
             }
-        });
+        } );
 
         // Sanity check: authorized to link the entity set itself.
         linkingES.stream().forEach( entitySetId -> ensureLinkAccess( Arrays.asList( entitySetId ) ) );
 
-        // Compute the ownable property types after merging. A property type is ownable if calling user has both READ and LINK permissions for that property type in all the entity sets involved.
+        // Compute the ownable property types after merging. A property type is ownable if calling user has both READ
+        // and LINK permissions for that property type in all the entity sets involved.
         Set<UUID> ownablePropertyTypes = new HashSet<>();
-        for( UUID propertyId : linkIndexedByProperties.keySet() ){
+        for ( UUID propertyId : linkIndexedByProperties.keySet() ) {
             Set<UUID> entitySets = linkIndexedByProperties.get( propertyId );
-            
-            boolean ownable = entitySets.stream().map( esId -> Arrays.asList( esId, propertyId ) ).allMatch( isAuthorized( Permission.LINK, Permission.READ ) );
-            
-            if( ownable ){
+
+            boolean ownable = entitySets.stream().map( esId -> Arrays.asList( esId, propertyId ) )
+                    .allMatch( isAuthorized( Permission.LINK, Permission.READ ) );
+
+            if ( ownable ) {
                 ownablePropertyTypes.add( propertyId );
             }
         }

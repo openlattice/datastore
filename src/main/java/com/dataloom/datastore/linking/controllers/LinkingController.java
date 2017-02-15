@@ -22,6 +22,7 @@ package com.dataloom.datastore.linking.controllers;
 import com.dataloom.authorization.AuthorizationManager;
 import com.dataloom.authorization.AuthorizingComponent;
 import com.dataloom.authorization.Permission;
+import com.dataloom.authorization.Principals;
 import com.dataloom.data.EntityKey;
 import com.dataloom.datastore.services.LinkingService;
 import com.dataloom.edm.EntitySet;
@@ -33,6 +34,7 @@ import com.dataloom.linking.LinkingApi;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
+import com.google.common.collect.SetMultimap;
 import com.kryptnostic.datastore.services.EdmManager;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -79,14 +81,16 @@ public class LinkingController implements LinkingApi, AuthorizingComponent {
     @PostMapping( value = "/"
             + SET, consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE )
     public UUID linkEntitySets( @RequestBody LinkingEntitySet linkingEntitySet ) {
-        EntitySet entitySet = linkingEntitySet.getEntitySet();
-        //TODO do you need to call createEntitySet in Edm here?
         Set<Map<UUID, UUID>> linkingProperties = linkingEntitySet.getLinkingProperties();
 
-        // Validate, compute the set of property types after merging - by default PII fields are left out.
-        Multimap<UUID, UUID> linkingMap = validateAndGetLinkingMultimap( linkingProperties );
+        // Validate, compute the ownable property types after merging - by default PII fields are left out.
+        Set<UUID> ownablePropertyTypes = validateAndGetOwnablePropertyTypes( linkingProperties );
 
-        return linkingService.link( entitySet, linkingMap, linkingProperties );
+        EntitySet entitySet = linkingEntitySet.getEntitySet();
+        edm.createEntitySet( Principals.getCurrentUser(), entitySet, ownablePropertyTypes );
+        UUID linkedEntitySetId = entitySet.getId();
+
+        return linkingService.link( linkedEntitySetId, linkingProperties );
     }
 
     @Override public UUID linkEntities(
@@ -130,45 +134,47 @@ public class LinkingController implements LinkingApi, AuthorizingComponent {
         return authorizationManager;
     }
 
-    private Multimap<UUID, UUID> validateAndGetLinkingMultimap( Set<Map<UUID, UUID>> linkingProperties ) {
+    private Set<UUID> validateAndGetOwnablePropertyTypes( Set<Map<UUID, UUID>> linkingProperties ) {
 
-        Multimap<UUID, UUID> linkingMap = HashMultimap.create();
+        //Validate: each map in the set should have a unique value, which is distinct across the linking properties set.
+        Set<UUID> linkingES = new HashSet<>();
+        Set<UUID> validatedProperties = new HashSet<>();
+        SetMultimap<UUID, UUID> linkIndexedByProperties = HashMultimap.create();
+        
+        linkingProperties.stream().forEach( link -> {
+            Preconditions.checkArgument( link.values().size() == 1, "Each linking map should involve a unique property type." );
+            Preconditions.checkArgument( link.entrySet().size() > 1, "Each linking map must be matching at least two entity sets." );
+            //Get the value of common property type id in the linking map.
+            UUID propertyId = link.values().iterator().next();
+            Preconditions.checkArgument( !validatedProperties.contains( propertyId ), "There should be only one linking map that involves property id " + propertyId );
 
-        linkingProperties.stream().map( m -> m.entrySet() )
-                .forEach( set -> {
-                    Preconditions.checkArgument( set.size() > 1,
-                            "Map cannot have length 1, which does not match any properties." );
-                    for ( Entry<UUID, UUID> entry : set ) {
-                        List<UUID> aclKey = Arrays.asList( entry.getKey(), entry.getValue() );
-                        ensureLinkAccess( aclKey );
-                        // Add entity set id to linking Sets if nothing wrong happens so far
-                        linkingMap.put( entry.getKey(), entry.getValue() );
-                    }
-                } );
+            for( UUID esId : link.keySet() ){
+                List<UUID> aclKey = Arrays.asList( esId, propertyId );
+                ensureLinkAccess( aclKey );
+                linkingES.add( esId );
+                linkIndexedByProperties.put( propertyId, esId );
+            }
+        });
 
-        Set<UUID> linkingES = linkingMap.keySet();
-
-        // Sanity check
+        // Sanity check: authorized to link the entity set itself.
         linkingES.stream().forEach( entitySetId -> ensureLinkAccess( Arrays.asList( entitySetId ) ) );
 
-        // Compute the set of property types needed for each entity set + the property types needed after merging.
-        // Select the entity set with linked properties, read them in spark.
-        Multimap<UUID, UUID> readablePropertiesMap = HashMultimap.create();
-        for ( UUID esId : linkingES ) {
-            // add readable properties
-            EntitySet es = edm.getEntitySet( esId );
-            EntityType et = edm.getEntityType( es.getEntityTypeId() );
-            edm.getPropertyTypes( et.getProperties() ).stream().filter( pt -> {
-                List<UUID> aclKey = Arrays.asList( esId, pt.getId() );
-                // By default, remove PII fields in linked entity set
-                return isAuthorized( Permission.READ ).test( aclKey ) && !pt.isPIIfield();
-            } ).forEach( pt -> readablePropertiesMap.put( esId, pt.getId() ) );
+        // Compute the ownable property types after merging. A property type is ownable if calling user has both READ and LINK permissions for that property type in all the entity sets involved.
+        Set<UUID> ownablePropertyTypes = new HashSet<>();
+        for( UUID propertyId : linkIndexedByProperties.keySet() ){
+            Set<UUID> entitySets = linkIndexedByProperties.get( propertyId );
+            
+            boolean ownable = entitySets.stream().map( esId -> Arrays.asList( esId, propertyId ) ).allMatch( isAuthorized( Permission.LINK, Permission.READ ) );
+            
+            if( ownable ){
+                ownablePropertyTypes.add( propertyId );
+            }
         }
-        if ( readablePropertiesMap.isEmpty() ) {
-            throw new IllegalArgumentException( "There will be no readable properties in the linked entity set." );
+        if ( ownablePropertyTypes.isEmpty() ) {
+            throw new IllegalArgumentException( "There will be no ownable properties in the linked entity set." );
         }
 
-        return linkingMap;
+        return ownablePropertyTypes;
     }
 
 }

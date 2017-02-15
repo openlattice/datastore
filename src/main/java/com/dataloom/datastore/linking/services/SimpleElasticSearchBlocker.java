@@ -4,7 +4,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -21,7 +20,7 @@ import com.dataloom.linking.components.Blocker;
 import com.dataloom.linking.util.UnorderedPair;
 import com.dataloom.streams.StreamUtil;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Multimap;
+import com.google.common.collect.SetMultimap;
 import com.kryptnostic.datastore.services.EdmManager;
 
 public class SimpleElasticSearchBlocker implements Blocker {
@@ -32,7 +31,7 @@ public class SimpleElasticSearchBlocker implements Blocker {
     private SearchService              searchService;
 
     private Map<UUID, UUID>            entitySetsWithSyncIds;
-    private Multimap<UUID, UUID>       linkingMap;
+    private SetMultimap<UUID, UUID>    linkIndexedByEntitySets;
     private Set<UUID>                  linkingES;
 
     // Number of search results taken in each block.
@@ -52,10 +51,10 @@ public class SimpleElasticSearchBlocker implements Blocker {
     @Override
     public void setLinking(
             Map<UUID, UUID> entitySetsWithSyncIds,
-            Multimap<UUID, UUID> linkingMap,
-            Set<Map<UUID, UUID>> linkingProperties ) {
+            SetMultimap<UUID, UUID> linkIndexedByPropertyTypes,
+            SetMultimap<UUID, UUID> linkIndexedByEntitySets ) {
         this.entitySetsWithSyncIds = entitySetsWithSyncIds;
-        this.linkingMap = linkingMap;
+        this.linkIndexedByEntitySets = linkIndexedByEntitySets;
         this.linkingES = entitySetsWithSyncIds.keySet();
     }
 
@@ -65,45 +64,45 @@ public class SimpleElasticSearchBlocker implements Blocker {
     }
 
     private Stream<UnorderedPair<Entity>> loadEntitySets() {
-        return entitySetsWithSyncIds.keySet().stream().flatMap( this::loadEntitySet );
+        return linkingES.stream().flatMap( this::loadEntitySet );
     }
 
     private Stream<UnorderedPair<Entity>> loadEntitySet( UUID entitySetId ) {
-        // TODO update syncIds once entity key is updated.
-        Set<UUID> propertiesSet = ImmutableSet.copyOf( linkingMap.get( entitySetId ) );
+        Set<UUID> propertiesSet = ImmutableSet.copyOf( linkIndexedByEntitySets.get( entitySetId ) );
         Map<UUID, PropertyType> propertiesMap = propertiesSet.stream()
                 .collect( Collectors.toMap( ptId -> ptId, ptId -> dms.getPropertyType( ptId ) ) );
         Set<UUID> syncIds = ImmutableSet.of( entitySetsWithSyncIds.get( entitySetId ) );
         Iterable<String> entityIds = dataManager.getEntityIds( entitySetId, syncIds );
-        return StreamUtil.stream( entityIds )
-                .map( entityId -> new EntityKey( entitySetId, entityId ) )
+
+        Stream<EntityKey> entityKeys = StreamUtil.stream( entityIds )
+                .map( entityId -> new EntityKey( entitySetId, entityId ) );
+
+        Stream<Pair<EntityKey, SetMultimap<UUID, Object>>> entityKeyDataPairs = entityKeys
                 .map( key -> Pair.of( key, dataManager.asyncLoadEntity( key.getEntityId(), syncIds, propertiesSet ) ) )
-                // .map( rsfPair -> mapPair( rsfPair, ResultSetFuture::getUninterruptibly ) )
                 .map( rsfPair -> Pair.of( rsfPair.getKey(), rsfPair.getValue().getUninterruptibly() ) )
                 .map( rsPair -> Pair.of( rsPair.getKey(),
-                        dataManager.rowToEntityIndexedById( rsPair.getValue(), propertiesMap ) ) )
-                .flatMap( entityPair -> {
-                    // TODO fix the uber terrible toString later - this should be made into an OR query
-                    Map<UUID, Set<String>> properties = propertiesSet.stream()
-                            .collect( Collectors.toMap( ptId -> ptId,
-                                    ptId -> entityPair.getValue().get( ptId ).stream().map( obj -> obj.toString() )
-                                            .collect( Collectors.toSet() ) ) );
+                        dataManager.rowToEntityIndexedById( rsPair.getValue(), propertiesMap ) ) );
 
-                    Map<String, Object> propertiesWithStringIndex = properties.entrySet().stream().collect(
-                            Collectors.toMap( entry -> entry.getKey().toString(), entry -> entry.getValue() ) );
-                    Entity currentEntity = new Entity( entityPair.getKey(), propertiesWithStringIndex );
+        return entityKeyDataPairs.flatMap( entityKeyDataPair -> {
+            Map<UUID, Set<String>> properties = propertiesSet.stream()
+                    .collect( Collectors.toMap( ptId -> ptId,
+                            ptId -> entityKeyDataPair.getValue().get( ptId ).stream()
+                                    // TODO fix the uber terrible toString later
+                                    .map( obj -> obj.toString() )
+                                    .collect( Collectors.toSet() ) ) );
 
-                    List<Entity> queryResults = searchService.executeEntitySetDataSearchAcrossIndices( linkingES,
-                            properties,
-                            blockSize,
-                            explain );
+            Map<String, Object> propertiesIndexedByString = properties.entrySet().stream().collect(
+                    Collectors.toMap( entry -> entry.getKey().toString(), entry -> entry.getValue() ) );
 
-                    // return entity key
-                    return queryResults.stream().map( entity -> new UnorderedPair<Entity>( currentEntity, entity ) );
-                } );
-    }
+            // Blocking step: fire off query to elasticsearch.
+            List<Entity> queryResults = searchService.executeEntitySetDataSearchAcrossIndices( linkingES,
+                    properties,
+                    blockSize,
+                    explain );
 
-    private <R, S, T> Pair<R, T> mapPair( Pair<R, S> pair, Function<S, T> transform ) {
-        return Pair.of( pair.getKey(), transform.apply( pair.getValue() ) );
+            // return pairs of entities.
+            Entity currentEntity = new Entity( entityKeyDataPair.getKey(), propertiesIndexedByString );
+            return queryResults.stream().map( entity -> new UnorderedPair<Entity>( currentEntity, entity ) );
+        } );
     }
 }

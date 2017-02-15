@@ -23,7 +23,9 @@ import com.dataloom.linking.LinkingUtil;
 import com.dataloom.linking.components.Blocker;
 import com.dataloom.linking.components.Matcher;
 import com.dataloom.linking.util.UnorderedPair;
+import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
+import com.google.common.collect.SetMultimap;
 import com.google.common.eventbus.EventBus;
 import com.hazelcast.core.HazelcastInstance;
 import com.hazelcast.durableexecutor.DurableExecutorService;
@@ -34,16 +36,20 @@ public class LinkingService {
 
     private static final Logger          logger = LoggerFactory.getLogger( LinkingService.class );
 
-    private Blocker blocker;
-    private Matcher matcher;
-    private HazelcastLinkingGraphs linkingGraph;
+    private Blocker                      blocker;
+    private Matcher                      matcher;
+    private HazelcastLinkingGraphs       linkingGraph;
 
     @Inject
     private EventBus                     eventBus;
 
     private final DurableExecutorService executor;
 
-    public LinkingService( Blocker blocker, Matcher matcher, HazelcastLinkingGraphs linkingGraph, HazelcastInstance hazelcast ) {
+    public LinkingService(
+            Blocker blocker,
+            Matcher matcher,
+            HazelcastLinkingGraphs linkingGraph,
+            HazelcastInstance hazelcast ) {
         this.blocker = blocker;
         this.matcher = matcher;
         this.linkingGraph = linkingGraph;
@@ -55,31 +61,37 @@ public class LinkingService {
     public void initializeBus() {
         eventBus.register( this );
     }
-    
-    public UUID link( EntitySet entitySet, Multimap<UUID, UUID> linkingMap, Set<Map<UUID, UUID>> linkingProperties ){
-        Map<UUID, UUID> entitySetsWithSyncIds = linkingMap.keySet().stream().collect( Collectors.toMap( esId -> esId, esId -> Syncs.BASE.getSyncId() ) );
 
-        initialize( entitySetsWithSyncIds, linkingMap, linkingProperties );
+    public UUID link( UUID linkedEntitySetId, Set<Map<UUID, UUID>> linkingProperties ) {
+        SetMultimap<UUID, UUID> linkIndexedByPropertyTypes = getLinkIndexedByPropertyTypes( linkingProperties );
+        SetMultimap<UUID, UUID> linkIndexedByEntitySets = getLinkIndexedByEntitySets( linkingProperties );
 
-        //Create Linked Entity Set
-        //TODO Fix
-        UUID linkedEntitySetId = entitySet.getId();
-        
-        //Blocking: For each row in the entity sets turned dataframes, fire off query to elasticsearch
+        // TODO may be deprecated, depending on whether syncIds is required to do reads.
+        Map<UUID, UUID> entitySetsWithSyncIds = linkIndexedByEntitySets.keySet().stream()
+                .collect( Collectors.toMap( esId -> esId, esId -> Syncs.BASE.getSyncId() ) );
+
+        // Warning: We assume that the restrictions on links are enforced/validated as specified in LinkingApi. In particular, from now on we work on the assumption that only identical property types are linked on.
+        initialize( entitySetsWithSyncIds, linkIndexedByPropertyTypes, linkIndexedByEntitySets );
+
+        // Blocking: For each row in the entity sets turned dataframes, fire off query to elasticsearch
         Stream<UnorderedPair<Entity>> pairs = blocker.block();
 
-        //Matching: check if pair score is already calculated, presumably from HazelcastGraph Api. If not, stream through matcher to get a score.
-        pairs.filter( entityPair -> GraphUtil.isNewEdge( linkingGraph, linkedEntitySetId, LinkingUtil.getEntityKeyPair( entityPair ) ) )
-        .forEach( entityPair -> {
-            LinkingEdge edge = GraphUtil.linkingEdge( linkedEntitySetId, LinkingUtil.getEntityKeyPair( entityPair ) );
-            
-            double weight = matcher.score( entityPair );
-            
-            linkingGraph.addEdge( edge, weight );
-        });
+        // Matching: check if pair score is already calculated, presumably from HazelcastGraph Api. If not, stream
+        // through matcher to get a score.
+        pairs.filter( entityPair -> GraphUtil.isNewEdge( linkingGraph,
+                linkedEntitySetId,
+                LinkingUtil.getEntityKeyPair( entityPair ) ) )
+                .forEach( entityPair -> {
+                    LinkingEdge edge = GraphUtil.linkingEdge( linkedEntitySetId,
+                            LinkingUtil.getEntityKeyPair( entityPair ) );
 
-        //Feed the scores (i.e. the edge set) into HazelcastGraph Api
-        
+                    double weight = matcher.score( entityPair );
+
+                    linkingGraph.addEdge( edge, weight );
+                } );
+
+        // Feed the scores (i.e. the edge set) into HazelcastGraph Api
+
         /**
          * Got here right now.
          */
@@ -92,13 +104,33 @@ public class LinkingService {
         } catch ( InterruptedException | ExecutionException e ) {
             logger.error( "Linking entity sets failed.", e );
         }
-        return null;        
+        return null;
     }
-    
-    
-    private void initialize( Map<UUID, UUID> entitySetsWithSyncIds, Multimap<UUID, UUID> linkingMap, Set<Map<UUID, UUID>> linkingProperties ){
-        blocker.setLinking( entitySetsWithSyncIds, linkingMap, linkingProperties );
-        matcher.setLinking( entitySetsWithSyncIds, linkingMap, linkingProperties );
+
+    private SetMultimap<UUID, UUID> getLinkIndexedByPropertyTypes( Set<Map<UUID, UUID>> linkingProperties ) {
+        SetMultimap<UUID, UUID> result = HashMultimap.create();
+
+        linkingProperties.stream().flatMap( m -> m.entrySet().stream() )
+                .forEach( entry -> result.put( entry.getValue(), entry.getKey() ) );
+
+        return result;
+    }
+
+    private SetMultimap<UUID, UUID> getLinkIndexedByEntitySets( Set<Map<UUID, UUID>> linkingProperties ) {
+        SetMultimap<UUID, UUID> result = HashMultimap.create();
+
+        linkingProperties.stream().flatMap( m -> m.entrySet().stream() )
+                .forEach( entry -> result.put( entry.getKey(), entry.getValue() ) );
+
+        return result;
+    }
+
+    private void initialize(
+            Map<UUID, UUID> entitySetsWithSyncIds,
+            SetMultimap<UUID, UUID> linkIndexedByPropertyTypes,
+            SetMultimap<UUID, UUID> linkIndexedByEntitySets ) {
+        blocker.setLinking( entitySetsWithSyncIds, linkIndexedByPropertyTypes, linkIndexedByEntitySets );
+        matcher.setLinking( entitySetsWithSyncIds, linkIndexedByPropertyTypes, linkIndexedByEntitySets );
     }
 
 }

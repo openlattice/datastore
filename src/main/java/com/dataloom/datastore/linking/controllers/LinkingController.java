@@ -168,7 +168,7 @@ public class LinkingController implements LinkingApi, AuthorizingComponent {
         // set.
         Set<UUID> linkingES = new HashSet<>();
         Set<UUID> validatedProperties = new HashSet<>();
-        SetMultimap<UUID, UUID> linkIndexedByProperties = HashMultimap.create();
+        SetMultimap<UUID, UUID> linkIndexedByPropertyTypes = HashMultimap.create();
 
         linkingProperties.stream().forEach( link -> {
             Preconditions.checkArgument( link.values().size() == 1,
@@ -184,7 +184,7 @@ public class LinkingController implements LinkingApi, AuthorizingComponent {
                 List<UUID> aclKey = Arrays.asList( esId, propertyId );
                 ensureLinkAccess( aclKey );
                 linkingES.add( esId );
-                linkIndexedByProperties.put( propertyId, esId );
+                linkIndexedByPropertyTypes.put( propertyId, esId );
             }
         } );
 
@@ -194,8 +194,8 @@ public class LinkingController implements LinkingApi, AuthorizingComponent {
         // Compute the ownable property types after merging. A property type is ownable if calling user has both READ
         // and LINK permissions for that property type in all the entity sets involved.
         Set<UUID> ownablePropertyTypes = new HashSet<>();
-        for ( UUID propertyId : linkIndexedByProperties.keySet() ) {
-            Set<UUID> entitySets = linkIndexedByProperties.get( propertyId );
+        for ( UUID propertyId : linkIndexedByPropertyTypes.keySet() ) {
+            Set<UUID> entitySets = linkIndexedByPropertyTypes.get( propertyId );
 
             boolean ownable = entitySets.stream().map( esId -> Arrays.asList( esId, propertyId ) )
                     .allMatch( isAuthorized( Permission.LINK, Permission.READ ) );

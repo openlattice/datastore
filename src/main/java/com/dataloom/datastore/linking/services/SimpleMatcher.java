@@ -1,6 +1,6 @@
 package com.dataloom.datastore.linking.services;
 
-import java.util.HashSet;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -11,7 +11,8 @@ import org.apache.commons.lang3.StringUtils;
 import com.dataloom.linking.Entity;
 import com.dataloom.linking.components.Matcher;
 import com.dataloom.linking.util.UnorderedPair;
-import com.google.common.collect.Multimap;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.SetMultimap;
 import com.kryptnostic.datastore.services.EdmManager;
 
 /**
@@ -20,13 +21,13 @@ import com.kryptnostic.datastore.services.EdmManager;
  */
 public class SimpleMatcher implements Matcher {
 
-    private Multimap<UUID, UUID>         linkingMap;
-    private Set<Map<UUID, UUID>>         linkingProperties;
+    private SetMultimap<UUID, UUID> linkIndexedByPropertyTypes;
+    private Set<UUID>               linkingProperties;
 
-    private Map<Map<UUID, UUID>, Double> weights;
+    private Map<UUID, Double>       weights;
 
-    private final EdmManager             dms;
-    
+    private final EdmManager        dms;
+
     public SimpleMatcher(
             EdmManager dms ) {
         this.dms = dms;
@@ -35,25 +36,24 @@ public class SimpleMatcher implements Matcher {
     @Override
     public double score( UnorderedPair<Entity> entityPair ) {
         Entity[] entities = entityPair.getAsArray();
-        Entity elem0 = entities[0];
-        Entity elem1 = entities[1];
-        
+        Entity elem0 = entities[ 0 ];
+        Entity elem1 = entities[ 1 ];
+
+        UUID esId0 = elem0.getKey().getEntitySetId();
+        UUID esId1 = elem1.getKey().getEntitySetId();
+
         double score = 0;
-        for ( Map<UUID, UUID> link : linkingProperties ) {
-            UUID esId0 = elem0.getKey().getEntitySetId();
-            UUID esId1 = elem1.getKey().getEntitySetId();
-            
-            if( link.containsKey( esId0 ) && link.containsKey( esId1 ) ){
-                UUID ptId0 = link.get( esId0 );
-                UUID ptId1 = link.get( esId1 );
-                
-                if( elem0.getProperties().containsKey( ptId0.toString() ) && elem1.getProperties().containsKey( ptId1.toString() ) ){
-                    //TODO assuming singleton right now
-                    //TODO very bad toString
-                    String val0 = elem0.getProperties().get( ptId0.toString() ).toString();
-                    String val1 = elem1.getProperties().get( ptId1.toString() ).toString();
-                    
-                    score += getScore( link, val0, val1 ) * getWeight( link );
+        for ( UUID propertyTypeId : linkingProperties ) {
+
+            String pidAsString = propertyTypeId.toString();
+
+            if ( linkIndexedByPropertyTypes.get( propertyTypeId ).containsAll( ImmutableSet.of( esId0, esId1 ) ) ) {
+                // This property type is linked
+                Object val0 = elem0.getProperties().get( pidAsString );
+                Object val1 = elem1.getProperties().get( pidAsString );
+                if ( val0 != null && val1 != null ) {
+                    // Both values are non-null; score can be computed.
+                    score += getScore( propertyTypeId, val0, val1 ) * getWeight( propertyTypeId );
                 }
             }
         }
@@ -63,18 +63,20 @@ public class SimpleMatcher implements Matcher {
     @Override
     public void setLinking(
             Map<UUID, UUID> entitySetsWithSyncIds,
-            Multimap<UUID, UUID> linkingMap,
-            Set<Map<UUID, UUID>> linkingProperties ) {
-        this.linkingMap = linkingMap;
-        this.linkingProperties = linkingProperties;
+            SetMultimap<UUID, UUID> linkIndexedByPropertyTypes,
+            SetMultimap<UUID, UUID> linkIndexedByEntitySets ) {
+        this.linkIndexedByPropertyTypes = linkIndexedByPropertyTypes;
+        this.linkingProperties = linkIndexedByPropertyTypes.keySet();
         updateWeights();
     }
 
     private void updateWeights() {
+        weights = new HashMap<>();
         double totalWeight = 0;
-        for ( Map<UUID, UUID> link : linkingProperties ) {
-            double weight = getWeight( link );
-            weights.put( link, weight );
+
+        for ( UUID propertyTypeId : linkingProperties ) {
+            double weight = getWeight( propertyTypeId );
+            weights.put( propertyTypeId, weight );
             totalWeight += weight;
         }
         if ( totalWeight > 0 ) {
@@ -85,46 +87,75 @@ public class SimpleMatcher implements Matcher {
     }
 
     private void normalizeWeights( double totalWeight ) {
-        for ( Map<UUID, UUID> link : linkingProperties ) {
-            double currentWeight = weights.get( link );
-            weights.put( link, currentWeight / totalWeight );
+        for ( UUID propertyTypeId : linkingProperties ) {
+            double currentWeight = weights.get( propertyTypeId );
+            weights.put( propertyTypeId, currentWeight / totalWeight );
         }
     }
 
     private void assignEqualWeights() {
         double weight = 1D / linkingProperties.size();
-        for ( Map<UUID, UUID> link : linkingProperties ) {
-            weights.put( link, weight );
+        for ( UUID propertyTypeId : linkingProperties ) {
+            weights.put( propertyTypeId, weight );
         }
     }
 
-    private Set<String> getPropertyNames( Map<UUID, UUID> link ){
-        return dms.getPropertyTypes( new HashSet<>( link.values() ) ).stream()
-        .map( pt -> pt.getType().getName() ).collect( Collectors.toSet() );
-    }    
-
     // TODO lolz
     // Right now, 10 is something with heavy weight, 1 is smallest.
-    private double getWeight( Map<UUID, UUID> link ) {
-        Set<String> propertyNames = getPropertyNames( link );
-        if ( propertyNames.contains( "year" ) || propertyNames.contains( "date" ) || propertyNames.contains( "dob" )
-                || propertyNames.contains( "id" ) || propertyNames.contains( "ssn" ) ) {
+    private double getWeight( UUID propertyTypeId ) {
+        String propertyName = dms.getPropertyType( propertyTypeId ).getType().getName();
+        if ( propertyName.contains( "year" ) || propertyName.contains( "date" ) || propertyName.contains( "dob" )
+                || propertyName.contains( "id" ) || propertyName.contains( "ssn" ) ) {
             return 10;
-        } else if ( propertyNames.contains( "name" ) || propertyNames.contains( "firstname" )
-                || propertyNames.contains( "lastname" ) ) {
+        } else if ( propertyName.contains( "name" ) || propertyName.contains( "firstname" )
+                || propertyName.contains( "lastname" ) ) {
             return 7;
         }
         return 0;
     }
-    
+
+    private double getScore( UUID propertyTypeId, Object val0, Object val1 ) {
+        Set<String> set0;
+        Set<String> set1;
+        // TODO update the terrible toString's
+        if ( val0 instanceof Set<?> ) {
+            set0 = ( (Set<?>) val0 ).stream().map( obj -> obj.toString() ).collect( Collectors.toSet() );
+        } else {
+            set0 = ImmutableSet.of( val0.toString() );
+        }
+
+        if ( val1 instanceof Set<?> ) {
+            set1 = ( (Set<?>) val1 ).stream().map( obj -> obj.toString() ).collect( Collectors.toSet() );
+        } else {
+            set1 = ImmutableSet.of( val1.toString() );
+        }
+
+        return getScore( propertyTypeId, set0, set1 );
+    }
+
+    private double getScore( UUID propertyTypeId, Set<String> val0, Set<String> val1 ) {
+        double maxScore = 0;
+
+        for ( String s0 : val0 ) {
+            for ( String s1 : val1 ) {
+                double currentScore = getScore( propertyTypeId, s0, s1 );
+                if ( currentScore > maxScore ) {
+                    maxScore = currentScore;
+                }
+            }
+        }
+        return maxScore;
+    }
+
     /**
      * Use Jaro-Winkler for now.
+     * 
      * @param link
      * @param val0
      * @param val1
      * @return
      */
-    private double getScore( Map<UUID, UUID> link, String val0, String val1 ){
+    private double getScore( UUID propertyTypeId, String val0, String val1 ) {
         return StringUtils.getJaroWinklerDistance( val0, val1 );
     }
 }

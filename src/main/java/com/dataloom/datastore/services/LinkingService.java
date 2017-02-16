@@ -1,9 +1,11 @@
 package com.dataloom.datastore.services;
 
+import com.dataloom.clustering.ClusteringPartitioner;
 import com.dataloom.datasource.UUIDs.Syncs;
 import com.dataloom.graph.GraphUtil;
 import com.dataloom.linking.*;
 import com.dataloom.linking.components.Blocker;
+import com.dataloom.linking.components.Clusterer;
 import com.dataloom.linking.components.Matcher;
 import com.dataloom.linking.util.UnorderedPair;
 import com.google.common.collect.HashMultimap;
@@ -28,27 +30,30 @@ public class LinkingService {
 
     private static final Logger          logger = LoggerFactory.getLogger( LinkingService.class );
 
+    private HazelcastLinkingGraphs       linkingGraph;
     private Blocker                      blocker;
     private Matcher                      matcher;
-    private HazelcastLinkingGraphs       linkingGraph;
+    private Clusterer                    clusterer;
 
     private final DurableExecutorService executor;
 
     public LinkingService(
+            HazelcastLinkingGraphs linkingGraph,
             Blocker blocker,
             Matcher matcher,
-            HazelcastLinkingGraphs linkingGraph,
-            HazelcastInstance hazelcast, 
+            Clusterer clusterer,
+            HazelcastInstance hazelcast,
             EventBus eventBus ) {
-        this.blocker = blocker;
-        this.matcher = matcher;
         this.linkingGraph = linkingGraph;
 
+        this.blocker = blocker;
+        this.matcher = matcher;
+        this.clusterer = clusterer;
+
         this.executor = hazelcast.getDurableExecutorService( "default" );
-        
+
         eventBus.register( this );
     }
-
 
     public UUID link( UUID linkedEntitySetId, Set<Map<UUID, UUID>> linkingProperties ) {
         SetMultimap<UUID, UUID> linkIndexedByPropertyTypes = getLinkIndexedByPropertyTypes( linkingProperties );
@@ -58,52 +63,45 @@ public class LinkingService {
         Map<UUID, UUID> entitySetsWithSyncIds = linkIndexedByEntitySets.keySet().stream()
                 .collect( Collectors.toMap( esId -> esId, esId -> Syncs.BASE.getSyncId() ) );
 
-        // Warning: We assume that the restrictions on links are enforced/validated as specified in LinkingApi. In particular, from now on we work on the assumption that only identical property types are linked on.
-        initialize( entitySetsWithSyncIds, linkIndexedByPropertyTypes, linkIndexedByEntitySets );
+        // Warning: We assume that the restrictions on links are enforced/validated as specified in LinkingApi. In
+        // particular, from now on we work on the assumption that only identical property types are linked on.
+        initializeComponents( entitySetsWithSyncIds, linkIndexedByPropertyTypes, linkIndexedByEntitySets );
 
-        // Blocking: For each row in the entity sets turned dataframes, fire off query to elasticsearch
+        UUID graphId = linkingGraph.getGraphIdFromEntitySetId( linkedEntitySetId );
+
+        // Blocking: For each row in the entity sets, fire off query to elasticsearch
         Stream<UnorderedPair<Entity>> pairs = blocker.block();
 
-        // Matching: check if pair score is already calculated, presumably from HazelcastGraph Api. If not, stream
+        // Matching: check if pair score is already calculated from HazelcastGraph Api. If not, stream
         // through matcher to get a score.
         pairs
-                .filter( entityPair -> edgeExists( linkedEntitySetId, entityPair) )
+                .filter( entityPair -> edgeExists( graphId, entityPair ) )
                 .forEach( entityPair -> {
-                    LinkingEdge edge = fromUnorderedPair( linkedEntitySetId , entityPair );
+                    LinkingEdge edge = fromUnorderedPair( graphId, entityPair );
                     double weight = matcher.score( entityPair );
                     linkingGraph.addEdge( edge, weight );
                 } );
 
         // Feed the scores (i.e. the edge set) into HazelcastGraph Api
 
-        /**
-         * Got here right now.
-         */
-
-        try {
-            executor.submit( ConductorCall
-                    .wrap( Lambdas.clustering( linkedEntitySetId ) ) )
-                    .get();
-            return linkedEntitySetId;
-        } catch ( InterruptedException | ExecutionException e ) {
-            logger.error( "Linking entity sets failed.", e );
-        }
-        return null;
+        clusterer.cluster( graphId );
+        
+        return linkedEntitySetId;
     }
 
-    private LinkingEdge fromUnorderedPair( UUID entitySetId ,UnorderedPair<Entity> p ) {
+    private LinkingEdge fromUnorderedPair( UUID graphId, UnorderedPair<Entity> p ) {
         List<LinkingEntityKey> keys = p.getBackingCollection().stream()
-                .map( e -> new LinkingEntityKey( entitySetId, e.getKey() ) ).collect( Collectors.toList() );
+                .map( e -> new LinkingEntityKey( graphId, e.getKey() ) ).collect( Collectors.toList() );
         LinkingVertexKey u = linkingGraph.getLinkingVertextKey( keys.get( 0 ) );
         LinkingVertexKey v = linkingGraph.getLinkingVertextKey( keys.get( 1 ) );
         return new LinkingEdge( u, v );
     }
 
-    private boolean edgeExists( UUID entitySetId, UnorderedPair<Entity> p ) {
-        return linkingGraph.edgeExists( fromUnorderedPair( entitySetId, p ) );
+    private boolean edgeExists( UUID graphId, UnorderedPair<Entity> p ) {
+        return linkingGraph.edgeExists( fromUnorderedPair( graphId, p ) );
     }
 
-    private void initialize(
+    private void initializeComponents(
             Map<UUID, UUID> entitySetsWithSyncIds,
             SetMultimap<UUID, UUID> linkIndexedByPropertyTypes,
             SetMultimap<UUID, UUID> linkIndexedByEntitySets ) {
@@ -133,7 +131,7 @@ public class LinkingService {
         return result;
     }
 
-    public static Set<UUID> getLinkingSets( Set<Map<UUID, UUID>> linkingProperties ){
+    public static Set<UUID> getLinkingSets( Set<Map<UUID, UUID>> linkingProperties ) {
         return getLinkIndexedByEntitySets( linkingProperties ).keySet();
     }
 

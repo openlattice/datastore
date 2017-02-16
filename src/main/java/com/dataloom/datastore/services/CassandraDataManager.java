@@ -37,6 +37,7 @@ import org.slf4j.LoggerFactory;
 import com.dataloom.data.EntityKey;
 import com.dataloom.data.events.EntityDataCreatedEvent;
 import com.dataloom.edm.type.PropertyType;
+import com.dataloom.linking.HazelcastLinkingGraphs;
 import com.dataloom.mappers.ObjectMappers;
 import com.datastax.driver.core.BoundStatement;
 import com.datastax.driver.core.PreparedStatement;
@@ -61,22 +62,26 @@ import com.kryptnostic.rhizome.cassandra.CassandraTableBuilder;
 public class CassandraDataManager {
 
     @Inject
-    private EventBus                eventBus;
+    private EventBus                     eventBus;
 
-    private static final Logger     logger = LoggerFactory
+    private static final Logger          logger = LoggerFactory
             .getLogger( CassandraDataManager.class );
 
-    private final Session           session;
-    private final ObjectMapper      mapper;
-    private final PreparedStatement writeIdLookupQuery;
-    private final PreparedStatement writeDataQuery;
-    private final PreparedStatement entitySetQuery;
-    private final PreparedStatement entityIdsQuery;
-    private final PreparedStatement linkedEntitiesQuery;
+    private final Session                session;
+    private final ObjectMapper           mapper;
+    private final HazelcastLinkingGraphs linkingGraph;
 
-    public CassandraDataManager( Session session, ObjectMapper mapper ) {
+    private final PreparedStatement      writeIdLookupQuery;
+    private final PreparedStatement      writeDataQuery;
+    private final PreparedStatement      entitySetQuery;
+    private final PreparedStatement      entityIdsQuery;
+    private final PreparedStatement      linkedEntitiesQuery;
+
+    public CassandraDataManager( Session session, ObjectMapper mapper, HazelcastLinkingGraphs linkingGraph ) {
         this.session = session;
         this.mapper = mapper;
+        this.linkingGraph = linkingGraph;
+
         CassandraTableBuilder idLookupTableDefinitions = Table.ENTITY_ID_LOOKUP.getBuilder();
         CassandraTableBuilder dataTableDefinitions = Table.DATA.getBuilder();
 
@@ -242,8 +247,8 @@ public class CassandraDataManager {
     private static PreparedStatement prepareLinkedEntitiesQuery( Session session ) {
         return session.prepare( QueryBuilder
                 .select().all()
-                .from( Table.LINKED_ENTITIES.getKeyspace(), Table.LINKED_ENTITIES.getName() )
-                .where( QueryBuilder.eq( CommonColumns.ENTITY_SET_ID.cql(), QueryBuilder.bindMarker() ) ) );
+                .from( Table.LINKING_VERTICES.getKeyspace(), Table.LINKING_VERTICES.getName() ).allowFiltering()
+                .where( QueryBuilder.eq( CommonColumns.GRAPH_ID.cql(), QueryBuilder.bindMarker() ) ) );
     }
 
     /**
@@ -252,8 +257,9 @@ public class CassandraDataManager {
 
     private Iterable<Set<EntityKey>> getLinkedEntityKeys(
             UUID linkedEntitySetId ) {
+        UUID graphId = linkingGraph.getGraphIdFromEntitySetId( linkedEntitySetId );
         ResultSet rs = session
-                .execute( linkedEntitiesQuery.bind().setUUID( CommonColumns.ENTITY_SET_ID.cql(), linkedEntitySetId ) );
+                .execute( linkedEntitiesQuery.bind().setUUID( CommonColumns.ENTITY_SET_ID.cql(), graphId ) );
         return Iterables.transform( rs, RowAdapters::entityKeys );
     }
 

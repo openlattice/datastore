@@ -78,7 +78,7 @@ public class LinkingService {
                 .filter( entityPair -> edgeExists( graphId, entityPair ) )
                 .forEach( entityPair -> {
                     LinkingEdge edge = fromUnorderedPair( graphId, entityPair );
-                    double weight = matcher.score( entityPair );
+                    double weight = matcher.dist( entityPair );
                     linkingGraph.addEdge( edge, weight );
                 } );
 

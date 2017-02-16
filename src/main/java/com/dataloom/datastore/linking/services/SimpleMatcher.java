@@ -34,7 +34,7 @@ public class SimpleMatcher implements Matcher {
     }
 
     @Override
-    public double score( UnorderedPair<Entity> entityPair ) {
+    public double dist( UnorderedPair<Entity> entityPair ) {
         Entity[] entities = entityPair.getAsArray();
         Entity elem0 = entities[ 0 ];
         Entity elem1 = entities[ 1 ];
@@ -42,7 +42,7 @@ public class SimpleMatcher implements Matcher {
         UUID esId0 = elem0.getKey().getEntitySetId();
         UUID esId1 = elem1.getKey().getEntitySetId();
 
-        double score = 0;
+        double dist = 0;
         for ( UUID propertyTypeId : linkingProperties ) {
 
             String pidAsString = propertyTypeId.toString();
@@ -53,11 +53,11 @@ public class SimpleMatcher implements Matcher {
                 Object val1 = elem1.getProperties().get( pidAsString );
                 if ( val0 != null && val1 != null ) {
                     // Both values are non-null; score can be computed.
-                    score += getScore( propertyTypeId, val0, val1 ) * getWeight( propertyTypeId );
+                    dist += getDistance( propertyTypeId, val0, val1 ) * getWeight( propertyTypeId );
                 }
             }
         }
-        return score;
+        return dist;
     }
 
     @Override
@@ -103,7 +103,7 @@ public class SimpleMatcher implements Matcher {
     // TODO lolz
     // Right now, 10 is something with heavy weight, 1 is smallest.
     private double getWeight( UUID propertyTypeId ) {
-        String propertyName = dms.getPropertyType( propertyTypeId ).getType().getName();
+        String propertyName = getPropertyName( propertyTypeId );
         if ( propertyName.contains( "year" ) || propertyName.contains( "date" ) || propertyName.contains( "dob" )
                 || propertyName.contains( "id" ) || propertyName.contains( "ssn" ) ) {
             return 10;
@@ -114,7 +114,7 @@ public class SimpleMatcher implements Matcher {
         return 0;
     }
 
-    private double getScore( UUID propertyTypeId, Object val0, Object val1 ) {
+    private double getDistance( UUID propertyTypeId, Object val0, Object val1 ) {
         Set<String> set0;
         Set<String> set1;
         // TODO update the terrible toString's
@@ -130,21 +130,21 @@ public class SimpleMatcher implements Matcher {
             set1 = ImmutableSet.of( val1.toString() );
         }
 
-        return getScore( propertyTypeId, set0, set1 );
+        return getDistance( propertyTypeId, set0, set1 );
     }
 
-    private double getScore( UUID propertyTypeId, Set<String> val0, Set<String> val1 ) {
-        double maxScore = 0;
+    private double getDistance( UUID propertyTypeId, Set<String> val0, Set<String> val1 ) {
+        double minDist = 0;
 
         for ( String s0 : val0 ) {
             for ( String s1 : val1 ) {
-                double currentScore = getScore( propertyTypeId, s0, s1 );
-                if ( currentScore > maxScore ) {
-                    maxScore = currentScore;
+                double currentDist = getDistance( propertyTypeId, s0, s1 );
+                if ( currentDist < minDist ) {
+                    minDist = currentDist;
                 }
             }
         }
-        return maxScore;
+        return minDist;
     }
 
     /**
@@ -155,7 +155,11 @@ public class SimpleMatcher implements Matcher {
      * @param val1
      * @return
      */
-    private double getScore( UUID propertyTypeId, String val0, String val1 ) {
+    private double getDistance( UUID propertyTypeId, String val0, String val1 ) {
         return StringUtils.getJaroWinklerDistance( val0, val1 );
+    }
+    
+    private String getPropertyName( UUID propertyTypeId ){
+        return dms.getPropertyType( propertyTypeId ).getType().getName();
     }
 }

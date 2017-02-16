@@ -1,36 +1,30 @@
 package com.dataloom.datastore.services;
 
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.ExecutionException;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-
-import javax.annotation.PostConstruct;
-import javax.inject.Inject;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.dataloom.datasource.UUIDs.Syncs;
-import com.dataloom.edm.EntitySet;
 import com.dataloom.graph.GraphUtil;
-import com.dataloom.graph.HazelcastLinkingGraphs;
-import com.dataloom.graph.LinkingEdge;
 import com.dataloom.linking.Entity;
+import com.dataloom.linking.HazelcastLinkingGraphs;
+import com.dataloom.linking.LinkingEdge;
 import com.dataloom.linking.LinkingUtil;
 import com.dataloom.linking.components.Blocker;
 import com.dataloom.linking.components.Matcher;
 import com.dataloom.linking.util.UnorderedPair;
 import com.google.common.collect.HashMultimap;
-import com.google.common.collect.Multimap;
 import com.google.common.collect.SetMultimap;
 import com.google.common.eventbus.EventBus;
 import com.hazelcast.core.HazelcastInstance;
 import com.hazelcast.durableexecutor.DurableExecutorService;
 import com.kryptnostic.conductor.rpc.ConductorCall;
 import com.kryptnostic.conductor.rpc.Lambdas;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.ExecutionException;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class LinkingService {
 
@@ -40,16 +34,13 @@ public class LinkingService {
     private Matcher                      matcher;
     private HazelcastLinkingGraphs       linkingGraph;
 
-    @Inject
-    private EventBus                     eventBus;
-
     private final DurableExecutorService executor;
 
     public LinkingService(
             Blocker blocker,
             Matcher matcher,
             HazelcastLinkingGraphs linkingGraph,
-            HazelcastInstance hazelcast ) {
+            HazelcastInstance hazelcast , EventBus eventBus ) {
         this.blocker = blocker;
         this.matcher = matcher;
         this.linkingGraph = linkingGraph;
@@ -57,10 +48,6 @@ public class LinkingService {
         this.executor = hazelcast.getDurableExecutorService( "default" );
     }
 
-    @PostConstruct
-    public void initializeBus() {
-        eventBus.register( this );
-    }
 
     public UUID link( UUID linkedEntitySetId, Set<Map<UUID, UUID>> linkingProperties ) {
         SetMultimap<UUID, UUID> linkIndexedByPropertyTypes = getLinkIndexedByPropertyTypes( linkingProperties );

@@ -43,6 +43,8 @@ import com.dataloom.edm.events.EntitySetDeletedEvent;
 import com.dataloom.organizations.events.OrganizationCreatedEvent;
 import com.dataloom.organizations.events.OrganizationDeletedEvent;
 import com.dataloom.organizations.events.OrganizationUpdatedEvent;
+import com.dataloom.search.requests.SearchDataRequest;
+import com.dataloom.search.requests.SearchResult;
 import com.dataloom.edm.events.EntitySetMetadataUpdatedEvent;
 import com.dataloom.edm.events.PropertyTypesInEntitySetUpdatedEvent;
 import com.google.common.base.Optional;
@@ -177,16 +179,16 @@ public class SearchService {
         executor.submit( ConductorCall.wrap( new EntityDataLambdas( event.getEntitySetId(), event.getEntityId(), event.getPropertyValues() ) ) );
     }
     
-    public List<Map<String, Object>> executeEntitySetDataSearch( UUID entitySetId, String searchTerm, Set<UUID> authorizedProperties ) {
-        List<Map<String, Object>> queryResults;
+    public SearchResult executeEntitySetDataSearch( UUID entitySetId, SearchDataRequest searchRequest, Set<UUID> authorizedProperties ) {
+        SearchResult queryResults;
         try {
             queryResults = executor.submit( ConductorCall.wrap( 
-                    new SearchEntitySetDataLambda( entitySetId, searchTerm, authorizedProperties ) ) ).get();
+                    new SearchEntitySetDataLambda( entitySetId, searchRequest.getSearchTerm(), searchRequest.getStart(), searchRequest.getMaxHits(), authorizedProperties ) ) ).get();
             return queryResults;
 
         } catch ( InterruptedException | ExecutionException e ) {
             e.printStackTrace();
-            return Lists.newArrayList();
+            return new SearchResult( 0, Lists.newArrayList() );
         }
     }
 

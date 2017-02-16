@@ -48,7 +48,7 @@ import com.dataloom.edm.properties.CassandraTypeManager;
 import com.dataloom.edm.schemas.SchemaQueryService;
 import com.dataloom.edm.schemas.cassandra.CassandraSchemaQueryService;
 import com.dataloom.edm.schemas.manager.HazelcastSchemaManager;
-import com.dataloom.graph.HazelcastLinkingGraphs;
+import com.dataloom.linking.HazelcastLinkingGraphs;
 import com.dataloom.linking.HazelcastListingService;
 import com.dataloom.linking.components.Blocker;
 import com.dataloom.linking.components.Matcher;
@@ -261,7 +261,7 @@ public class DatastoreServicesPod {
     
     @Bean
     public LinkingService linkingService() {
-        return new LinkingService( simpleElasticSearchBlocker(), simpleMatcher(), linkingGraph(), hazelcastInstance );
+        return new LinkingService( simpleElasticSearchBlocker(), simpleMatcher(), linkingGraph(), hazelcastInstance, eventBus );
     }
 
 }

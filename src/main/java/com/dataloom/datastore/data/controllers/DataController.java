@@ -186,9 +186,9 @@ public class DataController implements DataApi, AuthorizingComponent {
                 Principals.getCurrentPrincipals(),
                 EnumSet.of( Permission.READ ) ) ) {
             if( listingService.isLinkedEntitySet( entitySetId ) ){
-                return loadNormalEntitySetData( entitySetId, syncIds, selectedProperties );
-            } else {
                 return loadLinkedEntitySetData( entitySetId );
+            } else {
+                return loadNormalEntitySetData( entitySetId, syncIds, selectedProperties );
             }
         } else {
             throw new ForbiddenException( "Insufficient permissions to read the entity set or it doesn't exist." );

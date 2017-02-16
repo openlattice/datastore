@@ -38,12 +38,15 @@ public class LinkingService {
             Blocker blocker,
             Matcher matcher,
             HazelcastLinkingGraphs linkingGraph,
-            HazelcastInstance hazelcast , EventBus eventBus ) {
+            HazelcastInstance hazelcast, 
+            EventBus eventBus ) {
         this.blocker = blocker;
         this.matcher = matcher;
         this.linkingGraph = linkingGraph;
 
         this.executor = hazelcast.getDurableExecutorService( "default" );
+        
+        eventBus.register( this );
     }
 
 

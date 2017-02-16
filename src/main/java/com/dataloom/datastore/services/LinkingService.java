@@ -2,10 +2,7 @@ package com.dataloom.datastore.services;
 
 import com.dataloom.datasource.UUIDs.Syncs;
 import com.dataloom.graph.GraphUtil;
-import com.dataloom.linking.Entity;
-import com.dataloom.linking.HazelcastLinkingGraphs;
-import com.dataloom.linking.LinkingEdge;
-import com.dataloom.linking.LinkingUtil;
+import com.dataloom.linking.*;
 import com.dataloom.linking.components.Blocker;
 import com.dataloom.linking.components.Matcher;
 import com.dataloom.linking.util.UnorderedPair;
@@ -19,6 +16,7 @@ import com.kryptnostic.conductor.rpc.Lambdas;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -65,15 +63,11 @@ public class LinkingService {
 
         // Matching: check if pair score is already calculated, presumably from HazelcastGraph Api. If not, stream
         // through matcher to get a score.
-        pairs.filter( entityPair -> GraphUtil.isNewEdge( linkingGraph,
-                linkedEntitySetId,
-                LinkingUtil.getEntityKeyPair( entityPair ) ) )
+        pairs
+                .filter( entityPair -> edgeExists( linkedEntitySetId, entityPair) )
                 .forEach( entityPair -> {
-                    LinkingEdge edge = GraphUtil.linkingEdge( linkedEntitySetId,
-                            LinkingUtil.getEntityKeyPair( entityPair ) );
-
+                    LinkingEdge edge = fromUnorderedPair( linkedEntitySetId , entityPair );
                     double weight = matcher.score( entityPair );
-
                     linkingGraph.addEdge( edge, weight );
                 } );
 
@@ -94,6 +88,17 @@ public class LinkingService {
         return null;
     }
 
+    private LinkingEdge fromUnorderedPair( UUID entitySetId ,UnorderedPair<Entity> p ) {
+        List<LinkingEntityKey> keys = p.getBackingCollection().stream()
+                .map( e -> new LinkingEntityKey( entitySetId, e.getKey() ) ).collect( Collectors.toList() );
+        LinkingVertexKey u = linkingGraph.getLinkingVertextKey( keys.get( 0 ) );
+        LinkingVertexKey v = linkingGraph.getLinkingVertextKey( keys.get( 1 ) );
+        return new LinkingEdge( u, v );
+    }
+
+    private boolean edgeExists( UUID entitySetId, UnorderedPair<Entity> p ) {
+        return linkingGraph.edgeExists( fromUnorderedPair( entitySetId, p ) );
+    }
 
     private void initialize(
             Map<UUID, UUID> entitySetsWithSyncIds,
@@ -102,11 +107,11 @@ public class LinkingService {
         blocker.setLinking( entitySetsWithSyncIds, linkIndexedByPropertyTypes, linkIndexedByEntitySets );
         matcher.setLinking( entitySetsWithSyncIds, linkIndexedByPropertyTypes, linkIndexedByEntitySets );
     }
-    
+
     /**
      * Utility methods to get various forms/info about links.
      */
-    
+
     public static SetMultimap<UUID, UUID> getLinkIndexedByPropertyTypes( Set<Map<UUID, UUID>> linkingProperties ) {
         SetMultimap<UUID, UUID> result = HashMultimap.create();
 
@@ -124,7 +129,7 @@ public class LinkingService {
 
         return result;
     }
-    
+
     public static Set<UUID> getLinkingSets( Set<Map<UUID, UUID>> linkingProperties ){
         return getLinkIndexedByEntitySets( linkingProperties ).keySet();
     }

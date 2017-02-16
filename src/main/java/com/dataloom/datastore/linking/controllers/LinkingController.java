@@ -102,6 +102,7 @@ public class LinkingController implements LinkingApi, AuthorizingComponent {
         produces = MediaType.APPLICATION_JSON_VALUE )
     public UUID linkEntitySets( @RequestBody LinkingEntitySet linkingEntitySet ) {
         Set<Map<UUID, UUID>> linkingProperties = linkingEntitySet.getLinkingProperties();
+        Set<UUID> linkingES = LinkingService.getLinkingSets( linkingProperties );
 
         // Validate, compute the ownable property types after merging.
         Set<UUID> ownablePropertyTypes = validateAndGetOwnablePropertyTypes( linkingProperties );
@@ -109,6 +110,7 @@ public class LinkingController implements LinkingApi, AuthorizingComponent {
         EntitySet entitySet = linkingEntitySet.getEntitySet();
         edm.createEntitySet( Principals.getCurrentUser(), entitySet, ownablePropertyTypes );
         UUID linkedEntitySetId = entitySet.getId();
+        listings.setLinkedEntitySets( linkedEntitySetId, linkingES );
 
         return linkingService.link( linkedEntitySetId, linkingProperties );
     }

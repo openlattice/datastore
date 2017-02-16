@@ -28,11 +28,13 @@ import java.util.UUID;
 import javax.inject.Inject;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.tuple.Pair;
 import org.apache.olingo.commons.api.edm.EdmPrimitiveTypeKind;
 import org.apache.olingo.commons.api.edm.FullQualifiedName;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.dataloom.data.EntityKey;
 import com.dataloom.data.events.EntityDataCreatedEvent;
 import com.dataloom.edm.type.PropertyType;
 import com.dataloom.mappers.ObjectMappers;
@@ -46,6 +48,7 @@ import com.datastax.driver.core.querybuilder.QueryBuilder;
 import com.datastax.driver.core.querybuilder.Select;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import com.google.common.collect.SetMultimap;
@@ -56,10 +59,10 @@ import com.kryptnostic.datastore.cassandra.RowAdapters;
 import com.kryptnostic.rhizome.cassandra.CassandraTableBuilder;
 
 public class CassandraDataManager {
-    
+
     @Inject
-    private EventBus                                eventBus;
-    
+    private EventBus                eventBus;
+
     private static final Logger     logger = LoggerFactory
             .getLogger( CassandraDataManager.class );
 
@@ -69,6 +72,7 @@ public class CassandraDataManager {
     private final PreparedStatement writeDataQuery;
     private final PreparedStatement entitySetQuery;
     private final PreparedStatement entityIdsQuery;
+    private final PreparedStatement linkedEntitiesQuery;
 
     public CassandraDataManager( Session session, ObjectMapper mapper ) {
         this.session = session;
@@ -80,6 +84,7 @@ public class CassandraDataManager {
         this.entityIdsQuery = prepareEntityIdsQuery( session );
         this.writeIdLookupQuery = prepareWriteQuery( session, idLookupTableDefinitions );
         this.writeDataQuery = prepareWriteQuery( session, dataTableDefinitions );
+        this.linkedEntitiesQuery = prepareLinkedEntitiesQuery( session );
     }
 
     public Iterable<SetMultimap<FullQualifiedName, Object>> getEntitySetData(
@@ -100,21 +105,33 @@ public class CassandraDataManager {
                 rs -> rowToEntityIndexedById( rs, authorizedPropertyTypes ) )::iterator;
     }
 
-    public SetMultimap<FullQualifiedName, Object> rowToEntity( ResultSet rs, Map<UUID, PropertyType> authorizedPropertyTypes ){
+    public Iterable<SetMultimap<FullQualifiedName, Object>> getLinkedEntitySetData(
+            UUID linkedEntitySetId,
+            Map<UUID, Map<UUID, PropertyType>> authorizedPropertyTypesForEntitySets ) {
+        Iterable<Set<EntityKey>> linkedEntityKeys = getLinkedEntityKeys( linkedEntitySetId );
+        return Iterables.transform( linkedEntityKeys,
+                linkedKey -> getAndMergeLinkedEntities( linkedKey, authorizedPropertyTypesForEntitySets ) )::iterator;
+    }
+
+    public SetMultimap<FullQualifiedName, Object> rowToEntity(
+            ResultSet rs,
+            Map<UUID, PropertyType> authorizedPropertyTypes ) {
         return RowAdapters.entity( rs, authorizedPropertyTypes, mapper );
     }
 
-    public SetMultimap<UUID, Object> rowToEntityIndexedById( ResultSet rs, Map<UUID, PropertyType> authorizedPropertyTypes ){
+    public SetMultimap<UUID, Object> rowToEntityIndexedById(
+            ResultSet rs,
+            Map<UUID, PropertyType> authorizedPropertyTypes ) {
         return RowAdapters.entityIndexedById( rs, authorizedPropertyTypes, mapper );
     }
-    
+
     private Iterable<ResultSet> getRows(
             UUID entitySetId,
             Set<UUID> syncIds,
             Set<UUID> authorizedProperties ) {
         Iterable<String> entityIds = getEntityIds( entitySetId, syncIds );
         Iterable<ResultSetFuture> entityFutures = Iterables.transform( entityIds,
-                entityId -> asyncLoadEntity( entityId, syncIds, authorizedProperties ) );
+                entityId -> asyncLoadEntity( entityId, authorizedProperties ) );
         return Iterables.transform( entityFutures, ResultSetFuture::getUninterruptibly );
     }
 
@@ -122,10 +139,9 @@ public class CassandraDataManager {
     public SetMultimap<FullQualifiedName, Object> getEntity(
             UUID entitySetId,
             String entityId,
-            Set<UUID> syncIds,
             Map<UUID, PropertyType> authorizedPropertyTypes ) {
         Set<UUID> authorizedProperties = authorizedPropertyTypes.keySet();
-        ResultSet rs = asyncLoadEntity( entityId, syncIds, authorizedProperties ).getUninterruptibly();
+        ResultSet rs = asyncLoadEntity( entityId, authorizedProperties ).getUninterruptibly();
         return RowAdapters.entity( rs, authorizedPropertyTypes, mapper );
     }
 
@@ -137,7 +153,7 @@ public class CassandraDataManager {
         return Iterables.filter( Iterables.transform( entityIds, RowAdapters::entityId ), StringUtils::isNotBlank );
     }
 
-    public ResultSetFuture asyncLoadEntity( String entityId, Set<UUID> syncIds, Set<UUID> authorizedProperties ) {
+    public ResultSetFuture asyncLoadEntity( String entityId, Set<UUID> authorizedProperties ) {
         return session.executeAsync( entitySetQuery.bind()
                 .setString( CommonColumns.ENTITYID.cql(), entityId )
                 .setSet( CommonColumns.PROPERTY_TYPE_ID.cql(), authorizedProperties ) );
@@ -160,9 +176,10 @@ public class CassandraDataManager {
                             .setString( CommonColumns.ENTITYID.cql(), entity.getKey() ) ) );
 
             SetMultimap<UUID, Object> propertyValues = entity.getValue();
-            
+
             Map<UUID, String> authorizedPropertyValues = Maps.newHashMap();
-            //Stream<Entry<UUID, Object>> authorizedPropertyValues = propertyValues.entries().stream().filter( entry -> authorizedProperties.contains( entry.getKey() ) );
+            // Stream<Entry<UUID, Object>> authorizedPropertyValues = propertyValues.entries().stream().filter( entry ->
+            // authorizedProperties.contains( entry.getKey() ) );
             propertyValues.entries().stream()
                     .filter( entry -> authorizedProperties.contains( entry.getKey() ) )
                     .forEach( entry -> {
@@ -177,9 +194,10 @@ public class CassandraDataManager {
                                                         authorizedPropertiesWithDataType
                                                                 .get( entry.getKey() ),
                                                         entity.getKey() ) ) ) );
-                        //TODO: wtf move this
+                        // TODO: wtf move this
                         try {
-                            authorizedPropertyValues.put( entry.getKey(), ObjectMappers.getJsonMapper().writeValueAsString( entry.getValue() ) );
+                            authorizedPropertyValues.put( entry.getKey(),
+                                    ObjectMappers.getJsonMapper().writeValueAsString( entry.getValue() ) );
                         } catch ( JsonProcessingException e ) {
                             e.printStackTrace();
                         }
@@ -219,5 +237,41 @@ public class CassandraDataManager {
                 .from( Table.ENTITY_ID_LOOKUP.getKeyspace(), Table.ENTITY_ID_LOOKUP.getName() )
                 .where( QueryBuilder.eq( CommonColumns.ENTITY_SET_ID.cql(), QueryBuilder.bindMarker() ) )
                 .and( QueryBuilder.in( CommonColumns.SYNCID.cql(), CommonColumns.SYNCID.bindMarker() ) ) );
+    }
+
+    private static PreparedStatement prepareLinkedEntitiesQuery( Session session ) {
+        return session.prepare( QueryBuilder
+                .select().all()
+                .from( Table.LINKED_ENTITIES.getKeyspace(), Table.LINKED_ENTITIES.getName() )
+                .where( QueryBuilder.eq( CommonColumns.ENTITY_SET_ID.cql(), QueryBuilder.bindMarker() ) ) );
+    }
+
+    /**
+     * Auxiliary methods for linking entity sets
+     */
+
+    private Iterable<Set<EntityKey>> getLinkedEntityKeys(
+            UUID linkedEntitySetId ) {
+        ResultSet rs = session
+                .execute( linkedEntitiesQuery.bind().setUUID( CommonColumns.ENTITY_SET_ID.cql(), linkedEntitySetId ) );
+        return Iterables.transform( rs, RowAdapters::entityKeys );
+    }
+
+    private SetMultimap<FullQualifiedName, Object> getAndMergeLinkedEntities(
+            Set<EntityKey> linkedKey,
+            Map<UUID, Map<UUID, PropertyType>> authorizedPropertyTypesForEntitySets ) {
+        SetMultimap<FullQualifiedName, Object> result = HashMultimap.create();
+
+        linkedKey.stream()
+                .map( key -> Pair.of( key.getEntitySetId(),
+                        asyncLoadEntity( key.getEntityId(),
+                                authorizedPropertyTypesForEntitySets.get( key.getEntitySetId() ).keySet() ) ) )
+                .map( rsfPair -> Pair.of( rsfPair.getKey(), rsfPair.getValue().getUninterruptibly() ) )
+                .map( rsPair -> RowAdapters.entity( rsPair.getValue(),
+                        authorizedPropertyTypesForEntitySets.get( rsPair.getKey() ),
+                        mapper ) )
+                .forEach( result::putAll );
+
+        return result;
     }
 }

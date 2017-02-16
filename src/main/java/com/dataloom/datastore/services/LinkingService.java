@@ -107,7 +107,20 @@ public class LinkingService {
         return null;
     }
 
-    private SetMultimap<UUID, UUID> getLinkIndexedByPropertyTypes( Set<Map<UUID, UUID>> linkingProperties ) {
+
+    private void initialize(
+            Map<UUID, UUID> entitySetsWithSyncIds,
+            SetMultimap<UUID, UUID> linkIndexedByPropertyTypes,
+            SetMultimap<UUID, UUID> linkIndexedByEntitySets ) {
+        blocker.setLinking( entitySetsWithSyncIds, linkIndexedByPropertyTypes, linkIndexedByEntitySets );
+        matcher.setLinking( entitySetsWithSyncIds, linkIndexedByPropertyTypes, linkIndexedByEntitySets );
+    }
+    
+    /**
+     * Utility methods to get various forms/info about links.
+     */
+    
+    public static SetMultimap<UUID, UUID> getLinkIndexedByPropertyTypes( Set<Map<UUID, UUID>> linkingProperties ) {
         SetMultimap<UUID, UUID> result = HashMultimap.create();
 
         linkingProperties.stream().flatMap( m -> m.entrySet().stream() )
@@ -116,7 +129,7 @@ public class LinkingService {
         return result;
     }
 
-    private SetMultimap<UUID, UUID> getLinkIndexedByEntitySets( Set<Map<UUID, UUID>> linkingProperties ) {
+    public static SetMultimap<UUID, UUID> getLinkIndexedByEntitySets( Set<Map<UUID, UUID>> linkingProperties ) {
         SetMultimap<UUID, UUID> result = HashMultimap.create();
 
         linkingProperties.stream().flatMap( m -> m.entrySet().stream() )
@@ -124,13 +137,9 @@ public class LinkingService {
 
         return result;
     }
-
-    private void initialize(
-            Map<UUID, UUID> entitySetsWithSyncIds,
-            SetMultimap<UUID, UUID> linkIndexedByPropertyTypes,
-            SetMultimap<UUID, UUID> linkIndexedByEntitySets ) {
-        blocker.setLinking( entitySetsWithSyncIds, linkIndexedByPropertyTypes, linkIndexedByEntitySets );
-        matcher.setLinking( entitySetsWithSyncIds, linkIndexedByPropertyTypes, linkIndexedByEntitySets );
+    
+    public static Set<UUID> getLinkingSets( Set<Map<UUID, UUID>> linkingProperties ){
+        return getLinkIndexedByEntitySets( linkingProperties ).keySet();
     }
 
 }

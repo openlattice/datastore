@@ -1,6 +1,7 @@
 package com.dataloom.datastore.linking.services;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -35,9 +36,9 @@ public class SimpleMatcher implements Matcher {
 
     @Override
     public double dist( UnorderedPair<Entity> entityPair ) {
-        Entity[] entities = entityPair.getAsArray();
-        Entity elem0 = entities[ 0 ];
-        Entity elem1 = entities[ 1 ];
+        List<Entity> entities = entityPair.getAsList();
+        Entity elem0 = entities.get( 0 );
+        Entity elem1 = entities.get( 1 );
 
         UUID esId0 = elem0.getKey().getEntitySetId();
         UUID esId1 = elem1.getKey().getEntitySetId();
@@ -111,7 +112,7 @@ public class SimpleMatcher implements Matcher {
                 || propertyName.contains( "lastname" ) ) {
             return 7;
         }
-        return 0;
+        return 1;
     }
 
     private double getDistance( UUID propertyTypeId, Object val0, Object val1 ) {

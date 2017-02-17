@@ -1,9 +1,21 @@
 package com.dataloom.datastore.services;
 
-import com.dataloom.clustering.ClusteringPartitioner;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.dataloom.datasource.UUIDs.Syncs;
-import com.dataloom.graph.GraphUtil;
-import com.dataloom.linking.*;
+import com.dataloom.linking.Entity;
+import com.dataloom.linking.HazelcastLinkingGraphs;
+import com.dataloom.linking.LinkingEdge;
+import com.dataloom.linking.LinkingEntityKey;
+import com.dataloom.linking.LinkingVertexKey;
 import com.dataloom.linking.components.Blocker;
 import com.dataloom.linking.components.Clusterer;
 import com.dataloom.linking.components.Matcher;
@@ -13,18 +25,6 @@ import com.google.common.collect.SetMultimap;
 import com.google.common.eventbus.EventBus;
 import com.hazelcast.core.HazelcastInstance;
 import com.hazelcast.durableexecutor.DurableExecutorService;
-import com.kryptnostic.conductor.rpc.ConductorCall;
-import com.kryptnostic.conductor.rpc.Lambdas;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.ExecutionException;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 public class LinkingService {
 
@@ -69,13 +69,17 @@ public class LinkingService {
 
         UUID graphId = linkingGraph.getGraphIdFromEntitySetId( linkedEntitySetId );
 
+        logger.info( "Executing blocking..." );
         // Blocking: For each row in the entity sets, fire off query to elasticsearch
         Stream<UnorderedPair<Entity>> pairs = blocker.block();
 
+        logger.info( "Executing matching..." );
         // Matching: check if pair score is already calculated from HazelcastGraph Api. If not, stream
         // through matcher to get a score.
         pairs
-                .filter( entityPair -> edgeExists( graphId, entityPair ) )
+        //bad fix, will do for now.
+                .filter( entityPair -> entityPair.getBackingCollection().size() == 2 )
+                .filter( entityPair -> !edgeExists( graphId, entityPair ) )
                 .forEach( entityPair -> {
                     LinkingEdge edge = fromUnorderedPair( graphId, entityPair );
                     double weight = matcher.dist( entityPair );
@@ -83,9 +87,10 @@ public class LinkingService {
                 } );
 
         // Feed the scores (i.e. the edge set) into HazelcastGraph Api
-
+        logger.info( "Executing clustering..." );
         clusterer.cluster( graphId );
         
+        logger.info( "Linking job finished." );
         return linkedEntitySetId;
     }
 

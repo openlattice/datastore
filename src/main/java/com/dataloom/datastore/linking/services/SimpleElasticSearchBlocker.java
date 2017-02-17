@@ -1,5 +1,6 @@
 package com.dataloom.datastore.linking.services;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -55,7 +56,9 @@ public class SimpleElasticSearchBlocker implements Blocker {
             SetMultimap<UUID, UUID> linkIndexedByEntitySets ) {
         this.entitySetsWithSyncIds = entitySetsWithSyncIds;
         this.linkIndexedByEntitySets = linkIndexedByEntitySets;
-        this.linkingES = entitySetsWithSyncIds.keySet();
+        this.linkingES = new HashSet<>( entitySetsWithSyncIds.keySet() );
+        //debug by Ho Chung
+        System.out.println( "Linking Sets has type " + linkingES.getClass() );
     }
 
     @Override

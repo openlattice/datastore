@@ -103,11 +103,11 @@ public class LinkingController implements LinkingApi, AuthorizingComponent {
     public UUID linkEntitySets( @RequestBody LinkingEntitySet linkingEntitySet ) {
         Set<Map<UUID, UUID>> linkingProperties = linkingEntitySet.getLinkingProperties();
         Set<UUID> linkingES = LinkingService.getLinkingSets( linkingProperties );
-
-        // Validate, compute the ownable property types after merging.
-        Set<UUID> ownablePropertyTypes = validateAndGetOwnablePropertyTypes( linkingProperties );
-
         EntitySet entitySet = linkingEntitySet.getEntitySet();
+        
+        // Validate, compute the ownable property types after merging.
+        Set<UUID> ownablePropertyTypes = validateAndGetOwnablePropertyTypes( entitySet, linkingProperties );
+
         edm.createEntitySet( Principals.getCurrentUser(), entitySet, ownablePropertyTypes );
         UUID linkedEntitySetId = entitySet.getId();
         listings.setLinkedEntitySets( linkedEntitySetId, linkingES );
@@ -164,7 +164,7 @@ public class LinkingController implements LinkingApi, AuthorizingComponent {
         return authorizationManager;
     }
 
-    private Set<UUID> validateAndGetOwnablePropertyTypes( Set<Map<UUID, UUID>> linkingProperties ) {
+    private Set<UUID> validateAndGetOwnablePropertyTypes( EntitySet linkedEntitySet, Set<Map<UUID, UUID>> linkingProperties ) {
 
         // Validate: each map in the set should have a unique value, which is distinct across the linking properties
         // set.
@@ -173,12 +173,14 @@ public class LinkingController implements LinkingApi, AuthorizingComponent {
         SetMultimap<UUID, UUID> linkIndexedByPropertyTypes = HashMultimap.create();
 
         linkingProperties.stream().forEach( link -> {
-            Preconditions.checkArgument( link.values().size() == 1,
+            Set<UUID> values = new HashSet<>( link.values() );
+            
+            Preconditions.checkArgument( values.size() == 1,
                     "Each linking map should involve a unique property type." );
             Preconditions.checkArgument( link.entrySet().size() > 1,
                     "Each linking map must be matching at least two entity sets." );
             // Get the value of common property type id in the linking map.
-            UUID propertyId = link.values().iterator().next();
+            UUID propertyId = values.iterator().next();
             Preconditions.checkArgument( !validatedProperties.contains( propertyId ),
                     "There should be only one linking map that involves property id " + propertyId );
 
@@ -195,11 +197,11 @@ public class LinkingController implements LinkingApi, AuthorizingComponent {
 
         // Compute the ownable property types after merging. A property type is ownable if calling user has both READ
         // and LINK permissions for that property type in all the entity sets involved.
+        Set<UUID> linkedPropertyTypes = edm.getEntityType( linkedEntitySet.getEntityTypeId() ).getProperties();
+        
         Set<UUID> ownablePropertyTypes = new HashSet<>();
-        for ( UUID propertyId : linkIndexedByPropertyTypes.keySet() ) {
-            Set<UUID> entitySets = linkIndexedByPropertyTypes.get( propertyId );
-
-            boolean ownable = entitySets.stream().map( esId -> Arrays.asList( esId, propertyId ) )
+        for ( UUID propertyId : linkedPropertyTypes ) {
+            boolean ownable = linkingES.stream().map( esId -> Arrays.asList( esId, propertyId ) )
                     .allMatch( isAuthorized( Permission.LINK, Permission.READ ) );
 
             if ( ownable ) {

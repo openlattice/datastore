@@ -273,10 +273,13 @@ public class CassandraDataManager {
                         asyncLoadEntity( key.getEntityId(),
                                 authorizedPropertyTypesForEntitySets.get( key.getEntitySetId() ).keySet() ) ) )
                 .map( rsfPair -> Pair.of( rsfPair.getKey(), rsfPair.getValue().getUninterruptibly() ) )
-                .map( rsPair -> RowAdapters.entity( rsPair.getValue(),
+                .map( rsPair -> RowAdapters.entityIdFQNPair( rsPair.getValue(),
                         authorizedPropertyTypesForEntitySets.get( rsPair.getKey() ),
                         mapper ) )
-                .forEach( result::putAll );
+                .forEach( pair -> {
+                   result.putAll( pair.getValue() );
+                   // TODO pair.getKey() is indexed by UUID
+                });
 
         return result;
     }

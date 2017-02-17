@@ -7,6 +7,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import org.apache.commons.codec.language.DoubleMetaphone;
 import org.apache.commons.lang3.StringUtils;
 
 import com.dataloom.linking.Entity;
@@ -26,6 +27,8 @@ public class SimpleMatcher implements Matcher {
     private Set<UUID>               linkingProperties;
 
     private Map<UUID, Double>       weights;
+    
+    private static DoubleMetaphone doubleMetaphone = new DoubleMetaphone();
 
     private final EdmManager        dms;
 
@@ -157,7 +160,14 @@ public class SimpleMatcher implements Matcher {
      * @return
      */
     private double getDistance( UUID propertyTypeId, String val0, String val1 ) {
-        return StringUtils.getJaroWinklerDistance( val0, val1 );
+        switch( getPropertyName( propertyTypeId ) ){
+            case "name":
+            case "firstname":
+            case "lastname":
+                return StringUtils.getJaroWinklerDistance( doubleMetaphone.encode( val0 ), doubleMetaphone.encode( val1 ) );
+            default:
+                return StringUtils.getJaroWinklerDistance( val0, val1 );
+        }
     }
     
     private String getPropertyName( UUID propertyTypeId ){

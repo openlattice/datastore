@@ -139,7 +139,7 @@ public class CassandraDataManager {
 
             SetMultimap<UUID, Object> propertyValues = entity.getValue();
             
-            Map<UUID, String> authorizedPropertyValues = Maps.newHashMap();
+            Map<UUID, Object> authorizedPropertyValues = Maps.newHashMap();
             //Stream<Entry<UUID, Object>> authorizedPropertyValues = propertyValues.entries().stream().filter( entry -> authorizedProperties.contains( entry.getKey() ) );
             propertyValues.entries().stream()
                     .filter( entry -> authorizedProperties.contains( entry.getKey() ) )
@@ -156,11 +156,7 @@ public class CassandraDataManager {
                                                                 .get( entry.getKey() ),
                                                         entity.getKey() ) ) ) );
                         //TODO: wtf move this
-                        try {
-                            authorizedPropertyValues.put( entry.getKey(), ObjectMappers.getJsonMapper().writeValueAsString( entry.getValue() ) );
-                        } catch ( JsonProcessingException e ) {
-                            e.printStackTrace();
-                        }
+                            authorizedPropertyValues.put( entry.getKey(), entry.getValue() );
                     } );
             eventBus.post( new EntityDataCreatedEvent( entitySetId, entity.getKey(), authorizedPropertyValues ) );
         } );

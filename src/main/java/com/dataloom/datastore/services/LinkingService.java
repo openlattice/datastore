@@ -105,7 +105,6 @@ public class LinkingService {
         logger.info( "Executing clustering..." );
         clusterer.cluster( graphId );
         
-        new DataController().loadLinkedEntitySetData( linkedEntitySetId );
         mergeEntities( linkedEntitySetId, ownablePropertyTypes );
         
         logger.info( "Linking job finished." );

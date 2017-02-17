@@ -34,6 +34,7 @@ import com.dataloom.edm.EntitySet;
 import com.dataloom.edm.type.PropertyType;
 import com.dataloom.linking.Entity;
 import com.dataloom.organization.Organization;
+import com.dataloom.search.requests.SearchResult;
 import com.google.common.base.Optional;
 import com.kryptnostic.conductor.rpc.ConductorSparkApi;
 import com.kryptnostic.conductor.rpc.QueryResult;
@@ -158,15 +159,17 @@ public class DatastoreConductorSparkApi implements ConductorSparkApi {
     }
 
     @Override
-    public Boolean createEntityData( UUID entitySetId, String entityId, Map<UUID, String> propertyValues ) {
+    public Boolean createEntityData( UUID entitySetId, String entityId, Map<UUID, Object> propertyValues ) {
         throw new NotImplementedException(
                 "You are trying to invoke ConductorSparkApi from somehwere else other than conductor." );
     }
 
     @Override
-    public List<Map<String, Object>> executeEntitySetDataSearch(
+    public SearchResult executeEntitySetDataSearch(
             UUID entitySetId,
             String searchTerm,
+            int start,
+            int maxHits,
             Set<UUID> authorizedPropertyTypes ) {
         throw new NotImplementedException(
                 "You are trying to invoke ConductorSparkApi from somehwere else other than conductor." );

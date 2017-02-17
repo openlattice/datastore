@@ -181,10 +181,9 @@ public class CassandraDataManager {
                             .setString( CommonColumns.ENTITYID.cql(), entity.getKey() ) ) );
 
             SetMultimap<UUID, Object> propertyValues = entity.getValue();
-
-            Map<UUID, String> authorizedPropertyValues = Maps.newHashMap();
-            // Stream<Entry<UUID, Object>> authorizedPropertyValues = propertyValues.entries().stream().filter( entry ->
-            // authorizedProperties.contains( entry.getKey() ) );
+            
+            Map<UUID, Object> authorizedPropertyValues = Maps.newHashMap();
+            //Stream<Entry<UUID, Object>> authorizedPropertyValues = propertyValues.entries().stream().filter( entry -> authorizedProperties.contains( entry.getKey() ) );
             propertyValues.entries().stream()
                     .filter( entry -> authorizedProperties.contains( entry.getKey() ) )
                     .forEach( entry -> {
@@ -199,13 +198,8 @@ public class CassandraDataManager {
                                                         authorizedPropertiesWithDataType
                                                                 .get( entry.getKey() ),
                                                         entity.getKey() ) ) ) );
-                        // TODO: wtf move this
-                        try {
-                            authorizedPropertyValues.put( entry.getKey(),
-                                    ObjectMappers.getJsonMapper().writeValueAsString( entry.getValue() ) );
-                        } catch ( JsonProcessingException e ) {
-                            e.printStackTrace();
-                        }
+                        //TODO: wtf move this
+                        authorizedPropertyValues.put( entry.getKey(), entry.getValue() );
                     } );
             eventBus.post( new EntityDataCreatedEvent( entitySetId, entity.getKey(), authorizedPropertyValues ) );
         } );
@@ -268,7 +262,7 @@ public class CassandraDataManager {
             Pair<UUID, Set<EntityKey>> linkedKey,
             Map<UUID, Map<UUID, PropertyType>> authorizedPropertyTypesForEntitySets ) {
         SetMultimap<FullQualifiedName, Object> result = HashMultimap.create();
-        Map<UUID, String> indexResult = Maps.newHashMap();
+        Map<UUID, Object> indexResult = Maps.newHashMap();
 
         linkedKey.getValue().stream()
                 .map( key -> Pair.of( key.getEntitySetId(),
@@ -281,11 +275,7 @@ public class CassandraDataManager {
                 .forEach( pair -> {
                    result.putAll( pair.getValue() );
                    pair.getKey().entries().forEach( entry -> {
-                       try {
-                        indexResult.put( entry.getKey(), ObjectMappers.getJsonMapper().writeValueAsString( entry.getValue() ) );
-                    } catch ( JsonProcessingException e ) {
-                        logger.debug( "unable to write property field for indexing" );
-                    }
+                        indexResult.put( entry.getKey(), entry.getValue() );
                    } );
                 });
 

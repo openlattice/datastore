@@ -46,7 +46,9 @@ import com.dataloom.datastore.services.SearchService;
 import com.dataloom.edm.EntitySet;
 import com.dataloom.mappers.ObjectMappers;
 import com.dataloom.search.SearchApi;
+import com.dataloom.search.requests.SearchDataRequest;
 import com.dataloom.search.requests.SearchRequest;
+import com.dataloom.search.requests.SearchResult;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
@@ -153,16 +155,16 @@ public class SearchController implements SearchApi, AuthorizingComponent {
             method = RequestMethod.POST,
             produces = { MediaType.APPLICATION_JSON_VALUE } )
     @Override
-    public List<Map<String, Object>> executeEntitySetDataQuery(
+    public SearchResult executeEntitySetDataQuery(
             @PathVariable( ENTITY_SET_ID ) UUID entitySetId,
-            @RequestBody String searchTerm ) {
+            @RequestBody SearchDataRequest searchRequest ) {
         if ( authorizations.checkIfHasPermissions( ImmutableList.of( entitySetId ),
                 Principals.getCurrentPrincipals(),
                 EnumSet.of( Permission.READ ) ) ) {
             Set<UUID> authorizedProperties = authorizationsHelper.getAuthorizedPropertiesOnEntitySet( entitySetId,
                     EnumSet.of( Permission.READ ) );
-            return searchService.executeEntitySetDataSearch( entitySetId, searchTerm, authorizedProperties );
+            return searchService.executeEntitySetDataSearch( entitySetId, searchRequest, authorizedProperties );
         }
-        return Lists.newArrayList();
+        return new SearchResult( 0, Lists.newArrayList() );
     }
 }

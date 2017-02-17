@@ -22,6 +22,7 @@ package com.dataloom.datastore.linking.controllers;
 import com.dataloom.authorization.AuthorizationManager;
 import com.dataloom.authorization.AuthorizingComponent;
 import com.dataloom.data.EntityKey;
+import com.dataloom.edm.set.LinkingEntitySet;
 import com.dataloom.edm.type.EntityType;
 import com.dataloom.edm.type.LinkingEntityType;
 import com.dataloom.linking.HazelcastListingService;
@@ -66,8 +67,7 @@ public class LinkingController implements LinkingApi, AuthorizingComponent {
     @Override
     @PostMapping( value = "/"
             + SET, consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE )
-    public UUID linkEntitySets(
-            @RequestParam( TYPE ) UUID linkingEntityType, @RequestBody Set<Map<UUID, UUID>> linkingProperties ) {
+    public UUID linkEntitySets( @RequestBody LinkingEntitySet linkingEntitySet ) {
         return null;
     }
 

@@ -267,8 +267,8 @@ public class CassandraDataManager {
             UUID linkedEntitySetId,
             Pair<UUID, Set<EntityKey>> linkedKey,
             Map<UUID, Map<UUID, PropertyType>> authorizedPropertyTypesForEntitySets ) {
-        SetMultimap<UUID, Object> resultForIndexing  = HashMultimap.create();
         SetMultimap<FullQualifiedName, Object> result = HashMultimap.create();
+        Map<UUID, String> indexResult = Maps.newHashMap();
 
         linkedKey.getValue().stream()
                 .map( key -> Pair.of( key.getEntitySetId(),
@@ -280,12 +280,16 @@ public class CassandraDataManager {
                         mapper ) )
                 .forEach( pair -> {
                    result.putAll( pair.getValue() );
-                   resultForIndexing.putAll( pair.getKey() );
+                   pair.getKey().entries().forEach( entry -> {
+                       try {
+                        indexResult.put( entry.getKey(), ObjectMappers.getJsonMapper().writeValueAsString( entry.getValue() ) );
+                    } catch ( JsonProcessingException e ) {
+                        logger.debug( "unable to write property field for indexing" );
+                    }
+                   } );
                 });
 
-        // linkedKey.getKey() is the entityId
-        // linkedEntitySetId is now passed in to the method
-        // Probably have to make do with writeValueAsString to transform the SetMultimap for now.
+        eventBus.post( new EntityDataCreatedEvent( linkedEntitySetId, linkedKey.getKey().toString(), indexResult ) );
         return result;
     }
 }

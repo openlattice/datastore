@@ -112,7 +112,7 @@ public class LinkingController implements LinkingApi, AuthorizingComponent {
         UUID linkedEntitySetId = entitySet.getId();
         listings.setLinkedEntitySets( linkedEntitySetId, linkingES );
 
-        return linkingService.link( linkedEntitySetId, linkingProperties );
+        return linkingService.link( linkedEntitySetId, linkingProperties, ownablePropertyTypes );
     }
 
     @Override

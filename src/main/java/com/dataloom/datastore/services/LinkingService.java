@@ -1,5 +1,6 @@
 package com.dataloom.datastore.services;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -11,8 +12,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.dataloom.datasource.UUIDs.Syncs;
+import com.dataloom.datastore.data.controllers.DataController;
+import com.dataloom.edm.type.PropertyType;
 import com.dataloom.linking.Entity;
 import com.dataloom.linking.HazelcastLinkingGraphs;
+import com.dataloom.linking.HazelcastListingService;
 import com.dataloom.linking.LinkingEdge;
 import com.dataloom.linking.LinkingEntityKey;
 import com.dataloom.linking.LinkingVertexKey;
@@ -22,18 +26,22 @@ import com.dataloom.linking.components.Matcher;
 import com.dataloom.linking.util.UnorderedPair;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.SetMultimap;
+import com.google.common.collect.Sets;
 import com.google.common.eventbus.EventBus;
 import com.hazelcast.core.HazelcastInstance;
 import com.hazelcast.durableexecutor.DurableExecutorService;
+import com.kryptnostic.datastore.services.EdmManager;
 
 public class LinkingService {
-
     private static final Logger          logger = LoggerFactory.getLogger( LinkingService.class );
 
     private HazelcastLinkingGraphs       linkingGraph;
     private Blocker                      blocker;
     private Matcher                      matcher;
     private Clusterer                    clusterer;
+    private HazelcastListingService      listingService;
+    private EdmManager                   dms;
+    private CassandraDataManager         cdm;
 
     private final DurableExecutorService executor;
 
@@ -43,7 +51,10 @@ public class LinkingService {
             Matcher matcher,
             Clusterer clusterer,
             HazelcastInstance hazelcast,
-            EventBus eventBus ) {
+            EventBus eventBus,
+            HazelcastListingService listingService,
+            EdmManager dms,
+            CassandraDataManager cdm ) {
         this.linkingGraph = linkingGraph;
 
         this.blocker = blocker;
@@ -53,9 +64,13 @@ public class LinkingService {
         this.executor = hazelcast.getDurableExecutorService( "default" );
 
         eventBus.register( this );
+        
+        this.listingService = listingService;
+        this.dms = dms;
+        this.cdm = cdm;
     }
 
-    public UUID link( UUID linkedEntitySetId, Set<Map<UUID, UUID>> linkingProperties ) {
+    public UUID link( UUID linkedEntitySetId, Set<Map<UUID, UUID>> linkingProperties, Set<UUID> ownablePropertyTypes ) {
         SetMultimap<UUID, UUID> linkIndexedByPropertyTypes = getLinkIndexedByPropertyTypes( linkingProperties );
         SetMultimap<UUID, UUID> linkIndexedByEntitySets = getLinkIndexedByEntitySets( linkingProperties );
 
@@ -90,8 +105,27 @@ public class LinkingService {
         logger.info( "Executing clustering..." );
         clusterer.cluster( graphId );
         
+        new DataController().loadLinkedEntitySetData( linkedEntitySetId );
+        mergeEntities( linkedEntitySetId, ownablePropertyTypes );
+        
         logger.info( "Linking job finished." );
         return linkedEntitySetId;
+    }
+    
+    private void mergeEntities( UUID linkedEntitySetId, Set<UUID> ownablePropertyTypes ) {
+        Map<UUID, Map<UUID, PropertyType>> authorizedPropertyTypesForEntitySets = new HashMap<>();
+        
+        for( UUID esId : listingService.getLinkedEntitySets( linkedEntitySetId ) ){
+            Set<UUID> propertiesOfEntitySet = dms.getEntityTypeByEntitySetId( esId ).getProperties();
+            Set<UUID> authorizedProperties = Sets.intersection( ownablePropertyTypes, propertiesOfEntitySet );
+            
+            Map<UUID, PropertyType> authorizedPropertyTypes = authorizedProperties.stream()
+                    .collect( Collectors.toMap( ptId -> ptId, ptId -> dms.getPropertyType( ptId ) ) );
+            
+            authorizedPropertyTypesForEntitySets.put( esId, authorizedPropertyTypes );
+        }
+        
+        cdm.getLinkedEntitySetData( linkedEntitySetId, authorizedPropertyTypesForEntitySets );
     }
 
     private LinkingEdge fromUnorderedPair( UUID graphId, UnorderedPair<Entity> p ) {

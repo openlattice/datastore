@@ -280,7 +280,10 @@ public class DatastoreServicesPod {
                 simpleMatcher(),
                 clusterer(),
                 hazelcastInstance,
-                eventBus );
+                eventBus,
+                hazelcastListingService(),
+                dataModelService(),
+                cassandraDataManager() );
     }
 
 }

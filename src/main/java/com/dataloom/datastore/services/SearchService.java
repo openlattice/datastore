@@ -157,7 +157,7 @@ public class SearchService {
                     .get();
             return queryResults;
         } catch ( InterruptedException | ExecutionException e ) {
-            logger.error( "Unable to to perofrm keyword search.", e );
+            logger.error( "Unable to to perform keyword search.", e );
             return Lists.newArrayList();
         }
     }
@@ -187,7 +187,7 @@ public class SearchService {
             return queryResults;
 
         } catch ( InterruptedException | ExecutionException e ) {
-            e.printStackTrace();
+            logger.debug( "unable to execute entity set data search" );
             return new SearchResult( 0, Lists.newArrayList() );
         }
     }

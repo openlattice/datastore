@@ -27,8 +27,8 @@ public class SimpleMatcher implements Matcher {
     private Set<UUID>               linkingProperties;
 
     private Map<UUID, Double>       weights;
-    
-    private static DoubleMetaphone doubleMetaphone = new DoubleMetaphone();
+
+    private static DoubleMetaphone  doubleMetaphone = new DoubleMetaphone();
 
     private final EdmManager        dms;
 
@@ -160,17 +160,18 @@ public class SimpleMatcher implements Matcher {
      * @return
      */
     private double getDistance( UUID propertyTypeId, String val0, String val1 ) {
-        switch( getPropertyName( propertyTypeId ) ){
+        switch ( getPropertyName( propertyTypeId ) ) {
             case "name":
             case "firstname":
             case "lastname":
-                return StringUtils.getJaroWinklerDistance( doubleMetaphone.encode( val0 ), doubleMetaphone.encode( val1 ) );
+                return 1 - StringUtils.getJaroWinklerDistance( doubleMetaphone.encode( val0 ),
+                        doubleMetaphone.encode( val1 ) );
             default:
-                return StringUtils.getJaroWinklerDistance( val0, val1 );
+                return 1 - StringUtils.getJaroWinklerDistance( val0, val1 );
         }
     }
-    
-    private String getPropertyName( UUID propertyTypeId ){
+
+    private String getPropertyName( UUID propertyTypeId ) {
         return dms.getPropertyType( propertyTypeId ).getType().getName();
     }
 }

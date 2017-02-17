@@ -259,7 +259,7 @@ public class CassandraDataManager {
             UUID linkedEntitySetId ) {
         UUID graphId = linkingGraph.getGraphIdFromEntitySetId( linkedEntitySetId );
         ResultSet rs = session
-                .execute( linkedEntitiesQuery.bind().setUUID( CommonColumns.ENTITY_SET_ID.cql(), graphId ) );
+                .execute( linkedEntitiesQuery.bind().setUUID( CommonColumns.GRAPH_ID.cql(), graphId ) );
         return Iterables.transform( rs, RowAdapters::linkedEntity );
     }
 

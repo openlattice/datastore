@@ -21,6 +21,7 @@ package com.dataloom.datastore.converters;
 
 import java.io.IOException;
 import java.lang.reflect.Type;
+import java.util.Arrays;
 
 import org.apache.olingo.commons.api.edm.FullQualifiedName;
 import org.springframework.http.HttpInputMessage;
@@ -38,6 +39,7 @@ import com.fasterxml.jackson.dataformat.csv.CsvSchema.ColumnType;
 import com.fasterxml.jackson.datatype.guava.GuavaModule;
 import com.fasterxml.jackson.datatype.joda.JodaModule;
 import com.fasterxml.jackson.module.afterburner.AfterburnerModule;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 
 public class CsvHttpMessageConverter
@@ -70,14 +72,16 @@ public class CsvHttpMessageConverter
             throws IOException, HttpMessageNotWritableException {
         CsvSchema schema = null;
         // Get schema
+        Multimap<FullQualifiedName, ?> obj  = null ;
         try {
-            Multimap<FullQualifiedName, ?> obj = t.iterator().next();
+            obj = t.iterator().next();
             schema = schemaBuilder( obj );
         } catch ( Exception e ) {
             logger.error( "Cannot build Schema for CSV" );
         }
         // Write to CSV
-        csvMapper.writer( schema ).writeValue( outputMessage.getBody(), t );
+        Iterable<Multimap<FullQualifiedName, ?>> reconstituted = Iterables.concat( Arrays.asList(  obj ), t  )::iterator;
+        csvMapper.writer( schema ).writeValue( outputMessage.getBody(),  reconstituted );
     }
 
     @Override

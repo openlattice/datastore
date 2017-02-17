@@ -47,6 +47,7 @@ import com.dataloom.search.requests.SearchDataRequest;
 import com.dataloom.search.requests.SearchResult;
 import com.dataloom.edm.events.EntitySetMetadataUpdatedEvent;
 import com.dataloom.edm.events.PropertyTypesInEntitySetUpdatedEvent;
+import com.dataloom.linking.Entity;
 import com.google.common.base.Optional;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
@@ -57,6 +58,7 @@ import com.hazelcast.durableexecutor.DurableExecutorService;
 import com.kryptnostic.conductor.rpc.ConductorCall;
 import com.kryptnostic.conductor.rpc.EntityDataLambdas;
 import com.kryptnostic.conductor.rpc.Lambdas;
+import com.kryptnostic.conductor.rpc.SearchEntitySetDataAcrossIndicesLambda;
 import com.kryptnostic.conductor.rpc.SearchEntitySetDataLambda;
 
 public class SearchService {
@@ -203,5 +205,19 @@ public class SearchService {
         executor.submit( ConductorCall
                 .wrap( Lambdas.updatePropertyTypesInEntitySet( event.getEntitySetId(), event.getNewPropertyTypes() ) ) );
     }
+    
+   public List<Entity> executeEntitySetDataSearchAcrossIndices( Set<UUID> entitySetIds, Map<UUID, Set<String>> fieldSearches, int size, boolean explain ){
+       List<Entity> queryResults;
+       try {
+           queryResults = executor.submit( ConductorCall.wrap( 
+                   new SearchEntitySetDataAcrossIndicesLambda( entitySetIds, fieldSearches, size, explain ) ) ).get();
+           return queryResults;
+
+       } catch ( InterruptedException | ExecutionException e ) {
+           logger.error( "Failed to execute search for entity set data search across indices: " + fieldSearches );
+           return Lists.newArrayList();
+       }      
+   }
+
 
 }

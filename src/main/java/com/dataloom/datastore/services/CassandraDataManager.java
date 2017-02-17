@@ -28,13 +28,16 @@ import java.util.UUID;
 import javax.inject.Inject;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.tuple.Pair;
 import org.apache.olingo.commons.api.edm.EdmPrimitiveTypeKind;
 import org.apache.olingo.commons.api.edm.FullQualifiedName;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.dataloom.data.EntityKey;
 import com.dataloom.data.events.EntityDataCreatedEvent;
 import com.dataloom.edm.type.PropertyType;
+import com.dataloom.linking.HazelcastLinkingGraphs;
 import com.dataloom.mappers.ObjectMappers;
 import com.datastax.driver.core.BoundStatement;
 import com.datastax.driver.core.PreparedStatement;
@@ -46,6 +49,7 @@ import com.datastax.driver.core.querybuilder.QueryBuilder;
 import com.datastax.driver.core.querybuilder.Select;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import com.google.common.collect.SetMultimap;
@@ -56,23 +60,28 @@ import com.kryptnostic.datastore.cassandra.RowAdapters;
 import com.kryptnostic.rhizome.cassandra.CassandraTableBuilder;
 
 public class CassandraDataManager {
-    
+
     @Inject
-    private EventBus                                eventBus;
-    
-    private static final Logger     logger = LoggerFactory
+    private EventBus                     eventBus;
+
+    private static final Logger          logger = LoggerFactory
             .getLogger( CassandraDataManager.class );
 
-    private final Session           session;
-    private final ObjectMapper      mapper;
-    private final PreparedStatement writeIdLookupQuery;
-    private final PreparedStatement writeDataQuery;
-    private final PreparedStatement entitySetQuery;
-    private final PreparedStatement entityIdsQuery;
+    private final Session                session;
+    private final ObjectMapper           mapper;
+    private final HazelcastLinkingGraphs linkingGraph;
 
-    public CassandraDataManager( Session session, ObjectMapper mapper ) {
+    private final PreparedStatement      writeIdLookupQuery;
+    private final PreparedStatement      writeDataQuery;
+    private final PreparedStatement      entitySetQuery;
+    private final PreparedStatement      entityIdsQuery;
+    private final PreparedStatement      linkedEntitiesQuery;
+
+    public CassandraDataManager( Session session, ObjectMapper mapper, HazelcastLinkingGraphs linkingGraph ) {
         this.session = session;
         this.mapper = mapper;
+        this.linkingGraph = linkingGraph;
+
         CassandraTableBuilder idLookupTableDefinitions = Table.ENTITY_ID_LOOKUP.getBuilder();
         CassandraTableBuilder dataTableDefinitions = Table.DATA.getBuilder();
 
@@ -80,29 +89,64 @@ public class CassandraDataManager {
         this.entityIdsQuery = prepareEntityIdsQuery( session );
         this.writeIdLookupQuery = prepareWriteQuery( session, idLookupTableDefinitions );
         this.writeDataQuery = prepareWriteQuery( session, dataTableDefinitions );
+        this.linkedEntitiesQuery = prepareLinkedEntitiesQuery( session );
     }
 
     public Iterable<SetMultimap<FullQualifiedName, Object>> getEntitySetData(
             UUID entitySetId,
             Set<UUID> syncIds,
             Map<UUID, PropertyType> authorizedPropertyTypes ) {
-        Set<UUID> authorizedProperties = authorizedPropertyTypes.keySet();
+        Iterable<ResultSet> entityRows = getRows( entitySetId, syncIds, authorizedPropertyTypes.keySet() );
+        return Iterables.transform( entityRows,
+                rs -> rowToEntity( rs, authorizedPropertyTypes ) )::iterator;
+    }
+
+    public Iterable<SetMultimap<UUID, Object>> getEntitySetDataIndexedById(
+            UUID entitySetId,
+            Set<UUID> syncIds,
+            Map<UUID, PropertyType> authorizedPropertyTypes ) {
+        Iterable<ResultSet> entityRows = getRows( entitySetId, syncIds, authorizedPropertyTypes.keySet() );
+        return Iterables.transform( entityRows,
+                rs -> rowToEntityIndexedById( rs, authorizedPropertyTypes ) )::iterator;
+    }
+
+    public Iterable<SetMultimap<FullQualifiedName, Object>> getLinkedEntitySetData(
+            UUID linkedEntitySetId,
+            Map<UUID, Map<UUID, PropertyType>> authorizedPropertyTypesForEntitySets ) {
+        Iterable<Pair<UUID,Set<EntityKey>>> linkedEntityKeys = getLinkedEntityKeys( linkedEntitySetId );
+        return Iterables.transform( linkedEntityKeys,
+                linkedKey -> getAndMergeLinkedEntities( linkedEntitySetId, linkedKey, authorizedPropertyTypesForEntitySets ) )::iterator;
+    }
+
+    public SetMultimap<FullQualifiedName, Object> rowToEntity(
+            ResultSet rs,
+            Map<UUID, PropertyType> authorizedPropertyTypes ) {
+        return RowAdapters.entity( rs, authorizedPropertyTypes, mapper );
+    }
+
+    public SetMultimap<UUID, Object> rowToEntityIndexedById(
+            ResultSet rs,
+            Map<UUID, PropertyType> authorizedPropertyTypes ) {
+        return RowAdapters.entityIndexedById( rs, authorizedPropertyTypes, mapper );
+    }
+
+    private Iterable<ResultSet> getRows(
+            UUID entitySetId,
+            Set<UUID> syncIds,
+            Set<UUID> authorizedProperties ) {
         Iterable<String> entityIds = getEntityIds( entitySetId, syncIds );
         Iterable<ResultSetFuture> entityFutures = Iterables.transform( entityIds,
-                entityId -> asyncLoadEntity( entityId, syncIds, authorizedProperties ) );
-        Iterable<ResultSet> entityRows = Iterables.transform( entityFutures, ResultSetFuture::getUninterruptibly );
-        return Iterables.transform( entityRows,
-                rs -> RowAdapters.entity( rs, authorizedPropertyTypes, mapper ) )::iterator;
+                entityId -> asyncLoadEntity( entityId, authorizedProperties ) );
+        return Iterables.transform( entityFutures, ResultSetFuture::getUninterruptibly );
     }
 
     // TODO Unexposed (yet) method. Would you batch this with the previous one? If yes, their return type needs to match
     public SetMultimap<FullQualifiedName, Object> getEntity(
             UUID entitySetId,
             String entityId,
-            Set<UUID> syncIds,
             Map<UUID, PropertyType> authorizedPropertyTypes ) {
         Set<UUID> authorizedProperties = authorizedPropertyTypes.keySet();
-        ResultSet rs = asyncLoadEntity( entityId, syncIds, authorizedProperties ).getUninterruptibly();
+        ResultSet rs = asyncLoadEntity( entityId, authorizedProperties ).getUninterruptibly();
         return RowAdapters.entity( rs, authorizedPropertyTypes, mapper );
     }
 
@@ -114,10 +158,9 @@ public class CassandraDataManager {
         return Iterables.filter( Iterables.transform( entityIds, RowAdapters::entityId ), StringUtils::isNotBlank );
     }
 
-    private ResultSetFuture asyncLoadEntity( String entityId, Set<UUID> syncIds, Set<UUID> authorizedProperties ) {
+    public ResultSetFuture asyncLoadEntity( String entityId, Set<UUID> authorizedProperties ) {
         return session.executeAsync( entitySetQuery.bind()
                 .setString( CommonColumns.ENTITYID.cql(), entityId )
-                .setSet( CommonColumns.SYNCID.cql(), syncIds )
                 .setSet( CommonColumns.PROPERTY_TYPE_ID.cql(), authorizedProperties ) );
     }
 
@@ -157,7 +200,6 @@ public class CassandraDataManager {
                                                         entity.getKey() ) ) ) );
                         //TODO: wtf move this
                         authorizedPropertyValues.put( entry.getKey(), entry.getValue() );
-
                     } );
             eventBus.post( new EntityDataCreatedEvent( entitySetId, entity.getKey(), authorizedPropertyValues ) );
         } );
@@ -194,5 +236,50 @@ public class CassandraDataManager {
                 .from( Table.ENTITY_ID_LOOKUP.getKeyspace(), Table.ENTITY_ID_LOOKUP.getName() )
                 .where( QueryBuilder.eq( CommonColumns.ENTITY_SET_ID.cql(), QueryBuilder.bindMarker() ) )
                 .and( QueryBuilder.in( CommonColumns.SYNCID.cql(), CommonColumns.SYNCID.bindMarker() ) ) );
+    }
+
+    private static PreparedStatement prepareLinkedEntitiesQuery( Session session ) {
+        return session.prepare( QueryBuilder
+                .select().all()
+                .from( Table.LINKING_VERTICES.getKeyspace(), Table.LINKING_VERTICES.getName() ).allowFiltering()
+                .where( QueryBuilder.eq( CommonColumns.GRAPH_ID.cql(), QueryBuilder.bindMarker() ) ) );
+    }
+
+    /**
+     * Auxiliary methods for linking entity sets
+     */
+
+    private Iterable<Pair<UUID, Set<EntityKey>>> getLinkedEntityKeys(
+            UUID linkedEntitySetId ) {
+        UUID graphId = linkingGraph.getGraphIdFromEntitySetId( linkedEntitySetId );
+        ResultSet rs = session
+                .execute( linkedEntitiesQuery.bind().setUUID( CommonColumns.GRAPH_ID.cql(), graphId ) );
+        return Iterables.transform( rs, RowAdapters::linkedEntity );
+    }
+
+    private SetMultimap<FullQualifiedName, Object> getAndMergeLinkedEntities(
+            UUID linkedEntitySetId,
+            Pair<UUID, Set<EntityKey>> linkedKey,
+            Map<UUID, Map<UUID, PropertyType>> authorizedPropertyTypesForEntitySets ) {
+        SetMultimap<FullQualifiedName, Object> result = HashMultimap.create();
+        Map<UUID, Object> indexResult = Maps.newHashMap();
+
+        linkedKey.getValue().stream()
+                .map( key -> Pair.of( key.getEntitySetId(),
+                        asyncLoadEntity( key.getEntityId(),
+                                authorizedPropertyTypesForEntitySets.get( key.getEntitySetId() ).keySet() ) ) )
+                .map( rsfPair -> Pair.of( rsfPair.getKey(), rsfPair.getValue().getUninterruptibly() ) )
+                .map( rsPair -> RowAdapters.entityIdFQNPair( rsPair.getValue(),
+                        authorizedPropertyTypesForEntitySets.get( rsPair.getKey() ),
+                        mapper ) )
+                .forEach( pair -> {
+                   result.putAll( pair.getValue() );
+                   pair.getKey().entries().forEach( entry -> {
+                        indexResult.put( entry.getKey(), entry.getValue() );
+                   } );
+                });
+
+        eventBus.post( new EntityDataCreatedEvent( linkedEntitySetId, linkedKey.getKey().toString(), indexResult ) );
+        return result;
     }
 }

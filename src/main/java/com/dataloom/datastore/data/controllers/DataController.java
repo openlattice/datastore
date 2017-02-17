@@ -30,6 +30,8 @@ import com.dataloom.datastore.constants.CustomMediaType;
 import com.dataloom.datastore.services.CassandraDataManager;
 import com.dataloom.datastore.services.SyncTicketService;
 import com.dataloom.edm.type.PropertyType;
+import com.dataloom.linking.HazelcastListingService;
+import com.dataloom.edm.EntitySet;
 import com.dataloom.edm.processors.EdmPrimitiveTypeKindGetter;
 import com.google.common.base.Optional;
 import com.google.common.cache.CacheBuilder;
@@ -55,7 +57,11 @@ import org.springframework.web.bind.annotation.*;
 import javax.annotation.PostConstruct;
 import javax.inject.Inject;
 import javax.servlet.http.HttpServletResponse;
+
+import java.util.Arrays;
 import java.util.EnumSet;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -65,7 +71,7 @@ import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping( DataApi.CONTROLLER )
-public class DataController implements DataApi {
+public class DataController implements DataApi, AuthorizingComponent {
     private static final Logger logger = LoggerFactory.getLogger( DataController.class );
 
     @Inject
@@ -86,6 +92,9 @@ public class DataController implements DataApi {
     @Inject
     private LoomAuth0AuthenticationProvider authProvider;
 
+    @Inject
+    private HazelcastListingService listingService;
+    
     private LoadingCache<UUID, EdmPrimitiveTypeKind>  primitiveTypeKinds;
     private LoadingCache<AuthorizationKey, Set<UUID>> authorizedPropertyCache;
 
@@ -176,34 +185,67 @@ public class DataController implements DataApi {
         if ( authz.checkIfHasPermissions( ImmutableList.of( entitySetId ),
                 Principals.getCurrentPrincipals(),
                 EnumSet.of( Permission.READ ) ) ) {
-            Set<UUID> ids;
-            if ( !syncIds.isPresent() || syncIds.get().isEmpty() ) {
-                ids = getLatestSyncIds();
+            if( listingService.isLinkedEntitySet( entitySetId ) ){
+                return loadLinkedEntitySetData( entitySetId );
             } else {
-                ids = syncIds.get();
+                return loadNormalEntitySetData( entitySetId, syncIds, selectedProperties );
             }
-            Set<UUID> authorizedProperties;
-            if ( selectedProperties.isPresent() && !selectedProperties.get().isEmpty() ) {
-                if ( !authzHelper.getAllPropertiesOnEntitySet( entitySetId ).containsAll( selectedProperties.get() ) ) {
-                    throw new IllegalArgumentException(
-                            "Not all selected properties are property types of the entity set." );
-                }
-                authorizedProperties = Sets.intersection( selectedProperties.get(),
-                        authzHelper.getAuthorizedPropertiesOnEntitySet( entitySetId, EnumSet.of( Permission.READ ) ) );
-            } else {
-                authorizedProperties = authzHelper.getAuthorizedPropertiesOnEntitySet( entitySetId,
-                        EnumSet.of( Permission.READ ) );
-            }
-
-            Map<UUID, PropertyType> authorizedPropertyTypes = authorizedProperties.stream()
-                    .collect( Collectors.toMap( ptId -> ptId, ptId -> dms.getPropertyType( ptId ) ) );
-            return cdm.getEntitySetData( entitySetId, ids, authorizedPropertyTypes );
-
         } else {
             throw new ForbiddenException( "Insufficient permissions to read the entity set or it doesn't exist." );
         }
     }
+    
+    private Iterable<SetMultimap<FullQualifiedName, Object>> loadNormalEntitySetData(
+            UUID entitySetId,
+            Optional<Set<UUID>> syncIds,
+            Optional<Set<UUID>> selectedProperties ){
+        Set<UUID> ids;
+        if ( !syncIds.isPresent() || syncIds.get().isEmpty() ) {
+            ids = getLatestSyncIds();
+        } else {
+            ids = syncIds.get();
+        }
+        Set<UUID> authorizedProperties;
+        if ( selectedProperties.isPresent() && !selectedProperties.get().isEmpty() ) {
+            if ( !authzHelper.getAllPropertiesOnEntitySet( entitySetId ).containsAll( selectedProperties.get() ) ) {
+                throw new IllegalArgumentException(
+                        "Not all selected properties are property types of the entity set." );
+            }
+            authorizedProperties = Sets.intersection( selectedProperties.get(),
+                    authzHelper.getAuthorizedPropertiesOnEntitySet( entitySetId, EnumSet.of( Permission.READ ) ) );
+        } else {
+            authorizedProperties = authzHelper.getAuthorizedPropertiesOnEntitySet( entitySetId,
+                    EnumSet.of( Permission.READ ) );
+        }
 
+        Map<UUID, PropertyType> authorizedPropertyTypes = authorizedProperties.stream()
+                .collect( Collectors.toMap( ptId -> ptId, ptId -> dms.getPropertyType( ptId ) ) );
+        return cdm.getEntitySetData( entitySetId, ids, authorizedPropertyTypes );   
+    }
+    
+    private Iterable<SetMultimap<FullQualifiedName, Object>> loadLinkedEntitySetData(
+            UUID linkedEntitySetId ) {
+        Set<UUID> authorizedPropertiesOfEntityType = dms.getEntityTypeByEntitySetId( linkedEntitySetId ).getProperties().stream().filter(
+                propertyId -> {
+                    List<UUID> aclKey = Arrays.asList( linkedEntitySetId, propertyId );
+                    return isAuthorized( Permission.READ ).test( aclKey );
+                }).collect( Collectors.toSet() );
+        
+        Map<UUID, Map<UUID, PropertyType>> authorizedPropertyTypesForEntitySets = new HashMap<>();
+        
+        for( UUID esId : listingService.getLinkedEntitySets( linkedEntitySetId ) ){
+            Set<UUID> propertiesOfEntitySet = dms.getEntityTypeByEntitySetId( esId ).getProperties();
+            Set<UUID> authorizedProperties = Sets.intersection( authorizedPropertiesOfEntityType, propertiesOfEntitySet );
+            
+            Map<UUID, PropertyType> authorizedPropertyTypes = authorizedProperties.stream()
+                    .collect( Collectors.toMap( ptId -> ptId, ptId -> dms.getPropertyType( ptId ) ) );
+            
+            authorizedPropertyTypesForEntitySets.put( esId, authorizedPropertyTypes );
+        }
+        
+        return cdm.getLinkedEntitySetData( linkedEntitySetId, authorizedPropertyTypesForEntitySets );
+    }
+    
     @RequestMapping(
             path = { "/" + ENTITY_DATA + "/" + SET_ID_PATH + "/" + SYNC_ID_PATH },
             method = RequestMethod.PUT,
@@ -323,6 +365,11 @@ public class DataController implements DataApi {
 
         cdm.createEntityData( entitySetId, syncId, entities, authorizedPropertiesWithDataType );
         return null;
+    }
+
+    @Override
+    public AuthorizationManager getAuthorizationManager() {
+        return authz;
     }
 
 }

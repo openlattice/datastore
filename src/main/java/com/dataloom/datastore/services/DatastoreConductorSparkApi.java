@@ -32,6 +32,7 @@ import com.dataloom.authorization.Principal;
 import com.dataloom.data.requests.LookupEntitiesRequest;
 import com.dataloom.edm.EntitySet;
 import com.dataloom.edm.type.PropertyType;
+import com.dataloom.linking.Entity;
 import com.dataloom.organization.Organization;
 import com.dataloom.search.requests.SearchResult;
 import com.google.common.base.Optional;
@@ -109,7 +110,8 @@ public class DatastoreConductorSparkApi implements ConductorSparkApi {
 
     @Override
     public Boolean updatePropertyTypesInEntitySet(
-            UUID entitySetId, List<PropertyType> newPropertyTypes ) {
+            UUID entitySetId,
+            List<PropertyType> newPropertyTypes ) {
         throw new NotImplementedException(
                 "You are trying to invoke ConductorSparkApi from somehwere else other than conductor." );
     }
@@ -156,7 +158,6 @@ public class DatastoreConductorSparkApi implements ConductorSparkApi {
                 "You are trying to invoke ConductorSparkApi from somehwere else other than conductor." );
     }
 
-
     @Override
     public Boolean createEntityData( UUID entitySetId, String entityId, Map<UUID, Object> propertyValues ) {
         throw new NotImplementedException(
@@ -175,11 +176,17 @@ public class DatastoreConductorSparkApi implements ConductorSparkApi {
     }
 
     @Override
-    public List<Map<String, Object>> executeEntitySetDataSearchAcrossIndices(
+    public List<Entity> executeEntitySetDataSearchAcrossIndices(
             Set<UUID> entitySetIds,
             Map<UUID, Set<String>> fieldSearches,
             int size,
             boolean explain ) {
+        throw new NotImplementedException(
+                "You are trying to invoke ConductorSparkApi from somehwere else other than conductor." );
+    }
+
+    @Override
+    public Void clustering( UUID linkedEntitySetId ) {
         throw new NotImplementedException(
                 "You are trying to invoke ConductorSparkApi from somehwere else other than conductor." );
     }

@@ -19,13 +19,29 @@
 
 package com.dataloom.datastore.pods;
 
+import javax.inject.Inject;
+
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Import;
+
 import com.dataloom.auditing.AuditQueryService;
 import com.dataloom.auditing.HazelcastAuditLoggingService;
-import com.dataloom.authorization.*;
+import com.dataloom.authorization.AbstractSecurableObjectResolveTypeService;
+import com.dataloom.authorization.AuthorizationManager;
+import com.dataloom.authorization.AuthorizationQueryService;
+import com.dataloom.authorization.EdmAuthorizationHelper;
+import com.dataloom.authorization.HazelcastAbstractSecurableObjectResolveTypeService;
+import com.dataloom.authorization.HazelcastAclKeyReservationService;
+import com.dataloom.authorization.HazelcastAuthorizationService;
+import com.dataloom.clustering.ClusteringPartitioner;
 import com.dataloom.data.serializers.FullQualifedNameJacksonDeserializer;
 import com.dataloom.data.serializers.FullQualifedNameJacksonSerializer;
+import com.dataloom.datastore.linking.services.SimpleElasticSearchBlocker;
+import com.dataloom.datastore.linking.services.SimpleMatcher;
 import com.dataloom.datastore.services.CassandraDataManager;
 import com.dataloom.datastore.services.DatasourceManager;
+import com.dataloom.datastore.services.LinkingService;
 import com.dataloom.datastore.services.SearchService;
 import com.dataloom.datastore.services.SyncTicketService;
 import com.dataloom.directory.UserDirectoryService;
@@ -33,10 +49,19 @@ import com.dataloom.edm.properties.CassandraTypeManager;
 import com.dataloom.edm.schemas.SchemaQueryService;
 import com.dataloom.edm.schemas.cassandra.CassandraSchemaQueryService;
 import com.dataloom.edm.schemas.manager.HazelcastSchemaManager;
+import com.dataloom.linking.CassandraLinkingGraphsQueryService;
+import com.dataloom.linking.HazelcastLinkingGraphs;
 import com.dataloom.linking.HazelcastListingService;
+import com.dataloom.linking.components.Blocker;
+import com.dataloom.linking.components.Clusterer;
+import com.dataloom.linking.components.Matcher;
 import com.dataloom.mappers.ObjectMappers;
 import com.dataloom.organizations.HazelcastOrganizationService;
-import com.dataloom.requests.*;
+import com.dataloom.requests.HazelcastPermissionsRequestsService;
+import com.dataloom.requests.HazelcastRequestsManager;
+import com.dataloom.requests.PermissionsRequestsManager;
+import com.dataloom.requests.PermissionsRequestsQueryService;
+import com.dataloom.requests.RequestQueryService;
 import com.datastax.driver.core.Session;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.eventbus.EventBus;
@@ -47,13 +72,9 @@ import com.kryptnostic.datastore.services.EdmService;
 import com.kryptnostic.datastore.services.ODataStorageService;
 import com.kryptnostic.rhizome.configuration.cassandra.CassandraConfiguration;
 import com.kryptnostic.rhizome.pods.CassandraPod;
+
 import digital.loom.rhizome.authentication.Auth0Pod;
 import digital.loom.rhizome.configuration.auth0.Auth0Configuration;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Import;
-
-import javax.inject.Inject;
 
 @Configuration
 @Import( { CassandraPod.class, Auth0Pod.class } )
@@ -63,16 +84,16 @@ public class DatastoreServicesPod {
     private CassandraConfiguration cassandraConfiguration;
 
     @Inject
-    private HazelcastInstance hazelcastInstance;
+    private HazelcastInstance      hazelcastInstance;
 
     @Inject
-    private Session session;
+    private Session                session;
 
     @Inject
-    private Auth0Configuration auth0Configuration;
+    private Auth0Configuration     auth0Configuration;
 
     @Inject
-    private EventBus eventBus;
+    private EventBus               eventBus;
 
     @Bean
     public ObjectMapper defaultObjectMapper() {
@@ -89,9 +110,9 @@ public class DatastoreServicesPod {
 
     @Bean
     public AuthorizationManager authorizationManager() {
-        return new HazelcastAuthorizationService( hazelcastInstance, authorizationQueryService() , eventBus );
+        return new HazelcastAuthorizationService( hazelcastInstance, authorizationQueryService(), eventBus );
     }
-    
+
     @Bean
     public AbstractSecurableObjectResolveTypeService securableObjectTypes() {
         return new HazelcastAbstractSecurableObjectResolveTypeService( hazelcastInstance );
@@ -139,8 +160,13 @@ public class DatastoreServicesPod {
     }
 
     @Bean
-    public HazelcastListingService hazelcastListingService(){
+    public HazelcastListingService hazelcastListingService() {
         return new HazelcastListingService( hazelcastInstance );
+    }
+
+    @Bean
+    public HazelcastLinkingGraphs linkingGraph() {
+        return new HazelcastLinkingGraphs( hazelcastInstance );
     }
 
     @Bean
@@ -154,7 +180,7 @@ public class DatastoreServicesPod {
 
     @Bean
     public CassandraDataManager cassandraDataManager() {
-        return new CassandraDataManager( session, defaultObjectMapper() );
+        return new CassandraDataManager( session, defaultObjectMapper(), linkingGraph() );
     }
 
     @Bean
@@ -225,4 +251,39 @@ public class DatastoreServicesPod {
     public HazelcastAuditLoggingService auditLoggingService() {
         return new HazelcastAuditLoggingService( hazelcastInstance, auditQuerySerivce(), eventBus );
     }
+
+    @Bean
+    public Blocker simpleElasticSearchBlocker() {
+        return new SimpleElasticSearchBlocker( dataModelService(), cassandraDataManager(), searchService() );
+    }
+
+    @Bean
+    public Matcher simpleMatcher() {
+        return new SimpleMatcher( dataModelService() );
+    }
+
+    @Bean
+    public CassandraLinkingGraphsQueryService cgqs() {
+        return new CassandraLinkingGraphsQueryService( cassandraConfiguration.getKeyspace(), session );
+    }
+
+    @Bean
+    public Clusterer clusterer() {
+        return new ClusteringPartitioner( cgqs(), linkingGraph() );
+    }
+
+    @Bean
+    public LinkingService linkingService() {
+        return new LinkingService(
+                linkingGraph(),
+                simpleElasticSearchBlocker(),
+                simpleMatcher(),
+                clusterer(),
+                hazelcastInstance,
+                eventBus,
+                hazelcastListingService(),
+                dataModelService(),
+                cassandraDataManager() );
+    }
+
 }

@@ -113,9 +113,9 @@ public class CassandraDataManager {
     public Iterable<SetMultimap<FullQualifiedName, Object>> getLinkedEntitySetData(
             UUID linkedEntitySetId,
             Map<UUID, Map<UUID, PropertyType>> authorizedPropertyTypesForEntitySets ) {
-        Iterable<Set<EntityKey>> linkedEntityKeys = getLinkedEntityKeys( linkedEntitySetId );
+        Iterable<Pair<UUID,Set<EntityKey>>> linkedEntityKeys = getLinkedEntityKeys( linkedEntitySetId );
         return Iterables.transform( linkedEntityKeys,
-                linkedKey -> getAndMergeLinkedEntities( linkedKey, authorizedPropertyTypesForEntitySets ) )::iterator;
+                linkedKey -> getAndMergeLinkedEntities( linkedEntitySetId, linkedKey, authorizedPropertyTypesForEntitySets ) )::iterator;
     }
 
     public SetMultimap<FullQualifiedName, Object> rowToEntity(
@@ -255,20 +255,22 @@ public class CassandraDataManager {
      * Auxiliary methods for linking entity sets
      */
 
-    private Iterable<Set<EntityKey>> getLinkedEntityKeys(
+    private Iterable<Pair<UUID, Set<EntityKey>>> getLinkedEntityKeys(
             UUID linkedEntitySetId ) {
         UUID graphId = linkingGraph.getGraphIdFromEntitySetId( linkedEntitySetId );
         ResultSet rs = session
                 .execute( linkedEntitiesQuery.bind().setUUID( CommonColumns.ENTITY_SET_ID.cql(), graphId ) );
-        return Iterables.transform( rs, RowAdapters::entityKeys );
+        return Iterables.transform( rs, RowAdapters::linkedEntity );
     }
 
     private SetMultimap<FullQualifiedName, Object> getAndMergeLinkedEntities(
-            Set<EntityKey> linkedKey,
+            UUID linkedEntitySetId,
+            Pair<UUID, Set<EntityKey>> linkedKey,
             Map<UUID, Map<UUID, PropertyType>> authorizedPropertyTypesForEntitySets ) {
+        SetMultimap<UUID, Object> resultForIndexing  = HashMultimap.create();
         SetMultimap<FullQualifiedName, Object> result = HashMultimap.create();
 
-        linkedKey.stream()
+        linkedKey.getValue().stream()
                 .map( key -> Pair.of( key.getEntitySetId(),
                         asyncLoadEntity( key.getEntityId(),
                                 authorizedPropertyTypesForEntitySets.get( key.getEntitySetId() ).keySet() ) ) )
@@ -278,9 +280,12 @@ public class CassandraDataManager {
                         mapper ) )
                 .forEach( pair -> {
                    result.putAll( pair.getValue() );
-                   // TODO pair.getKey() is indexed by UUID
+                   resultForIndexing.putAll( pair.getKey() );
                 });
 
+        // linkedKey.getKey() is the entityId
+        // linkedEntitySetId is now passed in to the method
+        // Probably have to make do with writeValueAsString to transform the SetMultimap for now.
         return result;
     }
 }

@@ -54,7 +54,7 @@ public class SimpleMatcher implements Matcher {
                 Object val1 = elem1.getProperties().get( pidAsString );
                 if ( val0 != null && val1 != null ) {
                     // Both values are non-null; score can be computed.
-                    dist += getDistance( propertyTypeId, val0, val1 ) * getWeight( propertyTypeId );
+                    dist += getDistance( propertyTypeId, val0, val1 ) * weights.get( propertyTypeId );
                 }
             }
         }
@@ -76,7 +76,7 @@ public class SimpleMatcher implements Matcher {
         double totalWeight = 0;
 
         for ( UUID propertyTypeId : linkingProperties ) {
-            double weight = getWeight( propertyTypeId );
+            double weight = getDefaultUnnormalizedWeight( propertyTypeId );
             weights.put( propertyTypeId, weight );
             totalWeight += weight;
         }
@@ -103,7 +103,7 @@ public class SimpleMatcher implements Matcher {
 
     // TODO lolz
     // Right now, 10 is something with heavy weight, 1 is smallest.
-    private double getWeight( UUID propertyTypeId ) {
+    private double getDefaultUnnormalizedWeight( UUID propertyTypeId ) {
         String propertyName = getPropertyName( propertyTypeId );
         if ( propertyName.contains( "year" ) || propertyName.contains( "date" ) || propertyName.contains( "dob" )
                 || propertyName.contains( "id" ) || propertyName.contains( "ssn" ) ) {
@@ -135,7 +135,7 @@ public class SimpleMatcher implements Matcher {
     }
 
     private double getDistance( UUID propertyTypeId, Set<String> val0, Set<String> val1 ) {
-        double minDist = 0;
+        double minDist = Double.POSITIVE_INFINITY;
 
         for ( String s0 : val0 ) {
             for ( String s1 : val1 ) {

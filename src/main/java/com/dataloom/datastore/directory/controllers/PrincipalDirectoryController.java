@@ -28,6 +28,7 @@ import javax.inject.Inject;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -114,4 +115,11 @@ public class PrincipalDirectoryController implements PrincipalApi {
         return userDirectoryService.getAllUsersOfRole( role );
     }
 
+    @Override
+    @GetMapping(
+        path = USERS + SEARCH + SEARCH_QUERY_PATH,
+        produces = MediaType.APPLICATION_JSON_VALUE )
+    public Map<String, Auth0UserBasic> searchAllUsers( @PathVariable( SEARCH_QUERY ) String searchQuery ) {
+        return userDirectoryService.searchAllUsers( searchQuery );
+    }
 }

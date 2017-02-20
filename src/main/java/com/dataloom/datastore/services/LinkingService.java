@@ -12,7 +12,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.dataloom.datasource.UUIDs.Syncs;
-import com.dataloom.datastore.data.controllers.DataController;
 import com.dataloom.edm.type.PropertyType;
 import com.dataloom.linking.Entity;
 import com.dataloom.linking.HazelcastLinkingGraphs;
@@ -20,32 +19,36 @@ import com.dataloom.linking.HazelcastListingService;
 import com.dataloom.linking.LinkingEdge;
 import com.dataloom.linking.LinkingEntityKey;
 import com.dataloom.linking.LinkingVertexKey;
+import com.dataloom.linking.SortedCassandraLinkingEdgeBuffer;
+import com.dataloom.linking.WeightedLinkingEdge;
 import com.dataloom.linking.components.Blocker;
 import com.dataloom.linking.components.Clusterer;
 import com.dataloom.linking.components.Matcher;
 import com.dataloom.linking.util.UnorderedPair;
+import com.datastax.driver.core.Session;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.SetMultimap;
 import com.google.common.collect.Sets;
 import com.google.common.eventbus.EventBus;
 import com.hazelcast.core.HazelcastInstance;
-import com.hazelcast.durableexecutor.DurableExecutorService;
 import com.kryptnostic.datastore.services.EdmManager;
 
 public class LinkingService {
-    private static final Logger          logger = LoggerFactory.getLogger( LinkingService.class );
+    private static final Logger           logger = LoggerFactory.getLogger( LinkingService.class );
 
-    private HazelcastLinkingGraphs       linkingGraph;
-    private Blocker                      blocker;
-    private Matcher                      matcher;
-    private Clusterer                    clusterer;
-    private HazelcastListingService      listingService;
-    private EdmManager                   dms;
-    private CassandraDataManager         cdm;
-
-    private final DurableExecutorService executor;
+    private final HazelcastLinkingGraphs  linkingGraph;
+    private final Blocker                 blocker;
+    private final Matcher                 matcher;
+    private final Clusterer               clusterer;
+    private final HazelcastListingService listingService;
+    private final EdmManager              dms;
+    private final CassandraDataManager    cdm;
+    private final String                  keyspace;
+    private final Session                 session;
 
     public LinkingService(
+            String keyspace,
+            Session session,
             HazelcastLinkingGraphs linkingGraph,
             Blocker blocker,
             Matcher matcher,
@@ -61,10 +64,11 @@ public class LinkingService {
         this.matcher = matcher;
         this.clusterer = clusterer;
 
-        this.executor = hazelcast.getDurableExecutorService( "default" );
+        this.session = session;
+        this.keyspace = keyspace;
 
         eventBus.register( this );
-        
+
         this.listingService = listingService;
         this.dms = dms;
         this.cdm = cdm;
@@ -87,43 +91,51 @@ public class LinkingService {
         logger.info( "Executing blocking..." );
         // Blocking: For each row in the entity sets, fire off query to elasticsearch
         Stream<UnorderedPair<Entity>> pairs = blocker.block();
+        final SortedCassandraLinkingEdgeBuffer buffer = new SortedCassandraLinkingEdgeBuffer(
+                keyspace,
+                session,
+                graphId,
+                0.0,
+                0,
+                0 );
 
         logger.info( "Executing matching..." );
         // Matching: check if pair score is already calculated from HazelcastGraph Api. If not, stream
         // through matcher to get a score.
         pairs
-        //bad fix, will do for now.
+                // bad fix, will do for now.
                 .filter( entityPair -> entityPair.getBackingCollection().size() == 2 )
-                .filter( entityPair -> !edgeExists( graphId, entityPair ) )
                 .forEach( entityPair -> {
-                    LinkingEdge edge = fromUnorderedPair( graphId, entityPair );
-                    double weight = matcher.dist( entityPair );
-                    linkingGraph.addEdge( edge, weight );
+                    final LinkingEdge edge = fromUnorderedPair( graphId, entityPair );
+                    if( buffer.tryAddEdge( edge ) ) {
+                        double weight = matcher.dist( entityPair );
+                        buffer.setEdgeWeight( new WeightedLinkingEdge( weight, edge ) );
+                    }
                 } );
 
         // Feed the scores (i.e. the edge set) into HazelcastGraph Api
         logger.info( "Executing clustering..." );
         clusterer.cluster( graphId );
-        
+
         mergeEntities( linkedEntitySetId, ownablePropertyTypes );
-        
+
         logger.info( "Linking job finished." );
         return linkedEntitySetId;
     }
-    
+
     private void mergeEntities( UUID linkedEntitySetId, Set<UUID> ownablePropertyTypes ) {
         Map<UUID, Map<UUID, PropertyType>> authorizedPropertyTypesForEntitySets = new HashMap<>();
-        
-        for( UUID esId : listingService.getLinkedEntitySets( linkedEntitySetId ) ){
+
+        for ( UUID esId : listingService.getLinkedEntitySets( linkedEntitySetId ) ) {
             Set<UUID> propertiesOfEntitySet = dms.getEntityTypeByEntitySetId( esId ).getProperties();
             Set<UUID> authorizedProperties = Sets.intersection( ownablePropertyTypes, propertiesOfEntitySet );
-            
+
             Map<UUID, PropertyType> authorizedPropertyTypes = authorizedProperties.stream()
                     .collect( Collectors.toMap( ptId -> ptId, ptId -> dms.getPropertyType( ptId ) ) );
-            
+
             authorizedPropertyTypesForEntitySets.put( esId, authorizedPropertyTypes );
         }
-        
+
         cdm.getLinkedEntitySetData( linkedEntitySetId, authorizedPropertyTypesForEntitySets );
     }
 
@@ -133,10 +145,6 @@ public class LinkingService {
         LinkingVertexKey u = linkingGraph.getLinkingVertextKey( keys.get( 0 ) );
         LinkingVertexKey v = linkingGraph.getLinkingVertextKey( keys.get( 1 ) );
         return new LinkingEdge( u, v );
-    }
-
-    private boolean edgeExists( UUID graphId, UnorderedPair<Entity> p ) {
-        return linkingGraph.edgeExists( fromUnorderedPair( graphId, p ) );
     }
 
     private void initializeComponents(

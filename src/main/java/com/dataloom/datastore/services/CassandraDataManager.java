@@ -43,7 +43,9 @@ import com.datastax.driver.core.BoundStatement;
 import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.ResultSetFuture;
+import com.datastax.driver.core.Row;
 import com.datastax.driver.core.Session;
+import com.datastax.driver.core.querybuilder.Delete;
 import com.datastax.driver.core.querybuilder.Insert;
 import com.datastax.driver.core.querybuilder.QueryBuilder;
 import com.datastax.driver.core.querybuilder.Select;
@@ -75,6 +77,11 @@ public class CassandraDataManager {
     private final PreparedStatement      writeDataQuery;
     private final PreparedStatement      entitySetQuery;
     private final PreparedStatement      entityIdsQuery;
+
+    private final PreparedStatement      entityIdsLookupByEntitySetQuery;
+    private final PreparedStatement      deleteEntityQuery;
+    private final PreparedStatement      deleteEntityLookupQuery;
+
     private final PreparedStatement      linkedEntitiesQuery;
 
     public CassandraDataManager( Session session, ObjectMapper mapper, HazelcastLinkingGraphs linkingGraph ) {
@@ -89,6 +96,11 @@ public class CassandraDataManager {
         this.entityIdsQuery = prepareEntityIdsQuery( session );
         this.writeIdLookupQuery = prepareWriteQuery( session, idLookupTableDefinitions );
         this.writeDataQuery = prepareWriteQuery( session, dataTableDefinitions );
+
+        this.entityIdsLookupByEntitySetQuery = prepareEntityIdsLookupByEntitySetQuery( session );
+        this.deleteEntityQuery = prepareDeleteEntityQuery( session );
+        this.deleteEntityLookupQuery = prepareDeleteEntityLookupQuery( session );
+
         this.linkedEntitiesQuery = prepareLinkedEntitiesQuery( session );
     }
 
@@ -113,9 +125,11 @@ public class CassandraDataManager {
     public Iterable<SetMultimap<FullQualifiedName, Object>> getLinkedEntitySetData(
             UUID linkedEntitySetId,
             Map<UUID, Map<UUID, PropertyType>> authorizedPropertyTypesForEntitySets ) {
-        Iterable<Pair<UUID,Set<EntityKey>>> linkedEntityKeys = getLinkedEntityKeys( linkedEntitySetId );
+        Iterable<Pair<UUID, Set<EntityKey>>> linkedEntityKeys = getLinkedEntityKeys( linkedEntitySetId );
         return Iterables.transform( linkedEntityKeys,
-                linkedKey -> getAndMergeLinkedEntities( linkedEntitySetId, linkedKey, authorizedPropertyTypesForEntitySets ) )::iterator;
+                linkedKey -> getAndMergeLinkedEntities( linkedEntitySetId,
+                        linkedKey,
+                        authorizedPropertyTypesForEntitySets ) )::iterator;
     }
 
     public SetMultimap<FullQualifiedName, Object> rowToEntity(
@@ -181,9 +195,10 @@ public class CassandraDataManager {
                             .setString( CommonColumns.ENTITYID.cql(), entity.getKey() ) ) );
 
             SetMultimap<UUID, Object> propertyValues = entity.getValue();
-            
+
             Map<UUID, Object> authorizedPropertyValues = Maps.newHashMap();
-            //Stream<Entry<UUID, Object>> authorizedPropertyValues = propertyValues.entries().stream().filter( entry -> authorizedProperties.contains( entry.getKey() ) );
+            // Stream<Entry<UUID, Object>> authorizedPropertyValues = propertyValues.entries().stream().filter( entry ->
+            // authorizedProperties.contains( entry.getKey() ) );
             propertyValues.entries().stream()
                     .filter( entry -> authorizedProperties.contains( entry.getKey() ) )
                     .forEach( entry -> {
@@ -198,13 +213,57 @@ public class CassandraDataManager {
                                                         authorizedPropertiesWithDataType
                                                                 .get( entry.getKey() ),
                                                         entity.getKey() ) ) ) );
-                        //TODO: wtf move this
                         authorizedPropertyValues.put( entry.getKey(), entry.getValue() );
                     } );
             eventBus.post( new EntityDataCreatedEvent( entitySetId, entity.getKey(), authorizedPropertyValues ) );
         } );
 
         results.forEach( ResultSetFuture::getUninterruptibly );
+    }
+
+    /**
+     * Delete data of an entity set across ALL sync Ids.
+     */
+    public void deleteEntitySetData( UUID entitySetId ) {
+        logger.info( "Deleting data of entity set: %s", entitySetId );
+        BoundStatement bs = entityIdsLookupByEntitySetQuery.bind().setUUID( CommonColumns.ENTITY_SET_ID.cql(),
+                entitySetId );
+        ResultSet rs = session.execute( bs );
+
+        List<ResultSetFuture> results = new ArrayList<ResultSetFuture>();
+        final int bufferSize = 1000;
+        int counter = 0;
+
+        for ( Row entityIdRow : rs ) {
+            if ( counter > bufferSize ) {
+                results.forEach( ResultSetFuture::getUninterruptibly );
+                counter = 0;
+                results = new ArrayList<ResultSetFuture>();
+            }
+
+            UUID syncId = RowAdapters.syncId( entityIdRow );
+            String entityId = RowAdapters.entityId( entityIdRow );
+
+            results.add( asyncDeleteEntity( entityId ) );
+            results.add( asyncDeleteEntityLookup( syncId, entitySetId, entityId ) );
+
+            counter++;
+        }
+
+        results.forEach( ResultSetFuture::getUninterruptibly );
+        logger.info( "Finish deletion of entity set data: %s", entitySetId );
+    }
+
+    public ResultSetFuture asyncDeleteEntity( String entityId ) {
+        return session.executeAsync( deleteEntityQuery.bind()
+                .setString( CommonColumns.ENTITYID.cql(), entityId ) );
+    }
+
+    public ResultSetFuture asyncDeleteEntityLookup( UUID syncId, UUID entitySetId, String entityId ) {
+        return session.executeAsync( deleteEntityLookupQuery.bind()
+                .setUUID( CommonColumns.SYNCID.cql(), syncId )
+                .setUUID( CommonColumns.ENTITY_SET_ID.cql(), entitySetId )
+                .setString( CommonColumns.ENTITYID.cql(), entityId ) );
     }
 
     private static PreparedStatement prepareEntitySetQuery(
@@ -245,6 +304,29 @@ public class CassandraDataManager {
                 .where( QueryBuilder.eq( CommonColumns.GRAPH_ID.cql(), QueryBuilder.bindMarker() ) ) );
     }
 
+    private static PreparedStatement prepareEntityIdsLookupByEntitySetQuery(
+            Session session ) {
+        return session.prepare( QueryBuilder
+                .select()
+                .from( Table.ENTITY_ID_LOOKUP.getKeyspace(), Table.ENTITY_ID_LOOKUP.getName() )
+                .where( QueryBuilder.eq( CommonColumns.ENTITY_SET_ID.cql(), QueryBuilder.bindMarker() ) ) );
+    }
+
+    private static PreparedStatement prepareDeleteEntityQuery(
+            Session session ) {
+        return session.prepare( Table.DATA.getBuilder().buildDeleteByPartitionKeyQuery() );
+    }
+
+    private static PreparedStatement prepareDeleteEntityLookupQuery(
+            Session session ) {
+        return session.prepare( QueryBuilder
+                .delete()
+                .from( Table.ENTITY_ID_LOOKUP.getKeyspace(), Table.ENTITY_ID_LOOKUP.getName() )
+                .where( QueryBuilder.eq( CommonColumns.SYNCID.cql(), QueryBuilder.bindMarker() ) )
+                .and( QueryBuilder.eq( CommonColumns.ENTITY_SET_ID.cql(), QueryBuilder.bindMarker() ) )
+                .and( QueryBuilder.eq( CommonColumns.ENTITYID.cql(), QueryBuilder.bindMarker() ) ) );
+    }
+
     /**
      * Auxiliary methods for linking entity sets
      */
@@ -273,11 +355,11 @@ public class CassandraDataManager {
                         authorizedPropertyTypesForEntitySets.get( rsPair.getKey() ),
                         mapper ) )
                 .forEach( pair -> {
-                   result.putAll( pair.getValue() );
-                   pair.getKey().entries().forEach( entry -> {
+                    result.putAll( pair.getValue() );
+                    pair.getKey().entries().forEach( entry -> {
                         indexResult.put( entry.getKey(), entry.getValue() );
-                   } );
-                });
+                    } );
+                } );
 
         eventBus.post( new EntityDataCreatedEvent( linkedEntitySetId, linkedKey.getKey().toString(), indexResult ) );
         return result;

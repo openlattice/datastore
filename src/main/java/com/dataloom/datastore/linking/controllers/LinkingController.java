@@ -199,9 +199,17 @@ public class LinkingController implements LinkingApi, AuthorizingComponent {
         // and LINK permissions for that property type in all the entity sets involved.
         Set<UUID> linkedPropertyTypes = edm.getEntityType( linkedEntitySet.getEntityTypeId() ).getProperties();
         
+        SetMultimap<UUID, UUID> propertyIdESMap = HashMultimap.create();
+        linkingES.stream().forEach( esId -> {
+            Set<UUID> properties = edm.getEntityTypeByEntitySetId( esId ).getProperties();
+            for( UUID propertyId : properties ){
+                propertyIdESMap.put( propertyId, esId );
+            }
+        });
+
         Set<UUID> ownablePropertyTypes = new HashSet<>();
         for ( UUID propertyId : linkedPropertyTypes ) {
-            boolean ownable = linkingES.stream().map( esId -> Arrays.asList( esId, propertyId ) )
+            boolean ownable = propertyIdESMap.get( propertyId ).stream().map( esId -> Arrays.asList( esId, propertyId ) )
                     .allMatch( isAuthorized( Permission.LINK, Permission.READ ) );
 
             if ( ownable ) {

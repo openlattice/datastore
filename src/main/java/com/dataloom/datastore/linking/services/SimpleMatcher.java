@@ -160,6 +160,9 @@ public class SimpleMatcher implements Matcher {
      * @return
      */
     private double getDistance( UUID propertyTypeId, String val0, String val1 ) {
+        if( val0 == null || val1 == null ){
+            return Double.POSITIVE_INFINITY;
+        }
         switch ( getPropertyName( propertyTypeId ) ) {
             case "name":
             case "firstname":

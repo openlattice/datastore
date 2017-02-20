@@ -93,11 +93,13 @@ public class DatastoreConductorSparkApi implements ConductorSparkApi {
     }
 
     @Override
-    public List<Map<String, Object>> executeElasticsearchMetadataQuery(
+    public SearchResult executeElasticsearchMetadataQuery(
             Optional<String> query,
             Optional<UUID> optionalEntityType,
             Optional<Set<UUID>> optionalPropertyTypes,
-            Set<Principal> principals ) {
+            Set<Principal> principals,
+            int start,
+            int maxHits ) {
         throw new NotImplementedException(
                 "You are trying to invoke ConductorSparkApi from somehwere else other than conductor." );
     }
@@ -132,7 +134,7 @@ public class DatastoreConductorSparkApi implements ConductorSparkApi {
     }
 
     @Override
-    public List<Map<String, Object>> executeOrganizationKeywordSearch( String searchTerm, Set<Principal> principals ) {
+    public SearchResult executeOrganizationKeywordSearch( String searchTerm, Set<Principal> principals, int start, int maxHits ) {
         throw new NotImplementedException(
                 "You are trying to invoke ConductorSparkApi from somehwere else other than conductor." );
     }

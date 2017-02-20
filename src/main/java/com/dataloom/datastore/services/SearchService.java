@@ -43,7 +43,7 @@ import com.dataloom.edm.events.EntitySetDeletedEvent;
 import com.dataloom.organizations.events.OrganizationCreatedEvent;
 import com.dataloom.organizations.events.OrganizationDeletedEvent;
 import com.dataloom.organizations.events.OrganizationUpdatedEvent;
-import com.dataloom.search.requests.SearchDataRequest;
+import com.dataloom.search.requests.SearchTermRequest;
 import com.dataloom.search.requests.SearchResult;
 import com.dataloom.edm.events.EntitySetMetadataUpdatedEvent;
 import com.dataloom.edm.events.PropertyTypesInEntitySetUpdatedEvent;
@@ -84,21 +84,25 @@ public class SearchService {
         eventBus.register( this );
     }
 
-    public List<Map<String, Object>> executeEntitySetKeywordSearchQuery(
+    public SearchResult executeEntitySetKeywordSearchQuery(
             Optional<String> optionalQuery,
             Optional<UUID> optionalEntityType,
-            Optional<Set<UUID>> optionalPropertyTypes ) {
+            Optional<Set<UUID>> optionalPropertyTypes,
+            int start,
+            int maxHits ) {
         try {
-            List<Map<String, Object>> queryResults = executor.submit( ConductorCall
+            SearchResult searchResult = executor.submit( ConductorCall
                     .wrap( Lambdas.executeElasticsearchMetadataQuery( optionalQuery,
                             optionalEntityType,
-                            optionalPropertyTypes ) ) )
+                            optionalPropertyTypes,
+                            start,
+                            maxHits ) ) )
                     .get();
-            return queryResults;
+            return searchResult;
         } catch ( InterruptedException | ExecutionException e ) {
             logger.error( "Unable to to perofrm keyword search.", e );
         }
-        return null;
+        return new SearchResult( 0, Lists.newArrayList() );
     }
 
     public void updateEntitySetPermissions( List<UUID> aclKeys, Principal principal, Set<Permission> permissions ) {
@@ -152,15 +156,15 @@ public class SearchService {
                 .wrap( Lambdas.createOrganization( event.getOrganization(), event.getPrincipal() ) ) );
     }
     
-    public List<Map<String, Object>> executeOrganizationKeywordSearch( String searchTerm ) {
+    public SearchResult executeOrganizationKeywordSearch( SearchTermRequest searchRequest ) {
         try {
-            List<Map<String, Object>> queryResults = executor.submit( ConductorCall
-                    .wrap( Lambdas.executeOrganizationKeywordSearch( searchTerm ) ) )
+            SearchResult searchResult = executor.submit( ConductorCall
+                    .wrap( Lambdas.executeOrganizationKeywordSearch( searchRequest.getSearchTerm(), searchRequest.getStart(), searchRequest.getMaxHits() ) ) )
                     .get();
-            return queryResults;
+            return searchResult;
         } catch ( InterruptedException | ExecutionException e ) {
             logger.error( "Unable to to perform keyword search.", e );
-            return Lists.newArrayList();
+            return new SearchResult( 0, Lists.newArrayList() );
         }
     }
     
@@ -181,7 +185,7 @@ public class SearchService {
         executor.submit( ConductorCall.wrap( new EntityDataLambdas( event.getEntitySetId(), event.getEntityId(), event.getPropertyValues() ) ) );
     }
     
-    public SearchResult executeEntitySetDataSearch( UUID entitySetId, SearchDataRequest searchRequest, Set<UUID> authorizedProperties ) {
+    public SearchResult executeEntitySetDataSearch( UUID entitySetId, SearchTermRequest searchRequest, Set<UUID> authorizedProperties ) {
         SearchResult queryResults;
         try {
             queryResults = executor.submit( ConductorCall.wrap( 

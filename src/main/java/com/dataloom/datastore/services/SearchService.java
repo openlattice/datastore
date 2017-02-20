@@ -43,7 +43,7 @@ import com.dataloom.edm.events.EntitySetDeletedEvent;
 import com.dataloom.organizations.events.OrganizationCreatedEvent;
 import com.dataloom.organizations.events.OrganizationDeletedEvent;
 import com.dataloom.organizations.events.OrganizationUpdatedEvent;
-import com.dataloom.search.requests.SearchTermRequest;
+import com.dataloom.search.requests.SearchTerm;
 import com.dataloom.search.requests.SearchResult;
 import com.dataloom.edm.events.EntitySetMetadataUpdatedEvent;
 import com.dataloom.edm.events.PropertyTypesInEntitySetUpdatedEvent;
@@ -62,18 +62,18 @@ import com.kryptnostic.conductor.rpc.SearchEntitySetDataAcrossIndicesLambda;
 import com.kryptnostic.conductor.rpc.SearchEntitySetDataLambda;
 
 public class SearchService {
-    private static final Logger          logger = LoggerFactory.getLogger( SearchService.class );
+    private static final Logger                       logger = LoggerFactory.getLogger( SearchService.class );
 
     @Inject
-    private EventBus                     eventBus;
+    private EventBus                                  eventBus;
 
     @Inject
-    private AuthorizationManager         authorizations;
-    
+    private AuthorizationManager                      authorizations;
+
     @Inject
     private AbstractSecurableObjectResolveTypeService securableObjectTypes;
 
-    private final DurableExecutorService executor;
+    private final DurableExecutorService              executor;
 
     public SearchService( HazelcastInstance hazelcast ) {
         this.executor = hazelcast.getDurableExecutorService( "default" );
@@ -111,7 +111,7 @@ public class SearchService {
                     .wrap( Lambdas.updateEntitySetPermissions( aclKey, principal, permissions ) ) );
         } );
     }
-    
+
     public void updateOrganizationPermissions( List<UUID> aclKeys, Principal principal, Set<Permission> permissions ) {
         aclKeys.forEach( aclKey -> {
             executor.submit( ConductorCall
@@ -126,12 +126,14 @@ public class SearchService {
             event.getPrincipals().forEach( principal -> updateEntitySetPermissions(
                     event.getAclKeys(),
                     principal,
-                    authorizations.getSecurableObjectPermissions( event.getAclKeys(), Sets.newHashSet( principal ) ) ) );
+                    authorizations.getSecurableObjectPermissions( event.getAclKeys(),
+                            Sets.newHashSet( principal ) ) ) );
         } else if ( type == SecurableObjectType.Organization ) {
             event.getPrincipals().forEach( principal -> updateOrganizationPermissions(
                     event.getAclKeys(),
                     principal,
-                    authorizations.getSecurableObjectPermissions( event.getAclKeys(), Sets.newHashSet( principal ) ) ) );
+                    authorizations.getSecurableObjectPermissions( event.getAclKeys(),
+                            Sets.newHashSet( principal ) ) ) );
         }
     }
 
@@ -149,17 +151,19 @@ public class SearchService {
         executor.submit( ConductorCall
                 .wrap( Lambdas.deleteEntitySet( event.getEntitySetId() ) ) );
     }
-    
+
     @Subscribe
     public void createOrganization( OrganizationCreatedEvent event ) {
         executor.submit( ConductorCall
                 .wrap( Lambdas.createOrganization( event.getOrganization(), event.getPrincipal() ) ) );
     }
-    
-    public SearchResult executeOrganizationKeywordSearch( SearchTermRequest searchRequest ) {
+
+    public SearchResult executeOrganizationKeywordSearch( SearchTerm searchTerm ) {
         try {
             SearchResult searchResult = executor.submit( ConductorCall
-                    .wrap( Lambdas.executeOrganizationKeywordSearch( searchRequest.getSearchTerm(), searchRequest.getStart(), searchRequest.getMaxHits() ) ) )
+                    .wrap( Lambdas.executeOrganizationKeywordSearch( searchTerm.getSearchTerm(),
+                            searchTerm.getStart(),
+                            searchTerm.getMaxHits() ) ) )
                     .get();
             return searchResult;
         } catch ( InterruptedException | ExecutionException e ) {
@@ -167,29 +171,41 @@ public class SearchService {
             return new SearchResult( 0, Lists.newArrayList() );
         }
     }
-    
+
     @Subscribe
     public void updateOrganization( OrganizationUpdatedEvent event ) {
         executor.submit( ConductorCall
-                .wrap( Lambdas.updateOrganization( event.getId(), event.getOptionalTitle(), event.getOptionalDescription() ) ) );
+                .wrap( Lambdas.updateOrganization( event.getId(),
+                        event.getOptionalTitle(),
+                        event.getOptionalDescription() ) ) );
     }
-    
+
     @Subscribe
     public void deleteOrganization( OrganizationDeletedEvent event ) {
         executor.submit( ConductorCall
                 .wrap( Lambdas.deleteOrganization( event.getOrganizationId() ) ) );
     }
-    
+
     @Subscribe
     public void createEntityData( EntityDataCreatedEvent event ) {
-        executor.submit( ConductorCall.wrap( new EntityDataLambdas( event.getEntitySetId(), event.getEntityId(), event.getPropertyValues() ) ) );
+        executor.submit( ConductorCall.wrap(
+                new EntityDataLambdas( event.getEntitySetId(), event.getEntityId(), event.getPropertyValues() ) ) );
     }
-    
-    public SearchResult executeEntitySetDataSearch( UUID entitySetId, SearchTermRequest searchRequest, Set<UUID> authorizedProperties ) {
+
+    public SearchResult executeEntitySetDataSearch(
+            UUID entitySetId,
+            SearchTerm searchTerm,
+            Set<UUID> authorizedProperties ) {
         SearchResult queryResults;
         try {
-            queryResults = executor.submit( ConductorCall.wrap( 
-                    new SearchEntitySetDataLambda( entitySetId, searchRequest.getSearchTerm(), searchRequest.getStart(), searchRequest.getMaxHits(), authorizedProperties ) ) ).get();
+            queryResults = executor.submit( ConductorCall.wrap(
+                    new SearchEntitySetDataLambda(
+                            entitySetId,
+                            searchTerm.getSearchTerm(),
+                            searchTerm.getStart(),
+                            searchTerm.getMaxHits(),
+                            authorizedProperties ) ) )
+                    .get();
             return queryResults;
 
         } catch ( InterruptedException | ExecutionException e ) {
@@ -203,25 +219,29 @@ public class SearchService {
         executor.submit( ConductorCall
                 .wrap( Lambdas.updateEntitySetMetadata( event.getEntitySet() ) ) );
     }
-    
+
     @Subscribe
     public void updatePropertyTypesInEntitySet( PropertyTypesInEntitySetUpdatedEvent event ) {
         executor.submit( ConductorCall
-                .wrap( Lambdas.updatePropertyTypesInEntitySet( event.getEntitySetId(), event.getNewPropertyTypes() ) ) );
+                .wrap( Lambdas.updatePropertyTypesInEntitySet( event.getEntitySetId(),
+                        event.getNewPropertyTypes() ) ) );
     }
-    
-   public List<Entity> executeEntitySetDataSearchAcrossIndices( Set<UUID> entitySetIds, Map<UUID, Set<String>> fieldSearches, int size, boolean explain ){
-       List<Entity> queryResults;
-       try {
-           queryResults = executor.submit( ConductorCall.wrap( 
-                   new SearchEntitySetDataAcrossIndicesLambda( entitySetIds, fieldSearches, size, explain ) ) ).get();
-           return queryResults;
 
-       } catch ( InterruptedException | ExecutionException e ) {
-           logger.error( "Failed to execute search for entity set data search across indices: " + fieldSearches );
-           return Lists.newArrayList();
-       }      
-   }
+    public List<Entity> executeEntitySetDataSearchAcrossIndices(
+            Set<UUID> entitySetIds,
+            Map<UUID, Set<String>> fieldSearches,
+            int size,
+            boolean explain ) {
+        List<Entity> queryResults;
+        try {
+            queryResults = executor.submit( ConductorCall.wrap(
+                    new SearchEntitySetDataAcrossIndicesLambda( entitySetIds, fieldSearches, size, explain ) ) ).get();
+            return queryResults;
 
+        } catch ( InterruptedException | ExecutionException e ) {
+            logger.error( "Failed to execute search for entity set data search across indices: " + fieldSearches );
+            return Lists.newArrayList();
+        }
+    }
 
 }

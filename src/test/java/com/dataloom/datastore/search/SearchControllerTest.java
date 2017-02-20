@@ -31,7 +31,7 @@ import com.dataloom.datastore.authentication.MultipleAuthenticatedUsersBase;
 import com.dataloom.edm.EntitySet;
 import com.dataloom.edm.type.EntityType;
 import com.dataloom.mappers.ObjectMappers;
-import com.dataloom.search.requests.SearchRequest;
+import com.dataloom.search.requests.Search;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableSet;
@@ -76,7 +76,7 @@ public class SearchControllerTest extends MultipleAuthenticatedUsersBase {
     @SuppressWarnings( "unchecked" )
     @Test
     public void testSearchByEntityType() {
-        SearchRequest req = new SearchRequest( Optional.absent(), Optional.of( et1.getId() ), Optional.absent() );
+        Search req = new Search( Optional.absent(), Optional.of( et1.getId() ), Optional.absent() );
         Iterable<Map<String, Object>> results = searchApi.executeQuery( req );
 
         Assert.assertEquals( 1, Iterables.size( results ) );
@@ -86,7 +86,7 @@ public class SearchControllerTest extends MultipleAuthenticatedUsersBase {
 
     @Test
     public void testSearchByPropertyType() {
-        SearchRequest req = new SearchRequest(
+        Search req = new Search(
                 Optional.absent(),
                 Optional.absent(),
                 Optional.of( et1.getProperties() ) );
@@ -99,7 +99,7 @@ public class SearchControllerTest extends MultipleAuthenticatedUsersBase {
 
     @Test
     public void testSearchByTitleKeyword() {
-        SearchRequest req = new SearchRequest( Optional.of( title ), Optional.absent(), Optional.absent() );
+        Search req = new Search( Optional.of( title ), Optional.absent(), Optional.absent() );
         Iterable<Map<String, Object>> results = searchApi.executeQuery( req );
 
         // Filter search results to those that matches names of the two entity sets we created
@@ -111,7 +111,7 @@ public class SearchControllerTest extends MultipleAuthenticatedUsersBase {
 
     @Test
     public void testSearchByDescriptionKeyword() {
-        SearchRequest req = new SearchRequest( Optional.of( description ), Optional.absent(), Optional.absent() );
+        Search req = new Search( Optional.of( description ), Optional.absent(), Optional.absent() );
         Iterable<Map<String, Object>> results = searchApi.executeQuery( req );
 
         // Filter search results to those that matches names of the two entity sets we created
@@ -123,7 +123,7 @@ public class SearchControllerTest extends MultipleAuthenticatedUsersBase {
 
     // @Test
     public void testEndpointsConsistency() throws JsonProcessingException {
-        SearchRequest req = new SearchRequest(
+        Search req = new Search(
                 Optional.absent(),
                 Optional.absent(),
                 Optional.of( et1.getProperties() ) );

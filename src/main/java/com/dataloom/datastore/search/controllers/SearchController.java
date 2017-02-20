@@ -20,8 +20,6 @@
 package com.dataloom.datastore.search.controllers;
 
 import java.util.EnumSet;
-import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -44,12 +42,10 @@ import com.dataloom.authorization.Permission;
 import com.dataloom.authorization.Principals;
 import com.dataloom.datastore.services.SearchService;
 import com.dataloom.edm.EntitySet;
-import com.dataloom.mappers.ObjectMappers;
 import com.dataloom.search.SearchApi;
-import com.dataloom.search.requests.SearchTermRequest;
-import com.dataloom.search.requests.SearchRequest;
+import com.dataloom.search.requests.Search;
 import com.dataloom.search.requests.SearchResult;
-import com.fasterxml.jackson.core.JsonProcessingException;
+import com.dataloom.search.requests.SearchTerm;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.kryptnostic.datastore.exceptions.BadRequestException;
@@ -78,19 +74,19 @@ public class SearchController implements SearchApi, AuthorizingComponent {
             path = { "/", "" },
             method = RequestMethod.POST,
             produces = { MediaType.APPLICATION_JSON_VALUE } )
-    public SearchResult executeEntitySetKeywordQuery( @RequestBody SearchRequest request ) {
-        if ( !request.getOptionalKeyword().isPresent() && !request.getOptionalEntityType().isPresent()
-                && !request.getOptionalPropertyTypes().isPresent() ) {
+    public SearchResult executeEntitySetKeywordQuery( @RequestBody Search search ) {
+        if ( !search.getOptionalKeyword().isPresent() && !search.getOptionalEntityType().isPresent()
+                && !search.getOptionalPropertyTypes().isPresent() ) {
             throw new BadRequestException(
                     "You must specify at least one request body param (keyword 'kw', entity type id 'eid', or property type ids 'pid'" );
         }
 
         return searchService
-                .executeEntitySetKeywordSearchQuery( request.getOptionalKeyword(),
-                        request.getOptionalEntityType(),
-                        request.getOptionalPropertyTypes(),
-                        request.getStart(),
-                        request.getMaxHits() );
+                .executeEntitySetKeywordSearchQuery( search.getOptionalKeyword(),
+                        search.getOptionalEntityType(),
+                        search.getOptionalPropertyTypes(),
+                        search.getStart(),
+                        search.getMaxHits() );
     }
 
     @RequestMapping(
@@ -122,8 +118,8 @@ public class SearchController implements SearchApi, AuthorizingComponent {
             method = RequestMethod.POST,
             produces = { MediaType.APPLICATION_JSON_VALUE } )
     @Override
-    public SearchResult executeOrganizationSearch( @RequestBody SearchTermRequest searchRequest ) {
-        return searchService.executeOrganizationKeywordSearch( searchRequest );
+    public SearchResult executeOrganizationSearch( @RequestBody SearchTerm searchTerm ) {
+        return searchService.executeOrganizationKeywordSearch( searchTerm );
     }
     
     @RequestMapping(
@@ -133,13 +129,13 @@ public class SearchController implements SearchApi, AuthorizingComponent {
     @Override
     public SearchResult executeEntitySetDataQuery(
             @PathVariable( ENTITY_SET_ID ) UUID entitySetId,
-            @RequestBody SearchTermRequest searchRequest ) {
+            @RequestBody SearchTerm searchTerm ) {
         if ( authorizations.checkIfHasPermissions( ImmutableList.of( entitySetId ),
                 Principals.getCurrentPrincipals(),
                 EnumSet.of( Permission.READ ) ) ) {
             Set<UUID> authorizedProperties = authorizationsHelper.getAuthorizedPropertiesOnEntitySet( entitySetId,
                     EnumSet.of( Permission.READ ) );
-            return searchService.executeEntitySetDataSearch( entitySetId, searchRequest, authorizedProperties );
+            return searchService.executeEntitySetDataSearch( entitySetId, searchTerm, authorizedProperties );
         }
         return new SearchResult( 0, Lists.newArrayList() );
     }

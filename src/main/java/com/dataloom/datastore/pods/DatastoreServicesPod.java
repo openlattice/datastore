@@ -269,12 +269,14 @@ public class DatastoreServicesPod {
 
     @Bean
     public Clusterer clusterer() {
-        return new ClusteringPartitioner( cgqs(), linkingGraph() );
+        return new ClusteringPartitioner(cassandraConfiguration.getKeyspace(), session, cgqs(), linkingGraph() );
     }
 
     @Bean
     public LinkingService linkingService() {
         return new LinkingService(
+                cassandraConfiguration.getKeyspace(),
+                session,
                 linkingGraph(),
                 simpleElasticSearchBlocker(),
                 simpleMatcher(),

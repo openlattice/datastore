@@ -32,6 +32,7 @@ import com.dataloom.edm.EntitySet;
 import com.dataloom.edm.type.EntityType;
 import com.dataloom.mappers.ObjectMappers;
 import com.dataloom.search.requests.Search;
+import com.dataloom.search.requests.SearchResult;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableSet;
@@ -76,11 +77,11 @@ public class SearchControllerTest extends MultipleAuthenticatedUsersBase {
     @SuppressWarnings( "unchecked" )
     @Test
     public void testSearchByEntityType() {
-        Search req = new Search( Optional.absent(), Optional.of( et1.getId() ), Optional.absent() );
-        Iterable<Map<String, Object>> results = searchApi.executeQuery( req );
+        Search req = new Search( Optional.absent(), Optional.of( et1.getId() ), Optional.absent(), 0, 10 );
+        SearchResult results = searchApi.executeEntitySetKeywordQuery( req );
 
-        Assert.assertEquals( 1, Iterables.size( results ) );
-        Map<String, Object> result = (Map) results.iterator().next().get( ConductorElasticsearchApi.ENTITY_SET );
+        Assert.assertEquals( 1, results.getNumHits() );
+        Map<String, Object> result = (Map) results.getHits().iterator().next().get( ConductorElasticsearchApi.ENTITY_SET );
         Assert.assertEquals( es1.getName(), (String) result.get( "name" ) );
     }
 
@@ -89,49 +90,38 @@ public class SearchControllerTest extends MultipleAuthenticatedUsersBase {
         Search req = new Search(
                 Optional.absent(),
                 Optional.absent(),
-                Optional.of( et1.getProperties() ) );
-        Iterable<Map<String, Object>> results = searchApi.executeQuery( req );
+                Optional.of( et1.getProperties() ),
+                0,
+                10 );
+        SearchResult results = searchApi.executeEntitySetKeywordQuery( req );
 
-        Assert.assertEquals( 1, Iterables.size( results ) );
-        Map<String, Object> result = (Map) results.iterator().next().get( ConductorElasticsearchApi.ENTITY_SET );
+        Assert.assertEquals( 1, results.getNumHits() );
+        Map<String, Object> result = (Map) results.getHits().iterator().next().get( ConductorElasticsearchApi.ENTITY_SET );
         Assert.assertEquals( es1.getName(), (String) result.get( ConductorElasticsearchApi.NAME ) );
     }
 
     @Test
     public void testSearchByTitleKeyword() {
-        Search req = new Search( Optional.of( title ), Optional.absent(), Optional.absent() );
-        Iterable<Map<String, Object>> results = searchApi.executeQuery( req );
+        Search req = new Search( Optional.of( title ), Optional.absent(), Optional.absent(), 0, 10 );
+        SearchResult results = searchApi.executeEntitySetKeywordQuery( req );
 
         // Filter search results to those that matches names of the two entity sets we created
         Set<String> names = ImmutableSet.of( es1.getName(), es2.getName() );
-        Iterable<Map<String, Object>> filtered = Iterables.filter( results, result -> matchName( result, names ) );
+        Iterable<Map<String, Object>> filtered = Iterables.filter( results.getHits(), result -> matchName( result, names ) );
 
         Assert.assertEquals( 2, Iterables.size( filtered ) );
     }
 
     @Test
     public void testSearchByDescriptionKeyword() {
-        Search req = new Search( Optional.of( description ), Optional.absent(), Optional.absent() );
-        Iterable<Map<String, Object>> results = searchApi.executeQuery( req );
+        Search req = new Search( Optional.of( description ), Optional.absent(), Optional.absent(), 0, 10 );
+        SearchResult results = searchApi.executeEntitySetKeywordQuery( req );
 
         // Filter search results to those that matches names of the two entity sets we created
         Set<String> names = ImmutableSet.of( es1.getName(), es2.getName() );
-        Iterable<Map<String, Object>> filtered = Iterables.filter( results, result -> matchName( result, names ) );
+        Iterable<Map<String, Object>> filtered = Iterables.filter( results.getHits(), result -> matchName( result, names ) );
 
         Assert.assertEquals( 2, Iterables.size( filtered ) );
-    }
-
-    // @Test
-    public void testEndpointsConsistency() throws JsonProcessingException {
-        Search req = new Search(
-                Optional.absent(),
-                Optional.absent(),
-                Optional.of( et1.getProperties() ) );
-        Iterable<Map<String, Object>> expected = searchApi.executeQuery( req );
-
-        String expectedJson = ObjectMappers.getJsonMapper().writeValueAsString( expected );
-        Assert.assertEquals( searchApi.executeQueryJson( req ), expectedJson );
-
     }
 
     @SuppressWarnings( "unchecked" )

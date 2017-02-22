@@ -57,8 +57,6 @@ public class SimpleElasticSearchBlocker implements Blocker {
         this.entitySetsWithSyncIds = entitySetsWithSyncIds;
         this.linkIndexedByEntitySets = linkIndexedByEntitySets;
         this.linkingES = new HashSet<>( entitySetsWithSyncIds.keySet() );
-        //debug by Ho Chung
-        System.out.println( "Linking Sets has type " + linkingES.getClass() );
     }
 
     @Override

@@ -177,8 +177,11 @@ public class LinkingController implements LinkingApi, AuthorizingComponent {
             
             Preconditions.checkArgument( values.size() == 1,
                     "Each linking map should involve a unique property type." );
+            //Commented out the following check to allow easy dedupe for now.
+            /**
             Preconditions.checkArgument( link.entrySet().size() > 1,
                     "Each linking map must be matching at least two entity sets." );
+            */
             // Get the value of common property type id in the linking map.
             UUID propertyId = values.iterator().next();
             Preconditions.checkArgument( !validatedProperties.contains( propertyId ),

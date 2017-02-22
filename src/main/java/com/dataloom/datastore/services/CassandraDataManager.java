@@ -20,10 +20,12 @@
 package com.dataloom.datastore.services;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import javax.inject.Inject;
 
@@ -344,7 +346,7 @@ public class CassandraDataManager {
             Pair<UUID, Set<EntityKey>> linkedKey,
             Map<UUID, Map<UUID, PropertyType>> authorizedPropertyTypesForEntitySets ) {
         SetMultimap<FullQualifiedName, Object> result = HashMultimap.create();
-        Map<UUID, Object> indexResult = Maps.newHashMap();
+        SetMultimap<UUID, Object> indexResult = HashMultimap.create();
 
         linkedKey.getValue().stream()
                 .map( key -> Pair.of( key.getEntitySetId(),
@@ -355,13 +357,14 @@ public class CassandraDataManager {
                         authorizedPropertyTypesForEntitySets.get( rsPair.getKey() ),
                         mapper ) )
                 .forEach( pair -> {
-                    result.putAll( pair.getValue() );
-                    pair.getKey().entries().forEach( entry -> {
-                        indexResult.put( entry.getKey(), entry.getValue() );
-                    } );
-                } );
+                   result.putAll( pair.getValue() );
+                   indexResult.putAll( pair.getKey() );
+                });
+        
+        //Using HashSet here is necessary for serialization, to avoid kryo not knowing how to serialize guava WrappedCollection
+        Map<UUID, Object> indexResultAsMap = indexResult.asMap().entrySet().stream().collect( Collectors.toMap( e -> e.getKey(), e -> new HashSet<>( e.getValue() ) ) );
 
-        eventBus.post( new EntityDataCreatedEvent( linkedEntitySetId, linkedKey.getKey().toString(), indexResult ) );
+        eventBus.post( new EntityDataCreatedEvent( linkedEntitySetId, linkedKey.getKey().toString(), indexResultAsMap ) );
         return result;
     }
 }

@@ -9,8 +9,11 @@ import java.util.stream.Collectors;
 
 import org.apache.commons.codec.language.DoubleMetaphone;
 import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.dataloom.linking.Entity;
+import com.dataloom.linking.SortedCassandraLinkingEdgeBuffer;
 import com.dataloom.linking.components.Matcher;
 import com.dataloom.linking.util.UnorderedPair;
 import com.google.common.collect.ImmutableSet;
@@ -22,6 +25,8 @@ import com.kryptnostic.datastore.services.EdmManager;
  *
  */
 public class SimpleMatcher implements Matcher {
+    private static final Logger                              logger                  = LoggerFactory
+            .getLogger( SimpleMatcher.class );
 
     private SetMultimap<UUID, UUID> linkIndexedByPropertyTypes;
     private Set<UUID>               linkingProperties;
@@ -29,6 +34,8 @@ public class SimpleMatcher implements Matcher {
     private Map<UUID, Double>       weights;
 
     private static DoubleMetaphone  doubleMetaphone = new DoubleMetaphone();
+    
+    private static final double MAX_DISTANCE = Double.POSITIVE_INFINITY;
 
     private final EdmManager        dms;
 
@@ -46,7 +53,7 @@ public class SimpleMatcher implements Matcher {
         UUID esId0 = elem0.getKey().getEntitySetId();
         UUID esId1 = elem1.getKey().getEntitySetId();
 
-        double dist = 0;
+        double dist = MAX_DISTANCE;
         for ( UUID propertyTypeId : linkingProperties ) {
 
             String pidAsString = propertyTypeId.toString();
@@ -56,6 +63,9 @@ public class SimpleMatcher implements Matcher {
                 Object val0 = elem0.getProperties().get( pidAsString );
                 Object val1 = elem1.getProperties().get( pidAsString );
                 if ( val0 != null && val1 != null ) {
+                    if( dist == MAX_DISTANCE ){
+                        dist = 0;
+                    }
                     // Both values are non-null; score can be computed.
                     dist += getDistance( propertyTypeId, val0, val1 ) * weights.get( propertyTypeId );
                 }
@@ -138,7 +148,7 @@ public class SimpleMatcher implements Matcher {
     }
 
     private double getDistance( UUID propertyTypeId, Set<String> val0, Set<String> val1 ) {
-        double minDist = Double.POSITIVE_INFINITY;
+        double minDist = MAX_DISTANCE;
 
         for ( String s0 : val0 ) {
             for ( String s1 : val1 ) {
@@ -161,7 +171,7 @@ public class SimpleMatcher implements Matcher {
      */
     private double getDistance( UUID propertyTypeId, String val0, String val1 ) {
         if( val0 == null || val1 == null ){
-            return Double.POSITIVE_INFINITY;
+            return MAX_DISTANCE;
         }
         switch ( getPropertyName( propertyTypeId ) ) {
             case "name":

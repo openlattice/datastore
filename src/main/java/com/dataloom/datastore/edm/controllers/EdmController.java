@@ -54,6 +54,7 @@ import com.dataloom.authorization.Principals;
 import com.dataloom.authorization.securable.SecurableObjectType;
 import com.dataloom.authorization.util.AuthorizationUtils;
 import com.dataloom.datastore.constants.CustomMediaType;
+import com.dataloom.datastore.services.CassandraDataManager;
 import com.dataloom.edm.EdmApi;
 import com.dataloom.edm.EntityDataModel;
 import com.dataloom.edm.EdmDetails;
@@ -96,6 +97,9 @@ public class EdmController implements EdmApi, AuthorizingComponent {
     
     @Inject
     private LoomAuth0AuthenticationProvider authProvider;
+    
+    @Inject
+    private CassandraDataManager dataManager;
 
     @Override
     @RequestMapping(
@@ -373,7 +377,10 @@ public class EdmController implements EdmApi, AuthorizingComponent {
     public Void deleteEntitySet( @PathVariable( ID ) UUID entitySetId ) {
         ensureOwnerAccess( Arrays.asList( entitySetId ) );
         modelService.deleteEntitySet( entitySetId );
-        securableObjectTypes.deleteSecurableObjectType( ImmutableList.of( entitySetId ) );
+        securableObjectTypes.deleteSecurableObjectType( ImmutableList.of( entitySetId ) );        
+        
+        dataManager.deleteEntitySetData( entitySetId );
+
         return null;
     }
 

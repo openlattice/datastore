@@ -111,6 +111,29 @@ public class DataManagerTest extends BootstrapDatastoreWithCassandra {
 
         Assert.assertEquals( convertValueToString( expected ), convertValueToString( result ) );
     }
+    
+    @Test
+    public void testWriteAndDelete() {
+        final UUID entitySetId = UUID.randomUUID();
+        final UUID firstSyncId = UUID.randomUUID();
+        final UUID secondSyncId = UUID.randomUUID();
+
+        Map<UUID, PropertyType> propertyTypes = generateProperties( 5 );
+        Map<UUID, EdmPrimitiveTypeKind> propertiesWithDataType = propertyTypes.entrySet().stream()
+                .collect( Collectors.toMap( e -> e.getKey(), e -> e.getValue().getDatatype() ) );
+        
+        Map<String, SetMultimap<UUID, Object>> firstEntities = generateData( 10, propertiesWithDataType, 1 );
+        testWriteData( entitySetId, firstSyncId, firstEntities, propertiesWithDataType );
+
+        Map<String, SetMultimap<UUID, Object>> secondEntities = generateData( 10, propertiesWithDataType, 1 );
+        testWriteData( entitySetId, secondSyncId, secondEntities, propertiesWithDataType );
+
+        dataService.deleteEntitySetData( entitySetId );
+        
+        Assert.assertEquals( 0, testReadData( ImmutableSet.of( firstSyncId, secondSyncId ),
+                entitySetId,
+                propertyTypes ).size() );
+    }
 
     @Ignore
     public void populateEmployeeCsv() throws FileNotFoundException, IOException {

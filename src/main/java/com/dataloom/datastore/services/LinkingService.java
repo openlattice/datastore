@@ -11,6 +11,7 @@ import java.util.stream.Stream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.dataloom.data.EntityKey;
 import com.dataloom.datasource.UUIDs.Syncs;
 import com.dataloom.edm.type.PropertyType;
 import com.dataloom.linking.Entity;
@@ -103,13 +104,18 @@ public class LinkingService {
         // Matching: check if pair score is already calculated from HazelcastGraph Api. If not, stream
         // through matcher to get a score.
         pairs
-                // bad fix, will do for now.
-                .filter( entityPair -> entityPair.getBackingCollection().size() == 2 )
                 .forEach( entityPair -> {
-                    final LinkingEdge edge = fromUnorderedPair( graphId, entityPair );
-                    if( buffer.tryAddEdge( edge ) ) {
-                        double weight = matcher.dist( entityPair );
-                        buffer.setEdgeWeight( new WeightedLinkingEdge( weight, edge ) );
+                    if( entityPair.getBackingCollection().size() == 2 ){
+                        //The pair actually consists of two entities; we should add the edge to the graph if necessary.
+                        final LinkingEdge edge = fromUnorderedPair( graphId, entityPair );
+                        if( buffer.tryAddEdge( edge ) ) {
+                            double weight = matcher.dist( entityPair );
+                            buffer.setEdgeWeight( new WeightedLinkingEdge( weight, edge ) );
+                        }
+                    } else {
+                        //The pair consists of one entity; we should add a vertex to the graph if necessary.
+                        final EntityKey ek = getEntityKeyFromSingletonPair( entityPair );
+                        linkingGraph.getOrCreateVertex( graphId, ek );
                     }
                 } );
 
@@ -142,9 +148,18 @@ public class LinkingService {
     private LinkingEdge fromUnorderedPair( UUID graphId, UnorderedPair<Entity> p ) {
         List<LinkingEntityKey> keys = p.getBackingCollection().stream()
                 .map( e -> new LinkingEntityKey( graphId, e.getKey() ) ).collect( Collectors.toList() );
-        LinkingVertexKey u = linkingGraph.getLinkingVertextKey( keys.get( 0 ) );
-        LinkingVertexKey v = linkingGraph.getLinkingVertextKey( keys.get( 1 ) );
+        LinkingVertexKey u = linkingGraph.getOrCreateVertex( keys.get( 0 ) );
+        LinkingVertexKey v = linkingGraph.getOrCreateVertex( keys.get( 1 ) );
         return new LinkingEdge( u, v );
+    }
+
+    private EntityKey getEntityKeyFromSingletonPair( UnorderedPair<Entity> p ) {
+        Entity e = p.getBackingCollection().iterator().next();
+        if ( e == null ) {
+            logger.error( "Unexpected null singleton entity pair during blocking." );
+            throw new IllegalStateException( "Unexpected error during blocking." );
+        }
+        return e.getKey();
     }
 
     private void initializeComponents(

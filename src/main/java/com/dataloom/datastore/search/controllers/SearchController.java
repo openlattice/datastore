@@ -135,7 +135,7 @@ public class SearchController implements SearchApi, AuthorizingComponent {
                 EnumSet.of( Permission.READ ) ) ) {
             Set<UUID> authorizedProperties = authorizationsHelper.getAuthorizedPropertiesOnEntitySet( entitySetId,
                     EnumSet.of( Permission.READ ) );
-            return searchService.executeEntitySetDataSearch( entitySetId, searchTerm, authorizedProperties );
+            if ( !authorizedProperties.isEmpty() ) return searchService.executeEntitySetDataSearch( entitySetId, searchTerm, authorizedProperties );
         }
         return new SearchResult( 0, Lists.newArrayList() );
     }

@@ -142,7 +142,8 @@ public class LinkingService {
             authorizedPropertyTypesForEntitySets.put( esId, authorizedPropertyTypes );
         }
 
-        cdm.getLinkedEntitySetData( linkedEntitySetId, authorizedPropertyTypesForEntitySets );
+        //Consume the iterable to trigger indexing!
+        cdm.getLinkedEntitySetData( linkedEntitySetId, authorizedPropertyTypesForEntitySets ).forEach( m -> {} );
     }
 
     private LinkingEdge fromUnorderedPair( UUID graphId, UnorderedPair<Entity> p ) {

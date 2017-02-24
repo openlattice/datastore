@@ -120,6 +120,21 @@ public class PrincipalDirectoryController implements PrincipalApi {
         path = USERS + SEARCH + SEARCH_QUERY_PATH,
         produces = MediaType.APPLICATION_JSON_VALUE )
     public Map<String, Auth0UserBasic> searchAllUsers( @PathVariable( SEARCH_QUERY ) String searchQuery ) {
-        return userDirectoryService.searchAllUsers( searchQuery );
+
+        String wildcardSearchQuery = searchQuery + "*";
+        return userDirectoryService.searchAllUsers( wildcardSearchQuery );
+    }
+
+    @Override
+    @GetMapping(
+            path = USERS + SEARCH_EMAIL + EMAIL_SEARCH_QUERY_PATH,
+            produces = MediaType.APPLICATION_JSON_VALUE )
+    public Map<String, Auth0UserBasic> searchAllUsersByEmail( @PathVariable( SEARCH_QUERY ) String emailSearchQuery ) {
+
+        // to search by an exact email, the search query must be in this format: email.raw="hristo@kryptnostic.com"
+        // https://auth0.com/docs/api/management/v2/user-search#search-by-email
+        String exactEmailSearchQuery = "email.raw:\"" + emailSearchQuery + "\"";
+
+        return userDirectoryService.searchAllUsers( exactEmailSearchQuery );
     }
 }

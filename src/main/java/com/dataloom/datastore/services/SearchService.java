@@ -44,17 +44,20 @@ import com.dataloom.organizations.events.OrganizationCreatedEvent;
 import com.dataloom.organizations.events.OrganizationDeletedEvent;
 import com.dataloom.organizations.events.OrganizationUpdatedEvent;
 import com.dataloom.search.requests.SearchTerm;
+import com.dataloom.search.requests.AdvancedSearch;
 import com.dataloom.search.requests.SearchResult;
 import com.dataloom.edm.events.EntitySetMetadataUpdatedEvent;
 import com.dataloom.edm.events.PropertyTypesInEntitySetUpdatedEvent;
 import com.dataloom.linking.Entity;
 import com.google.common.base.Optional;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.google.common.eventbus.EventBus;
 import com.google.common.eventbus.Subscribe;
 import com.hazelcast.core.HazelcastInstance;
 import com.hazelcast.durableexecutor.DurableExecutorService;
+import com.kryptnostic.conductor.rpc.AdvancedSearchEntitySetDataLambda;
 import com.kryptnostic.conductor.rpc.ConductorCall;
 import com.kryptnostic.conductor.rpc.EntityDataLambdas;
 import com.kryptnostic.conductor.rpc.Lambdas;
@@ -242,6 +245,32 @@ public class SearchService {
             logger.error( "Failed to execute search for entity set data search across indices: " + fieldSearches );
             return Lists.newArrayList();
         }
+    }
+    
+    public SearchResult executeAdvancedEntitySetDataSearch( UUID entitySetId, AdvancedSearch search, Set<UUID> authorizedProperties ) {
+        Map<UUID, String> authorizedSearches = Maps.newHashMap();
+        search.getSearches().entrySet().forEach( entry -> {
+            if ( authorizedProperties.contains( entry.getKey() ) ) authorizedSearches.put( entry.getKey(), entry.getValue() );
+        } );
+        
+        if ( !authorizedSearches.isEmpty() ) {
+            SearchResult queryResults;
+            try {
+                queryResults = executor.submit( ConductorCall.wrap(
+                        new AdvancedSearchEntitySetDataLambda(
+                                entitySetId,
+                                authorizedSearches,
+                                search.getStart(),
+                                search.getMaxHits(),
+                                authorizedProperties ) ) )
+                        .get();
+                return queryResults;
+            } catch ( InterruptedException | ExecutionException e ) {
+                logger.debug( "unable to execute entity set data search" );
+            }
+        }
+
+        return new SearchResult( 0, Lists.newArrayList() );        
     }
 
 }

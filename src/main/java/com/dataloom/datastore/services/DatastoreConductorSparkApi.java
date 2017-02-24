@@ -192,4 +192,15 @@ public class DatastoreConductorSparkApi implements ConductorSparkApi {
         throw new NotImplementedException(
                 "You are trying to invoke ConductorSparkApi from somehwere else other than conductor." );
     }
+
+    @Override
+    public SearchResult executeAdvancedEntitySetDataSearch(
+            UUID entitySetId,
+            Map<UUID, String> searches,
+            int start,
+            int maxHits,
+            Set<UUID> authorizedPropertyTypes  ) {
+        throw new NotImplementedException(
+                "You are trying to invoke ConductorSparkApi from somehwere else other than conductor." );
+    }
 }

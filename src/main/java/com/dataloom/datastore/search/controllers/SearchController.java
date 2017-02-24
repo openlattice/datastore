@@ -43,6 +43,7 @@ import com.dataloom.authorization.Principals;
 import com.dataloom.datastore.services.SearchService;
 import com.dataloom.edm.EntitySet;
 import com.dataloom.search.SearchApi;
+import com.dataloom.search.requests.AdvancedSearch;
 import com.dataloom.search.requests.Search;
 import com.dataloom.search.requests.SearchResult;
 import com.dataloom.search.requests.SearchTerm;
@@ -136,6 +137,24 @@ public class SearchController implements SearchApi, AuthorizingComponent {
             Set<UUID> authorizedProperties = authorizationsHelper.getAuthorizedPropertiesOnEntitySet( entitySetId,
                     EnumSet.of( Permission.READ ) );
             if ( !authorizedProperties.isEmpty() ) return searchService.executeEntitySetDataSearch( entitySetId, searchTerm, authorizedProperties );
+        }
+        return new SearchResult( 0, Lists.newArrayList() );
+    }
+    
+    @RequestMapping(
+            path = { ADVANCED + ENTITY_SET_ID_PATH },
+            method = RequestMethod.POST,
+            produces = { MediaType.APPLICATION_JSON_VALUE } )
+    @Override
+    public SearchResult executeAdvancedEntitySetDataQuery(
+            @PathVariable( ENTITY_SET_ID ) UUID entitySetId,
+            @RequestBody AdvancedSearch search ) {
+        if ( authorizations.checkIfHasPermissions( ImmutableList.of( entitySetId ),
+                Principals.getCurrentPrincipals(),
+                EnumSet.of( Permission.READ ) ) ) {
+            Set<UUID> authorizedProperties = authorizationsHelper.getAuthorizedPropertiesOnEntitySet( entitySetId,
+                    EnumSet.of( Permission.READ ) );
+            return searchService.executeAdvancedEntitySetDataSearch( entitySetId, search, authorizedProperties );
         }
         return new SearchResult( 0, Lists.newArrayList() );
     }

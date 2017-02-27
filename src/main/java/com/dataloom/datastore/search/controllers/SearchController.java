@@ -77,20 +77,14 @@ public class SearchController implements SearchApi, AuthorizingComponent {
         path = { "/", "" },
         method = RequestMethod.POST,
         produces = { MediaType.APPLICATION_JSON_VALUE } )
+    @Override
     public SearchResult executeEntitySetKeywordQuery(
-            @RequestBody Search search,
-            HttpServletResponse response ) throws IOException {
+            @RequestBody Search search ) {
         if ( !search.getOptionalKeyword().isPresent() && !search.getOptionalEntityType().isPresent()
                 && !search.getOptionalPropertyTypes().isPresent() ) {
-            response.sendError( HttpServletResponse.SC_BAD_REQUEST,
+            throw new IllegalArgumentException(
                     "Your search cannot be empty--you must include at least one of of the three params: keyword ('kw'), entity type id ('eid'), or property type ids ('pid')" );
-            return null;
         }
-        return executeEntitySetKeywordQuery( search );
-    }
-
-    @Override
-    public SearchResult executeEntitySetKeywordQuery( Search search ) {
         return searchService
                 .executeEntitySetKeywordSearchQuery( search.getOptionalKeyword(),
                         search.getOptionalEntityType(),

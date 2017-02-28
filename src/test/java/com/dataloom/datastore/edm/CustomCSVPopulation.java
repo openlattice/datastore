@@ -347,6 +347,7 @@ public class CustomCSVPopulation {
                                 entityTypeId,
                                 entitySetName,
                                 "Random Entity Set " + entitySetName,
+                                Optional.absent(),
                                 Optional.absent() ) );
 
                 // Update list of custom Entity Sets

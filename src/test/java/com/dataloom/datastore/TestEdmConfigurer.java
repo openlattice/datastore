@@ -213,7 +213,8 @@ public class TestEdmConfigurer {
                     METADATA_LEVELS_ID,
                     ENTITY_SET_NAME,
                     ENTITY_SET_NAME,
-                    Optional.of( "Names and salaries of Chicago employees" ) );
+                    Optional.of( "Names and salaries of Chicago employees" ),
+                    Optional.of( ImmutableSet.of( "support@kryptnostic.com" ) ) );
             dms.createEntitySet(
                     principal,
                     EMPLOYEES );

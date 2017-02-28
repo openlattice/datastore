@@ -73,7 +73,7 @@ public class EdmControllerTests extends BootstrapDatastoreWithCassandra {
 
         return expected;
     }
-    
+
     public EntitySet createEntitySet() {
         EntityType entityType = createEntityType();
 
@@ -82,7 +82,8 @@ public class EdmControllerTests extends BootstrapDatastoreWithCassandra {
                 entityType.getId(),
                 TestDataFactory.name(),
                 "foobar",
-                Optional.<String> of( "barred" ) );
+                Optional.<String> of( "barred" ),
+                Optional.of( ImmutableSet.of( "foo@bar.com", "foobar@foo.net" ) ) );
 
         Set<EntitySet> ees = ImmutableSet.copyOf( edm.getEntitySets() );
 
@@ -133,9 +134,9 @@ public class EdmControllerTests extends BootstrapDatastoreWithCassandra {
         EntityDataModel dm = edm.getEntityDataModel();
         Assert.assertNotNull( dm );
     }
-    
+
     @Test
-    public void testCreateEntitySet(){
+    public void testCreateEntitySet() {
         createEntitySet();
     }
 
@@ -149,24 +150,24 @@ public class EdmControllerTests extends BootstrapDatastoreWithCassandra {
     }
 
     @Test
-    public void testRenameTypes(){
+    public void testRenameTypes() {
         PropertyType pt = createPropertyType();
         EntityType et = createEntityType();
         EntitySet es = createEntitySet();
-        
+
         FullQualifiedName newPtFqn = TestDataFactory.fqn();
         FullQualifiedName newEtFqn = TestDataFactory.fqn();
         String newEsName = TestDataFactory.name();
-        
+
         edm.renamePropertyType( pt.getId(), newPtFqn );
         edm.renameEntityType( et.getId(), newEtFqn );
         edm.renameEntitySet( es.getId(), newEsName );
-        
+
         Assert.assertEquals( newPtFqn, edm.getPropertyType( pt.getId() ).getType() );
         Assert.assertEquals( newEtFqn, edm.getEntityType( et.getId() ).getType() );
         Assert.assertEquals( newEsName, edm.getEntitySet( es.getId() ).getName() );
     }
-    
+
     @AfterClass
     public static void testsComplete() {
         logger.info( "This is for setting breakpoints." );

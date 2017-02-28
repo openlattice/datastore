@@ -19,12 +19,14 @@
 
 package com.dataloom.datastore.search.controllers;
 
+import java.io.IOException;
 import java.util.EnumSet;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
 import javax.inject.Inject;
+import javax.servlet.http.HttpServletResponse;
 
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -57,31 +59,32 @@ import com.kryptnostic.datastore.services.EdmService;
 public class SearchController implements SearchApi, AuthorizingComponent {
 
     @Inject
-    private SearchService searchService;
+    private SearchService          searchService;
 
     @Inject
-    private EdmService edm;
+    private EdmService             edm;
 
     @Inject
-    private AuditQueryService aqs;
+    private AuditQueryService      aqs;
 
     @Inject
-    private AuthorizationManager authorizations;
-    
+    private AuthorizationManager   authorizations;
+
     @Inject
     private EdmAuthorizationHelper authorizationsHelper;
 
     @RequestMapping(
-            path = { "/", "" },
-            method = RequestMethod.POST,
-            produces = { MediaType.APPLICATION_JSON_VALUE } )
-    public SearchResult executeEntitySetKeywordQuery( @RequestBody Search search ) {
+        path = { "/", "" },
+        method = RequestMethod.POST,
+        produces = { MediaType.APPLICATION_JSON_VALUE } )
+    @Override
+    public SearchResult executeEntitySetKeywordQuery(
+            @RequestBody Search search ) {
         if ( !search.getOptionalKeyword().isPresent() && !search.getOptionalEntityType().isPresent()
                 && !search.getOptionalPropertyTypes().isPresent() ) {
-            throw new BadRequestException(
-                    "You must specify at least one request body param (keyword 'kw', entity type id 'eid', or property type ids 'pid'" );
+            throw new IllegalArgumentException(
+                    "Your search cannot be empty--you must include at least one of of the three params: keyword ('kw'), entity type id ('eid'), or property type ids ('pid')" );
         }
-
         return searchService
                 .executeEntitySetKeywordSearchQuery( search.getOptionalKeyword(),
                         search.getOptionalEntityType(),
@@ -91,9 +94,9 @@ public class SearchController implements SearchApi, AuthorizingComponent {
     }
 
     @RequestMapping(
-            path = { POPULAR },
-            method = RequestMethod.GET,
-            produces = { MediaType.APPLICATION_JSON_VALUE } )
+        path = { POPULAR },
+        method = RequestMethod.GET,
+        produces = { MediaType.APPLICATION_JSON_VALUE } )
     @Override
     public Iterable<EntitySet> getPopularEntitySet() {
         Set<EntitySet> entitySets = aqs.getTop100()
@@ -110,23 +113,24 @@ public class SearchController implements SearchApi, AuthorizingComponent {
         return entitySets;
     }
 
-    @Override public AuthorizationManager getAuthorizationManager() {
+    @Override
+    public AuthorizationManager getAuthorizationManager() {
         return authorizations;
     }
 
     @RequestMapping(
-            path = { ORGANIZATIONS },
-            method = RequestMethod.POST,
-            produces = { MediaType.APPLICATION_JSON_VALUE } )
+        path = { ORGANIZATIONS },
+        method = RequestMethod.POST,
+        produces = { MediaType.APPLICATION_JSON_VALUE } )
     @Override
     public SearchResult executeOrganizationSearch( @RequestBody SearchTerm searchTerm ) {
         return searchService.executeOrganizationKeywordSearch( searchTerm );
     }
-    
+
     @RequestMapping(
-            path = { ENTITY_SET_ID_PATH },
-            method = RequestMethod.POST,
-            produces = { MediaType.APPLICATION_JSON_VALUE } )
+        path = { ENTITY_SET_ID_PATH },
+        method = RequestMethod.POST,
+        produces = { MediaType.APPLICATION_JSON_VALUE } )
     @Override
     public SearchResult executeEntitySetDataQuery(
             @PathVariable( ENTITY_SET_ID ) UUID entitySetId,
@@ -136,15 +140,16 @@ public class SearchController implements SearchApi, AuthorizingComponent {
                 EnumSet.of( Permission.READ ) ) ) {
             Set<UUID> authorizedProperties = authorizationsHelper.getAuthorizedPropertiesOnEntitySet( entitySetId,
                     EnumSet.of( Permission.READ ) );
-            if ( !authorizedProperties.isEmpty() ) return searchService.executeEntitySetDataSearch( entitySetId, searchTerm, authorizedProperties );
+            if ( !authorizedProperties.isEmpty() )
+                return searchService.executeEntitySetDataSearch( entitySetId, searchTerm, authorizedProperties );
         }
         return new SearchResult( 0, Lists.newArrayList() );
     }
-    
+
     @RequestMapping(
-            path = { ADVANCED + ENTITY_SET_ID_PATH },
-            method = RequestMethod.POST,
-            produces = { MediaType.APPLICATION_JSON_VALUE } )
+        path = { ADVANCED + ENTITY_SET_ID_PATH },
+        method = RequestMethod.POST,
+        produces = { MediaType.APPLICATION_JSON_VALUE } )
     @Override
     public SearchResult executeAdvancedEntitySetDataQuery(
             @PathVariable( ENTITY_SET_ID ) UUID entitySetId,

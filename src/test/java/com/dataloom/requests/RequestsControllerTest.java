@@ -80,13 +80,13 @@ public class RequestsControllerTest extends MultipleAuthenticatedUsersBase {
         Set<Request> req = new HashSet<>();
 
         // Request Entity Set
-        req.add( new Request( entitySetAclKey, entitySetPermissions ) );
+        req.add( new Request( entitySetAclKey, entitySetPermissions, "because I need the entity set" ) );
         entitySetRequestMade++;
 
         // Request Properties
         propertiesAclKeys
                 .forEach( aclKey -> {
-                    req.add( new Request( aclKey, propertiesPermissions ) );
+                    req.add( new Request( aclKey, propertiesPermissions, "because I need the property type" ) );
                     propertiesRequestMade++;
                 } );
 
@@ -134,8 +134,9 @@ public class RequestsControllerTest extends MultipleAuthenticatedUsersBase {
                     // Approve each request
                     Status approved = new Status(
                             status.getAclKey(),
-                            status.getPrincipal(),
                             status.getPermissions(),
+                            status.getReason(),
+                            status.getPrincipal(),
                             RequestStatus.APPROVED );
                     return approved;
                 } )

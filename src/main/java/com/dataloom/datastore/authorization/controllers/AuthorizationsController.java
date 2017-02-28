@@ -43,6 +43,8 @@ import com.dataloom.authorization.AuthorizationsApi;
 import com.dataloom.authorization.AuthorizingComponent;
 import com.dataloom.authorization.Permission;
 import com.dataloom.authorization.Principals;
+import com.dataloom.authorization.paging.AuthorizedObjectsPagingFactory;
+import com.dataloom.authorization.paging.AuthorizedObjectsSearchResult;
 import com.dataloom.authorization.securable.SecurableObjectType;
 import com.dataloom.edm.EdmApi.FileType;
 import com.google.common.collect.Maps;
@@ -51,7 +53,9 @@ import com.google.common.collect.Maps;
 @RequestMapping( AuthorizationsApi.CONTROLLER )
 public class AuthorizationsController implements AuthorizationsApi, AuthorizingComponent {
     private static final Logger  logger = LoggerFactory.getLogger( AuthorizationsController.class );
-
+    //Number of authorized objects in each page of results
+    private static final int DEFAULT_PAGE_SIZE = 50;
+    
     @Inject
     private AuthorizationManager authorizations;
 
@@ -80,16 +84,18 @@ public class AuthorizationsController implements AuthorizationsApi, AuthorizingC
     @RequestMapping(
         method = RequestMethod.GET,
         produces = MediaType.APPLICATION_JSON_VALUE )
-    public Iterable<List<UUID>> getAccessibleObjects( 
+    public AuthorizedObjectsSearchResult getAccessibleObjects( 
             @RequestParam(
                     value = OBJECT_TYPE,
-                    required = true ) SecurableObjectType type,
+                    required = true ) SecurableObjectType objectType,
             @RequestParam(
                     value = PERMISSION,
-                    required = true ) Permission permission
+                    required = true ) Permission permission,
+            @RequestParam(
+                    value = PAGING_TOKEN,
+                    required = false ) String pagingToken
             ){
-        //TODO paging
-        return getAccessibleObjects( type, EnumSet.of( permission ) )::iterator;
+        return authorizations.getAuthorizedObjectsOfType( Principals.getCurrentPrincipals(), objectType, permission, AuthorizedObjectsPagingFactory.decode( pagingToken ), DEFAULT_PAGE_SIZE );
     }    
 
 }

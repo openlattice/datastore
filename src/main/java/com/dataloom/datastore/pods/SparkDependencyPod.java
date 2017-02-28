@@ -19,16 +19,29 @@
 
 package com.dataloom.datastore.pods;
 
+import javax.inject.Inject;
+
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+import com.dataloom.datastore.services.DatastoreConductorElasticsearchApi;
 import com.dataloom.datastore.services.DatastoreConductorSparkApi;
-import com.kryptnostic.conductor.rpc.ConductorSparkApi;
+import com.hazelcast.core.HazelcastInstance;
 
 @Configuration
 public class SparkDependencyPod {
+    
+    @Inject
+    private HazelcastInstance      hazelcastInstance;
+    
+    
     @Bean
-    public ConductorSparkApi api() {
-        return new DatastoreConductorSparkApi();
+    public DatastoreConductorSparkApi api() {
+        return new DatastoreConductorSparkApi( hazelcastInstance );
+    }
+    
+    @Bean
+    public DatastoreConductorElasticsearchApi elasticsearchApi() {
+        return new DatastoreConductorElasticsearchApi( hazelcastInstance );
     }
 }

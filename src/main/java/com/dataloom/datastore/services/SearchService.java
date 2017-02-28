@@ -23,13 +23,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.ExecutionException;
 
 import javax.annotation.PostConstruct;
 import javax.inject.Inject;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.dataloom.authorization.AbstractSecurableObjectResolveTypeService;
 import com.dataloom.authorization.AuthorizationManager;
@@ -55,17 +51,8 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.google.common.eventbus.EventBus;
 import com.google.common.eventbus.Subscribe;
-import com.hazelcast.core.HazelcastInstance;
-import com.hazelcast.durableexecutor.DurableExecutorService;
-import com.kryptnostic.conductor.rpc.AdvancedSearchEntitySetDataLambda;
-import com.kryptnostic.conductor.rpc.ConductorElasticsearchCall;
-import com.kryptnostic.conductor.rpc.ElasticsearchLambdas;
-import com.kryptnostic.conductor.rpc.EntityDataLambdas;
-import com.kryptnostic.conductor.rpc.SearchEntitySetDataAcrossIndicesLambda;
-import com.kryptnostic.conductor.rpc.SearchEntitySetDataLambda;
 
 public class SearchService {
-    private static final Logger                       logger = LoggerFactory.getLogger( SearchService.class );
 
     @Inject
     private EventBus                                  eventBus;
@@ -76,11 +63,11 @@ public class SearchService {
     @Inject
     private AbstractSecurableObjectResolveTypeService securableObjectTypes;
 
-    private final DurableExecutorService              executor;
+    @Inject
+    private DatastoreConductorSparkApi                sparkApi;
 
-    public SearchService( HazelcastInstance hazelcast ) {
-        this.executor = hazelcast.getDurableExecutorService( "default" );
-    }
+    @Inject
+    private DatastoreConductorElasticsearchApi        elasticsearchApi;
 
     @PostConstruct
     public void initializeBus() {
@@ -93,33 +80,20 @@ public class SearchService {
             Optional<Set<UUID>> optionalPropertyTypes,
             int start,
             int maxHits ) {
-        try {
-            SearchResult searchResult = executor.submit( ConductorElasticsearchCall
-                    .wrap( ElasticsearchLambdas.executeEntitySetMetadataQuery( optionalQuery,
-                            optionalEntityType,
-                            optionalPropertyTypes,
-                            start,
-                            maxHits ) ) )
-                    .get();
-            return searchResult;
-        } catch ( InterruptedException | ExecutionException e ) {
-            logger.error( "Unable to to perofrm keyword search.", e );
-        }
-        return new SearchResult( 0, Lists.newArrayList() );
+        return elasticsearchApi.executeEntitySetMetadataSearch( optionalQuery,
+                optionalEntityType,
+                optionalPropertyTypes,
+                null,
+                start,
+                maxHits );
     }
 
     public void updateEntitySetPermissions( List<UUID> aclKeys, Principal principal, Set<Permission> permissions ) {
-        aclKeys.forEach( aclKey -> {
-            executor.submit( ConductorElasticsearchCall
-                    .wrap( ElasticsearchLambdas.updateEntitySetPermissions( aclKey, principal, permissions ) ) );
-        } );
+        aclKeys.forEach( aclKey -> elasticsearchApi.updateEntitySetPermissions( aclKey, principal, permissions ) );
     }
 
     public void updateOrganizationPermissions( List<UUID> aclKeys, Principal principal, Set<Permission> permissions ) {
-        aclKeys.forEach( aclKey -> {
-            executor.submit( ConductorElasticsearchCall
-                    .wrap( ElasticsearchLambdas.updateOrganizationPermissions( aclKey, principal, permissions ) ) );
-        } );
+        aclKeys.forEach( aclKey -> elasticsearchApi.updateOrganizationPermissions( aclKey, principal, permissions ) );
     }
 
     @Subscribe
@@ -142,92 +116,65 @@ public class SearchService {
 
     @Subscribe
     public void createEntitySet( EntitySetCreatedEvent event ) {
-        executor.submit( ConductorElasticsearchCall
-                .wrap( ElasticsearchLambdas.submitEntitySetToElasticsearch(
-                        event.getEntitySet(),
-                        event.getPropertyTypes(),
-                        event.getPrincipal() ) ) );
+        elasticsearchApi.saveEntitySetToElasticsearch( event.getEntitySet(),
+                event.getPropertyTypes(),
+                event.getPrincipal() );
     }
 
     @Subscribe
     public void deleteEntitySet( EntitySetDeletedEvent event ) {
-        executor.submit( ConductorElasticsearchCall
-                .wrap( ElasticsearchLambdas.deleteEntitySet( event.getEntitySetId() ) ) );
+        elasticsearchApi.deleteEntitySet( event.getEntitySetId() );
     }
 
     @Subscribe
     public void createOrganization( OrganizationCreatedEvent event ) {
-        executor.submit( ConductorElasticsearchCall
-                .wrap( ElasticsearchLambdas.createOrganization( event.getOrganization(), event.getPrincipal() ) ) );
+        elasticsearchApi.createOrganization( event.getOrganization(), event.getPrincipal() );
     }
 
     public SearchResult executeOrganizationKeywordSearch( SearchTerm searchTerm ) {
-        try {
-            SearchResult searchResult = executor.submit( ConductorElasticsearchCall
-                    .wrap( ElasticsearchLambdas.executeOrganizationKeywordSearch( searchTerm.getSearchTerm(),
-                            searchTerm.getStart(),
-                            searchTerm.getMaxHits() ) ) )
-                    .get();
-            return searchResult;
-        } catch ( InterruptedException | ExecutionException e ) {
-            logger.error( "Unable to to perform keyword search.", e );
-            return new SearchResult( 0, Lists.newArrayList() );
-        }
+        return elasticsearchApi.executeOrganizationSearch( searchTerm.getSearchTerm(),
+                null,
+                searchTerm.getStart(),
+                searchTerm.getMaxHits() );
     }
 
     @Subscribe
     public void updateOrganization( OrganizationUpdatedEvent event ) {
-        executor.submit( ConductorElasticsearchCall
-                .wrap( ElasticsearchLambdas.updateOrganization( event.getId(),
-                        event.getOptionalTitle(),
-                        event.getOptionalDescription() ) ) );
+        elasticsearchApi.updateOrganization( event.getId(),
+                event.getOptionalTitle(),
+                event.getOptionalDescription() );
     }
 
     @Subscribe
     public void deleteOrganization( OrganizationDeletedEvent event ) {
-        executor.submit( ConductorElasticsearchCall
-                .wrap( ElasticsearchLambdas.deleteOrganization( event.getOrganizationId() ) ) );
+        elasticsearchApi.deleteOrganization( event.getOrganizationId() );
     }
 
     @Subscribe
     public void createEntityData( EntityDataCreatedEvent event ) {
-        executor.submit( ConductorElasticsearchCall.wrap(
-                new EntityDataLambdas( event.getEntitySetId(), event.getEntityId(), event.getPropertyValues() ) ) );
+        elasticsearchApi.createEntityData( event.getEntitySetId(), event.getEntityId(), event.getPropertyValues() );
     }
 
     public SearchResult executeEntitySetDataSearch(
             UUID entitySetId,
             SearchTerm searchTerm,
             Set<UUID> authorizedProperties ) {
-        SearchResult queryResults;
-        try {
-            queryResults = executor.submit( ConductorElasticsearchCall.wrap(
-                    new SearchEntitySetDataLambda(
-                            entitySetId,
-                            searchTerm.getSearchTerm(),
-                            searchTerm.getStart(),
-                            searchTerm.getMaxHits(),
-                            authorizedProperties ) ) )
-                    .get();
-            return queryResults;
-
-        } catch ( InterruptedException | ExecutionException e ) {
-            logger.debug( "unable to execute entity set data search" );
-            return new SearchResult( 0, Lists.newArrayList() );
-        }
+        return elasticsearchApi.executeEntitySetDataSearch( entitySetId,
+                searchTerm.getSearchTerm(),
+                searchTerm.getStart(),
+                searchTerm.getMaxHits(),
+                authorizedProperties );
     }
 
     @Subscribe
     public void updateEntitySetMetadata( EntitySetMetadataUpdatedEvent event ) {
-        executor.submit( ConductorElasticsearchCall
-                .wrap( ElasticsearchLambdas.updateEntitySetMetadata( event.getEntitySet() ) ) );
+        elasticsearchApi.updateEntitySetMetadata( event.getEntitySet() );
     }
 
     @Subscribe
     public void updatePropertyTypesInEntitySet( PropertyTypesInEntitySetUpdatedEvent event ) {
-        executor.submit( ConductorElasticsearchCall
-                .wrap( ElasticsearchLambdas.updatePropertyTypesInEntitySet( event.getEntitySetId(),
-                        event.getNewPropertyTypes() ) ) );
+        elasticsearchApi.updatePropertyTypesInEntitySet( event.getEntitySetId(),
+                event.getNewPropertyTypes() );
     }
 
     public List<Entity> executeEntitySetDataSearchAcrossIndices(
@@ -235,16 +182,7 @@ public class SearchService {
             Map<UUID, Set<String>> fieldSearches,
             int size,
             boolean explain ) {
-        List<Entity> queryResults;
-        try {
-            queryResults = executor.submit( ConductorElasticsearchCall.wrap(
-                    new SearchEntitySetDataAcrossIndicesLambda( entitySetIds, fieldSearches, size, explain ) ) ).get();
-            return queryResults;
-
-        } catch ( InterruptedException | ExecutionException e ) {
-            logger.error( "Failed to execute search for entity set data search across indices: " + fieldSearches );
-            return Lists.newArrayList();
-        }
+        return elasticsearchApi.executeEntitySetDataSearchAcrossIndices( entitySetIds, fieldSearches, size, explain );
     }
 
     public SearchResult executeAdvancedEntitySetDataSearch(
@@ -258,20 +196,11 @@ public class SearchService {
         } );
 
         if ( !authorizedSearches.isEmpty() ) {
-            SearchResult queryResults;
-            try {
-                queryResults = executor.submit( ConductorElasticsearchCall.wrap(
-                        new AdvancedSearchEntitySetDataLambda(
-                                entitySetId,
-                                authorizedSearches,
-                                search.getStart(),
-                                search.getMaxHits(),
-                                authorizedProperties ) ) )
-                        .get();
-                return queryResults;
-            } catch ( InterruptedException | ExecutionException e ) {
-                logger.debug( "unable to execute entity set data search" );
-            }
+            return elasticsearchApi.executeAdvancedEntitySetDataSearch( entitySetId,
+                    authorizedSearches,
+                    search.getStart(),
+                    search.getMaxHits(),
+                    authorizedProperties );
         }
 
         return new SearchResult( 0, Lists.newArrayList() );

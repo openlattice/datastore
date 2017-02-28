@@ -21,36 +21,52 @@ package com.dataloom.datastore.services;
 
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.ExecutionException;
 
-import org.apache.commons.lang3.NotImplementedException;
 import org.apache.olingo.commons.api.edm.FullQualifiedName;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.dataloom.data.requests.LookupEntitiesRequest;
 import com.dataloom.edm.type.PropertyType;
+import com.hazelcast.core.HazelcastInstance;
+import com.hazelcast.durableexecutor.DurableExecutorService;
+import com.kryptnostic.conductor.rpc.ConductorCall;
 import com.kryptnostic.conductor.rpc.ConductorSparkApi;
+import com.kryptnostic.conductor.rpc.Lambdas;
 import com.kryptnostic.conductor.rpc.QueryResult;
 
 public class DatastoreConductorSparkApi implements ConductorSparkApi {
 
+    private static final Logger          logger = LoggerFactory.getLogger( DatastoreConductorSparkApi.class );
+
+    private final DurableExecutorService executor;
+
+    public DatastoreConductorSparkApi( HazelcastInstance hazelcast ) {
+        this.executor = hazelcast.getDurableExecutorService( "default" );
+    }
+
     @Override
     public QueryResult getAllEntitiesOfType( FullQualifiedName entityTypeFqn ) {
-        throw new NotImplementedException(
-                "You are trying to invoke ConductorSparkApi from somehwere else other than conductor." );
+        return getAllEntitiesOfType( entityTypeFqn, null );
     }
 
     @Override
     public QueryResult getAllEntitiesOfType(
             FullQualifiedName entityTypeFqn,
             List<PropertyType> authorizedProperties ) {
-        throw new NotImplementedException(
-                "You are trying to invoke ConductorSparkApi from somehwere else other than conductor." );
+        try {
+            return executor.submit( ConductorCall.wrap( Lambdas.getAllEntitiesOfType( entityTypeFqn, authorizedProperties ) ) ).get();
+        } catch ( InterruptedException | ExecutionException e ) {
+            logger.debug( "unable to execute get all entities of type" );
+            return new QueryResult( null, null, null, null );
+        }
     }
 
     @Override
     public QueryResult getAllEntitiesOfEntitySet( FullQualifiedName entityFqn, String entitySetName ) {
 
-        throw new NotImplementedException(
-                "You are trying to invoke ConductorSparkApi from somehwere else other than conductor." );
+        return null;
     }
 
     @Override
@@ -58,19 +74,31 @@ public class DatastoreConductorSparkApi implements ConductorSparkApi {
             FullQualifiedName entityFqn,
             String entitySetName,
             List<PropertyType> authorizedProperties ) {
-        throw new NotImplementedException(
-                "You are trying to invoke ConductorSparkApi from somehwere else other than conductor." );
+        try {
+            return executor.submit( ConductorCall.wrap( Lambdas.getAllEntitiesOfEntitySet( entityFqn, entitySetName, authorizedProperties ) ) ).get();
+        } catch ( InterruptedException | ExecutionException e ) {
+            logger.debug( "unable to execute get all entities of entity set" );
+            return new QueryResult( null, null, null, null );
+        }
     }
 
     @Override
     public QueryResult getFilterEntities( LookupEntitiesRequest request ) {
-        throw new NotImplementedException(
-                "You are trying to invoke ConductorSparkApi from somehwere else other than conductor." );
+        try {
+            return executor.submit( ConductorCall.wrap( Lambdas.getFilteredEntities( request ) ) ).get();
+        } catch ( InterruptedException | ExecutionException e ) {
+            logger.debug( "unable to execute get all entities of entity set" );
+            return new QueryResult( null, null, null, null );
+        }
     }
 
     @Override
     public Void clustering( UUID linkedEntitySetId ) {
-        throw new NotImplementedException(
-                "You are trying to invoke ConductorSparkApi from somehwere else other than conductor." );
+        try {
+            return executor.submit( ConductorCall.wrap( Lambdas.clustering( linkedEntitySetId ) ) ).get();
+        } catch ( InterruptedException | ExecutionException e ) {
+            logger.debug( "unable to execute clustering" );
+            return null;
+        }
     }
 }

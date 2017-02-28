@@ -20,22 +20,13 @@
 package com.dataloom.datastore.services;
 
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
 import java.util.UUID;
 
 import org.apache.commons.lang3.NotImplementedException;
 import org.apache.olingo.commons.api.edm.FullQualifiedName;
 
-import com.dataloom.authorization.Permission;
-import com.dataloom.authorization.Principal;
 import com.dataloom.data.requests.LookupEntitiesRequest;
-import com.dataloom.edm.EntitySet;
 import com.dataloom.edm.type.PropertyType;
-import com.dataloom.linking.Entity;
-import com.dataloom.organization.Organization;
-import com.dataloom.search.requests.SearchResult;
-import com.google.common.base.Optional;
 import com.kryptnostic.conductor.rpc.ConductorSparkApi;
 import com.kryptnostic.conductor.rpc.QueryResult;
 
@@ -78,128 +69,7 @@ public class DatastoreConductorSparkApi implements ConductorSparkApi {
     }
 
     @Override
-    public Boolean submitEntitySetToElasticsearch(
-            EntitySet entitySet,
-            List<PropertyType> propertyTypes,
-            Principal principal ) {
-        throw new NotImplementedException(
-                "You are trying to invoke ConductorSparkApi from somehwere else other than conductor." );
-    }
-
-    @Override
-    public Boolean deleteEntitySet( UUID entitySetId ) {
-        throw new NotImplementedException(
-                "You are trying to invoke ConductorSparkApi from somehwere else other than conductor." );
-    }
-
-    @Override
-    public SearchResult executeElasticsearchMetadataQuery(
-            Optional<String> query,
-            Optional<UUID> optionalEntityType,
-            Optional<Set<UUID>> optionalPropertyTypes,
-            Set<Principal> principals,
-            int start,
-            int maxHits ) {
-        throw new NotImplementedException(
-                "You are trying to invoke ConductorSparkApi from somehwere else other than conductor." );
-    }
-
-    @Override
-    public Boolean updateEntitySetMetadata( EntitySet entitySet ) {
-        throw new NotImplementedException(
-                "You are trying to invoke ConductorSparkApi from somehwere else other than conductor." );
-    }
-
-    @Override
-    public Boolean updatePropertyTypesInEntitySet(
-            UUID entitySetId,
-            List<PropertyType> newPropertyTypes ) {
-        throw new NotImplementedException(
-                "You are trying to invoke ConductorSparkApi from somehwere else other than conductor." );
-    }
-
-    @Override
-    public Boolean updateEntitySetPermissions(
-            UUID entitySetId,
-            Principal principal,
-            Set<Permission> permissions ) {
-        throw new NotImplementedException(
-                "You are trying to invoke ConductorSparkApi from somehwere else other than conductor." );
-    }
-
-    @Override
-    public Boolean createOrganization( Organization organization, Principal principal ) {
-        throw new NotImplementedException(
-                "You are trying to invoke ConductorSparkApi from somehwere else other than conductor." );
-    }
-
-    @Override
-    public SearchResult executeOrganizationKeywordSearch( String searchTerm, Set<Principal> principals, int start, int maxHits ) {
-        throw new NotImplementedException(
-                "You are trying to invoke ConductorSparkApi from somehwere else other than conductor." );
-    }
-
-    @Override
-    public Boolean updateOrganization( UUID id, Optional<String> optionalTitle, Optional<String> optionalDescription ) {
-        throw new NotImplementedException(
-                "You are trying to invoke ConductorSparkApi from somehwere else other than conductor." );
-    }
-
-    @Override
-    public Boolean deleteOrganization( UUID organizationId ) {
-        throw new NotImplementedException(
-                "You are trying to invoke ConductorSparkApi from somehwere else other than conductor." );
-    }
-
-    @Override
-    public Boolean updateOrganizationPermissions(
-            UUID organizationId,
-            Principal principal,
-            Set<Permission> permissions ) {
-        throw new NotImplementedException(
-                "You are trying to invoke ConductorSparkApi from somehwere else other than conductor." );
-    }
-
-    @Override
-    public Boolean createEntityData( UUID entitySetId, String entityId, Map<UUID, Object> propertyValues ) {
-        throw new NotImplementedException(
-                "You are trying to invoke ConductorSparkApi from somehwere else other than conductor." );
-    }
-
-    @Override
-    public SearchResult executeEntitySetDataSearch(
-            UUID entitySetId,
-            String searchTerm,
-            int start,
-            int maxHits,
-            Set<UUID> authorizedPropertyTypes ) {
-        throw new NotImplementedException(
-                "You are trying to invoke ConductorSparkApi from somehwere else other than conductor." );
-    }
-
-    @Override
-    public List<Entity> executeEntitySetDataSearchAcrossIndices(
-            Set<UUID> entitySetIds,
-            Map<UUID, Set<String>> fieldSearches,
-            int size,
-            boolean explain ) {
-        throw new NotImplementedException(
-                "You are trying to invoke ConductorSparkApi from somehwere else other than conductor." );
-    }
-
-    @Override
     public Void clustering( UUID linkedEntitySetId ) {
-        throw new NotImplementedException(
-                "You are trying to invoke ConductorSparkApi from somehwere else other than conductor." );
-    }
-
-    @Override
-    public SearchResult executeAdvancedEntitySetDataSearch(
-            UUID entitySetId,
-            Map<UUID, String> searches,
-            int start,
-            int maxHits,
-            Set<UUID> authorizedPropertyTypes  ) {
         throw new NotImplementedException(
                 "You are trying to invoke ConductorSparkApi from somehwere else other than conductor." );
     }

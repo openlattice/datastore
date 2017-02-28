@@ -35,20 +35,20 @@ import com.dataloom.authorization.AbstractSecurableObjectResolveTypeService;
 import com.dataloom.authorization.AuthorizationManager;
 import com.dataloom.authorization.Permission;
 import com.dataloom.authorization.Principal;
-import com.dataloom.authorization.securable.SecurableObjectType;
 import com.dataloom.authorization.events.AclUpdateEvent;
+import com.dataloom.authorization.securable.SecurableObjectType;
 import com.dataloom.data.events.EntityDataCreatedEvent;
 import com.dataloom.edm.events.EntitySetCreatedEvent;
 import com.dataloom.edm.events.EntitySetDeletedEvent;
-import com.dataloom.organizations.events.OrganizationCreatedEvent;
-import com.dataloom.organizations.events.OrganizationDeletedEvent;
-import com.dataloom.organizations.events.OrganizationUpdatedEvent;
-import com.dataloom.search.requests.SearchTerm;
-import com.dataloom.search.requests.AdvancedSearch;
-import com.dataloom.search.requests.SearchResult;
 import com.dataloom.edm.events.EntitySetMetadataUpdatedEvent;
 import com.dataloom.edm.events.PropertyTypesInEntitySetUpdatedEvent;
 import com.dataloom.linking.Entity;
+import com.dataloom.organizations.events.OrganizationCreatedEvent;
+import com.dataloom.organizations.events.OrganizationDeletedEvent;
+import com.dataloom.organizations.events.OrganizationUpdatedEvent;
+import com.dataloom.search.requests.AdvancedSearch;
+import com.dataloom.search.requests.SearchResult;
+import com.dataloom.search.requests.SearchTerm;
 import com.google.common.base.Optional;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -58,9 +58,9 @@ import com.google.common.eventbus.Subscribe;
 import com.hazelcast.core.HazelcastInstance;
 import com.hazelcast.durableexecutor.DurableExecutorService;
 import com.kryptnostic.conductor.rpc.AdvancedSearchEntitySetDataLambda;
-import com.kryptnostic.conductor.rpc.ConductorCall;
+import com.kryptnostic.conductor.rpc.ConductorElasticsearchCall;
+import com.kryptnostic.conductor.rpc.ElasticsearchLambdas;
 import com.kryptnostic.conductor.rpc.EntityDataLambdas;
-import com.kryptnostic.conductor.rpc.Lambdas;
 import com.kryptnostic.conductor.rpc.SearchEntitySetDataAcrossIndicesLambda;
 import com.kryptnostic.conductor.rpc.SearchEntitySetDataLambda;
 
@@ -94,8 +94,8 @@ public class SearchService {
             int start,
             int maxHits ) {
         try {
-            SearchResult searchResult = executor.submit( ConductorCall
-                    .wrap( Lambdas.executeElasticsearchMetadataQuery( optionalQuery,
+            SearchResult searchResult = executor.submit( ConductorElasticsearchCall
+                    .wrap( ElasticsearchLambdas.executeEntitySetMetadataQuery( optionalQuery,
                             optionalEntityType,
                             optionalPropertyTypes,
                             start,
@@ -110,15 +110,15 @@ public class SearchService {
 
     public void updateEntitySetPermissions( List<UUID> aclKeys, Principal principal, Set<Permission> permissions ) {
         aclKeys.forEach( aclKey -> {
-            executor.submit( ConductorCall
-                    .wrap( Lambdas.updateEntitySetPermissions( aclKey, principal, permissions ) ) );
+            executor.submit( ConductorElasticsearchCall
+                    .wrap( ElasticsearchLambdas.updateEntitySetPermissions( aclKey, principal, permissions ) ) );
         } );
     }
 
     public void updateOrganizationPermissions( List<UUID> aclKeys, Principal principal, Set<Permission> permissions ) {
         aclKeys.forEach( aclKey -> {
-            executor.submit( ConductorCall
-                    .wrap( Lambdas.updateOrganizationPermissions( aclKey, principal, permissions ) ) );
+            executor.submit( ConductorElasticsearchCall
+                    .wrap( ElasticsearchLambdas.updateOrganizationPermissions( aclKey, principal, permissions ) ) );
         } );
     }
 
@@ -142,8 +142,8 @@ public class SearchService {
 
     @Subscribe
     public void createEntitySet( EntitySetCreatedEvent event ) {
-        executor.submit( ConductorCall
-                .wrap( Lambdas.submitEntitySetToElasticsearch(
+        executor.submit( ConductorElasticsearchCall
+                .wrap( ElasticsearchLambdas.submitEntitySetToElasticsearch(
                         event.getEntitySet(),
                         event.getPropertyTypes(),
                         event.getPrincipal() ) ) );
@@ -151,20 +151,20 @@ public class SearchService {
 
     @Subscribe
     public void deleteEntitySet( EntitySetDeletedEvent event ) {
-        executor.submit( ConductorCall
-                .wrap( Lambdas.deleteEntitySet( event.getEntitySetId() ) ) );
+        executor.submit( ConductorElasticsearchCall
+                .wrap( ElasticsearchLambdas.deleteEntitySet( event.getEntitySetId() ) ) );
     }
 
     @Subscribe
     public void createOrganization( OrganizationCreatedEvent event ) {
-        executor.submit( ConductorCall
-                .wrap( Lambdas.createOrganization( event.getOrganization(), event.getPrincipal() ) ) );
+        executor.submit( ConductorElasticsearchCall
+                .wrap( ElasticsearchLambdas.createOrganization( event.getOrganization(), event.getPrincipal() ) ) );
     }
 
     public SearchResult executeOrganizationKeywordSearch( SearchTerm searchTerm ) {
         try {
-            SearchResult searchResult = executor.submit( ConductorCall
-                    .wrap( Lambdas.executeOrganizationKeywordSearch( searchTerm.getSearchTerm(),
+            SearchResult searchResult = executor.submit( ConductorElasticsearchCall
+                    .wrap( ElasticsearchLambdas.executeOrganizationKeywordSearch( searchTerm.getSearchTerm(),
                             searchTerm.getStart(),
                             searchTerm.getMaxHits() ) ) )
                     .get();
@@ -177,21 +177,21 @@ public class SearchService {
 
     @Subscribe
     public void updateOrganization( OrganizationUpdatedEvent event ) {
-        executor.submit( ConductorCall
-                .wrap( Lambdas.updateOrganization( event.getId(),
+        executor.submit( ConductorElasticsearchCall
+                .wrap( ElasticsearchLambdas.updateOrganization( event.getId(),
                         event.getOptionalTitle(),
                         event.getOptionalDescription() ) ) );
     }
 
     @Subscribe
     public void deleteOrganization( OrganizationDeletedEvent event ) {
-        executor.submit( ConductorCall
-                .wrap( Lambdas.deleteOrganization( event.getOrganizationId() ) ) );
+        executor.submit( ConductorElasticsearchCall
+                .wrap( ElasticsearchLambdas.deleteOrganization( event.getOrganizationId() ) ) );
     }
 
     @Subscribe
     public void createEntityData( EntityDataCreatedEvent event ) {
-        executor.submit( ConductorCall.wrap(
+        executor.submit( ConductorElasticsearchCall.wrap(
                 new EntityDataLambdas( event.getEntitySetId(), event.getEntityId(), event.getPropertyValues() ) ) );
     }
 
@@ -201,7 +201,7 @@ public class SearchService {
             Set<UUID> authorizedProperties ) {
         SearchResult queryResults;
         try {
-            queryResults = executor.submit( ConductorCall.wrap(
+            queryResults = executor.submit( ConductorElasticsearchCall.wrap(
                     new SearchEntitySetDataLambda(
                             entitySetId,
                             searchTerm.getSearchTerm(),
@@ -219,14 +219,14 @@ public class SearchService {
 
     @Subscribe
     public void updateEntitySetMetadata( EntitySetMetadataUpdatedEvent event ) {
-        executor.submit( ConductorCall
-                .wrap( Lambdas.updateEntitySetMetadata( event.getEntitySet() ) ) );
+        executor.submit( ConductorElasticsearchCall
+                .wrap( ElasticsearchLambdas.updateEntitySetMetadata( event.getEntitySet() ) ) );
     }
 
     @Subscribe
     public void updatePropertyTypesInEntitySet( PropertyTypesInEntitySetUpdatedEvent event ) {
-        executor.submit( ConductorCall
-                .wrap( Lambdas.updatePropertyTypesInEntitySet( event.getEntitySetId(),
+        executor.submit( ConductorElasticsearchCall
+                .wrap( ElasticsearchLambdas.updatePropertyTypesInEntitySet( event.getEntitySetId(),
                         event.getNewPropertyTypes() ) ) );
     }
 
@@ -237,7 +237,7 @@ public class SearchService {
             boolean explain ) {
         List<Entity> queryResults;
         try {
-            queryResults = executor.submit( ConductorCall.wrap(
+            queryResults = executor.submit( ConductorElasticsearchCall.wrap(
                     new SearchEntitySetDataAcrossIndicesLambda( entitySetIds, fieldSearches, size, explain ) ) ).get();
             return queryResults;
 
@@ -246,17 +246,21 @@ public class SearchService {
             return Lists.newArrayList();
         }
     }
-    
-    public SearchResult executeAdvancedEntitySetDataSearch( UUID entitySetId, AdvancedSearch search, Set<UUID> authorizedProperties ) {
+
+    public SearchResult executeAdvancedEntitySetDataSearch(
+            UUID entitySetId,
+            AdvancedSearch search,
+            Set<UUID> authorizedProperties ) {
         Map<UUID, String> authorizedSearches = Maps.newHashMap();
         search.getSearches().entrySet().forEach( entry -> {
-            if ( authorizedProperties.contains( entry.getKey() ) ) authorizedSearches.put( entry.getKey(), entry.getValue() );
+            if ( authorizedProperties.contains( entry.getKey() ) )
+                authorizedSearches.put( entry.getKey(), entry.getValue() );
         } );
-        
+
         if ( !authorizedSearches.isEmpty() ) {
             SearchResult queryResults;
             try {
-                queryResults = executor.submit( ConductorCall.wrap(
+                queryResults = executor.submit( ConductorElasticsearchCall.wrap(
                         new AdvancedSearchEntitySetDataLambda(
                                 entitySetId,
                                 authorizedSearches,
@@ -270,7 +274,7 @@ public class SearchService {
             }
         }
 
-        return new SearchResult( 0, Lists.newArrayList() );        
+        return new SearchResult( 0, Lists.newArrayList() );
     }
 
 }

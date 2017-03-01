@@ -19,8 +19,11 @@
 
 package com.dataloom.datastore.authorization.controllers;
 
+import java.util.EnumSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 
 import javax.inject.Inject;
 
@@ -30,6 +33,7 @@ import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.dataloom.authorization.AccessCheck;
@@ -39,13 +43,19 @@ import com.dataloom.authorization.AuthorizationsApi;
 import com.dataloom.authorization.AuthorizingComponent;
 import com.dataloom.authorization.Permission;
 import com.dataloom.authorization.Principals;
+import com.dataloom.authorization.paging.AuthorizedObjectsPagingFactory;
+import com.dataloom.authorization.paging.AuthorizedObjectsSearchResult;
+import com.dataloom.authorization.securable.SecurableObjectType;
+import com.dataloom.edm.EdmApi.FileType;
 import com.google.common.collect.Maps;
 
 @RestController
 @RequestMapping( AuthorizationsApi.CONTROLLER )
 public class AuthorizationsController implements AuthorizationsApi, AuthorizingComponent {
     private static final Logger  logger = LoggerFactory.getLogger( AuthorizationsController.class );
-
+    //Number of authorized objects in each page of results
+    private static final int DEFAULT_PAGE_SIZE = 50;
+    
     @Inject
     private AuthorizationManager authorizations;
 
@@ -69,4 +79,23 @@ public class AuthorizationsController implements AuthorizationsApi, AuthorizingC
         Map<Permission, Boolean> permissionsMap = Maps.asMap( query.getPermissions(), currentPermissions::contains );
         return new Authorization( query.getAclKey(), permissionsMap );
     }
+    
+    @Override
+    @RequestMapping(
+        method = RequestMethod.GET,
+        produces = MediaType.APPLICATION_JSON_VALUE )
+    public AuthorizedObjectsSearchResult getAccessibleObjects( 
+            @RequestParam(
+                    value = OBJECT_TYPE,
+                    required = true ) SecurableObjectType objectType,
+            @RequestParam(
+                    value = PERMISSION,
+                    required = true ) Permission permission,
+            @RequestParam(
+                    value = PAGING_TOKEN,
+                    required = false ) String pagingToken
+            ){
+        return authorizations.getAuthorizedObjectsOfType( Principals.getCurrentPrincipals(), objectType, permission, AuthorizedObjectsPagingFactory.decode( pagingToken ), DEFAULT_PAGE_SIZE );
+    }    
+
 }

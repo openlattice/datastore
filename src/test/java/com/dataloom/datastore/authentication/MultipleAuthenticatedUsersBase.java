@@ -48,15 +48,15 @@ import retrofit2.Retrofit;
 
 public class MultipleAuthenticatedUsersBase extends BootstrapDatastoreWithCassandra {
     protected static Map<String, Retrofit> retrofitMap = new HashMap<>();
-    
-    protected static EdmApi edmApi;
-    protected static PermissionsApi permissionsApi;
-    protected static AuthorizationsApi authorizationsApi;
-    protected static RequestsApi requestsApi;
-    protected static DataApi dataApi;
-    protected static SearchApi searchApi;
 
-    static{
+    protected static EdmApi                edmApi;
+    protected static PermissionsApi        permissionsApi;
+    protected static AuthorizationsApi     authorizationsApi;
+    protected static RequestsApi           requestsApi;
+    protected static DataApi               dataApi;
+    protected static SearchApi             searchApi;
+
+    static {
         retrofitMap.put( "admin", retrofit );
         retrofitMap.put( "user1", retrofit1 );
         retrofitMap.put( "user2", retrofit2 );
@@ -67,10 +67,10 @@ public class MultipleAuthenticatedUsersBase extends BootstrapDatastoreWithCassan
      * Auxiliary functions
      */
 
-    public static void loginAs( String user ){
-        //update Api instances involved
+    public static void loginAs( String user ) {
+        // update Api instances involved
         Retrofit currentRetrofit = retrofitMap.get( user );
-        if( currentRetrofit == null ){
+        if ( currentRetrofit == null ) {
             throw new IllegalArgumentException( "User does not exist in Retrofit map." );
         }
         edmApi = currentRetrofit.create( EdmApi.class );
@@ -80,11 +80,11 @@ public class MultipleAuthenticatedUsersBase extends BootstrapDatastoreWithCassan
         dataApi = currentRetrofit.create( DataApi.class );
         searchApi = currentRetrofit.create( SearchApi.class );
     }
-    
+
     /**
      * Helper methods for AuthorizationsApi
      */
-    
+
     public static void checkPermissionsMap(
             Map<Permission, Boolean> permissionMap,
             EnumSet<Permission> expectedPermissions ) {
@@ -92,11 +92,11 @@ public class MultipleAuthenticatedUsersBase extends BootstrapDatastoreWithCassan
             Assert.assertEquals( expectedPermissions.contains( permission ), permissionMap.get( permission ) );
         } );
     }
-    
-    public static void checkUserPermissions( List<UUID> aclKey, EnumSet<Permission> expected ){
+
+    public static void checkUserPermissions( List<UUID> aclKey, EnumSet<Permission> expected ) {
         authorizationsApi
-        .checkAuthorizations( ImmutableSet.of( new AccessCheck( aclKey, EnumSet.allOf( Permission.class ) ) ) )
-        .forEach( auth -> checkPermissionsMap( auth.getPermissions(), expected ) );   
+                .checkAuthorizations( ImmutableSet.of( new AccessCheck( aclKey, EnumSet.allOf( Permission.class ) ) ) )
+                .forEach( auth -> checkPermissionsMap( auth.getPermissions(), expected ) );
     }
 
     /**
@@ -132,14 +132,14 @@ public class MultipleAuthenticatedUsersBase extends BootstrapDatastoreWithCassan
         return createEntitySet( entityType );
     }
 
-    
-    public static EntitySet createEntitySet( EntityType entityType ){
+    public static EntitySet createEntitySet( EntityType entityType ) {
         EntitySet newES = new EntitySet(
                 UUID.randomUUID(),
                 entityType.getId(),
                 RandomStringUtils.randomAlphanumeric( 10 ),
                 "foobar",
-                Optional.<String> of( "barred" ) );
+                Optional.<String> of( "barred" ),
+                ImmutableSet.of( "foo@bar.com", "foobar@foo.net" ) );
 
         Map<String, UUID> entitySetIds = edmApi.createEntitySets( ImmutableSet.of( newES ) );
 

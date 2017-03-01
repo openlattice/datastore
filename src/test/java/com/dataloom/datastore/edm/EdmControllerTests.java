@@ -83,7 +83,7 @@ public class EdmControllerTests extends BootstrapDatastoreWithCassandra {
                 TestDataFactory.name(),
                 "foobar",
                 Optional.<String> of( "barred" ),
-                Optional.of( ImmutableSet.of( "foo@bar.com", "foobar@foo.net" ) ) );
+                ImmutableSet.of( "foo@bar.com", "foobar@foo.net" ) );
 
         Set<EntitySet> ees = ImmutableSet.copyOf( edm.getEntitySets() );
 

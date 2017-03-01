@@ -348,7 +348,7 @@ public class CustomCSVPopulation {
                                 entitySetName,
                                 "Random Entity Set " + entitySetName,
                                 Optional.absent(),
-                                Optional.absent() ) );
+                                ImmutableSet.of( "foo@bar.com" ) ) );
 
                 // Update list of custom Entity Sets
                 EntitySetsList.add( entitySetName );

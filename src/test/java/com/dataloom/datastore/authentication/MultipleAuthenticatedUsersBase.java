@@ -139,7 +139,7 @@ public class MultipleAuthenticatedUsersBase extends BootstrapDatastoreWithCassan
                 RandomStringUtils.randomAlphanumeric( 10 ),
                 "foobar",
                 Optional.<String> of( "barred" ),
-                Optional.of( ImmutableSet.of( "foo@bar.com", "foobar@foo.net" ) ) );
+                ImmutableSet.of( "foo@bar.com", "foobar@foo.net" ) );
 
         Map<String, UUID> entitySetIds = edmApi.createEntitySets( ImmutableSet.of( newES ) );
 

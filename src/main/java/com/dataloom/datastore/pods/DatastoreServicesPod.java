@@ -42,6 +42,8 @@ import com.dataloom.datastore.linking.services.SimpleMatcher;
 import com.dataloom.datastore.scripts.EntitySetContactsPopulator;
 import com.dataloom.datastore.services.CassandraDataManager;
 import com.dataloom.datastore.services.DatasourceManager;
+import com.dataloom.datastore.services.DatastoreConductorElasticsearchApi;
+import com.dataloom.datastore.services.DatastoreConductorSparkApi;
 import com.dataloom.datastore.services.LinkingService;
 import com.dataloom.datastore.services.SearchService;
 import com.dataloom.datastore.services.SyncTicketService;
@@ -207,7 +209,7 @@ public class DatastoreServicesPod {
 
     @Bean
     public SearchService searchService() {
-        return new SearchService( hazelcastInstance );
+        return new SearchService();
     }
 
     @Bean

@@ -7,6 +7,8 @@ enable-persistence:  false
 session-clustering-enabled: false
 
 cassandra:
+    embedded: true
+    random-ports: true
     ssl-enabled: false
     keyspace: "sparks"
     replication-factor: 1

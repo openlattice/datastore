@@ -20,6 +20,7 @@
 package com.dataloom.datastore;
 
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 import org.junit.AfterClass;
 import org.slf4j.Logger;
@@ -72,8 +73,20 @@ public class BootstrapDatastoreWithCassandra extends CassandraBootstrap {
                 .setPassword( "abracadabra" );
 
         String jwtAdmin = AuthenticationTest.authenticate().getCredentials().getIdToken();
+        try {
+            TimeUnit.SECONDS.sleep(2);
+        } catch ( InterruptedException e1 ) {
+        }
         String jwtUser1 = AuthenticationTest.getAuthentication( authOptions1 ).getCredentials().getIdToken();
+        try {
+            TimeUnit.SECONDS.sleep(2);
+        } catch ( InterruptedException e1 ) {
+        }
         String jwtUser2 = AuthenticationTest.getAuthentication( authOptions2 ).getCredentials().getIdToken();
+        try {
+            TimeUnit.SECONDS.sleep(2);
+        } catch ( InterruptedException e1 ) {
+        }
         String jwtUser3 = AuthenticationTest.getAuthentication( authOptions3 ).getCredentials().getIdToken();
 
         retrofit = RetrofitFactory.newClient( RetrofitFactory.Environment.TESTING, () -> jwtAdmin );

@@ -60,6 +60,9 @@ import com.dataloom.linking.components.Clusterer;
 import com.dataloom.linking.components.Matcher;
 import com.dataloom.mappers.ObjectMappers;
 import com.dataloom.organizations.HazelcastOrganizationService;
+import com.dataloom.organizations.roles.HazelcastRolesService;
+import com.dataloom.organizations.roles.RolesManager;
+import com.dataloom.organizations.roles.RolesQueryService;
 import com.dataloom.requests.HazelcastPermissionsRequestsService;
 import com.dataloom.requests.HazelcastRequestsManager;
 import com.dataloom.requests.PermissionsRequestsManager;
@@ -294,5 +297,15 @@ public class DatastoreServicesPod {
     @Bean
     public EntitySetContactsPopulator entitySetContactsPopulator() {
         return new EntitySetContactsPopulator( cassandraConfiguration.getKeyspace(), session, dataModelService(), userDirectoryService(), hazelcastInstance );
+    }
+    
+    @Bean
+    public RolesQueryService rolesQueryService(){
+        return new RolesQueryService( session );
+    }
+    
+    @Bean
+    public RolesManager rolesService(){
+        return new HazelcastRolesService( hazelcastInstance, rolesQueryService(), aclKeyReservationService(), userDirectoryService(), authorizationManager() );
     }
 }

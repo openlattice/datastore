@@ -302,7 +302,7 @@ public class OrganizationsController implements AuthorizingComponent, Organizati
         consumes = MediaType.APPLICATION_JSON_VALUE )
     public UUID createRole( @RequestBody OrganizationRole role ) {
         ensureOwner( role.getOrganizationId() );
-        rolesManager.createRoleIfNotExists( role );
+        rolesManager.createRoleIfNotExists( Principals.getCurrentUser(), role );
         return role.getId();
     }
 
@@ -310,8 +310,9 @@ public class OrganizationsController implements AuthorizingComponent, Organizati
     @GetMapping(
         value = ID_PATH + PRINCIPALS + ROLES,
         produces = MediaType.APPLICATION_JSON_VALUE )
-    public Iterable<OrganizationRole> getRoles( @PathVariable( ID ) UUID organizationId ) {
-        return Iterables.filter( rolesManager.getAllRolesInOrganization( organizationId ), role -> isAuthorized( Permission.READ ).test( role.getAclKey() ) );
+    public Iterable<Principal> getRoles( @PathVariable( ID ) UUID organizationId ) {
+        Iterable<OrganizationRole> roles = Iterables.filter( rolesManager.getAllRolesInOrganization( organizationId ), role -> isAuthorized( Permission.READ ).test( role.getAclKey() ) );
+        return Iterables.transform( roles, role -> role.getPrincipal() );
     }
 
     @Override
@@ -330,9 +331,8 @@ public class OrganizationsController implements AuthorizingComponent, Organizati
     @Override
     @PutMapping(
             value = ID_PATH + PRINCIPALS + ROLES + ROLE_ID_PATH + TITLE,
-            consumes = MediaType.APPLICATION_JSON_VALUE,
-            produces = MediaType.APPLICATION_JSON_VALUE )
-    public Void updateTitle( @PathVariable( ID ) UUID organizationId, @PathVariable( ROLE_ID ) UUID roleId, @PathVariable( TITLE ) String title ) {
+            consumes = MediaType.TEXT_PLAIN_VALUE )
+    public Void updateRoleTitle( @PathVariable( ID ) UUID organizationId, @PathVariable( ROLE_ID ) UUID roleId, @RequestBody String title ) {
         ensureRoleAdminAccess( organizationId, roleId );
         rolesManager.updateTitle( new RoleKey( organizationId, roleId ), title );
         return null;
@@ -341,9 +341,8 @@ public class OrganizationsController implements AuthorizingComponent, Organizati
     @Override
     @PutMapping(
             value = ID_PATH + PRINCIPALS + ROLES + ROLE_ID_PATH + DESCRIPTION,
-            consumes = MediaType.APPLICATION_JSON_VALUE,
-            produces = MediaType.APPLICATION_JSON_VALUE )
-    public Void updateDescription( @PathVariable( ID ) UUID organizationId, @PathVariable( ROLE_ID ) UUID roleId, @PathVariable( DESCRIPTION ) String description ) {
+            consumes = MediaType.TEXT_PLAIN_VALUE )
+    public Void updateRoleDescription( @PathVariable( ID ) UUID organizationId, @PathVariable( ROLE_ID ) UUID roleId, @RequestBody String description ) {
         ensureRoleAdminAccess( organizationId, roleId );
         rolesManager.updateDescription( new RoleKey( organizationId, roleId ), description );
         return null;
@@ -363,13 +362,12 @@ public class OrganizationsController implements AuthorizingComponent, Organizati
         value = ID_PATH + PRINCIPALS + ROLES + ROLE_ID_PATH + MEMBERS,
         produces = MediaType.APPLICATION_JSON_VALUE )
     public Iterable<Auth0UserBasic> getAllUsersOfRole( @PathVariable( ID ) UUID organizationId, @PathVariable( ROLE_ID ) UUID roleId ) {
-        return rolesManager.getAllUserProfilesOfRole( new RoleKey( organizationId, roleId ) );
+        return rolesManager.getAllUserProfilesOfRole( new RoleKey( organizationId, roleId ) )::iterator;
     }
 
     @Override
     @PutMapping(
-            value = ID_PATH + PRINCIPALS + ROLES + ROLE_ID_PATH + MEMBERS + PRINCIPAL_ID_PATH,
-            consumes = MediaType.APPLICATION_JSON_VALUE )
+            value = ID_PATH + PRINCIPALS + ROLES + ROLE_ID_PATH + MEMBERS + PRINCIPAL_ID_PATH )
     public Void addRoleToUser( @PathVariable( ID ) UUID organizationId, @PathVariable( ROLE_ID ) UUID roleId, @PathVariable( PRINCIPAL_ID ) String userId ) {
         rolesManager.addRoleToUser( new RoleKey( organizationId, roleId ), new Principal( PrincipalType.USER, userId ) );
         return null;
@@ -377,8 +375,7 @@ public class OrganizationsController implements AuthorizingComponent, Organizati
 
     @Override
     @DeleteMapping(
-            value = ID_PATH + PRINCIPALS + ROLES + ROLE_ID_PATH + MEMBERS + PRINCIPAL_ID_PATH,
-            consumes = MediaType.APPLICATION_JSON_VALUE )
+            value = ID_PATH + PRINCIPALS + ROLES + ROLE_ID_PATH + MEMBERS + PRINCIPAL_ID_PATH )
     public Void removeRoleFromUser( @PathVariable( ID ) UUID organizationId, @PathVariable( ROLE_ID ) UUID roleId, @PathVariable( PRINCIPAL_ID ) String userId ) {
         rolesManager.removeRoleFromUser( new RoleKey( organizationId, roleId ), new Principal( PrincipalType.USER, userId ) );
         return null;

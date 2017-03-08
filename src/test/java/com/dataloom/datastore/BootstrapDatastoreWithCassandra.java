@@ -20,7 +20,6 @@
 package com.dataloom.datastore;
 
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
 
 import org.junit.AfterClass;
 import org.slf4j.Logger;
@@ -44,22 +43,22 @@ import digital.loom.rhizome.authentication.AuthenticationTestRequestOptions;
 import retrofit2.Retrofit;
 
 public class BootstrapDatastoreWithCassandra extends CassandraBootstrap {
-    protected static final Datastore     ds       = new Datastore();
-    protected static final Set<Class<?>> PODS     = Sets.newHashSet( SparkPod.class );
-    protected static final Set<String>   PROFILES = Sets.newHashSet( "local", "cassandra" );
-    protected static final Principal                       admin;
-    protected static final Principal                       user1;
-    protected static final Principal                       user2;
-    protected static final Principal                       user3;
-    protected static final   Retrofit                        retrofit;
-    protected static final   Retrofit                        retrofit1;
-    protected static final   Retrofit                        retrofit2;
-    protected static final   Retrofit                        retrofit3;
-    protected static       LoomAuth0AuthenticationProvider loomAuthProvider;
-    protected static       EdmManager                      dms;
-    protected static       AuthorizationManager            am;
-    protected static       CassandraDataManager            dataService;
-    protected static       HazelcastSchemaManager          schemaManager;
+    protected static final Datastore                 ds       = new Datastore();
+    protected static final Set<Class<?>>             PODS     = Sets.newHashSet( SparkPod.class );
+    protected static final Set<String>               PROFILES = Sets.newHashSet( "local", "cassandra" );
+    protected static final Principal                 admin;
+    protected static final Principal                 user1;
+    protected static final Principal                 user2;
+    protected static final Principal                 user3;
+    protected static final Retrofit                  retrofit;
+    protected static final Retrofit                  retrofit1;
+    protected static final Retrofit                  retrofit2;
+    protected static final Retrofit                  retrofit3;
+    protected static LoomAuth0AuthenticationProvider loomAuthProvider;
+    protected static EdmManager                      dms;
+    protected static AuthorizationManager            am;
+    protected static CassandraDataManager            dataService;
+    protected static HazelcastSchemaManager          schemaManager;
 
     static {
         AuthenticationTestRequestOptions authOptions1 = new AuthenticationTestRequestOptions()
@@ -73,27 +72,14 @@ public class BootstrapDatastoreWithCassandra extends CassandraBootstrap {
                 .setPassword( "abracadabra" );
 
         String jwtAdmin = AuthenticationTest.authenticate().getCredentials().getIdToken();
-        try {
-            TimeUnit.SECONDS.sleep(2);
-        } catch ( InterruptedException e1 ) {
-        }
         String jwtUser1 = AuthenticationTest.getAuthentication( authOptions1 ).getCredentials().getIdToken();
-        try {
-            TimeUnit.SECONDS.sleep(2);
-        } catch ( InterruptedException e1 ) {
-        }
         String jwtUser2 = AuthenticationTest.getAuthentication( authOptions2 ).getCredentials().getIdToken();
-        try {
-            TimeUnit.SECONDS.sleep(2);
-        } catch ( InterruptedException e1 ) {
-        }
         String jwtUser3 = AuthenticationTest.getAuthentication( authOptions3 ).getCredentials().getIdToken();
 
         retrofit = RetrofitFactory.newClient( RetrofitFactory.Environment.TESTING, () -> jwtAdmin );
         retrofit1 = RetrofitFactory.newClient( RetrofitFactory.Environment.TESTING, () -> jwtUser1 );
         retrofit2 = RetrofitFactory.newClient( RetrofitFactory.Environment.TESTING, () -> jwtUser2 );
         retrofit3 = RetrofitFactory.newClient( RetrofitFactory.Environment.TESTING, () -> jwtUser3 );
-
 
         try {
             ds.intercrop( PODS.toArray( new Class<?>[ 0 ] ) );
@@ -121,7 +107,7 @@ public class BootstrapDatastoreWithCassandra extends CassandraBootstrap {
     private static Principal toPrincipal( String jwtToken ) {
         return ( (LoomAuthentication) loomAuthProvider
                 .authenticate( new Auth0JWTToken( jwtToken ) ) )
-                .getLoomPrincipal();
+                        .getLoomPrincipal();
     }
 
     protected static <T> T getBean( Class<T> clazz ) {

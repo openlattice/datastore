@@ -77,30 +77,30 @@ import com.kryptnostic.datastore.util.ErrorsDTO;
 public class EdmController implements EdmApi, AuthorizingComponent {
 
     @Inject
-    private EdmManager modelService;
+    private EdmManager                                modelService;
 
     @Inject
-    private HazelcastSchemaManager schemaManager;
+    private HazelcastSchemaManager                    schemaManager;
 
     @Inject
-    private AuthorizationManager authorizations;
+    private AuthorizationManager                      authorizations;
 
     @Inject
-    private CassandraEntitySetManager entitySetManager;
+    private CassandraEntitySetManager                 entitySetManager;
 
     @Inject
     private AbstractSecurableObjectResolveTypeService securableObjectTypes;
 
     @Inject
-    private LoomAuth0AuthenticationProvider authProvider;
+    private LoomAuth0AuthenticationProvider           authProvider;
 
     @Inject
-    private CassandraDataManager dataManager;
+    private CassandraDataManager                      dataManager;
 
     @Override
     @RequestMapping(
-            method = RequestMethod.GET,
-            produces = MediaType.APPLICATION_JSON_VALUE )
+        method = RequestMethod.GET,
+        produces = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
     public EntityDataModel getEntityDataModel() {
         final Iterable<Schema> schemas = schemaManager.getAllSchemas();
@@ -112,8 +112,8 @@ public class EdmController implements EdmApi, AuthorizingComponent {
 
         Iterable<EntitySet> authorizedEntitySets = getAccessibleObjects( SecurableObjectType.EntitySet,
                 EnumSet.of( Permission.READ ) )
-                .map( AuthorizationUtils::getLastAclKeySafely )
-                .map( modelService::getEntitySet )::iterator;
+                        .map( AuthorizationUtils::getLastAclKeySafely )
+                        .map( modelService::getEntitySet )::iterator;
 
         return new EntityDataModel(
                 namespaces,
@@ -125,9 +125,9 @@ public class EdmController implements EdmApi, AuthorizingComponent {
 
     @Override
     @RequestMapping(
-            method = RequestMethod.POST,
-            consumes = MediaType.APPLICATION_JSON_VALUE,
-            produces = MediaType.APPLICATION_JSON_VALUE )
+        method = RequestMethod.POST,
+        consumes = MediaType.APPLICATION_JSON_VALUE,
+        produces = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
     public EdmDetails getEdmDetails( @RequestBody Set<EdmDetailsSelector> selectors ) {
         final Set<UUID> propertyTypeIds = new HashSet<>();
@@ -213,8 +213,8 @@ public class EdmController implements EdmApi, AuthorizingComponent {
      */
     @Override
     @RequestMapping(
-            path = SCHEMA_PATH,
-            method = RequestMethod.GET )
+        path = SCHEMA_PATH,
+        method = RequestMethod.GET )
     @ResponseStatus( HttpStatus.OK )
     public Iterable<Schema> getSchemas() {
         return schemaManager.getAllSchemas();
@@ -222,8 +222,8 @@ public class EdmController implements EdmApi, AuthorizingComponent {
 
     @Override
     @RequestMapping(
-            path = SCHEMA_PATH + NAMESPACE_PATH + NAME_PATH,
-            method = RequestMethod.GET )
+        path = SCHEMA_PATH + NAMESPACE_PATH + NAME_PATH,
+        method = RequestMethod.GET )
     @ResponseStatus( HttpStatus.OK )
     public Schema getSchemaContents(
             @PathVariable( NAMESPACE ) String namespace,
@@ -250,18 +250,18 @@ public class EdmController implements EdmApi, AuthorizingComponent {
     }
 
     @RequestMapping(
-            path = SCHEMA_PATH + NAMESPACE_PATH + NAME_PATH,
-            method = RequestMethod.GET,
-            produces = { MediaType.APPLICATION_JSON_VALUE, CustomMediaType.TEXT_YAML_VALUE } )
+        path = SCHEMA_PATH + NAMESPACE_PATH + NAME_PATH,
+        method = RequestMethod.GET,
+        produces = { MediaType.APPLICATION_JSON_VALUE, CustomMediaType.TEXT_YAML_VALUE } )
     public Schema getSchemaContentsFormatted(
             @PathVariable( NAMESPACE ) String namespace,
             @PathVariable( NAME ) String name,
             @RequestParam(
-                    value = FILE_TYPE,
-                    required = true ) FileType fileType,
+                value = FILE_TYPE,
+                required = true ) FileType fileType,
             @RequestParam(
-                    value = TOKEN,
-                    required = false ) String token,
+                value = TOKEN,
+                required = false ) String token,
             HttpServletResponse response ) {
         setContentDisposition( response, namespace + "." + name, fileType );
         setDownloadContentType( response, fileType );
@@ -284,9 +284,9 @@ public class EdmController implements EdmApi, AuthorizingComponent {
 
     @Override
     @RequestMapping(
-            path = SCHEMA_PATH + NAMESPACE_PATH,
-            method = RequestMethod.GET,
-            produces = MediaType.APPLICATION_JSON_VALUE )
+        path = SCHEMA_PATH + NAMESPACE_PATH,
+        method = RequestMethod.GET,
+        produces = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
     public Iterable<Schema> getSchemasInNamespace( @PathVariable( NAMESPACE ) String namespace ) {
         return schemaManager.getSchemasInNamespace( namespace );
@@ -294,8 +294,8 @@ public class EdmController implements EdmApi, AuthorizingComponent {
 
     @Override
     @RequestMapping(
-            path = SCHEMA_PATH,
-            method = RequestMethod.POST )
+        path = SCHEMA_PATH,
+        method = RequestMethod.POST )
     @ResponseStatus( HttpStatus.OK )
     public Void createSchemaIfNotExists( @RequestBody Schema schema ) {
         schemaManager.createOrUpdateSchemas( schema );
@@ -304,8 +304,8 @@ public class EdmController implements EdmApi, AuthorizingComponent {
 
     @Override
     @RequestMapping(
-            path = SCHEMA_PATH + NAMESPACE_PATH + NAME_PATH,
-            method = RequestMethod.PUT )
+        path = SCHEMA_PATH + NAMESPACE_PATH + NAME_PATH,
+        method = RequestMethod.PUT )
     @ResponseStatus( HttpStatus.OK )
     public Void createEmptySchema( @PathVariable( NAMESPACE ) String namespace, @PathVariable( NAME ) String name ) {
         schemaManager.upsertSchemas( ImmutableSet.of( new FullQualifiedName( namespace, name ) ) );
@@ -314,10 +314,10 @@ public class EdmController implements EdmApi, AuthorizingComponent {
 
     @Override
     @RequestMapping(
-            path = ENTITY_SETS_PATH,
-            method = RequestMethod.POST,
-            consumes = MediaType.APPLICATION_JSON_VALUE,
-            produces = MediaType.APPLICATION_JSON_VALUE )
+        path = ENTITY_SETS_PATH,
+        method = RequestMethod.POST,
+        consumes = MediaType.APPLICATION_JSON_VALUE,
+        produces = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
     public Map<String, UUID> createEntitySets( @RequestBody Set<EntitySet> entitySets ) {
         ErrorsDTO dto = new ErrorsDTO();
@@ -343,8 +343,8 @@ public class EdmController implements EdmApi, AuthorizingComponent {
 
     @Override
     @RequestMapping(
-            path = ENTITY_SETS_PATH,
-            method = RequestMethod.GET )
+        path = ENTITY_SETS_PATH,
+        method = RequestMethod.GET )
     public Iterable<EntitySet> getEntitySets() {
         return authorizations.getAuthorizedObjectsOfType(
                 Principals.getCurrentPrincipals(),
@@ -356,8 +356,8 @@ public class EdmController implements EdmApi, AuthorizingComponent {
 
     @Override
     @RequestMapping(
-            path = ENTITY_SETS_PATH + ID_PATH,
-            method = RequestMethod.GET )
+        path = ENTITY_SETS_PATH + ID_PATH,
+        method = RequestMethod.GET )
     public EntitySet getEntitySet( @PathVariable( ID ) UUID entitySetId ) {
         if ( isAuthorized( Permission.READ ).test( ImmutableList.of( entitySetId ) ) ) {
             return modelService.getEntitySet( entitySetId );
@@ -368,8 +368,8 @@ public class EdmController implements EdmApi, AuthorizingComponent {
 
     @Override
     @RequestMapping(
-            path = ENTITY_SETS_PATH + ID_PATH,
-            method = RequestMethod.DELETE )
+        path = ENTITY_SETS_PATH + ID_PATH,
+        method = RequestMethod.DELETE )
     @ResponseStatus( HttpStatus.OK )
     public Void deleteEntitySet( @PathVariable( ID ) UUID entitySetId ) {
         ensureOwnerAccess( Arrays.asList( entitySetId ) );
@@ -383,9 +383,9 @@ public class EdmController implements EdmApi, AuthorizingComponent {
 
     @Override
     @RequestMapping(
-            path = SCHEMA_PATH + NAMESPACE_PATH + NAME_PATH,
-            method = RequestMethod.PATCH,
-            consumes = MediaType.APPLICATION_JSON_VALUE )
+        path = SCHEMA_PATH + NAMESPACE_PATH + NAME_PATH,
+        method = RequestMethod.PATCH,
+        consumes = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
     public Void updateSchema(
             @PathVariable( NAMESPACE ) String namespace,
@@ -423,55 +423,82 @@ public class EdmController implements EdmApi, AuthorizingComponent {
 
     @Override
     @PostMapping(
-            path = ENUM_TYPE_PATH,
-            produces = MediaType.APPLICATION_JSON_VALUE )
+        path = ENUM_TYPE_PATH,
+        produces = MediaType.APPLICATION_JSON_VALUE )
     public UUID createEnumType( @RequestBody EnumType enumType ) {
-        return modelService.createEnumTypeIfNotExists( enumType );
+        modelService.createEnumTypeIfNotExists( enumType );
+        return enumType.getId();
     }
 
     @Override
     @GetMapping(
-            path = ENUM_TYPE_PATH,
-            produces = MediaType.APPLICATION_JSON_VALUE )
+        path = ENUM_TYPE_PATH,
+        produces = MediaType.APPLICATION_JSON_VALUE )
     public Iterable<EnumType> getEnumTypes() {
         return modelService.getEnumTypes()::iterator;
     }
 
     @Override
     @GetMapping(
-            path = ENUM_TYPE_PATH + ID_PATH,
-            produces = MediaType.APPLICATION_JSON_VALUE )
+        path = ENUM_TYPE_PATH + ID_PATH,
+        produces = MediaType.APPLICATION_JSON_VALUE )
     public EnumType getEnumType( @PathVariable( ID ) UUID enumTypeId ) {
         return modelService.getEnumType( enumTypeId );
     }
 
     @Override
-    @DeleteMapping( path = ENUM_TYPE_PATH + ID_PATH )
+    @GetMapping(
+        path = ENTITY_TYPE_PATH + ID_PATH + HIERARCHY_PATH,
+        produces = MediaType.APPLICATION_JSON_VALUE )
+    public Set<EntityType> getEntityTypeHierarchy( @PathVariable( ID ) UUID entityTypeId ) {
+        return modelService.getEntityTypeHierarchy( entityTypeId );
+    }
+
+    @Override
+    @DeleteMapping(
+        path = ENUM_TYPE_PATH + ID_PATH )
     public Void deleteEnumType( @PathVariable( ID ) UUID enumTypeId ) {
         modelService.deleteEnumType( enumTypeId );
         return null;
     }
 
     @Override
-    @GetMapping( path = COMPLEX_TYPE_PATH, produces = MediaType.APPLICATION_JSON_VALUE )
+    @GetMapping(
+        path = COMPLEX_TYPE_PATH,
+        produces = MediaType.APPLICATION_JSON_VALUE )
     public Iterable<ComplexType> getComplexTypes() {
         return modelService.getComplexTypes()::iterator;
     }
 
     @Override
-    @PostMapping( path = COMPLEX_TYPE_PATH, consumes = MediaType.APPLICATION_JSON_VALUE )
+    @PostMapping(
+        path = COMPLEX_TYPE_PATH,
+        consumes = MediaType.APPLICATION_JSON_VALUE )
     public UUID createComplexType( @RequestBody ComplexType complexType ) {
-        return modelService.createComplexTypeIfNotExists( complexType );
+        modelService.createComplexTypeIfNotExists( complexType );
+        return complexType.getId();
     }
 
     @Override
-    @GetMapping( path = COMPLEX_TYPE_PATH + ID_PATH, produces = MediaType.APPLICATION_JSON_VALUE )
+    @GetMapping(
+        path = COMPLEX_TYPE_PATH + ID_PATH,
+        produces = MediaType.APPLICATION_JSON_VALUE )
     public ComplexType getComplexType( @PathVariable( ID ) UUID complexTypeId ) {
         return modelService.getComplexType( complexTypeId );
     }
 
     @Override
-    @DeleteMapping( path = COMPLEX_TYPE_PATH + ID_PATH, produces = MediaType.APPLICATION_JSON_VALUE )
+    @GetMapping(
+        path = COMPLEX_TYPE_PATH + ID_PATH + HIERARCHY_PATH,
+        produces = MediaType.APPLICATION_JSON_VALUE )
+    public Set<ComplexType> getComplexTypeHierarchy( @PathVariable( ID ) UUID complexTypeId ) {
+        return modelService.getComplexTypeHierarchy( complexTypeId );
+    }
+
+    @Override
+    @DeleteMapping(
+        path = COMPLEX_TYPE_PATH + ID_PATH,
+        produces = MediaType.APPLICATION_JSON_VALUE )
     public Void deleteComplexType( @PathVariable( ID ) UUID complexTypeId ) {
         modelService.deleteComplexType( complexTypeId );
         return null;
@@ -479,9 +506,9 @@ public class EdmController implements EdmApi, AuthorizingComponent {
 
     @Override
     @RequestMapping(
-            path = ENTITY_TYPE_PATH,
-            method = RequestMethod.POST,
-            consumes = MediaType.APPLICATION_JSON_VALUE )
+        path = ENTITY_TYPE_PATH,
+        method = RequestMethod.POST,
+        consumes = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
     public UUID createEntityType( @RequestBody EntityType entityType ) {
         modelService.createEntityType( entityType );
@@ -490,17 +517,17 @@ public class EdmController implements EdmApi, AuthorizingComponent {
 
     @Override
     @RequestMapping(
-            path = ENTITY_TYPE_PATH,
-            method = RequestMethod.GET,
-            produces = MediaType.APPLICATION_JSON_VALUE )
+        path = ENTITY_TYPE_PATH,
+        method = RequestMethod.GET,
+        produces = MediaType.APPLICATION_JSON_VALUE )
     public Iterable<EntityType> getEntityTypes() {
         return modelService.getEntityTypes()::iterator;
     }
 
     @Override
     @RequestMapping(
-            path = ENTITY_TYPE_PATH + ID_PATH,
-            method = RequestMethod.GET )
+        path = ENTITY_TYPE_PATH + ID_PATH,
+        method = RequestMethod.GET )
     @ResponseStatus( HttpStatus.OK )
     public EntityType getEntityType( @PathVariable( ID ) UUID entityTypeId ) {
         return Preconditions.checkNotNull( modelService.getEntityType( entityTypeId ),
@@ -509,8 +536,8 @@ public class EdmController implements EdmApi, AuthorizingComponent {
 
     @Override
     @RequestMapping(
-            path = ENTITY_TYPE_PATH + ENTITY_TYPE_ID_PATH + PROPERTY_TYPE_ID_PATH,
-            method = RequestMethod.PUT )
+        path = ENTITY_TYPE_PATH + ENTITY_TYPE_ID_PATH + PROPERTY_TYPE_ID_PATH,
+        method = RequestMethod.PUT )
     @ResponseStatus( HttpStatus.OK )
     public Void addPropertyTypeToEntityType(
             @PathVariable( ENTITY_TYPE_ID ) UUID entityTypeId,
@@ -522,8 +549,8 @@ public class EdmController implements EdmApi, AuthorizingComponent {
 
     @Override
     @RequestMapping(
-            path = ENTITY_TYPE_PATH + ENTITY_TYPE_ID_PATH + PROPERTY_TYPE_ID_PATH,
-            method = RequestMethod.DELETE )
+        path = ENTITY_TYPE_PATH + ENTITY_TYPE_ID_PATH + PROPERTY_TYPE_ID_PATH,
+        method = RequestMethod.DELETE )
     @ResponseStatus( HttpStatus.OK )
     public Void removePropertyTypeFromEntityType(
             @PathVariable( ENTITY_TYPE_ID ) UUID entityTypeId,
@@ -535,8 +562,8 @@ public class EdmController implements EdmApi, AuthorizingComponent {
 
     @Override
     @RequestMapping(
-            path = ENTITY_TYPE_PATH + ID_PATH,
-            method = RequestMethod.DELETE )
+        path = ENTITY_TYPE_PATH + ID_PATH,
+        method = RequestMethod.DELETE )
     @ResponseStatus( HttpStatus.OK )
     public Void deleteEntityType( @PathVariable( ID ) UUID entityTypeId ) {
         ensureAdminAccess();
@@ -546,9 +573,9 @@ public class EdmController implements EdmApi, AuthorizingComponent {
 
     @Override
     @RequestMapping(
-            path = PROPERTY_TYPE_PATH,
-            method = RequestMethod.GET,
-            produces = MediaType.APPLICATION_JSON_VALUE )
+        path = PROPERTY_TYPE_PATH,
+        method = RequestMethod.GET,
+        produces = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
     public Iterable<PropertyType> getPropertyTypes() {
         return modelService.getPropertyTypes()::iterator;
@@ -556,9 +583,9 @@ public class EdmController implements EdmApi, AuthorizingComponent {
 
     @Override
     @RequestMapping(
-            path = PROPERTY_TYPE_PATH,
-            method = RequestMethod.POST,
-            consumes = MediaType.APPLICATION_JSON_VALUE )
+        path = PROPERTY_TYPE_PATH,
+        method = RequestMethod.POST,
+        consumes = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
     public UUID createPropertyType( @RequestBody PropertyType propertyType ) {
         modelService.createPropertyTypeIfNotExists( propertyType );
@@ -567,8 +594,8 @@ public class EdmController implements EdmApi, AuthorizingComponent {
 
     @Override
     @RequestMapping(
-            path = PROPERTY_TYPE_PATH + ID_PATH,
-            method = RequestMethod.DELETE )
+        path = PROPERTY_TYPE_PATH + ID_PATH,
+        method = RequestMethod.DELETE )
     @ResponseStatus( HttpStatus.OK )
     public Void deletePropertyType(
             @PathVariable( ID ) UUID propertyTypeId ) {
@@ -579,27 +606,27 @@ public class EdmController implements EdmApi, AuthorizingComponent {
 
     @Override
     @RequestMapping(
-            path = PROPERTY_TYPE_PATH + ID_PATH,
-            method = RequestMethod.GET,
-            produces = MediaType.APPLICATION_JSON_VALUE )
+        path = PROPERTY_TYPE_PATH + ID_PATH,
+        method = RequestMethod.GET,
+        produces = MediaType.APPLICATION_JSON_VALUE )
     public PropertyType getPropertyType( @PathVariable( ID ) UUID propertyTypeId ) {
         return modelService.getPropertyType( propertyTypeId );
     }
 
     @Override
     @RequestMapping(
-            path = NAMESPACE + NAMESPACE_PATH + PROPERTY_TYPE_PATH,
-            method = RequestMethod.GET,
-            produces = MediaType.APPLICATION_JSON_VALUE )
+        path = NAMESPACE + NAMESPACE_PATH + PROPERTY_TYPE_PATH,
+        method = RequestMethod.GET,
+        produces = MediaType.APPLICATION_JSON_VALUE )
     public Iterable<PropertyType> getPropertyTypesInNamespace( @PathVariable( NAMESPACE ) String namespace ) {
         return modelService.getPropertyTypesInNamespace( namespace );
     }
 
     @Override
     @RequestMapping(
-            path = IDS_PATH + ENTITY_SETS_PATH + NAME_PATH,
-            method = RequestMethod.GET,
-            produces = MediaType.APPLICATION_JSON_VALUE )
+        path = IDS_PATH + ENTITY_SETS_PATH + NAME_PATH,
+        method = RequestMethod.GET,
+        produces = MediaType.APPLICATION_JSON_VALUE )
     public UUID getEntitySetId( @PathVariable( NAME ) String entitySetName ) {
         EntitySet es = entitySetManager.getEntitySet( entitySetName );
         Preconditions.checkNotNull( es, "Entity Set %s does not exist.", entitySetName );
@@ -608,9 +635,9 @@ public class EdmController implements EdmApi, AuthorizingComponent {
 
     @Override
     @RequestMapping(
-            path = IDS_PATH + PROPERTY_TYPE_PATH + NAMESPACE_PATH + NAME_PATH,
-            method = RequestMethod.GET,
-            produces = MediaType.APPLICATION_JSON_VALUE )
+        path = IDS_PATH + PROPERTY_TYPE_PATH + NAMESPACE_PATH + NAME_PATH,
+        method = RequestMethod.GET,
+        produces = MediaType.APPLICATION_JSON_VALUE )
     public UUID getPropertyTypeId( @PathVariable( NAMESPACE ) String namespace, @PathVariable( NAME ) String name ) {
         FullQualifiedName fqn = new FullQualifiedName( namespace, name );
         return Preconditions.checkNotNull( modelService.getTypeAclKey( fqn ),
@@ -620,9 +647,9 @@ public class EdmController implements EdmApi, AuthorizingComponent {
 
     @Override
     @RequestMapping(
-            path = IDS_PATH + ENTITY_TYPE_PATH + NAMESPACE_PATH + NAME_PATH,
-            method = RequestMethod.GET,
-            produces = MediaType.APPLICATION_JSON_VALUE )
+        path = IDS_PATH + ENTITY_TYPE_PATH + NAMESPACE_PATH + NAME_PATH,
+        method = RequestMethod.GET,
+        produces = MediaType.APPLICATION_JSON_VALUE )
     public UUID getEntityTypeId( @PathVariable( NAMESPACE ) String namespace, @PathVariable( NAME ) String name ) {
         FullQualifiedName fqn = new FullQualifiedName( namespace, name );
         return Preconditions.checkNotNull( modelService.getTypeAclKey( fqn ),
@@ -632,8 +659,8 @@ public class EdmController implements EdmApi, AuthorizingComponent {
 
     @Override
     @RequestMapping(
-            path = PROPERTY_TYPE_PATH + ID_PATH,
-            method = RequestMethod.PATCH )
+        path = PROPERTY_TYPE_PATH + ID_PATH,
+        method = RequestMethod.PATCH )
     public Void renamePropertyType( @PathVariable( ID ) UUID propertyTypeId, @RequestBody FullQualifiedName newFqn ) {
         ensureAdminAccess();
         modelService.renamePropertyType( propertyTypeId, newFqn );
@@ -642,8 +669,8 @@ public class EdmController implements EdmApi, AuthorizingComponent {
 
     @Override
     @RequestMapping(
-            path = ENTITY_TYPE_PATH + ID_PATH,
-            method = RequestMethod.PATCH )
+        path = ENTITY_TYPE_PATH + ID_PATH,
+        method = RequestMethod.PATCH )
     public Void renameEntityType( @PathVariable( ID ) UUID entityTypeId, @RequestBody FullQualifiedName newFqn ) {
         ensureAdminAccess();
         modelService.renameEntityType( entityTypeId, newFqn );
@@ -652,9 +679,9 @@ public class EdmController implements EdmApi, AuthorizingComponent {
 
     @Override
     @RequestMapping(
-            path = ENTITY_SETS_PATH + ID_PATH,
-            consumes = MediaType.TEXT_PLAIN_VALUE,
-            method = RequestMethod.PATCH )
+        path = ENTITY_SETS_PATH + ID_PATH,
+        consumes = MediaType.TEXT_PLAIN_VALUE,
+        method = RequestMethod.PATCH )
     public Void renameEntitySet( @PathVariable( ID ) UUID entitySetId, @RequestBody String newName ) {
         ensureAdminAccess();
         modelService.renameEntitySet( entitySetId, newName );

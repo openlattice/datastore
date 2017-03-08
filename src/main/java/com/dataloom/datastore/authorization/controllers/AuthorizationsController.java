@@ -19,11 +19,8 @@
 
 package com.dataloom.datastore.authorization.controllers;
 
-import java.util.EnumSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.UUID;
 
 import javax.inject.Inject;
 
@@ -46,7 +43,6 @@ import com.dataloom.authorization.Principals;
 import com.dataloom.authorization.paging.AuthorizedObjectsPagingFactory;
 import com.dataloom.authorization.paging.AuthorizedObjectsSearchResult;
 import com.dataloom.authorization.securable.SecurableObjectType;
-import com.dataloom.edm.EdmApi.FileType;
 import com.google.common.collect.Maps;
 
 @RestController

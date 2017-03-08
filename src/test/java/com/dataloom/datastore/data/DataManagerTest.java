@@ -24,19 +24,26 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.nio.ByteBuffer;
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.olingo.commons.api.edm.EdmPrimitiveTypeKind;
 import org.apache.olingo.commons.api.edm.FullQualifiedName;
+import org.apache.olingo.commons.api.edm.geo.SRID;
+import org.apache.olingo.commons.api.edm.geo.Geospatial.Dimension;
+import org.apache.olingo.commons.api.edm.geo.Point;
 import org.joda.time.DateTime;
 import org.junit.Assert;
 import org.junit.BeforeClass;
@@ -60,6 +67,8 @@ public class DataManagerTest extends BootstrapDatastoreWithCassandra {
     private static final int                        edmTypesSize;
 
     private static final Random                     random   = new Random();
+    private static final SRID srid = SRID.valueOf( "4326" );
+    private static final Base64.Encoder encoder = Base64.getUrlEncoder();
     private static ObjectMapper                     mapper;
 
     static {
@@ -109,7 +118,10 @@ public class DataManagerTest extends BootstrapDatastoreWithCassandra {
 
         Set<SetMultimap<FullQualifiedName, Object>> expected = convertGeneratedDataFromUuidToFqn( entities );
 
-        Assert.assertEquals( convertValueToString( expected ), convertValueToString( result ) );
+        Map<FullQualifiedName, EdmPrimitiveTypeKind> propertiesWithDataTypeIndexedByFqn = propertyTypes.entrySet().stream()
+                .collect( Collectors.toMap( e -> e.getValue().getType(), e -> e.getValue().getDatatype() ) );
+        
+        Assert.assertEquals( convertValueToString( expected, propertiesWithDataTypeIndexedByFqn, this::getStringFromRaw ), convertValueToString( result, propertiesWithDataTypeIndexedByFqn, this::getStringFromNormalized ) );
     }
     
     @Test
@@ -299,7 +311,8 @@ public class DataManagerTest extends BootstrapDatastoreWithCassandra {
     }
 
     private PropertyType getRandomPropertyType( UUID id ) {
-        EdmPrimitiveTypeKind type = getRandomEdmType();
+//        EdmPrimitiveTypeKind type = getRandomEdmType();
+        EdmPrimitiveTypeKind type = EdmPrimitiveTypeKind.Date;
         return new PropertyType(
                 id,
                 getFqnFromUuid( id ),
@@ -323,7 +336,9 @@ public class DataManagerTest extends BootstrapDatastoreWithCassandra {
         Object rawObj;
         switch ( type ) {
             case Binary:
-                rawObj = RandomStringUtils.randomAlphanumeric( 10 );
+                byte[] b = new byte[10];
+                random.nextBytes( b );
+                rawObj = encoder.encode( b );
                 break;
             case Boolean:
                 rawObj = random.nextBoolean();
@@ -345,9 +360,9 @@ public class DataManagerTest extends BootstrapDatastoreWithCassandra {
                 rawObj = random.nextDouble();
                 break;
             case Duration:
-                rawObj = random.nextInt() + "d" + random.nextInt( 24 ) + "h" + random.nextInt( 60 ) + "m"
+                rawObj = "P" + random.nextInt( 30 ) + "D" + "T" + random.nextInt( 24 ) + "H" + random.nextInt( 60 ) + "M"
                         + random.nextInt( 60 )
-                        + "m";
+                        + "S";
                 break;
             case Guid:
                 rawObj = UUID.randomUUID();
@@ -375,11 +390,10 @@ public class DataManagerTest extends BootstrapDatastoreWithCassandra {
                         + random.nextInt( 1000 );
                 break;
             case GeographyPoint:
-                // Should follow GeoJson format as in https://tools.ietf.org/html/draft-butler-geojson-04#appendix-A.1
-                rawObj = new HashMap<String, Object>();
-                ( (Map<String, Object>) rawObj ).put( "type", "Point" );
-                ( (Map<String, Object>) rawObj ).put( "coordinates",
-                        Arrays.asList( random.nextDouble(), random.nextDouble() ) );
+                Point pt = new Point( Dimension.GEOGRAPHY, srid );
+                pt.setY( randomDouble( 90 ) );
+                pt.setX( randomDouble( 180 ) );
+                rawObj = pt;
                 break;
             default:
                 rawObj = null;
@@ -394,13 +408,48 @@ public class DataManagerTest extends BootstrapDatastoreWithCassandra {
     }
 
     private Set<SetMultimap<FullQualifiedName, String>> convertValueToString(
-            Set<SetMultimap<FullQualifiedName, Object>> set ) {
+            Set<SetMultimap<FullQualifiedName, Object>> set,
+            Map<FullQualifiedName, EdmPrimitiveTypeKind> propertiesWithDataTypeIndexedByFqn,
+            BiFunction<Object, EdmPrimitiveTypeKind, String> getStringFunction ) {
         Set<SetMultimap<FullQualifiedName, String>> result = new HashSet<>();
         for ( SetMultimap<FullQualifiedName, Object> map : set ) {
             SetMultimap<FullQualifiedName, String> ans = HashMultimap.create();
-            map.entries().stream().forEach( e -> ans.put( e.getKey(), e.getValue().toString() ) );
+            map.entries().stream().forEach( e -> ans.put( e.getKey(), getStringFunction.apply( e.getValue(), propertiesWithDataTypeIndexedByFqn.get( e.getKey() ) ) ) );
             result.add( ans );
         }
         return result;
+    }
+    
+    /**
+     * Generate a random double within [-a,a]
+     */
+    private static double randomDouble( double a ){
+        return 2*a*random.nextDouble() - a;
+    }
+    
+    private String getStringFromNormalized( Object value, EdmPrimitiveTypeKind type ){
+        switch ( type ){
+            case Binary:
+                return encoder.encodeToString( ((ByteBuffer) value ).array() );
+            default:
+                return value.toString();
+        }
+    }
+
+    @SuppressWarnings( "unchecked" )    
+    private String getStringFromRaw( Object value, EdmPrimitiveTypeKind type ){
+        switch ( type ){
+            case GeographyPoint:
+                if( value instanceof LinkedHashMap ){
+                    LinkedHashMap<String, Object> point = (LinkedHashMap<String, Object>) value;
+                    return point.get( "y" ) + "," + point.get( "x" );
+                }
+                else if( value instanceof Point ){
+                    Point point = (Point) value;
+                    return point.getY() + "," + point.getX();
+                }
+            default:
+                return value.toString();
+        }
     }
 }

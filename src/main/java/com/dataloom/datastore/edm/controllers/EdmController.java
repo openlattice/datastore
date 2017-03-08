@@ -330,6 +330,7 @@ public class EdmController implements EdmApi, AuthorizingComponent {
         // TODO: Add access check to make sure user can create entity sets.
         for ( EntitySet entitySet : entitySets ) {
             try {
+                ensureValidEntitySet( entitySet );
                 modelService.createEntitySet( Principals.getCurrentUser(), entitySet );
                 createdEntitySets.put( entitySet.getName(), entitySet.getId() );
                 securableObjectTypes.createSecurableObjectType( ImmutableList.of( entitySet.getId() ), SecurableObjectType.EntitySet );
@@ -440,6 +441,7 @@ public class EdmController implements EdmApi, AuthorizingComponent {
         consumes = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
     public UUID createEntityType( @RequestBody EntityType entityType ) {
+        ensureValidEntityType( entityType );
         modelService.createEntityType( entityType );
         return entityType.getId();
     }
@@ -611,6 +613,16 @@ public class EdmController implements EdmApi, AuthorizingComponent {
     @Override
     public AuthorizationManager getAuthorizationManager() {
         return authorizations;
+    }
+
+    private void ensureValidEntityType( EntityType entityType ) {
+        Preconditions.checkArgument( modelService.checkPropertyTypesExist( entityType.getProperties() ),
+                "Some properties do not exist" );
+    }
+
+    private void ensureValidEntitySet( EntitySet entitySet ) {
+        Preconditions.checkArgument( modelService.checkEntityTypeExists( entitySet.getEntityTypeId() ),
+                "Entity Set Type does not exist." );
     }
 
 }

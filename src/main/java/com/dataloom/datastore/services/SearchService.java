@@ -38,6 +38,7 @@ import com.dataloom.edm.events.EntitySetCreatedEvent;
 import com.dataloom.edm.events.EntitySetDeletedEvent;
 import com.dataloom.edm.events.EntitySetMetadataUpdatedEvent;
 import com.dataloom.edm.events.PropertyTypesInEntitySetUpdatedEvent;
+import com.dataloom.edm.type.PropertyType;
 import com.dataloom.linking.Entity;
 import com.dataloom.organizations.events.OrganizationCreatedEvent;
 import com.dataloom.organizations.events.OrganizationDeletedEvent;
@@ -204,6 +205,11 @@ public class SearchService {
         }
 
         return new SearchResult( 0, Lists.newArrayList() );
+    }
+
+    public void getTopUtilizers( UUID entitySetId, UUID propertyTypeId, int maxHits, Map<UUID, PropertyType> propertyTypes ) {
+        UUID requestId = sparkApi.getTopUtilizers( entitySetId, propertyTypeId, propertyTypes );
+        
     }
 
 }

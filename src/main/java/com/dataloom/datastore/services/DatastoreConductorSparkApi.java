@@ -20,6 +20,7 @@
 package com.dataloom.datastore.services;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 
@@ -101,4 +102,15 @@ public class DatastoreConductorSparkApi implements ConductorSparkApi {
             return null;
         }
     }
+
+    @Override
+    public UUID getTopUtilizers( UUID entitySetId, UUID propertyTypeId, Map<UUID, PropertyType> propertyTypes ) {
+        try {
+            return executor.submit( ConductorCall.wrap( Lambdas.getTopUtilizers( entitySetId, propertyTypeId, propertyTypes ) ) ).get();
+        } catch ( InterruptedException | ExecutionException e ) {
+            logger.debug( "unable to execute get top utilizers" );
+            return null;
+        }
+    }
+
 }

@@ -29,18 +29,14 @@ import java.util.UUID;
 import javax.inject.Inject;
 import javax.servlet.http.HttpServletResponse;
 
+import com.dataloom.edm.type.ComplexType;
+import com.dataloom.edm.type.EnumType;
 import org.apache.olingo.commons.api.edm.FullQualifiedName;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.ResponseStatus;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import com.auth0.jwt.internal.org.apache.commons.lang3.StringUtils;
 import com.auth0.spring.security.api.Auth0JWTToken;
@@ -81,25 +77,25 @@ import com.kryptnostic.datastore.util.ErrorsDTO;
 public class EdmController implements EdmApi, AuthorizingComponent {
 
     @Inject
-    private EdmManager                modelService;
+    private EdmManager                                modelService;
 
     @Inject
-    private HazelcastSchemaManager    schemaManager;
+    private HazelcastSchemaManager                    schemaManager;
 
     @Inject
-    private AuthorizationManager      authorizations;
+    private AuthorizationManager                      authorizations;
 
     @Inject
-    private CassandraEntitySetManager entitySetManager;
-    
+    private CassandraEntitySetManager                 entitySetManager;
+
     @Inject
     private AbstractSecurableObjectResolveTypeService securableObjectTypes;
-    
+
     @Inject
-    private LoomAuth0AuthenticationProvider authProvider;
-    
+    private LoomAuth0AuthenticationProvider           authProvider;
+
     @Inject
-    private CassandraDataManager dataManager;
+    private CassandraDataManager                      dataManager;
 
     @Override
     @RequestMapping(
@@ -234,7 +230,7 @@ public class EdmController implements EdmApi, AuthorizingComponent {
             @PathVariable( NAME ) String name ) {
         return schemaManager.getSchema( namespace, name );
     }
-    
+
     private static void setDownloadContentType( HttpServletResponse response, FileType fileType ) {
         if ( fileType == FileType.json ) {
             response.setContentType( MediaType.APPLICATION_JSON_VALUE );
@@ -252,20 +248,20 @@ public class EdmController implements EdmApi, AuthorizingComponent {
                     "attachment; filename=" + fileName + "." + fileType.toString() );
         }
     }
-    
+
     @RequestMapping(
-            path = SCHEMA_PATH + NAMESPACE_PATH + NAME_PATH,
-            method = RequestMethod.GET,
-            produces = { MediaType.APPLICATION_JSON_VALUE, CustomMediaType.TEXT_YAML_VALUE } )
+        path = SCHEMA_PATH + NAMESPACE_PATH + NAME_PATH,
+        method = RequestMethod.GET,
+        produces = { MediaType.APPLICATION_JSON_VALUE, CustomMediaType.TEXT_YAML_VALUE } )
     public Schema getSchemaContentsFormatted(
             @PathVariable( NAMESPACE ) String namespace,
             @PathVariable( NAME ) String name,
             @RequestParam(
-                    value = FILE_TYPE,
-                    required = true ) FileType fileType,
+                value = FILE_TYPE,
+                required = true ) FileType fileType,
             @RequestParam(
-                    value = TOKEN,
-                    required = false ) String token,
+                value = TOKEN,
+                required = false ) String token,
             HttpServletResponse response ) {
         setContentDisposition( response, namespace + "." + name, fileType );
         setDownloadContentType( response, fileType );
@@ -279,7 +275,7 @@ public class EdmController implements EdmApi, AuthorizingComponent {
             String name,
             FileType fileType,
             String token ) {
-    	if( StringUtils.isNotBlank( token ) ) {
+        if ( StringUtils.isNotBlank( token ) ) {
             Authentication authentication = authProvider.authenticate( new Auth0JWTToken( token ) );
             SecurityContextHolder.getContext().setAuthentication( authentication );
         }
@@ -330,9 +326,11 @@ public class EdmController implements EdmApi, AuthorizingComponent {
         // TODO: Add access check to make sure user can create entity sets.
         for ( EntitySet entitySet : entitySets ) {
             try {
+                ensureValidEntitySet( entitySet );
                 modelService.createEntitySet( Principals.getCurrentUser(), entitySet );
                 createdEntitySets.put( entitySet.getName(), entitySet.getId() );
-                securableObjectTypes.createSecurableObjectType( ImmutableList.of( entitySet.getId() ), SecurableObjectType.EntitySet );
+                securableObjectTypes.createSecurableObjectType( ImmutableList.of( entitySet.getId() ),
+                        SecurableObjectType.EntitySet );
             } catch ( Exception e ) {
                 dto.addError( e.getClass().getSimpleName(), entitySet.getName() + ": " + e.getMessage() );
             }
@@ -377,20 +375,11 @@ public class EdmController implements EdmApi, AuthorizingComponent {
     public Void deleteEntitySet( @PathVariable( ID ) UUID entitySetId ) {
         ensureOwnerAccess( Arrays.asList( entitySetId ) );
         modelService.deleteEntitySet( entitySetId );
-        securableObjectTypes.deleteSecurableObjectType( ImmutableList.of( entitySetId ) );        
-        
+        securableObjectTypes.deleteSecurableObjectType( ImmutableList.of( entitySetId ) );
+
         dataManager.deleteEntitySetData( entitySetId );
 
         return null;
-    }
-
-    @Override
-    @RequestMapping(
-        path = ENTITY_TYPE_PATH,
-        method = RequestMethod.GET,
-        produces = MediaType.APPLICATION_JSON_VALUE )
-    public Iterable<EntityType> getEntityTypes() {
-        return modelService.getEntityTypes()::iterator;
     }
 
     @Override
@@ -434,14 +423,107 @@ public class EdmController implements EdmApi, AuthorizingComponent {
     }
 
     @Override
+    @PostMapping(
+        path = ENUM_TYPE_PATH,
+        produces = MediaType.APPLICATION_JSON_VALUE )
+    public UUID createEnumType( @RequestBody EnumType enumType ) {
+        modelService.createEnumTypeIfNotExists( enumType );
+        return enumType.getId();
+    }
+
+    @Override
+    @GetMapping(
+        path = ENUM_TYPE_PATH,
+        produces = MediaType.APPLICATION_JSON_VALUE )
+    public Iterable<EnumType> getEnumTypes() {
+        return modelService.getEnumTypes()::iterator;
+    }
+
+    @Override
+    @GetMapping(
+        path = ENUM_TYPE_PATH + ID_PATH,
+        produces = MediaType.APPLICATION_JSON_VALUE )
+    public EnumType getEnumType( @PathVariable( ID ) UUID enumTypeId ) {
+        return modelService.getEnumType( enumTypeId );
+    }
+
+    @Override
+    @GetMapping(
+        path = ENTITY_TYPE_PATH + ID_PATH + HIERARCHY_PATH,
+        produces = MediaType.APPLICATION_JSON_VALUE )
+    public Set<EntityType> getEntityTypeHierarchy( @PathVariable( ID ) UUID entityTypeId ) {
+        return modelService.getEntityTypeHierarchy( entityTypeId );
+    }
+
+    @Override
+    @DeleteMapping(
+        path = ENUM_TYPE_PATH + ID_PATH )
+    public Void deleteEnumType( @PathVariable( ID ) UUID enumTypeId ) {
+        modelService.deleteEnumType( enumTypeId );
+        return null;
+    }
+
+    @Override
+    @GetMapping(
+        path = COMPLEX_TYPE_PATH,
+        produces = MediaType.APPLICATION_JSON_VALUE )
+    public Iterable<ComplexType> getComplexTypes() {
+        return modelService.getComplexTypes()::iterator;
+    }
+
+    @Override
+    @PostMapping(
+        path = COMPLEX_TYPE_PATH,
+        consumes = MediaType.APPLICATION_JSON_VALUE )
+    public UUID createComplexType( @RequestBody ComplexType complexType ) {
+        modelService.createComplexTypeIfNotExists( complexType );
+        return complexType.getId();
+    }
+
+    @Override
+    @GetMapping(
+        path = COMPLEX_TYPE_PATH + ID_PATH,
+        produces = MediaType.APPLICATION_JSON_VALUE )
+    public ComplexType getComplexType( @PathVariable( ID ) UUID complexTypeId ) {
+        return modelService.getComplexType( complexTypeId );
+    }
+
+    @Override
+    @GetMapping(
+        path = COMPLEX_TYPE_PATH + ID_PATH + HIERARCHY_PATH,
+        produces = MediaType.APPLICATION_JSON_VALUE )
+    public Set<ComplexType> getComplexTypeHierarchy( @PathVariable( ID ) UUID complexTypeId ) {
+        return modelService.getComplexTypeHierarchy( complexTypeId );
+    }
+
+    @Override
+    @DeleteMapping(
+        path = COMPLEX_TYPE_PATH + ID_PATH,
+        produces = MediaType.APPLICATION_JSON_VALUE )
+    public Void deleteComplexType( @PathVariable( ID ) UUID complexTypeId ) {
+        modelService.deleteComplexType( complexTypeId );
+        return null;
+    }
+
+    @Override
     @RequestMapping(
         path = ENTITY_TYPE_PATH,
         method = RequestMethod.POST,
         consumes = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
     public UUID createEntityType( @RequestBody EntityType entityType ) {
+        ensureValidEntityType( entityType );
         modelService.createEntityType( entityType );
         return entityType.getId();
+    }
+
+    @Override
+    @RequestMapping(
+        path = ENTITY_TYPE_PATH,
+        method = RequestMethod.GET,
+        produces = MediaType.APPLICATION_JSON_VALUE )
+    public Iterable<EntityType> getEntityTypes() {
+        return modelService.getEntityTypes()::iterator;
     }
 
     @Override
@@ -611,6 +693,16 @@ public class EdmController implements EdmApi, AuthorizingComponent {
     @Override
     public AuthorizationManager getAuthorizationManager() {
         return authorizations;
+    }
+
+    private void ensureValidEntityType( EntityType entityType ) {
+        Preconditions.checkArgument( modelService.checkPropertyTypesExist( entityType.getProperties() ),
+                "Some properties do not exist" );
+    }
+
+    private void ensureValidEntitySet( EntitySet entitySet ) {
+        Preconditions.checkArgument( modelService.checkEntityTypeExists( entitySet.getEntityTypeId() ),
+                "Entity Set Type does not exist." );
     }
 
 }

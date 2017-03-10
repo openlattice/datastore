@@ -19,45 +19,50 @@
 
 package com.dataloom.datastore;
 
-import com.dataloom.authorization.Principal;
-import com.dataloom.edm.exceptions.TypeExistsException;
-import com.dataloom.edm.EntitySet;
-import com.dataloom.edm.type.EntityType;
-import com.dataloom.edm.type.PropertyType;
-import com.dataloom.edm.Schema;
-import com.dataloom.edm.schemas.manager.HazelcastSchemaManager;
-import com.google.common.base.Optional;
-import com.google.common.collect.ImmutableSet;
-import com.kryptnostic.datastore.services.EdmManager;
+import java.util.Arrays;
+import java.util.UUID;
+
 import org.apache.olingo.commons.api.edm.EdmPrimitiveTypeKind;
 import org.apache.olingo.commons.api.edm.FullQualifiedName;
 import org.junit.Assert;
 
-import java.util.UUID;
+import com.dataloom.authorization.Principal;
+import com.dataloom.edm.EntitySet;
+import com.dataloom.edm.Schema;
+import com.dataloom.edm.exceptions.TypeExistsException;
+import com.dataloom.edm.schemas.manager.HazelcastSchemaManager;
+import com.dataloom.edm.type.EntityType;
+import com.dataloom.edm.type.PropertyType;
+import com.google.common.base.Optional;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
+import com.kryptnostic.datastore.services.EdmManager;
 
 /**
  * @author Ho Chung Siu &lt;hochung@kryptnostic.com&gt;
  * @author Matthew Tamayo-Rios &lt;matthew@kryptnostic.com&gt;
  */
 public class TestEdmConfigurer {
-    public static final String NAMESPACE        = "testcsv";
-    public static final String SCHEMA_NAME      = "csv";
-    public static final String SALARY           = "salary";
-    public static final String EMPLOYEE_NAME    = "employee_name";
-    public static final String EMPLOYEE_TITLE   = "employee_title";
-    public static final String EMPLOYEE_DEPT    = "employee_dept";
-    public static final String EMPLOYEE_ID      = "employee_id";
-    public static final String ENTITY_SET_NAME  = "Employees";
-    public static final String ENTITY_TYPE_NAME = "employee";
+    public static final String            NAMESPACE                 = "testcsv";
+    public static final String            SCHEMA_NAME               = "csv";
+    public static final String            SALARY                    = "salary";
+    public static final String            EMPLOYEE_NAME             = "employee_name";
+    public static final String            EMPLOYEE_TITLE            = "employee_title";
+    public static final String            EMPLOYEE_DEPT             = "employee_dept";
+    public static final String            EMPLOYEE_ID               = "employee_id";
+    public static final String            ENTITY_SET_NAME           = "Employees";
+    public static final String            ENTITY_TYPE_NAME          = "employee";
 
-    public static final FullQualifiedName ENTITY_TYPE = new FullQualifiedName( NAMESPACE, ENTITY_TYPE_NAME );
+    public static final FullQualifiedName ENTITY_TYPE               = new FullQualifiedName(
+            NAMESPACE,
+            ENTITY_TYPE_NAME );
 
-    public static UUID METADATA_LEVELS_ID        = UUID.randomUUID();
-    public static UUID METADATA_LEVELS_MARS_ID   = UUID.randomUUID();
-    public static UUID METADATA_LEVELS_SATURN_ID = UUID.randomUUID();
-    public static UUID EMPLOYEE_ID_PROP_ID       = UUID.randomUUID();
+    public static UUID                    METADATA_LEVELS_ID        = UUID.randomUUID();
+    public static UUID                    METADATA_LEVELS_MARS_ID   = UUID.randomUUID();
+    public static UUID                    METADATA_LEVELS_SATURN_ID = UUID.randomUUID();
+    public static UUID                    EMPLOYEE_ID_PROP_ID       = UUID.randomUUID();
 
-    protected static final PropertyType EMPLOYEE_ID_PROP_TYPE = new PropertyType(
+    protected static final PropertyType   EMPLOYEE_ID_PROP_TYPE     = new PropertyType(
             EMPLOYEE_ID_PROP_ID,
             new FullQualifiedName( NAMESPACE, EMPLOYEE_ID ),
             "Employee ID",
@@ -65,20 +70,20 @@ public class TestEdmConfigurer {
                     .of( "ID of an employee of the city of Chicago." ),
             ImmutableSet.of(),
             EdmPrimitiveTypeKind.Guid );
-    public static EntityType METADATA_LEVELS;
-    public static EntityType METADATA_LEVELS_SATURN;
-    public static EntityType METADATA_LEVELS_MARS;
-    public static EntitySet  EMPLOYEES;
-    public static       UUID         EMPLOYEE_TITLE_PROP_ID    = UUID.randomUUID();
-    public static final PropertyType EMPLOYEE_TITLE_PROP_TYPE  = new PropertyType(
+    public static EntityType              METADATA_LEVELS;
+    public static EntityType              METADATA_LEVELS_SATURN;
+    public static EntityType              METADATA_LEVELS_MARS;
+    public static EntitySet               EMPLOYEES;
+    public static UUID                    EMPLOYEE_TITLE_PROP_ID    = UUID.randomUUID();
+    public static final PropertyType      EMPLOYEE_TITLE_PROP_TYPE  = new PropertyType(
             EMPLOYEE_TITLE_PROP_ID,
             new FullQualifiedName( NAMESPACE, EMPLOYEE_TITLE ),
             "Title",
             Optional.of( "Title of an employee of the city of Chicago." ),
             ImmutableSet.of(),
             EdmPrimitiveTypeKind.String );
-    public static       UUID         EMPLOYEE_NAME_PROP_ID     = UUID.randomUUID();
-    protected static final PropertyType EMPLOYEE_NAME_PROP_TYPE   = new PropertyType(
+    public static UUID                    EMPLOYEE_NAME_PROP_ID     = UUID.randomUUID();
+    protected static final PropertyType   EMPLOYEE_NAME_PROP_TYPE   = new PropertyType(
             EMPLOYEE_NAME_PROP_ID,
             new FullQualifiedName( NAMESPACE, EMPLOYEE_NAME ),
             "Name",
@@ -86,8 +91,8 @@ public class TestEdmConfigurer {
                     .of( "Name of an employee of the city of Chicago." ),
             ImmutableSet.of(),
             EdmPrimitiveTypeKind.String );
-    public static       UUID         EMPLOYEE_DEPT_PROP_ID     = UUID.randomUUID();
-    protected static final PropertyType EMPLOYEE_DEPT_PROP_TYPE   = new PropertyType(
+    public static UUID                    EMPLOYEE_DEPT_PROP_ID     = UUID.randomUUID();
+    protected static final PropertyType   EMPLOYEE_DEPT_PROP_TYPE   = new PropertyType(
             EMPLOYEE_DEPT_PROP_ID,
             new FullQualifiedName( NAMESPACE, EMPLOYEE_DEPT ),
             "Department",
@@ -95,8 +100,8 @@ public class TestEdmConfigurer {
                     .of( "Department of an employee of the city of Chicago." ),
             ImmutableSet.of(),
             EdmPrimitiveTypeKind.String );
-    public static       UUID         EMPLOYEE_SALARY_PROP_ID   = UUID.randomUUID();
-    protected static final PropertyType EMPLOYEE_SALARY_PROP_TYPE = new PropertyType(
+    public static UUID                    EMPLOYEE_SALARY_PROP_ID   = UUID.randomUUID();
+    protected static final PropertyType   EMPLOYEE_SALARY_PROP_TYPE = new PropertyType(
             EMPLOYEE_SALARY_PROP_ID,
             new FullQualifiedName( NAMESPACE, SALARY ),
             "Salary",
@@ -148,12 +153,13 @@ public class TestEdmConfigurer {
                 modifier + " Employees",
                 Optional.of( modifier + " Employees of the city of Chicago" ),
                 ImmutableSet.of(),
-                ImmutableSet.of( EMPLOYEE_ID_PROP_ID ),
-                ImmutableSet.of( EMPLOYEE_ID_PROP_ID,
+                Sets.newLinkedHashSet( Arrays.asList( EMPLOYEE_ID_PROP_ID ) ),
+                Sets.newLinkedHashSet( Arrays.asList( EMPLOYEE_ID_PROP_ID,
                         EMPLOYEE_TITLE_PROP_ID,
                         EMPLOYEE_NAME_PROP_ID,
                         EMPLOYEE_DEPT_PROP_ID,
-                        EMPLOYEE_SALARY_PROP_ID ) );
+                        EMPLOYEE_SALARY_PROP_ID ) ),
+                Optional.absent() );
     }
 
     private static void createPropertyTypes( EdmManager dms ) {

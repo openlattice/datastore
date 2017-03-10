@@ -25,6 +25,8 @@ import java.util.UUID;
 
 import com.dataloom.datastore.BootstrapDatastoreWithCassandra;
 
+import com.dataloom.edm.type.ComplexType;
+import com.dataloom.edm.type.EnumType;
 import org.apache.olingo.commons.api.edm.FullQualifiedName;
 import org.junit.AfterClass;
 import org.junit.Assert;
@@ -44,7 +46,7 @@ import com.google.common.collect.ImmutableSet;
 
 public class EdmControllerTests extends BootstrapDatastoreWithCassandra {
     private final static Logger logger = LoggerFactory.getLogger( AuthenticatedRestCallsTest.class );
-    private final EdmApi        edm    = getApiAdmin( EdmApi.class );
+    private final        EdmApi edm    = getApiAdmin( EdmApi.class );
 
     public PropertyType createPropertyType() {
         PropertyType expected = TestDataFactory.propertyType();
@@ -74,6 +76,31 @@ public class EdmControllerTests extends BootstrapDatastoreWithCassandra {
         return expected;
     }
 
+    @Test
+    public ComplexType createComplexType() {
+        PropertyType p1 = createPropertyType();
+        PropertyType p2 = createPropertyType();
+        ComplexType expected = TestDataFactory.complexType();
+        expected.removePropertyTypes( expected.getProperties() );
+        expected.addPropertyTypes( ImmutableSet.of( p1.getId(), p2.getId() ) );
+        UUID complexTypeId = edm.createComplexType( expected );
+
+        Assert.assertNotNull( "Complex type creation shouldn't return null UUID", complexTypeId );
+        Assert.assertEquals( expected.getId(), complexTypeId );
+
+        return expected;
+    }
+
+    @Test
+    public EnumType createEnumType() {
+        EnumType expected = TestDataFactory.enumType();
+        UUID enumTypeId = edm.createEnumType( expected );
+
+        Assert.assertNotNull( "Enum type id shouldn't return null UUID", enumTypeId );
+        Assert.assertEquals( expected.getId(), enumTypeId );
+        return expected;
+    }
+
     public EntitySet createEntitySet() {
         EntityType entityType = createEntityType();
 
@@ -82,7 +109,7 @@ public class EdmControllerTests extends BootstrapDatastoreWithCassandra {
                 entityType.getId(),
                 TestDataFactory.name(),
                 "foobar",
-                Optional.<String> of( "barred" ),
+                Optional.<String>of( "barred" ),
                 ImmutableSet.of( "foo@bar.com", "foobar@foo.net" ) );
 
         Set<EntitySet> ees = ImmutableSet.copyOf( edm.getEntitySets() );
@@ -95,7 +122,7 @@ public class EdmControllerTests extends BootstrapDatastoreWithCassandra {
         Set<EntitySet> aes = ImmutableSet.copyOf( edm.getEntitySets() );
 
         Assert.assertTrue( aes.contains( es ) );
-        
+
         return es;
     }
 

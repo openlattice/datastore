@@ -26,6 +26,7 @@ import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
@@ -38,6 +39,7 @@ import java.util.stream.Collectors;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.olingo.commons.api.edm.EdmPrimitiveTypeKind;
 import org.apache.olingo.commons.api.edm.FullQualifiedName;
+import org.spark_project.guava.collect.Sets;
 
 import com.dataloom.authorization.Principal;
 import com.dataloom.authorization.PrincipalType;
@@ -316,10 +318,10 @@ public class CustomCSVPopulation {
         for ( int i = 0; i < numEntityTypes; i++ ) {
             // Entity Type of 10-character names
             String entityTypeName = RandomStringUtils.randomAlphabetic( 10 );
-            Set<UUID> keyPropertyType = ImmutableSet
-                    .of( propertyTypesList.get( propertyTypesList.size() - 1 ).getId() );
-            Set<UUID> propertyTypeIdsSet = propertyTypesList.stream().map( pt -> pt.getId() )
-                    .collect( Collectors.toSet() );
+            LinkedHashSet<UUID> keyPropertyType = Sets.newLinkedHashSet();
+            keyPropertyType.add( propertyTypesList.get( propertyTypesList.size() - 1 ).getId() );
+            LinkedHashSet<UUID> propertyTypeIdsSet = propertyTypesList.stream().map( pt -> pt.getId() )
+                    .collect( Collectors.toCollection( LinkedHashSet::new ) );
 
             UUID entityTypeId = UUID.randomUUID();
             EntityType entityType = new EntityType(
@@ -329,7 +331,8 @@ public class CustomCSVPopulation {
                     Optional.absent(),
                     ImmutableSet.of(),
                     keyPropertyType,
-                    propertyTypeIdsSet );
+                    propertyTypeIdsSet,
+                    Optional.absent() );
             // Add property types to entity type
 
             // Create Entity Type in database
@@ -394,43 +397,30 @@ public class CustomCSVPopulation {
 
     public static void writeCSVToDB( String location ) throws JsonProcessingException, IOException {
         /**
-        int numOfEntitySets = EntitySetsList.size();
-        Random rand = new Random();
-
-        CsvMapper mapper = new CsvMapper();
-        // important: we need "array wrapping" (see next section) here:
-        mapper.enable( CsvParser.Feature.WRAP_AS_ARRAY );
-        File csvFile = new File( location ); // or from String, URL etc
-
-        MappingIterator<Map<String, String>> it = mapper.readerFor( new TypeReference<Map<String, String>>() {} )
-                .with( csvSchema ).readValues( csvFile );
-        while ( it.hasNext() ) {
-            Entity entity = new Entity();
-            String entitySetName = EntitySetsList.get( rand.nextInt( numOfEntitySets ) );
-            String entityTypeName = EntitySetToType.get( entitySetName );
-            FullQualifiedName entityTypeFQN = new FullQualifiedName( NAMESPACE, entityTypeName );
-
-            entity.setType( entityTypeFQN.getFullQualifiedNameAsString() );
-            Map<String, String> map = it.next();
-
-            for ( CustomPropertyType propertyType : propertyTypesList ) {
-                Property property = new Property();
-                String propertyName = propertyType.getName();
-
-                property.setName( propertyName );
-                property.setType( new FullQualifiedName( NAMESPACE, propertyName ).getFullQualifiedNameAsString() );
-                property.setValue( ValueType.PRIMITIVE,
-                        TypeConversion( map.get( propertyName ), propertyType.getJavaTypeName() ) );
-
-                entity.addProperty( property );
-            }
-            odsc.createEntityData( ACLs.EVERYONE_ACL,
-                    Syncs.BASE.getSyncId(),
-                    entitySetName,
-                    entityTypeFQN,
-                    entity );
-        }
-        */
+         * int numOfEntitySets = EntitySetsList.size(); Random rand = new Random();
+         * 
+         * CsvMapper mapper = new CsvMapper(); // important: we need "array wrapping" (see next section) here:
+         * mapper.enable( CsvParser.Feature.WRAP_AS_ARRAY ); File csvFile = new File( location ); // or from String, URL
+         * etc
+         * 
+         * MappingIterator<Map<String, String>> it = mapper.readerFor( new TypeReference<Map<String, String>>() {} )
+         * .with( csvSchema ).readValues( csvFile ); while ( it.hasNext() ) { Entity entity = new Entity(); String
+         * entitySetName = EntitySetsList.get( rand.nextInt( numOfEntitySets ) ); String entityTypeName =
+         * EntitySetToType.get( entitySetName ); FullQualifiedName entityTypeFQN = new FullQualifiedName( NAMESPACE,
+         * entityTypeName );
+         * 
+         * entity.setType( entityTypeFQN.getFullQualifiedNameAsString() ); Map<String, String> map = it.next();
+         * 
+         * for ( CustomPropertyType propertyType : propertyTypesList ) { Property property = new Property(); String
+         * propertyName = propertyType.getName();
+         * 
+         * property.setName( propertyName ); property.setType( new FullQualifiedName( NAMESPACE, propertyName
+         * ).getFullQualifiedNameAsString() ); property.setValue( ValueType.PRIMITIVE, TypeConversion( map.get(
+         * propertyName ), propertyType.getJavaTypeName() ) );
+         * 
+         * entity.addProperty( property ); } odsc.createEntityData( ACLs.EVERYONE_ACL, Syncs.BASE.getSyncId(),
+         * entitySetName, entityTypeFQN, entity ); }
+         */
     }
 
     /**

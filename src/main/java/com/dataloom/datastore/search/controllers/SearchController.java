@@ -164,31 +164,23 @@ public class SearchController implements SearchApi, AuthorizingComponent {
         }
         return new SearchResult( 0, Lists.newArrayList() );
     }
-    
-    @RequestMapping(
-            path={ ANALYSIS + ENTITY_SET_ID_PATH + PROPERTY_TYPE_ID_PATH + NUM_RESULTS_PATH },
-            method = RequestMethod.GET )
-    @Override
-    public List<SetMultimap<UUID, Object>> getTopUtilizers(
-            @PathVariable( ENTITY_SET_ID ) UUID entitySetId, 
-            @PathVariable( PROPERTY_TYPE_ID ) UUID propertyTypeId,
-            @PathVariable( NUM_RESULTS ) int numResults ) {
-        Set<UUID> authorizedProperties = authorizationsHelper.getAuthorizedPropertiesOnEntitySet( entitySetId,
-                EnumSet.of( Permission.READ ) );
-        if ( !authorizedProperties.contains( propertyTypeId ) ) {
-            return Lists.newArrayList();
-        }
-        Map<UUID, PropertyType> propertyTypes = edm.getPropertyTypesAsMap( authorizedProperties );
-        return searchService.getTopUtilizers( entitySetId, propertyTypeId, numResults, propertyTypes );
-    }
 
     @RequestMapping(
-            path={ ANALYSIS + REQUEST_ID_PATH + NUM_RESULTS_PATH },
-            method = RequestMethod.GET )
+        path = { ANALYSIS + ENTITY_SET_ID_PATH + NUM_RESULTS_PATH },
+        method = RequestMethod.POST )
     @Override
-    public List<SetMultimap<UUID, Object>> readTopUtilizers(
-            @PathVariable( REQUEST_ID ) UUID requestId,
-            @PathVariable( NUM_RESULTS ) int numResults ) {
-        return searchService.readTopUtilizers( requestId, numResults );
+    public List<SetMultimap<UUID, Object>> getTopUtilizers(
+            @PathVariable( ENTITY_SET_ID ) UUID entitySetId,
+            @PathVariable( NUM_RESULTS ) int numResults,
+            @RequestBody Set<UUID> propertyTypeIds ) {
+        Set<UUID> authorizedProperties = authorizationsHelper.getAuthorizedPropertiesOnEntitySet( entitySetId,
+                EnumSet.of( Permission.READ ) );
+        for ( UUID propertyTypeId : propertyTypeIds ) {
+            if ( !authorizedProperties.contains( propertyTypeId ) ) {
+                return Lists.newArrayList();
+            }
+        }
+        Map<UUID, PropertyType> propertyTypes = edm.getPropertyTypesAsMap( authorizedProperties );
+        return searchService.getTopUtilizers( entitySetId, propertyTypeIds, numResults, propertyTypes );
     }
 }

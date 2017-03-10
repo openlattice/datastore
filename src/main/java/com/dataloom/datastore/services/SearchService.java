@@ -19,6 +19,7 @@
 
 package com.dataloom.datastore.services;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -26,6 +27,9 @@ import java.util.UUID;
 
 import javax.annotation.PostConstruct;
 import javax.inject.Inject;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.dataloom.authorization.AbstractSecurableObjectResolveTypeService;
 import com.dataloom.authorization.AuthorizationManager;
@@ -39,21 +43,28 @@ import com.dataloom.edm.events.EntitySetDeletedEvent;
 import com.dataloom.edm.events.EntitySetMetadataUpdatedEvent;
 import com.dataloom.edm.events.PropertyTypesInEntitySetUpdatedEvent;
 import com.dataloom.edm.type.PropertyType;
+import com.dataloom.hazelcast.HazelcastMap;
 import com.dataloom.linking.Entity;
+import com.dataloom.mappers.ObjectMappers;
 import com.dataloom.organizations.events.OrganizationCreatedEvent;
 import com.dataloom.organizations.events.OrganizationDeletedEvent;
 import com.dataloom.organizations.events.OrganizationUpdatedEvent;
 import com.dataloom.search.requests.AdvancedSearch;
 import com.dataloom.search.requests.SearchResult;
 import com.dataloom.search.requests.SearchTerm;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.google.common.base.Optional;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.common.collect.SetMultimap;
 import com.google.common.collect.Sets;
 import com.google.common.eventbus.EventBus;
 import com.google.common.eventbus.Subscribe;
+import com.hazelcast.core.HazelcastInstance;
+import com.kryptnostic.conductor.rpc.RPCIteratorOrdered;
 
 public class SearchService {
+    private static final Logger                       logger = LoggerFactory.getLogger( SearchService.class );
 
     @Inject
     private EventBus                                  eventBus;
@@ -69,6 +80,12 @@ public class SearchService {
 
     @Inject
     private DatastoreConductorElasticsearchApi        elasticsearchApi;
+
+    @Inject
+    private HazelcastInstance                         hazelcast;
+
+    @Inject
+    private CassandraDataManager                      cdm;
 
     @PostConstruct
     public void initializeBus() {
@@ -207,9 +224,54 @@ public class SearchService {
         return new SearchResult( 0, Lists.newArrayList() );
     }
 
-    public void getTopUtilizers( UUID entitySetId, UUID propertyTypeId, int maxHits, Map<UUID, PropertyType> propertyTypes ) {
+    public List<SetMultimap<UUID, Object>> getTopUtilizers(
+            UUID entitySetId,
+            UUID propertyTypeId,
+            int maxHits,
+            Map<UUID, PropertyType> propertyTypes ) {
         UUID requestId = sparkApi.getTopUtilizers( entitySetId, propertyTypeId, propertyTypes );
-        
+//        RPCIteratorOrdered<byte[]> it = new RPCIteratorOrdered<byte[]>(
+//                requestId,
+//                hazelcast.getMap( HazelcastMap.RPC_DATA_ORDERED.name() ) );
+        List<SetMultimap<UUID, Object>> results = Lists.newArrayList();
+//        TypeReference<List<SetMultimap<UUID, Object>>> resultType = new TypeReference<List<SetMultimap<UUID, Object>>>() {};
+        // for ( int i = 0; i < maxHits; i++ ) {
+        // if (it.hasNext()) {
+        // try {
+        // SetMultimap<UUID, Object> row = ObjectMappers.getSmileMapper().readValue( it.next(), resultType );
+        // } catch ( IOException e ) {
+        // logger.debug( "unable to read row data" );
+        // }
+        // }
+        // }
+
+        return results;
+    }
+
+    public List<SetMultimap<UUID, Object>> readTopUtilizers( UUID requestId, int maxHits ) {
+        List<SetMultimap<UUID, Object>> results = Lists.newArrayList();
+        // RPCIteratorOrdered<byte[]> it = new RPCIteratorOrdered<byte[]>(
+        // requestId,
+        // hazelcast.getMap( HazelcastMap.RPC_DATA_ORDERED.name() ) );
+        List<byte[]> byteResults = cdm.readNumRPCRows( requestId, maxHits );
+        TypeReference<SetMultimap<UUID, Object>> resultType = new TypeReference<SetMultimap<UUID, Object>>() {};
+        for ( byte[] byteEntity : byteResults ) {
+            try {
+                SetMultimap<UUID, Object> row = ObjectMappers.getSmileMapper().readValue( byteEntity, resultType );
+                results.add( row );
+            } catch ( IOException e ) {
+            }
+        }
+        // for ( int i = 0; i < maxHits; i++ ) {
+        // if ( it.hasNext() ) {
+        // try {
+        // SetMultimap<UUID, Object> row = ObjectMappers.getSmileMapper().readValue( it.next(), resultType );
+        // } catch ( IOException e ) {
+        // logger.debug( "unable to read row data" );
+        // }
+        // }
+        // }
+        return results;
     }
 
 }

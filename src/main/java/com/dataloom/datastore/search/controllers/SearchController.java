@@ -20,6 +20,7 @@
 package com.dataloom.datastore.search.controllers;
 
 import java.util.EnumSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -51,6 +52,7 @@ import com.dataloom.search.requests.SearchResult;
 import com.dataloom.search.requests.SearchTerm;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
+import com.google.common.collect.SetMultimap;
 import com.kryptnostic.datastore.services.EdmService;
 
 @RestController
@@ -167,17 +169,26 @@ public class SearchController implements SearchApi, AuthorizingComponent {
             path={ ANALYSIS + ENTITY_SET_ID_PATH + PROPERTY_TYPE_ID_PATH + NUM_RESULTS_PATH },
             method = RequestMethod.GET )
     @Override
-    public void getTopUtilizers(
+    public List<SetMultimap<UUID, Object>> getTopUtilizers(
             @PathVariable( ENTITY_SET_ID ) UUID entitySetId, 
             @PathVariable( PROPERTY_TYPE_ID ) UUID propertyTypeId,
             @PathVariable( NUM_RESULTS ) int numResults ) {
         Set<UUID> authorizedProperties = authorizationsHelper.getAuthorizedPropertiesOnEntitySet( entitySetId,
                 EnumSet.of( Permission.READ ) );
         if ( !authorizedProperties.contains( propertyTypeId ) ) {
-            return;
-            // TODO: return an empty list or an error message or something
+            return Lists.newArrayList();
         }
         Map<UUID, PropertyType> propertyTypes = edm.getPropertyTypesAsMap( authorizedProperties );
-        searchService.getTopUtilizers( entitySetId, propertyTypeId, numResults, propertyTypes );
+        return searchService.getTopUtilizers( entitySetId, propertyTypeId, numResults, propertyTypes );
+    }
+
+    @RequestMapping(
+            path={ ANALYSIS + REQUEST_ID_PATH + NUM_RESULTS_PATH },
+            method = RequestMethod.GET )
+    @Override
+    public List<SetMultimap<UUID, Object>> readTopUtilizers(
+            @PathVariable( REQUEST_ID ) UUID requestId,
+            @PathVariable( NUM_RESULTS ) int numResults ) {
+        return searchService.readTopUtilizers( requestId, numResults );
     }
 }

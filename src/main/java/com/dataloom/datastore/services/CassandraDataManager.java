@@ -19,6 +19,7 @@
 
 package com.dataloom.datastore.services;
 
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -55,6 +56,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.SetMultimap;
 import com.google.common.eventbus.EventBus;
@@ -86,6 +88,8 @@ public class CassandraDataManager {
 
     private final PreparedStatement      linkedEntitiesQuery;
 
+    private final PreparedStatement      readNumRPCRowsQuery;
+
     public CassandraDataManager( Session session, ObjectMapper mapper, HazelcastLinkingGraphs linkingGraph ) {
         this.session = session;
         this.mapper = mapper;
@@ -104,6 +108,7 @@ public class CassandraDataManager {
         this.deleteEntityLookupQuery = prepareDeleteEntityLookupQuery( session );
 
         this.linkedEntitiesQuery = prepareLinkedEntitiesQuery( session );
+        this.readNumRPCRowsQuery = prepareReadNumRPCRowsQuery( session );
     }
 
     public Iterable<SetMultimap<FullQualifiedName, Object>> getEntitySetData(
@@ -223,6 +228,22 @@ public class CassandraDataManager {
         results.forEach( ResultSetFuture::getUninterruptibly );
     }
 
+    public List<byte[]> readNumRPCRows( UUID requestId, int numResults ) {
+        logger.info( "Reading {} rows of RPC data for request id {}", numResults, requestId );
+        BoundStatement bs = readNumRPCRowsQuery.bind().setUUID( CommonColumns.RPC_REQUEST_ID.cql(), requestId )
+                .setInt( "numResults", numResults );
+        ResultSet rs = session.execute( bs );
+        List<byte[]> result = Lists.newArrayList();
+        rs.forEach( row -> {
+            ByteBuffer buf = row.getBytes( CommonColumns.RPC_VALUE.cql() );
+            buf.clear();
+            byte[] bytes = new byte[buf.capacity()];
+            buf.get( bytes, 0, bytes.length );
+            result.add( bytes );
+        });
+        return result;
+    }
+
     /**
      * Delete data of an entity set across ALL sync Ids.
      */
@@ -312,6 +333,13 @@ public class CassandraDataManager {
                 .select()
                 .from( Table.ENTITY_ID_LOOKUP.getKeyspace(), Table.ENTITY_ID_LOOKUP.getName() )
                 .where( QueryBuilder.eq( CommonColumns.ENTITY_SET_ID.cql(), QueryBuilder.bindMarker() ) ) );
+    }
+
+    private static PreparedStatement prepareReadNumRPCRowsQuery( Session session ) {
+        return session.prepare(
+                QueryBuilder.select().from( Table.RPC_DATA_ORDERED.getKeyspace(), Table.RPC_DATA_ORDERED.getName() )
+                        .where( QueryBuilder.eq( CommonColumns.RPC_REQUEST_ID.cql(), CommonColumns.RPC_REQUEST_ID.bindMarker() ) )
+                        .limit( QueryBuilder.bindMarker( "numResults" ) ) );
     }
 
     private static PreparedStatement prepareDeleteEntityQuery(

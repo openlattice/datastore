@@ -19,14 +19,14 @@
 
 package com.dataloom.datastore.search.controllers;
 
-import java.io.IOException;
 import java.util.EnumSet;
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
 import javax.inject.Inject;
-import javax.servlet.http.HttpServletResponse;
 
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -44,6 +44,7 @@ import com.dataloom.authorization.Permission;
 import com.dataloom.authorization.Principals;
 import com.dataloom.datastore.services.SearchService;
 import com.dataloom.edm.EntitySet;
+import com.dataloom.edm.type.PropertyType;
 import com.dataloom.search.SearchApi;
 import com.dataloom.search.requests.AdvancedSearch;
 import com.dataloom.search.requests.Search;
@@ -51,7 +52,7 @@ import com.dataloom.search.requests.SearchResult;
 import com.dataloom.search.requests.SearchTerm;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
-import com.kryptnostic.datastore.exceptions.BadRequestException;
+import com.google.common.collect.SetMultimap;
 import com.kryptnostic.datastore.services.EdmService;
 
 @RestController
@@ -162,5 +163,24 @@ public class SearchController implements SearchApi, AuthorizingComponent {
             return searchService.executeAdvancedEntitySetDataSearch( entitySetId, search, authorizedProperties );
         }
         return new SearchResult( 0, Lists.newArrayList() );
+    }
+
+    @RequestMapping(
+        path = { ANALYSIS + ENTITY_SET_ID_PATH + NUM_RESULTS_PATH },
+        method = RequestMethod.POST )
+    @Override
+    public List<SetMultimap<UUID, Object>> getTopUtilizers(
+            @PathVariable( ENTITY_SET_ID ) UUID entitySetId,
+            @PathVariable( NUM_RESULTS ) int numResults,
+            @RequestBody Set<UUID> propertyTypeIds ) {
+        Set<UUID> authorizedProperties = authorizationsHelper.getAuthorizedPropertiesOnEntitySet( entitySetId,
+                EnumSet.of( Permission.READ ) );
+        for ( UUID propertyTypeId : propertyTypeIds ) {
+            if ( !authorizedProperties.contains( propertyTypeId ) ) {
+                return Lists.newArrayList();
+            }
+        }
+        Map<UUID, PropertyType> propertyTypes = edm.getPropertyTypesAsMap( authorizedProperties );
+        return searchService.getTopUtilizers( entitySetId, propertyTypeIds, numResults, propertyTypes );
     }
 }

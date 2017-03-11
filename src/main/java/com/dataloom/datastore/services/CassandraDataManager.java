@@ -19,6 +19,7 @@
 
 package com.dataloom.datastore.services;
 
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -26,6 +27,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import javax.inject.Inject;
 
@@ -40,18 +42,16 @@ import com.dataloom.data.EntityKey;
 import com.dataloom.data.events.EntityDataCreatedEvent;
 import com.dataloom.edm.type.PropertyType;
 import com.dataloom.linking.HazelcastLinkingGraphs;
-import com.dataloom.mappers.ObjectMappers;
+import com.dataloom.streams.StreamUtil;
 import com.datastax.driver.core.BoundStatement;
 import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.ResultSetFuture;
 import com.datastax.driver.core.Row;
 import com.datastax.driver.core.Session;
-import com.datastax.driver.core.querybuilder.Delete;
 import com.datastax.driver.core.querybuilder.Insert;
 import com.datastax.driver.core.querybuilder.QueryBuilder;
 import com.datastax.driver.core.querybuilder.Select;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Iterables;
@@ -87,6 +87,8 @@ public class CassandraDataManager {
 
     private final PreparedStatement      linkedEntitiesQuery;
 
+    private final PreparedStatement      readNumRPCRowsQuery;
+
     public CassandraDataManager( Session session, ObjectMapper mapper, HazelcastLinkingGraphs linkingGraph ) {
         this.session = session;
         this.mapper = mapper;
@@ -105,6 +107,7 @@ public class CassandraDataManager {
         this.deleteEntityLookupQuery = prepareDeleteEntityLookupQuery( session );
 
         this.linkedEntitiesQuery = prepareLinkedEntitiesQuery( session );
+        this.readNumRPCRowsQuery = prepareReadNumRPCRowsQuery( session );
     }
 
     public Iterable<SetMultimap<FullQualifiedName, Object>> getEntitySetData(
@@ -241,6 +244,21 @@ public class CassandraDataManager {
         results.forEach( ResultSetFuture::getUninterruptibly );
     }
 
+    public void createOrderedRPCData( UUID requestId, double weight, byte[] value ) {
+        session.executeAsync( writeDataQuery.bind().setUUID( CommonColumns.RPC_REQUEST_ID.cql(), requestId )
+                .setDouble( CommonColumns.RPC_WEIGHT.cql(), weight )
+                .setBytes( CommonColumns.RPC_VALUE.cql(), ByteBuffer.wrap( value ) ) );
+    }
+
+    public Stream<byte[]> readNumRPCRows( UUID requestId, int numResults ) {
+        logger.info( "Reading {} rows of RPC data for request id {}", numResults, requestId );
+        BoundStatement bs = readNumRPCRowsQuery.bind().setUUID( CommonColumns.RPC_REQUEST_ID.cql(), requestId )
+                .setInt( "numResults", numResults );
+        ResultSet rs = session.execute( bs );
+        return StreamUtil.stream( rs )
+                .map( r -> r.getBytes( CommonColumns.RPC_VALUE.cql() ).array() );
+    }
+
     /**
      * Delete data of an entity set across ALL sync Ids.
      */
@@ -330,6 +348,14 @@ public class CassandraDataManager {
                 .select()
                 .from( Table.ENTITY_ID_LOOKUP.getKeyspace(), Table.ENTITY_ID_LOOKUP.getName() )
                 .where( QueryBuilder.eq( CommonColumns.ENTITY_SET_ID.cql(), QueryBuilder.bindMarker() ) ) );
+    }
+
+    private static PreparedStatement prepareReadNumRPCRowsQuery( Session session ) {
+        return session.prepare(
+                QueryBuilder.select().from( Table.RPC_DATA_ORDERED.getKeyspace(), Table.RPC_DATA_ORDERED.getName() )
+                        .where( QueryBuilder.eq( CommonColumns.RPC_REQUEST_ID.cql(),
+                                CommonColumns.RPC_REQUEST_ID.bindMarker() ) )
+                        .limit( QueryBuilder.bindMarker( "numResults" ) ) );
     }
 
     private static PreparedStatement prepareDeleteEntityQuery(

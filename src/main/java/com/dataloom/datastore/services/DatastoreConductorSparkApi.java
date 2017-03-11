@@ -20,6 +20,8 @@
 package com.dataloom.datastore.services;
 
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 
@@ -56,7 +58,9 @@ public class DatastoreConductorSparkApi implements ConductorSparkApi {
             FullQualifiedName entityTypeFqn,
             List<PropertyType> authorizedProperties ) {
         try {
-            return executor.submit( ConductorCall.wrap( Lambdas.getAllEntitiesOfType( entityTypeFqn, authorizedProperties ) ) ).get();
+            return executor
+                    .submit( ConductorCall.wrap( Lambdas.getAllEntitiesOfType( entityTypeFqn, authorizedProperties ) ) )
+                    .get();
         } catch ( InterruptedException | ExecutionException e ) {
             logger.debug( "unable to execute get all entities of type" );
             return new QueryResult( null, null, null, null );
@@ -75,7 +79,10 @@ public class DatastoreConductorSparkApi implements ConductorSparkApi {
             String entitySetName,
             List<PropertyType> authorizedProperties ) {
         try {
-            return executor.submit( ConductorCall.wrap( Lambdas.getAllEntitiesOfEntitySet( entityFqn, entitySetName, authorizedProperties ) ) ).get();
+            return executor
+                    .submit( ConductorCall.wrap(
+                            Lambdas.getAllEntitiesOfEntitySet( entityFqn, entitySetName, authorizedProperties ) ) )
+                    .get();
         } catch ( InterruptedException | ExecutionException e ) {
             logger.debug( "unable to execute get all entities of entity set" );
             return new QueryResult( null, null, null, null );
@@ -98,6 +105,18 @@ public class DatastoreConductorSparkApi implements ConductorSparkApi {
             return executor.submit( ConductorCall.wrap( Lambdas.clustering( linkedEntitySetId ) ) ).get();
         } catch ( InterruptedException | ExecutionException e ) {
             logger.debug( "unable to execute clustering" );
+            return null;
+        }
+    }
+
+    @Override
+    public UUID getTopUtilizers( UUID entitySetId, Set<UUID> propertyTypeIds, Map<UUID, PropertyType> propertyTypes ) {
+        try {
+            return executor.submit(
+                    ConductorCall.wrap( Lambdas.getTopUtilizers( entitySetId, propertyTypeIds, propertyTypes ) ) )
+                    .get();
+        } catch ( InterruptedException | ExecutionException e ) {
+            logger.debug( "unable to execute get top utilizers" );
             return null;
         }
     }

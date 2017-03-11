@@ -59,6 +59,7 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.SetMultimap;
 import com.google.common.eventbus.EventBus;
 import com.kryptnostic.conductor.rpc.odata.Table;
+import com.kryptnostic.datastore.cassandra.CassandraSerDesFactory;
 import com.kryptnostic.datastore.cassandra.CommonColumns;
 import com.kryptnostic.datastore.cassandra.RowAdapters;
 import com.kryptnostic.rhizome.cassandra.CassandraTableBuilder;
@@ -201,11 +202,24 @@ public class CassandraDataManager {
 
             SetMultimap<UUID, Object> propertyValues = entity.getValue();
 
-            Map<UUID, Object> authorizedPropertyValues = Maps.newHashMap();
+            // does not write the row if some property values that user is trying to write to are not authorized.
+            if ( !authorizedProperties.containsAll( propertyValues.keySet() ) ) {
+                logger.info( "Entity {} not written because not all property values are authorized.", entity.getKey() );
+                return;
+            }
+
+            SetMultimap<UUID, Object> normalizedPropertyValues = null;
+            try {
+                normalizedPropertyValues = CassandraSerDesFactory.validateFormatAndNormalize( propertyValues,
+                        authorizedPropertiesWithDataType );
+            } catch ( Exception e ) {
+                logger.info( "Entity {} not written because some property values are of invalid format.",
+                        entity.getKey() );
+                return;
+            }
             // Stream<Entry<UUID, Object>> authorizedPropertyValues = propertyValues.entries().stream().filter( entry ->
             // authorizedProperties.contains( entry.getKey() ) );
-            propertyValues.entries().stream()
-                    .filter( entry -> authorizedProperties.contains( entry.getKey() ) )
+            normalizedPropertyValues.entries().stream()
                     .forEach( entry -> {
                         results.add( session.executeAsync(
                                 writeDataQuery.bind()
@@ -213,14 +227,18 @@ public class CassandraDataManager {
                                         .setUUID( CommonColumns.SYNCID.cql(), syncId )
                                         .setUUID( CommonColumns.PROPERTY_TYPE_ID.cql(), entry.getKey() )
                                         .setBytes( CommonColumns.PROPERTY_VALUE.cql(),
-                                                RowAdapters.serializeValue( mapper,
+                                                CassandraSerDesFactory.serializeValue(
+                                                        mapper,
                                                         entry.getValue(),
                                                         authorizedPropertiesWithDataType
                                                                 .get( entry.getKey() ),
                                                         entity.getKey() ) ) ) );
-                        authorizedPropertyValues.put( entry.getKey(), entry.getValue() );
                     } );
-            eventBus.post( new EntityDataCreatedEvent( entitySetId, entity.getKey(), authorizedPropertyValues ) );
+
+            Map<UUID, Object> normalizedPropertyValuesAsMap = normalizedPropertyValues.asMap().entrySet().stream()
+                    .collect( Collectors.toMap( e -> e.getKey(), e -> new HashSet<>( e.getValue() ) ) );
+
+            eventBus.post( new EntityDataCreatedEvent( entitySetId, entity.getKey(), normalizedPropertyValuesAsMap ) );
         } );
 
         results.forEach( ResultSetFuture::getUninterruptibly );
@@ -245,7 +263,7 @@ public class CassandraDataManager {
      * Delete data of an entity set across ALL sync Ids.
      */
     public void deleteEntitySetData( UUID entitySetId ) {
-        logger.info( "Deleting data of entity set: %s", entitySetId );
+        logger.info( "Deleting data of entity set: {}", entitySetId );
         BoundStatement bs = entityIdsLookupByEntitySetQuery.bind().setUUID( CommonColumns.ENTITY_SET_ID.cql(),
                 entitySetId );
         ResultSet rs = session.execute( bs );
@@ -271,7 +289,7 @@ public class CassandraDataManager {
         }
 
         results.forEach( ResultSetFuture::getUninterruptibly );
-        logger.info( "Finish deletion of entity set data: %s", entitySetId );
+        logger.info( "Finish deletion of entity set data: {}", entitySetId );
     }
 
     public ResultSetFuture asyncDeleteEntity( String entityId ) {

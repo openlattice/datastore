@@ -35,6 +35,7 @@ import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurationSupport;
 
 import com.dataloom.data.DataApi;
+import com.dataloom.datastore.analysis.controllers.AnalysisController;
 import com.dataloom.datastore.authorization.controllers.AuthorizationsController;
 import com.dataloom.datastore.constants.CustomMediaType;
 import com.dataloom.datastore.converters.CsvHttpMessageConverter;
@@ -57,7 +58,7 @@ import com.ryantenney.metrics.spring.config.annotation.EnableMetrics;
             PermissionsController.class, PermissionsRequestsController.class, AuthorizationsController.class,
             PrincipalDirectoryController.class,
             EdmController.class, OrganizationsController.class,
-            DataStoreExceptionHandler.class, LinkingController.class },
+            DataStoreExceptionHandler.class, LinkingController.class, AnalysisController.class },
     includeFilters = @ComponentScan.Filter(
         value = { org.springframework.stereotype.Controller.class,
                 org.springframework.web.bind.annotation.RestControllerAdvice.class },

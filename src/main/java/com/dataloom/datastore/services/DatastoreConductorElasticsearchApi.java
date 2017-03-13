@@ -12,6 +12,7 @@ import org.slf4j.LoggerFactory;
 import com.dataloom.authorization.Permission;
 import com.dataloom.authorization.Principal;
 import com.dataloom.edm.EntitySet;
+import com.dataloom.edm.type.EntityType;
 import com.dataloom.edm.type.PropertyType;
 import com.dataloom.linking.Entity;
 import com.dataloom.organization.Organization;
@@ -118,7 +119,8 @@ public class DatastoreConductorElasticsearchApi implements ConductorElasticsearc
         try {
             return executor.submit( ConductorElasticsearchCall
                     .wrap( ElasticsearchLambdas.updatePropertyTypesInEntitySet( entitySetId,
-                            newPropertyTypes ) ) ).get();
+                            newPropertyTypes ) ) )
+                    .get();
         } catch ( InterruptedException | ExecutionException e ) {
             logger.debug( "unable to update property types in entity set in elasticsearch" );
             return false;
@@ -268,6 +270,82 @@ public class DatastoreConductorElasticsearchApi implements ConductorElasticsearc
             return queryResults;
         } catch ( InterruptedException | ExecutionException e ) {
             logger.debug( "unable to execute entity set data search" );
+            return new SearchResult( 0, Lists.newArrayList() );
+        }
+    }
+
+    @Override
+    public Boolean saveEntityTypeToElasticsearch( EntityType entityType ) {
+        try {
+            return executor.submit( ConductorElasticsearchCall
+                    .wrap( ElasticsearchLambdas.saveEntityTypeToElasticsearch( entityType ) ) ).get();
+        } catch ( InterruptedException | ExecutionException e ) {
+            logger.debug( "unable to save entity type to elasticsearch" );
+            return false;
+        }
+    }
+
+    @Override
+    public Boolean savePropertyTypeToElasticsearch( PropertyType propertyType ) {
+        try {
+            return executor.submit( ConductorElasticsearchCall
+                    .wrap( ElasticsearchLambdas.savePropertyTypeToElasticsearch( propertyType ) ) ).get();
+        } catch ( InterruptedException | ExecutionException e ) {
+            logger.debug( "unable to save property type to elasticsearch" );
+            return false;
+        }
+    }
+
+    @Override
+    public Boolean deleteEntityType( UUID entityTypeId ) {
+        try {
+            return executor.submit( ConductorElasticsearchCall
+                    .wrap( ElasticsearchLambdas.deleteEntityType( entityTypeId ) ) ).get();
+        } catch ( InterruptedException | ExecutionException e ) {
+            logger.debug( "unable to delete entity type from elasticsearch" );
+            return false;
+        }
+    }
+
+    @Override
+    public Boolean deletePropertyType( UUID propertyTypeId ) {
+        try {
+            return executor.submit( ConductorElasticsearchCall
+                    .wrap( ElasticsearchLambdas.deletePropertyType( propertyTypeId ) ) ).get();
+        } catch ( InterruptedException | ExecutionException e ) {
+            logger.debug( "unable to delete property type from elasticsearch" );
+            return false;
+        }
+    }
+
+    @Override
+    public SearchResult executeEntityTypeSearch( String searchTerm, int start, int maxHits ) {
+        try {
+            SearchResult queryResults = executor.submit( ConductorElasticsearchCall.wrap(
+                    ElasticsearchLambdas.executeEntityTypeSearch(
+                            searchTerm,
+                            start,
+                            maxHits ) ) )
+                    .get();
+            return queryResults;
+        } catch ( InterruptedException | ExecutionException e ) {
+            logger.debug( "unable to execute entity type search" );
+            return new SearchResult( 0, Lists.newArrayList() );
+        }
+    }
+
+    @Override
+    public SearchResult executePropertyTypeSearch( String searchTerm, int start, int maxHits ) {
+        try {
+            SearchResult queryResults = executor.submit( ConductorElasticsearchCall.wrap(
+                    ElasticsearchLambdas.executePropertyTypeSearch(
+                            searchTerm,
+                            start,
+                            maxHits ) ) )
+                    .get();
+            return queryResults;
+        } catch ( InterruptedException | ExecutionException e ) {
+            logger.debug( "unable to execute property type search" );
             return new SearchResult( 0, Lists.newArrayList() );
         }
     }

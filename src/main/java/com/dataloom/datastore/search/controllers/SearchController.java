@@ -160,4 +160,26 @@ public class SearchController implements SearchApi, AuthorizingComponent {
         }
         return new SearchResult( 0, Lists.newArrayList() );
     }
+
+    @RequestMapping(
+        path = { ENTITY_TYPES },
+        method = RequestMethod.POST,
+        produces = { MediaType.APPLICATION_JSON_VALUE } )
+    @Override
+    public SearchResult executeEntityTypeSearch( @RequestBody SearchTerm searchTerm ) {
+        return searchService.executeEntityTypeSearch( searchTerm.getSearchTerm(),
+                searchTerm.getStart(),
+                searchTerm.getMaxHits() );
+    }
+
+    @RequestMapping(
+        path = { PROPERTY_TYPES },
+        method = RequestMethod.POST,
+        produces = { MediaType.APPLICATION_JSON_VALUE } )
+    @Override
+    public SearchResult executePropertyTypeSearch( @RequestBody SearchTerm searchTerm ) {
+        return searchService.executePropertyTypeSearch( searchTerm.getSearchTerm(),
+                searchTerm.getStart(),
+                searchTerm.getMaxHits() );
+    }
 }

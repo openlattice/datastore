@@ -40,7 +40,13 @@ import com.dataloom.data.events.EntityDataCreatedEvent;
 import com.dataloom.edm.events.EntitySetCreatedEvent;
 import com.dataloom.edm.events.EntitySetDeletedEvent;
 import com.dataloom.edm.events.EntitySetMetadataUpdatedEvent;
+import com.dataloom.edm.events.EntityTypeCreatedEvent;
+import com.dataloom.edm.events.EntityTypeDeletedEvent;
+import com.dataloom.edm.events.PropertyTypeCreatedEvent;
+import com.dataloom.edm.events.PropertyTypeDeletedEvent;
 import com.dataloom.edm.events.PropertyTypesInEntitySetUpdatedEvent;
+import com.dataloom.edm.type.EntityType;
+import com.dataloom.edm.type.PropertyType;
 import com.dataloom.linking.Entity;
 import com.dataloom.organizations.events.OrganizationCreatedEvent;
 import com.dataloom.organizations.events.OrganizationDeletedEvent;
@@ -205,5 +211,37 @@ public class SearchService {
         }
 
         return new SearchResult( 0, Lists.newArrayList() );
+    }
+    
+    @Subscribe
+    public void createEntityType( EntityTypeCreatedEvent event ) {
+        EntityType entityType = event.getEntityType();
+        elasticsearchApi.saveEntityTypeToElasticsearch( entityType );
+    }
+    
+    @Subscribe
+    public void createPropertyType( PropertyTypeCreatedEvent event ) {
+        PropertyType propertyType = event.getPropertyType();
+        elasticsearchApi.savePropertyTypeToElasticsearch( propertyType );
+    }
+    
+    @Subscribe
+    public void deleteEntityType( EntityTypeDeletedEvent event ) {
+        UUID entityTypeId = event.getEntityTypeId();
+        elasticsearchApi.deleteEntityType( entityTypeId );
+    }
+    
+    @Subscribe
+    public void deletePropertyType( PropertyTypeDeletedEvent event ) {
+        UUID propertyTypeId = event.getPropertyTypeId();
+        elasticsearchApi.deletePropertyType( propertyTypeId );
+    }
+    
+    public SearchResult executeEntityTypeSearch( String searchTerm, int start, int maxHits ) {
+        return elasticsearchApi.executeEntityTypeSearch( searchTerm, start, maxHits );
+    }
+    
+    public SearchResult executePropertyTypeSearch( String searchTerm, int start, int maxHits ) {
+        return elasticsearchApi.executePropertyTypeSearch( searchTerm, start, maxHits );
     }
 }

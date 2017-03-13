@@ -19,6 +19,8 @@
 
 package com.dataloom.datastore.pods;
 
+import javax.inject.Inject;
+
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.method.configuration.EnableGlobalMethodSecurity;
@@ -26,6 +28,7 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 
 import com.dataloom.authentication.LoomAuth0AuthenticationProvider;
+import com.dataloom.organizations.roles.TokenExpirationTracker;
 
 import digital.loom.rhizome.authentication.Auth0SecurityPod;
 import digital.loom.rhizome.authentication.ConfigurableAuth0AuthenticationProvider;
@@ -37,9 +40,12 @@ import digital.loom.rhizome.authentication.ConfigurableAuth0AuthenticationProvid
     debug = false )
 public class DatastoreSecurityPod extends Auth0SecurityPod {
 
+    @Inject
+    TokenExpirationTracker tokenTracker;
+    
     @Override
     protected ConfigurableAuth0AuthenticationProvider getAuthenticationProvider() {
-        return new LoomAuth0AuthenticationProvider( getAuthenticationApiClient() );
+        return new LoomAuth0AuthenticationProvider( getAuthenticationApiClient(), tokenTracker );
     }
 
     @Override

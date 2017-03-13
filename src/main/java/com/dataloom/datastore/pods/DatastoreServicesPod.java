@@ -19,6 +19,7 @@
 
 package com.dataloom.datastore.pods;
 
+import javax.annotation.PostConstruct;
 import javax.inject.Inject;
 
 import org.springframework.context.annotation.Bean;
@@ -34,6 +35,7 @@ import com.dataloom.authorization.EdmAuthorizationHelper;
 import com.dataloom.authorization.HazelcastAbstractSecurableObjectResolveTypeService;
 import com.dataloom.authorization.HazelcastAclKeyReservationService;
 import com.dataloom.authorization.HazelcastAuthorizationService;
+import com.dataloom.authorization.Principals;
 import com.dataloom.clustering.ClusteringPartitioner;
 import com.dataloom.data.serializers.FullQualifedNameJacksonDeserializer;
 import com.dataloom.data.serializers.FullQualifedNameJacksonSerializer;
@@ -60,6 +62,7 @@ import com.dataloom.linking.components.Clusterer;
 import com.dataloom.linking.components.Matcher;
 import com.dataloom.mappers.ObjectMappers;
 import com.dataloom.organizations.HazelcastOrganizationService;
+import com.dataloom.organizations.roles.TokenExpirationTracker;
 import com.dataloom.organizations.roles.HazelcastRolesService;
 import com.dataloom.organizations.roles.RolesManager;
 import com.dataloom.organizations.roles.RolesQueryService;
@@ -188,6 +191,26 @@ public class DatastoreServicesPod {
     public CassandraDataManager cassandraDataManager() {
         return new CassandraDataManager( session, defaultObjectMapper(), linkingGraph() );
     }
+    
+    @Bean
+    public RolesQueryService rolesQueryService(){
+        return new RolesQueryService( session );
+    }
+    
+    @Bean
+    public TokenExpirationTracker tokenTracker(){
+        return new TokenExpirationTracker( hazelcastInstance );
+    }
+    
+    @PostConstruct
+    public void setExpiringTokenTracker(){
+        Principals.setExpiringTokenTracker( tokenTracker() );
+    }
+    
+    @Bean
+    public RolesManager rolesService(){
+        return new HazelcastRolesService( hazelcastInstance, rolesQueryService(), aclKeyReservationService(), tokenTracker(), userDirectoryService(), securableObjectTypes(), authorizationManager() );
+    }
 
     @Bean
     public HazelcastOrganizationService organizationsManager() {
@@ -197,7 +220,8 @@ public class DatastoreServicesPod {
                 hazelcastInstance,
                 aclKeyReservationService(),
                 authorizationManager(),
-                userDirectoryService() );
+                userDirectoryService(),
+                rolesService() );
     }
 
     @Bean
@@ -297,15 +321,5 @@ public class DatastoreServicesPod {
     @Bean
     public EntitySetContactsPopulator entitySetContactsPopulator() {
         return new EntitySetContactsPopulator( cassandraConfiguration.getKeyspace(), session, dataModelService(), userDirectoryService(), hazelcastInstance );
-    }
-    
-    @Bean
-    public RolesQueryService rolesQueryService(){
-        return new RolesQueryService( session );
-    }
-    
-    @Bean
-    public RolesManager rolesService(){
-        return new HazelcastRolesService( hazelcastInstance, rolesQueryService(), aclKeyReservationService(), userDirectoryService(), authorizationManager() );
     }
 }

@@ -5,8 +5,6 @@
 
 max-threads: 500
 
-cors-url: http://localhost:9000
-
 context:
     descriptor: src/main/webapp/WEB-INF/web.xml
     resource-base: src/main/webapp
@@ -41,7 +39,7 @@ truststore:
     path: security/rhizome.jks
     password: rhizome
 
-gzip: 
+gzip:
     enabled: true
 
 security-enabled: true

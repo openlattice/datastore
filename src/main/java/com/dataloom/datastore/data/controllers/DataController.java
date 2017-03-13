@@ -263,6 +263,13 @@ public class DataController implements DataApi, AuthorizingComponent {
 
             Set<UUID> authorizedProperties = authorizedPropertyCache.getUnchecked( ak );
 
+            Set<UUID> keyProperties = dms.getEntityTypeByEntitySetId( entitySetId ).getKey();
+
+            if ( !authorizedProperties.containsAll( keyProperties ) ) {
+                throw new ForbiddenException(
+                        "Insufficient permissions to write to some of the key property types of the entity set." );
+            }
+
             Map<UUID, EdmPrimitiveTypeKind> authorizedPropertiesWithDataType;
 
             try {
@@ -324,7 +331,14 @@ public class DataController implements DataApi, AuthorizingComponent {
             AuthorizationKey ak = new AuthorizationKey( Principals.getCurrentUser(), entitySetId, syncId );
             Set<UUID> authorizedProperties = authorizedPropertyCache.getUnchecked( ak );
 
-            return sts.acquireTicket( Principals.getCurrentUser(), entitySetId, authorizedProperties );
+            Set<UUID> keyProperties = dms.getEntityTypeByEntitySetId( entitySetId ).getKey();
+
+            if ( authorizedProperties.containsAll( keyProperties ) ) {
+                return sts.acquireTicket( Principals.getCurrentUser(), entitySetId, authorizedProperties );
+            } else {
+                throw new ForbiddenException(
+                        "Insufficient permissions to write to some of the key property types of the entity set." );
+            }
         } else {
             throw new ForbiddenException( "Insufficient permissions to write to the entity set or it doesn't exist." );
         }

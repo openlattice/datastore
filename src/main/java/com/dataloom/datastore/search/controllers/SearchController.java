@@ -19,14 +19,12 @@
 
 package com.dataloom.datastore.search.controllers;
 
-import java.io.IOException;
 import java.util.EnumSet;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
 import javax.inject.Inject;
-import javax.servlet.http.HttpServletResponse;
 
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -51,7 +49,6 @@ import com.dataloom.search.requests.SearchResult;
 import com.dataloom.search.requests.SearchTerm;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
-import com.kryptnostic.datastore.exceptions.BadRequestException;
 import com.kryptnostic.datastore.services.EdmService;
 
 @RestController

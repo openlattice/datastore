@@ -27,6 +27,9 @@ import java.util.UUID;
 import javax.annotation.PostConstruct;
 import javax.inject.Inject;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.dataloom.authorization.AbstractSecurableObjectResolveTypeService;
 import com.dataloom.authorization.AuthorizationManager;
 import com.dataloom.authorization.Permission;
@@ -53,6 +56,7 @@ import com.google.common.eventbus.EventBus;
 import com.google.common.eventbus.Subscribe;
 
 public class SearchService {
+    private static final Logger                       logger = LoggerFactory.getLogger( SearchService.class );
 
     @Inject
     private EventBus                                  eventBus;
@@ -62,9 +66,6 @@ public class SearchService {
 
     @Inject
     private AbstractSecurableObjectResolveTypeService securableObjectTypes;
-
-    @Inject
-    private DatastoreConductorSparkApi                sparkApi;
 
     @Inject
     private DatastoreConductorElasticsearchApi        elasticsearchApi;
@@ -205,5 +206,4 @@ public class SearchService {
 
         return new SearchResult( 0, Lists.newArrayList() );
     }
-
 }

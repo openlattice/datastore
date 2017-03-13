@@ -42,6 +42,7 @@ import com.dataloom.data.serializers.FullQualifedNameJacksonSerializer;
 import com.dataloom.datastore.linking.services.SimpleElasticSearchBlocker;
 import com.dataloom.datastore.linking.services.SimpleMatcher;
 import com.dataloom.datastore.scripts.EntitySetContactsPopulator;
+import com.dataloom.datastore.services.AnalysisService;
 import com.dataloom.datastore.services.CassandraDataManager;
 import com.dataloom.datastore.services.DatasourceManager;
 import com.dataloom.datastore.services.DatastoreConductorElasticsearchApi;
@@ -321,5 +322,10 @@ public class DatastoreServicesPod {
     @Bean
     public EntitySetContactsPopulator entitySetContactsPopulator() {
         return new EntitySetContactsPopulator( cassandraConfiguration.getKeyspace(), session, dataModelService(), userDirectoryService(), hazelcastInstance );
+    }
+    
+    @Bean
+    public AnalysisService analysisService() {
+        return new AnalysisService();
     }
 }

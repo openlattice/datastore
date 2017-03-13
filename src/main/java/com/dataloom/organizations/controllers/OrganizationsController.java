@@ -56,13 +56,11 @@ import com.dataloom.organization.OrganizationsApi;
 import com.dataloom.organization.roles.OrganizationRole;
 import com.dataloom.organization.roles.RoleKey;
 import com.dataloom.organizations.HazelcastOrganizationService;
-import com.dataloom.organizations.roles.RolesManager;
 import com.dataloom.streams.StreamUtil;
 import com.google.common.base.Optional;
 import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 
 @RestController
@@ -70,11 +68,11 @@ import com.google.common.collect.Sets;
 public class OrganizationsController implements AuthorizingComponent, OrganizationsApi {
 
     @Inject
-    private AuthorizationManager         authorizations;
+    private AuthorizationManager                      authorizations;
 
     @Inject
-    private HazelcastOrganizationService organizations;
-    
+    private HazelcastOrganizationService              organizations;
+
     @Inject
     private AbstractSecurableObjectResolveTypeService securableObjectTypes;
 
@@ -94,7 +92,8 @@ public class OrganizationsController implements AuthorizingComponent, Organizati
         consumes = MediaType.APPLICATION_JSON_VALUE )
     public UUID createOrganizationIfNotExists( @RequestBody Organization organization ) {
         organizations.createOrganization( Principals.getCurrentUser(), organization );
-        securableObjectTypes.createSecurableObjectType( ImmutableList.of( organization.getId() ), SecurableObjectType.Organization );
+        securableObjectTypes.createSecurableObjectType( ImmutableList.of( organization.getId() ),
+                SecurableObjectType.Organization );
         return organization.getId();
     }
 
@@ -106,7 +105,14 @@ public class OrganizationsController implements AuthorizingComponent, Organizati
         ensureRead( organizationId );
         Organization org = organizations.getOrganization( organizationId );
         Set<Principal> authorizedRoles = getAuthorizedRoles( organizationId, Permission.READ );
-        return new Organization( Optional.of( org.getId() ), org.getTitle(), Optional.of( org.getDescription() ), Optional.of( org.getTrustedOrganizations() ), org.getAutoApprovedEmails(), org.getMembers(), authorizedRoles );
+        return new Organization(
+                Optional.of( org.getId() ),
+                org.getTitle(),
+                Optional.of( org.getDescription() ),
+                Optional.of( org.getTrustedOrganizations() ),
+                org.getAutoApprovedEmails(),
+                org.getMembers(),
+                authorizedRoles );
     }
 
     @Override
@@ -116,7 +122,7 @@ public class OrganizationsController implements AuthorizingComponent, Organizati
     @ResponseStatus( HttpStatus.OK )
     public Void destroyOrganization( @PathVariable( ID ) UUID organizationId ) {
         List<UUID> aclKey = ensureOwner( organizationId );
-               
+
         organizations.destroyOrganization( organizationId );
         authorizations.deletePermissions( aclKey );
         securableObjectTypes.deleteSecurableObjectType( ImmutableList.of( organizationId ) );
@@ -240,7 +246,9 @@ public class OrganizationsController implements AuthorizingComponent, Organizati
             @PathVariable( TYPE ) PrincipalType principalType,
             @PathVariable( PRINCIPAL_ID ) String principalId ) {
         ensureOwner( organizationId );
-        organizations.addPrincipal( Principals.getCurrentUser(), organizationId, new Principal( principalType, principalId ) );
+        organizations.addPrincipal( Principals.getCurrentUser(),
+                organizationId,
+                new Principal( principalType, principalId ) );
         return null;
     }
 
@@ -259,9 +267,9 @@ public class OrganizationsController implements AuthorizingComponent, Organizati
 
     @Override
     @PutMapping(
-            value = ID_PATH + PRINCIPALS + MEMBERS + USER_ID_PATH )
-    public Void addMember( 
-            @PathVariable( ID ) UUID organizationId, 
+        value = ID_PATH + PRINCIPALS + MEMBERS + USER_ID_PATH )
+    public Void addMember(
+            @PathVariable( ID ) UUID organizationId,
             @PathVariable( USER_ID ) String userId ) {
         organizations.addMembers( organizationId, ImmutableSet.of( new Principal( PrincipalType.USER, userId ) ) );
         return null;
@@ -269,9 +277,9 @@ public class OrganizationsController implements AuthorizingComponent, Organizati
 
     @Override
     @DeleteMapping(
-            value = ID_PATH + PRINCIPALS + MEMBERS + USER_ID_PATH )
-    public Void removeMember( 
-            @PathVariable( ID ) UUID organizationId, 
+        value = ID_PATH + PRINCIPALS + MEMBERS + USER_ID_PATH )
+    public Void removeMember(
+            @PathVariable( ID ) UUID organizationId,
             @PathVariable( USER_ID ) String userId ) {
         organizations.removeMembers( organizationId, ImmutableSet.of( new Principal( PrincipalType.USER, userId ) ) );
         return null;
@@ -297,9 +305,11 @@ public class OrganizationsController implements AuthorizingComponent, Organizati
         ensureRead( organizationId );
         return getAuthorizedRoles( organizationId, Permission.READ );
     }
-    
-    private Set<Principal> getAuthorizedRoles( UUID organizationId, Permission permission ){
-        return StreamUtil.stream( organizations.getRolesInFull( organizationId ) ).filter( role -> isAuthorized( permission ).test( role.getAclKey() ) ).map( role -> role.getPrincipal() ).collect( Collectors.toSet() );
+
+    private Set<Principal> getAuthorizedRoles( UUID organizationId, Permission permission ) {
+        return StreamUtil.stream( organizations.getRolesInFull( organizationId ) )
+                .filter( role -> isAuthorized( permission ).test( role.getAclKey() ) )
+                .map( role -> role.getPrincipal() ).collect( Collectors.toSet() );
     }
 
     @Override
@@ -308,18 +318,21 @@ public class OrganizationsController implements AuthorizingComponent, Organizati
         produces = MediaType.APPLICATION_JSON_VALUE )
     public OrganizationRole getRole( @PathVariable( ID ) UUID organizationId, @PathVariable( ROLE_ID ) UUID roleId ) {
         List<UUID> aclKey = Arrays.asList( organizationId, roleId );
-        if( isAuthorized( Permission.READ ).test( aclKey ) ){
+        if ( isAuthorized( Permission.READ ).test( aclKey ) ) {
             return organizations.getRoleInFull( new RoleKey( organizationId, roleId ) );
         } else {
-            throw new ForbiddenException( "Unable to find role: " + aclKey );            
+            throw new ForbiddenException( "Unable to find role: " + aclKey );
         }
     }
 
     @Override
     @PutMapping(
-            value = ID_PATH + PRINCIPALS + ROLES + ROLE_ID_PATH + TITLE,
-            consumes = MediaType.TEXT_PLAIN_VALUE )
-    public Void updateRoleTitle( @PathVariable( ID ) UUID organizationId, @PathVariable( ROLE_ID ) UUID roleId, @RequestBody String title ) {
+        value = ID_PATH + PRINCIPALS + ROLES + ROLE_ID_PATH + TITLE,
+        consumes = MediaType.TEXT_PLAIN_VALUE )
+    public Void updateRoleTitle(
+            @PathVariable( ID ) UUID organizationId,
+            @PathVariable( ROLE_ID ) UUID roleId,
+            @RequestBody String title ) {
         ensureRoleAdminAccess( organizationId, roleId );
         organizations.updateRoleTitle( new RoleKey( organizationId, roleId ), title );
         return null;
@@ -327,9 +340,12 @@ public class OrganizationsController implements AuthorizingComponent, Organizati
 
     @Override
     @PutMapping(
-            value = ID_PATH + PRINCIPALS + ROLES + ROLE_ID_PATH + DESCRIPTION,
-            consumes = MediaType.TEXT_PLAIN_VALUE )
-    public Void updateRoleDescription( @PathVariable( ID ) UUID organizationId, @PathVariable( ROLE_ID ) UUID roleId, @RequestBody String description ) {
+        value = ID_PATH + PRINCIPALS + ROLES + ROLE_ID_PATH + DESCRIPTION,
+        consumes = MediaType.TEXT_PLAIN_VALUE )
+    public Void updateRoleDescription(
+            @PathVariable( ID ) UUID organizationId,
+            @PathVariable( ROLE_ID ) UUID roleId,
+            @RequestBody String description ) {
         ensureRoleAdminAccess( organizationId, roleId );
         organizations.updateRoleDescription( new RoleKey( organizationId, roleId ), description );
         return null;
@@ -337,7 +353,7 @@ public class OrganizationsController implements AuthorizingComponent, Organizati
 
     @Override
     @DeleteMapping(
-            value = ID_PATH + PRINCIPALS + ROLES + ROLE_ID_PATH )
+        value = ID_PATH + PRINCIPALS + ROLES + ROLE_ID_PATH )
     public Void deleteRole( @PathVariable( ID ) UUID organizationId, @PathVariable( ROLE_ID ) UUID roleId ) {
         ensureRoleAdminAccess( organizationId, roleId );
         organizations.deleteRole( new RoleKey( organizationId, roleId ) );
@@ -348,38 +364,48 @@ public class OrganizationsController implements AuthorizingComponent, Organizati
     @GetMapping(
         value = ID_PATH + PRINCIPALS + ROLES + ROLE_ID_PATH + MEMBERS,
         produces = MediaType.APPLICATION_JSON_VALUE )
-    public Iterable<Auth0UserBasic> getAllUsersOfRole( @PathVariable( ID ) UUID organizationId, @PathVariable( ROLE_ID ) UUID roleId ) {
+    public Iterable<Auth0UserBasic> getAllUsersOfRole(
+            @PathVariable( ID ) UUID organizationId,
+            @PathVariable( ROLE_ID ) UUID roleId ) {
         return organizations.getAllUserProfilesOfRole( new RoleKey( organizationId, roleId ) )::iterator;
     }
 
     @Override
     @PutMapping(
-            value = ID_PATH + PRINCIPALS + ROLES + ROLE_ID_PATH + MEMBERS + USER_ID_PATH )
-    public Void addRoleToUser( @PathVariable( ID ) UUID organizationId, @PathVariable( ROLE_ID ) UUID roleId, @PathVariable( USER_ID ) String userId ) {
-        organizations.addRoleToUser( new RoleKey( organizationId, roleId ), new Principal( PrincipalType.USER, userId ) );
+        value = ID_PATH + PRINCIPALS + ROLES + ROLE_ID_PATH + MEMBERS + USER_ID_PATH )
+    public Void addRoleToUser(
+            @PathVariable( ID ) UUID organizationId,
+            @PathVariable( ROLE_ID ) UUID roleId,
+            @PathVariable( USER_ID ) String userId ) {
+        organizations.addRoleToUser( new RoleKey( organizationId, roleId ),
+                new Principal( PrincipalType.USER, userId ) );
         return null;
     }
 
     @Override
     @DeleteMapping(
-            value = ID_PATH + PRINCIPALS + ROLES + ROLE_ID_PATH + MEMBERS + USER_ID_PATH )
-    public Void removeRoleFromUser( @PathVariable( ID ) UUID organizationId, @PathVariable( ROLE_ID ) UUID roleId, @PathVariable( USER_ID ) String userId ) {
-        organizations.removeRoleFromUser( new RoleKey( organizationId, roleId ), new Principal( PrincipalType.USER, userId ) );
+        value = ID_PATH + PRINCIPALS + ROLES + ROLE_ID_PATH + MEMBERS + USER_ID_PATH )
+    public Void removeRoleFromUser(
+            @PathVariable( ID ) UUID organizationId,
+            @PathVariable( ROLE_ID ) UUID roleId,
+            @PathVariable( USER_ID ) String userId ) {
+        organizations.removeRoleFromUser( new RoleKey( organizationId, roleId ),
+                new Principal( PrincipalType.USER, userId ) );
         return null;
     }
 
-    private void ensureRoleAdminAccess( UUID organizationId, UUID roleId ){
+    private void ensureRoleAdminAccess( UUID organizationId, UUID roleId ) {
         ensureOwner( organizationId );
-        
+
         List<UUID> aclKey = ImmutableList.of( organizationId, roleId );
         accessCheck( aclKey, EnumSet.of( Permission.OWNER ) );
     }
-    
+
     @Override
     public AuthorizationManager getAuthorizationManager() {
         return authorizations;
     }
-    
+
     private List<UUID> ensureOwner( UUID organizationId ) {
         List<UUID> aclKey = ImmutableList.of( organizationId );
         accessCheck( aclKey, EnumSet.of( Permission.OWNER ) );

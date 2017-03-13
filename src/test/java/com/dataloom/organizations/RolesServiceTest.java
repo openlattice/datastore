@@ -1,5 +1,6 @@
 package com.dataloom.organizations;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -21,6 +22,7 @@ import com.dataloom.organization.roles.OrganizationRole;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
 
 import digital.loom.rhizome.authentication.AuthenticationTest;
 import digital.loom.rhizome.authentication.AuthenticationTestRequestOptions;
@@ -120,8 +122,12 @@ public class RolesServiceTest extends OrganizationsTest {
 
         organizations.removeRoleFromUser( organizationId, newRole.getId(), user2.getId() );
 
+        Iterable<Auth0UserBasic> usersOfRoleAfterRemovingInFull = organizations.getAllUsersOfRole( organizationId, newRole.getId() );
+        if( usersOfRoleAfterRemovingInFull == null ){
+            usersOfRoleAfterRemovingInFull = new ArrayList<Auth0UserBasic>();
+        }
         Iterable<String> usersOfRoleAfterRemoving = Iterables.transform(
-                organizations.getAllUsersOfRole( organizationId, newRole.getId() ), Auth0UserBasic::getUserId );
+                usersOfRoleAfterRemovingInFull, Auth0UserBasic::getUserId );
         Assert.assertFalse( Iterables.contains( usersOfRoleAfterRemoving, user2.getId() ) );
     }
 

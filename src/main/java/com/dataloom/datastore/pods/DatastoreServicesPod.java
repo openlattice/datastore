@@ -41,6 +41,7 @@ import com.dataloom.data.serializers.FullQualifedNameJacksonDeserializer;
 import com.dataloom.data.serializers.FullQualifedNameJacksonSerializer;
 import com.dataloom.datastore.linking.services.SimpleElasticSearchBlocker;
 import com.dataloom.datastore.linking.services.SimpleMatcher;
+import com.dataloom.datastore.scripts.EmptyPermissionRemover;
 import com.dataloom.datastore.scripts.EntitySetContactsPopulator;
 import com.dataloom.datastore.services.AnalysisService;
 import com.dataloom.datastore.services.CassandraDataManager;
@@ -318,14 +319,20 @@ public class DatastoreServicesPod {
                 dataModelService(),
                 cassandraDataManager() );
     }
-
-    @Bean
-    public EntitySetContactsPopulator entitySetContactsPopulator() {
-        return new EntitySetContactsPopulator( cassandraConfiguration.getKeyspace(), session, dataModelService(), userDirectoryService(), hazelcastInstance );
-    }
     
     @Bean
     public AnalysisService analysisService() {
         return new AnalysisService();
+    }
+
+    //Startup scripts
+    @Bean
+    public EntitySetContactsPopulator entitySetContactsPopulator() {
+        return new EntitySetContactsPopulator( cassandraConfiguration.getKeyspace(), session, dataModelService(), userDirectoryService(), hazelcastInstance );
+    }
+
+    @Bean
+    public EmptyPermissionRemover removeEmptyPermissions(){
+        return new EmptyPermissionRemover( cassandraConfiguration.getKeyspace(), session );
     }
 }

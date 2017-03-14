@@ -245,6 +245,10 @@ public class SearchService {
         return elasticsearchApi.executePropertyTypeSearch( searchTerm, start, maxHits );
     }
     
+    public SearchResult executeFQNEntityTypeSearch( String namespace, String name, int start, int maxHits ) {
+        return elasticsearchApi.executeFQNEntityTypeSearch( namespace, name, start, maxHits );
+    }
+    
     public SearchResult executeFQNPropertyTypeSearch( String namespace, String name, int start, int maxHits ) {
         return elasticsearchApi.executeFQNPropertyTypeSearch( namespace, name, start, maxHits );
     }

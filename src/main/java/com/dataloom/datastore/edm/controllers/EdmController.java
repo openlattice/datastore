@@ -57,6 +57,8 @@ import com.dataloom.edm.EdmDetails;
 import com.dataloom.edm.EntitySet;
 import com.dataloom.edm.type.EntityType;
 import com.dataloom.edm.type.PropertyType;
+import com.dataloom.exceptions.ErrorsDTO;
+import com.dataloom.exceptions.LoomException;
 import com.dataloom.edm.Schema;
 import com.dataloom.edm.requests.EdmDetailsSelector;
 import com.dataloom.edm.requests.EdmRequest;
@@ -70,7 +72,6 @@ import com.kryptnostic.datastore.exceptions.BadRequestException;
 import com.kryptnostic.datastore.exceptions.BatchException;
 import com.kryptnostic.datastore.services.CassandraEntitySetManager;
 import com.kryptnostic.datastore.services.EdmManager;
-import com.kryptnostic.datastore.util.ErrorsDTO;
 
 @RestController
 @RequestMapping( EdmApi.CONTROLLER )
@@ -332,7 +333,7 @@ public class EdmController implements EdmApi, AuthorizingComponent {
                 securableObjectTypes.createSecurableObjectType( ImmutableList.of( entitySet.getId() ),
                         SecurableObjectType.EntitySet );
             } catch ( Exception e ) {
-                dto.addError( e.getClass().getSimpleName(), entitySet.getName() + ": " + e.getMessage() );
+                dto.addError( LoomException.OTHER_EXCEPTION, entitySet.getName() + ": " + e.getMessage() );
             }
         }
 

@@ -12,9 +12,10 @@ import org.springframework.security.web.AuthenticationEntryPoint;
 
 import com.auth0.spring.security.api.Auth0AuthenticationEntryPoint;
 import com.auth0.spring.security.api.Auth0TokenException;
+import com.dataloom.exceptions.ErrorsDTO;
+import com.dataloom.exceptions.LoomException;
 import com.dataloom.organizations.roles.exceptions.TokenRefreshException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.kryptnostic.datastore.util.ErrorsDTO;
 
 /**
  * Returns json error messages. The format of error messages here has to be consistent with
@@ -42,16 +43,19 @@ public class RefreshTokenAuthenticationEntryPoint implements AuthenticationEntry
         } else if ( authException instanceof TokenRefreshException ) {
             response.setStatus( HttpServletResponse.SC_UNAUTHORIZED );
             writer.println(
-                    mapper.writeValueAsString( new ErrorsDTO( "TokenRefreshException", authException.getMessage() ) ) );
+                    mapper.writeValueAsString(
+                            new ErrorsDTO( LoomException.TOKEN_REFRESH_EXCEPTION, authException.getMessage() ) ) );
 
         } else if ( authException instanceof Auth0TokenException ) {
             response.setStatus( HttpServletResponse.SC_UNAUTHORIZED );
             writer.println(
-                    mapper.writeValueAsString( new ErrorsDTO( "Auth0TokenException", authException.getMessage() ) ) );
+                    mapper.writeValueAsString(
+                            new ErrorsDTO( LoomException.AUTH0_TOKEN_EXCEPTION, authException.getMessage() ) ) );
         } else {
             response.setStatus( HttpServletResponse.SC_FORBIDDEN );
             writer.println(
-                    mapper.writeValueAsString( new ErrorsDTO( "ForbiddenException", authException.getMessage() ) ) );
+                    mapper.writeValueAsString(
+                            new ErrorsDTO( LoomException.FORBIDDEN_EXCEPTION, authException.getMessage() ) ) );
         }
     }
 

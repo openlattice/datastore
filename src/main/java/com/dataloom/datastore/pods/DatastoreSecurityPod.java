@@ -27,9 +27,7 @@ import org.springframework.security.config.annotation.method.configuration.Enabl
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.web.AuthenticationEntryPoint;
-import org.springframework.security.web.authentication.www.BasicAuthenticationEntryPoint;
 
-import com.auth0.spring.security.api.Auth0AuthenticationEntryPoint;
 import com.dataloom.authentication.LoomAuth0AuthenticationProvider;
 import com.dataloom.datastore.util.RefreshTokenAuthenticationEntryPoint;
 import com.dataloom.organizations.roles.TokenExpirationTracker;

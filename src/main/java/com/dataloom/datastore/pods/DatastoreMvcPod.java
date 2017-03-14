@@ -23,7 +23,6 @@ import java.util.List;
 
 import javax.inject.Inject;
 
-import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.FilterType;
@@ -31,7 +30,6 @@ import org.springframework.http.MediaType;
 import org.springframework.http.converter.HttpMessageConverter;
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
 import org.springframework.scheduling.annotation.EnableAsync;
-import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.web.servlet.config.annotation.ContentNegotiationConfigurer;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurationSupport;
@@ -50,7 +48,6 @@ import com.dataloom.datastore.permissions.controllers.PermissionsController;
 import com.dataloom.datastore.requests.controllers.PermissionsRequestsController;
 import com.dataloom.datastore.search.controllers.SearchController;
 import com.dataloom.datastore.util.DataStoreExceptionHandler;
-import com.dataloom.datastore.util.RefreshTokenAuthenticationEntryPoint;
 import com.dataloom.organizations.controllers.OrganizationsController;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ryantenney.metrics.spring.config.annotation.EnableMetrics;

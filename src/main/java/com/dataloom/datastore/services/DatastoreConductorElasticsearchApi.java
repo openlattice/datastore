@@ -350,4 +350,21 @@ public class DatastoreConductorElasticsearchApi implements ConductorElasticsearc
         }
     }
 
+    @Override
+    public SearchResult executeFQNPropertyTypeSearch( String namespace, String name, int start, int maxHits ) {
+        try {
+            SearchResult queryResults = executor.submit( ConductorElasticsearchCall.wrap(
+                    ElasticsearchLambdas.executeFQNPropertyTypeSearch(
+                            namespace,
+                            name,
+                            start,
+                            maxHits ) ) )
+                    .get();
+            return queryResults;
+        } catch ( InterruptedException | ExecutionException e ) {
+            logger.debug( "unable to execute property type search" );
+            return new SearchResult( 0, Lists.newArrayList() );
+        }
+    }
+
 }

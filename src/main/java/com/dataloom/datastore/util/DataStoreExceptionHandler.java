@@ -29,7 +29,6 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import com.dataloom.authorization.ForbiddenException;
 import com.dataloom.edm.exceptions.TypeExistsException;
-import com.dataloom.organizations.roles.exceptions.TokenRefreshException;
 import com.kryptnostic.datastore.exceptions.BatchException;
 import com.kryptnostic.datastore.exceptions.ResourceNotFoundException;
 import com.kryptnostic.datastore.util.ErrorsDTO;
@@ -72,14 +71,6 @@ public class DataStoreExceptionHandler {
         return new ResponseEntity<ErrorsDTO>(
                 new ErrorsDTO( "TypeExistsException", e.getMessage() ),
                 HttpStatus.CONFLICT );
-    }
-
-    @ExceptionHandler( TokenRefreshException.class )
-    public ResponseEntity<ErrorsDTO> handleTokenRefreshExceptions( TokenRefreshException e ) {
-        logger.error( ERROR_MSG, e );
-        return new ResponseEntity<ErrorsDTO>(
-                new ErrorsDTO( "TokenRefreshException", e.getMessage() ),
-                HttpStatus.UNAUTHORIZED );
     }
 
     @ExceptionHandler( ForbiddenException.class )

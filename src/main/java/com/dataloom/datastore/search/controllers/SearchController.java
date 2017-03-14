@@ -183,25 +183,25 @@ public class SearchController implements SearchApi, AuthorizingComponent {
                 searchTerm.getStart(),
                 searchTerm.getMaxHits() );
     }
-    
+
     @RequestMapping(
-            path = { ENTITY_TYPES + FQN },
-            method = RequestMethod.POST,
-            produces = { MediaType.APPLICATION_JSON_VALUE } )
-        @Override
-        public SearchResult executeFQNEntityTypeSearch( FQNSearchTerm searchTerm ) {
-            return searchService.executeFQNEntityTypeSearch( searchTerm.getNamespace(),
-                    searchTerm.getName(),
-                    searchTerm.getStart(),
-                    searchTerm.getMaxHits() );
-        }
+        path = { ENTITY_TYPES + FQN },
+        method = RequestMethod.POST,
+        produces = { MediaType.APPLICATION_JSON_VALUE } )
+    @Override
+    public SearchResult executeFQNEntityTypeSearch( @RequestBody FQNSearchTerm searchTerm ) {
+        return searchService.executeFQNEntityTypeSearch( searchTerm.getNamespace(),
+                searchTerm.getName(),
+                searchTerm.getStart(),
+                searchTerm.getMaxHits() );
+    }
 
     @RequestMapping(
         path = { PROPERTY_TYPES + FQN },
         method = RequestMethod.POST,
         produces = { MediaType.APPLICATION_JSON_VALUE } )
     @Override
-    public SearchResult executeFQNPropertyTypeSearch( FQNSearchTerm searchTerm ) {
+    public SearchResult executeFQNPropertyTypeSearch( @RequestBody FQNSearchTerm searchTerm ) {
         return searchService.executeFQNPropertyTypeSearch( searchTerm.getNamespace(),
                 searchTerm.getName(),
                 searchTerm.getStart(),

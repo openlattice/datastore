@@ -185,7 +185,7 @@ public class SearchController implements SearchApi, AuthorizingComponent {
     }
     
     @RequestMapping(
-            path = { ENTITY_TYPES },
+            path = { ENTITY_TYPES + FQN },
             method = RequestMethod.POST,
             produces = { MediaType.APPLICATION_JSON_VALUE } )
         @Override
@@ -197,7 +197,7 @@ public class SearchController implements SearchApi, AuthorizingComponent {
         }
 
     @RequestMapping(
-        path = { PROPERTY_TYPES },
+        path = { PROPERTY_TYPES + FQN },
         method = RequestMethod.POST,
         produces = { MediaType.APPLICATION_JSON_VALUE } )
     @Override

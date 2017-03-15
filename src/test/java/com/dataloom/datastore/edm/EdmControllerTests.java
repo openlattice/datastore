@@ -38,6 +38,7 @@ import com.dataloom.datastore.authentication.AuthenticatedRestCallsTest;
 import com.dataloom.edm.EdmApi;
 import com.dataloom.edm.EntityDataModel;
 import com.dataloom.edm.EntitySet;
+import com.dataloom.edm.requests.MetadataUpdate;
 import com.dataloom.edm.type.EntityType;
 import com.dataloom.edm.type.PropertyType;
 import com.dataloom.mapstores.TestDataFactory;
@@ -186,9 +187,9 @@ public class EdmControllerTests extends BootstrapDatastoreWithCassandra {
         FullQualifiedName newEtFqn = TestDataFactory.fqn();
         String newEsName = TestDataFactory.name();
 
-        edm.renamePropertyType( pt.getId(), newPtFqn );
-        edm.renameEntityType( et.getId(), newEtFqn );
-        edm.renameEntitySet( es.getId(), newEsName );
+        edm.updatePropertyTypeMetadata( pt.getId(), new MetadataUpdate( Optional.absent(), Optional.absent(), Optional.absent(), Optional.absent(), Optional.of( newPtFqn ) ) );
+        edm.updateEntityTypeMetadata( et.getId(), new MetadataUpdate( Optional.absent(), Optional.absent(), Optional.absent(), Optional.absent(), Optional.of( newEtFqn ) ) );
+        edm.updateEntitySetMetadata( es.getId(), new MetadataUpdate( Optional.absent(), Optional.absent(), Optional.of( newEsName ), Optional.absent(), Optional.absent() ) );
 
         Assert.assertEquals( newPtFqn, edm.getPropertyType( pt.getId() ).getType() );
         Assert.assertEquals( newEtFqn, edm.getEntityType( et.getId() ).getType() );

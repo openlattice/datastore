@@ -667,7 +667,6 @@ public class EdmController implements EdmApi, AuthorizingComponent {
         consumes = MediaType.APPLICATION_JSON_VALUE )
     public Void updatePropertyTypeMetadata( @PathVariable( ID ) UUID propertyTypeId, @RequestBody MetadataUpdate update ) {
         ensureAdminAccess();
-//        modelService.renamePropertyType( propertyTypeId, newFqn );
         modelService.updatePropertyTypeMetadata( propertyTypeId, update );
         return null;
     }
@@ -679,7 +678,6 @@ public class EdmController implements EdmApi, AuthorizingComponent {
         consumes = MediaType.APPLICATION_JSON_VALUE )
     public Void updateEntityTypeMetadata( @PathVariable( ID ) UUID entityTypeId, @RequestBody MetadataUpdate update ) {
         ensureAdminAccess();
-//        modelService.renameEntityType( entityTypeId, newFqn );
         modelService.updateEntityTypeMetadata( entityTypeId, update );
         return null;
     }
@@ -691,7 +689,6 @@ public class EdmController implements EdmApi, AuthorizingComponent {
         consumes = MediaType.APPLICATION_JSON_VALUE )
     public Void updateEntitySetMetadata( @PathVariable( ID ) UUID entitySetId, @RequestBody MetadataUpdate update ) {
         ensureAdminAccess();
-//        modelService.renameEntitySet( entitySetId, newName );
         modelService.updateEntitySetMetadata( entitySetId, update );
         return null;
     }

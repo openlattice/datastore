@@ -426,7 +426,7 @@ public class EdmController implements EdmApi, AuthorizingComponent {
     @Override
     @PostMapping(
         path = ENUM_TYPE_PATH,
-        produces = MediaType.APPLICATION_JSON_VALUE )
+        consumes = MediaType.APPLICATION_JSON_VALUE )
     public UUID createEnumType( @RequestBody EnumType enumType ) {
         modelService.createEnumTypeIfNotExists( enumType );
         return enumType.getId();

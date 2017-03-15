@@ -227,7 +227,7 @@ public class EdmControllerTests extends BootstrapDatastoreWithCassandra {
 
         FullQualifiedName newEtFqn = TestDataFactory.fqn();
         
-        edm.updatePropertyTypeMetadata( et.getId(), new MetadataUpdate( Optional.absent(), Optional.absent(), Optional.absent(), Optional.absent(), Optional.of( newEtFqn ) ) );
+        edm.updateEntityTypeMetadata( et.getId(), new MetadataUpdate( Optional.absent(), Optional.absent(), Optional.absent(), Optional.absent(), Optional.of( newEtFqn ) ) );
 
         EntityType updatedEt = edm.getEntityType( et.getId() );
         Assert.assertEquals( newEtFqn, updatedEt.getType() );

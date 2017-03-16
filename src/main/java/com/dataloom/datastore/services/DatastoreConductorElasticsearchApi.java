@@ -275,7 +275,7 @@ public class DatastoreConductorElasticsearchApi implements ConductorElasticsearc
     }
 
     @Override
-    public Boolean saveEntityTypeToElasticsearch( EntityType entityType ) {
+    public boolean saveEntityTypeToElasticsearch( EntityType entityType ) {
         try {
             return executor.submit( ConductorElasticsearchCall
                     .wrap( ElasticsearchLambdas.saveEntityTypeToElasticsearch( entityType ) ) ).get();
@@ -286,7 +286,7 @@ public class DatastoreConductorElasticsearchApi implements ConductorElasticsearc
     }
 
     @Override
-    public Boolean savePropertyTypeToElasticsearch( PropertyType propertyType ) {
+    public boolean savePropertyTypeToElasticsearch( PropertyType propertyType ) {
         try {
             return executor.submit( ConductorElasticsearchCall
                     .wrap( ElasticsearchLambdas.savePropertyTypeToElasticsearch( propertyType ) ) ).get();
@@ -297,7 +297,7 @@ public class DatastoreConductorElasticsearchApi implements ConductorElasticsearc
     }
 
     @Override
-    public Boolean deleteEntityType( UUID entityTypeId ) {
+    public boolean deleteEntityType( UUID entityTypeId ) {
         try {
             return executor.submit( ConductorElasticsearchCall
                     .wrap( ElasticsearchLambdas.deleteEntityType( entityTypeId ) ) ).get();
@@ -308,7 +308,7 @@ public class DatastoreConductorElasticsearchApi implements ConductorElasticsearc
     }
 
     @Override
-    public Boolean deletePropertyType( UUID propertyTypeId ) {
+    public boolean deletePropertyType( UUID propertyTypeId ) {
         try {
             return executor.submit( ConductorElasticsearchCall
                     .wrap( ElasticsearchLambdas.deletePropertyType( propertyTypeId ) ) ).get();

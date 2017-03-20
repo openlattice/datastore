@@ -40,7 +40,10 @@ import com.dataloom.data.events.EntityDataCreatedEvent;
 import com.dataloom.edm.events.EntitySetCreatedEvent;
 import com.dataloom.edm.events.EntitySetDeletedEvent;
 import com.dataloom.edm.events.EntitySetMetadataUpdatedEvent;
+import com.dataloom.edm.events.LinkingTypeCreatedEvent;
+import com.dataloom.edm.events.LinkingTypeDeletedEvent;
 import com.dataloom.edm.events.PropertyTypesInEntitySetUpdatedEvent;
+import com.dataloom.edm.type.LinkingType;
 import com.dataloom.linking.Entity;
 import com.dataloom.organizations.events.OrganizationCreatedEvent;
 import com.dataloom.organizations.events.OrganizationDeletedEvent;
@@ -205,5 +208,32 @@ public class SearchService {
         }
 
         return new SearchResult( 0, Lists.newArrayList() );
+    }
+
+    @Subscribe
+    public void createLinkingType( LinkingTypeCreatedEvent event ) {
+        LinkingType linkingType = event.getLinkingType();
+        elasticsearchApi.saveLinkingTypeToElasticsearch( linkingType );
+    }
+
+    @Subscribe
+    public void deleteLinkingType( LinkingTypeDeletedEvent event ) {
+        UUID linkingTypeId = event.getLinkingTypeId();
+        elasticsearchApi.deleteLinkingType( linkingTypeId );
+    }
+
+    public SearchResult executeLinkingTypeSearch(
+            Optional<String> optionalSearchTerm,
+            Optional<UUID> optionalProperty,
+            Optional<UUID> optionalSrc,
+            Optional<UUID> optionalDest,
+            int start,
+            int maxHits ) {
+        return elasticsearchApi.executeLinkingTypeSearch( optionalSearchTerm,
+                optionalProperty,
+                optionalSrc,
+                optionalDest,
+                start,
+                maxHits );
     }
 }

@@ -12,6 +12,7 @@ import org.slf4j.LoggerFactory;
 import com.dataloom.authorization.Permission;
 import com.dataloom.authorization.Principal;
 import com.dataloom.edm.EntitySet;
+import com.dataloom.edm.type.LinkingType;
 import com.dataloom.edm.type.PropertyType;
 import com.dataloom.linking.Entity;
 import com.dataloom.organization.Organization;
@@ -268,6 +269,52 @@ public class DatastoreConductorElasticsearchApi implements ConductorElasticsearc
             return queryResults;
         } catch ( InterruptedException | ExecutionException e ) {
             logger.debug( "unable to execute entity set data search" );
+            return new SearchResult( 0, Lists.newArrayList() );
+        }
+    }
+
+    @Override
+    public boolean saveLinkingTypeToElasticsearch( LinkingType linkingType ) {
+        try {
+            return executor.submit( ConductorElasticsearchCall
+                    .wrap( ElasticsearchLambdas.createLinkingType( linkingType ) ) ).get();
+        } catch ( InterruptedException | ExecutionException e ) {
+            logger.debug( "unable to create linking type in elasticsearch" );
+            return false;
+        }
+    }
+
+    @Override
+    public boolean deleteLinkingType( UUID linkingTypeId ) {
+        try {
+            return executor.submit( ConductorElasticsearchCall
+                    .wrap( ElasticsearchLambdas.deleteLinkingType( linkingTypeId ) ) ).get();
+        } catch ( InterruptedException | ExecutionException e ) {
+            logger.debug( "unable to delete linking type from elasticsearch" );
+            return false;
+        }
+    }
+
+    @Override
+    public SearchResult executeLinkingTypeSearch(
+            Optional<String> optionalSearchTerm,
+            Optional<UUID> optionalProperty,
+            Optional<UUID> optionalSrcId,
+            Optional<UUID> optionalDestId,
+            int start,
+            int maxHits ) {
+        try {
+            SearchResult queryResults = executor.submit( ConductorElasticsearchCall.wrap(
+                    ElasticsearchLambdas.executeLinkingTypeSearch( optionalSearchTerm,
+                            optionalProperty,
+                            optionalSrcId,
+                            optionalDestId,
+                            start,
+                            maxHits ) ) )
+                    .get();
+            return queryResults;
+        } catch ( InterruptedException | ExecutionException e ) {
+            logger.debug( "unable to execute linking type search" );
             return new SearchResult( 0, Lists.newArrayList() );
         }
     }

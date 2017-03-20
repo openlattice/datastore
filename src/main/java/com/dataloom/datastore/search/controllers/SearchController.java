@@ -44,6 +44,7 @@ import com.dataloom.datastore.services.SearchService;
 import com.dataloom.edm.EntitySet;
 import com.dataloom.search.SearchApi;
 import com.dataloom.search.requests.AdvancedSearch;
+import com.dataloom.search.requests.LinkingTypeSearch;
 import com.dataloom.search.requests.Search;
 import com.dataloom.search.requests.SearchResult;
 import com.dataloom.search.requests.SearchTerm;
@@ -159,5 +160,25 @@ public class SearchController implements SearchApi, AuthorizingComponent {
             return searchService.executeAdvancedEntitySetDataSearch( entitySetId, search, authorizedProperties );
         }
         return new SearchResult( 0, Lists.newArrayList() );
+    }
+
+    @Override
+    @RequestMapping(
+            path = LINKING_TYPES,
+            method = RequestMethod.POST,
+            produces = MediaType.APPLICATION_JSON_VALUE )
+    public SearchResult executeLinkingTypeSearch( @RequestBody LinkingTypeSearch searchTerm ) {
+        if ( !searchTerm.getOptionalProperty().isPresent() && !searchTerm.getOptionalSearchTerm().isPresent()
+                && !searchTerm.getOptionalSrc().isPresent() && !searchTerm.getOptionalDest().isPresent() ) {
+            throw new IllegalArgumentException(
+                    "Your search cannot be empty--you must include at least one of of the four search params: keyword ('kw'), property type id ('property'), source property type id ('src'), or destination property type id ('dest')" );
+        }
+
+        return searchService.executeLinkingTypeSearch( searchTerm.getOptionalSearchTerm(),
+                searchTerm.getOptionalProperty(),
+                searchTerm.getOptionalSrc(),
+                searchTerm.getOptionalDest(),
+                searchTerm.getStart(),
+                searchTerm.getMaxHits() );
     }
 }

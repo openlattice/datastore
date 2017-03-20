@@ -152,8 +152,15 @@ public class CassandraDataManager {
             UUID syncId,
             Set<UUID> authorizedProperties ) {
         Iterable<String> entityIds = getEntityIds( entitySetId );
-        Iterable<ResultSetFuture> entityFutures = Iterables.transform( entityIds,
-                entityId -> asyncLoadEntity( entityId, syncId, authorizedProperties ) );
+        Iterable<ResultSetFuture> entityFutures; 
+        //If syncId is not specified, retrieve latest snapshot of entity
+        if( syncId != null ){
+            entityFutures = Iterables.transform( entityIds,
+                    entityId -> asyncLoadEntity( entityId, syncId, authorizedProperties ) );
+        } else {
+            entityFutures = Iterables.transform( entityIds,
+                    entityId -> asyncLoadEntity( entityId, authorizedProperties ) );
+        }
         return Iterables.transform( entityFutures, ResultSetFuture::getUninterruptibly );
     }
 
@@ -330,7 +337,7 @@ public class CassandraDataManager {
                 .eq( CommonColumns.ENTITYID.cql(), CommonColumns.ENTITYID.bindMarker() ) )
                 .and( QueryBuilder.in( CommonColumns.PROPERTY_TYPE_ID.cql(),
                         CommonColumns.PROPERTY_TYPE_ID.bindMarker() ) )
-                .and( QueryBuilder.lt( CommonColumns.SYNCID.cql(), CommonColumns.SYNCID.bindMarker() ) );
+                .and( QueryBuilder.lte( CommonColumns.SYNCID.cql(), CommonColumns.SYNCID.bindMarker() ) );
     }
 
     private static PreparedStatement prepareEntityIdsQuery( Session session ) {

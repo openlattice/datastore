@@ -31,7 +31,6 @@ public class SimpleElasticSearchBlocker implements Blocker {
     private final CassandraDataManager dataManager;
     private SearchService              searchService;
 
-    private Map<UUID, UUID>            entitySetsWithSyncIds;
     private SetMultimap<UUID, UUID>    linkIndexedByEntitySets;
     private Set<UUID>                  linkingES;
 
@@ -51,12 +50,11 @@ public class SimpleElasticSearchBlocker implements Blocker {
 
     @Override
     public void setLinking(
-            Map<UUID, UUID> entitySetsWithSyncIds,
+            Set<UUID> linkingEntitySets,
             SetMultimap<UUID, UUID> linkIndexedByPropertyTypes,
             SetMultimap<UUID, UUID> linkIndexedByEntitySets ) {
-        this.entitySetsWithSyncIds = entitySetsWithSyncIds;
         this.linkIndexedByEntitySets = linkIndexedByEntitySets;
-        this.linkingES = new HashSet<>( entitySetsWithSyncIds.keySet() );
+        this.linkingES = new HashSet<>( linkingEntitySets );
     }
 
     @Override
@@ -72,8 +70,7 @@ public class SimpleElasticSearchBlocker implements Blocker {
         Set<UUID> propertiesSet = ImmutableSet.copyOf( linkIndexedByEntitySets.get( entitySetId ) );
         Map<UUID, PropertyType> propertiesMap = propertiesSet.stream()
                 .collect( Collectors.toMap( ptId -> ptId, ptId -> dms.getPropertyType( ptId ) ) );
-        Set<UUID> syncIds = ImmutableSet.of( entitySetsWithSyncIds.get( entitySetId ) );
-        Iterable<String> entityIds = dataManager.getEntityIds( entitySetId, syncIds );
+        Iterable<String> entityIds = dataManager.getEntityIds( entitySetId );
 
         Stream<EntityKey> entityKeys = StreamUtil.stream( entityIds )
                 .map( entityId -> new EntityKey( entitySetId, entityId ) );

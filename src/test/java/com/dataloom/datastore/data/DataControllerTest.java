@@ -79,7 +79,7 @@ public class DataControllerTest extends MultipleAuthenticatedUsersBase {
         Set<UUID> selectedProperties = et.getProperties().stream().filter( pid -> random.nextBoolean() )
                 .collect( Collectors.toSet() );
         EntitySetSelection ess = new EntitySetSelection(
-                Optional.of( ImmutableSet.of( syncId ) ),
+                Optional.of( syncId ),
                 Optional.of( selectedProperties ) );
         Iterable<SetMultimap<FullQualifiedName, Object>> results = dataApi.loadEntitySetData( es.getId(), ess, null );
 

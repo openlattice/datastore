@@ -58,7 +58,7 @@ import com.dataloom.edm.EntitySet;
 import com.dataloom.edm.type.EntityType;
 import com.dataloom.edm.type.PropertyType;
 import com.dataloom.exceptions.ErrorsDTO;
-import com.dataloom.exceptions.LoomException;
+import com.dataloom.exceptions.LoomExceptions;
 import com.dataloom.edm.Schema;
 import com.dataloom.edm.requests.EdmDetailsSelector;
 import com.dataloom.edm.requests.EdmRequest;
@@ -333,7 +333,7 @@ public class EdmController implements EdmApi, AuthorizingComponent {
                 securableObjectTypes.createSecurableObjectType( ImmutableList.of( entitySet.getId() ),
                         SecurableObjectType.EntitySet );
             } catch ( Exception e ) {
-                dto.addError( LoomException.OTHER_EXCEPTION, entitySet.getName() + ": " + e.getMessage() );
+                dto.addError( LoomExceptions.OTHER_EXCEPTION, entitySet.getName() + ": " + e.getMessage() );
             }
         }
 

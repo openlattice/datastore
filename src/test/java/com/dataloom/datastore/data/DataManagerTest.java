@@ -105,7 +105,7 @@ public class DataManagerTest extends BootstrapDatastoreWithCassandra {
     @Test
     public void testWriteAndRead() {
         final UUID entitySetId = UUID.randomUUID();
-        final UUID syncId = UUID.randomUUID();
+        final UUID syncId = UUIDs.timeBased();
 
         Map<UUID, PropertyType> propertyTypes = generateProperties( 5 );
         Map<UUID, EdmPrimitiveTypeKind> propertiesWithDataType = propertyTypes.entrySet().stream()
@@ -124,6 +124,7 @@ public class DataManagerTest extends BootstrapDatastoreWithCassandra {
         
         Assert.assertEquals( convertValueToString( expected, propertiesWithDataTypeIndexedByFqn, this::getStringFromRaw ), convertValueToString( result, propertiesWithDataTypeIndexedByFqn, this::getStringFromNormalized ) );
     }
+    
     
     @Test
     public void testWriteAndDelete() {
@@ -150,7 +151,7 @@ public class DataManagerTest extends BootstrapDatastoreWithCassandra {
 
     @Ignore
     public void populateEmployeeCsv() throws FileNotFoundException, IOException {
-        final UUID syncId = UUID.randomUUID();
+        final UUID syncId = UUIDs.timeBased();
         final UUID entitySetId = UUID.randomUUID();
         // Four property types: Employee Name, Title, Department, Salary
         Map<String, UUID> idLookup = getUUIDsForEmployeeCsvProperties();

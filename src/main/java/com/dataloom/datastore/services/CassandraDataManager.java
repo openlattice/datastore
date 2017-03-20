@@ -156,10 +156,10 @@ public class CassandraDataManager {
         //If syncId is not specified, retrieve latest snapshot of entity
         if( syncId != null ){
             entityFutures = Iterables.transform( entityIds,
-                    entityId -> asyncLoadEntity( entityId, syncId, authorizedProperties ) );
+                    entityId -> asyncLoadEntity( entitySetId, entityId, syncId, authorizedProperties ) );
         } else {
             entityFutures = Iterables.transform( entityIds,
-                    entityId -> asyncLoadEntity( entityId, authorizedProperties ) );
+                    entityId -> asyncLoadEntity( entitySetId, entityId, authorizedProperties ) );
         }
         return Iterables.transform( entityFutures, ResultSetFuture::getUninterruptibly );
     }
@@ -170,7 +170,7 @@ public class CassandraDataManager {
             String entityId,
             Map<UUID, PropertyType> authorizedPropertyTypes ) {
         Set<UUID> authorizedProperties = authorizedPropertyTypes.keySet();
-        ResultSet rs = asyncLoadEntity( entityId, authorizedProperties ).getUninterruptibly();
+        ResultSet rs = asyncLoadEntity( entitySetId, entityId, authorizedProperties ).getUninterruptibly();
         return RowAdapters.entity( rs, authorizedPropertyTypes, mapper );
     }
 
@@ -181,14 +181,16 @@ public class CassandraDataManager {
         return Iterables.filter( Iterables.transform( entityIds, RowAdapters::entityId ), StringUtils::isNotBlank );
     }
 
-    public ResultSetFuture asyncLoadEntity( String entityId, Set<UUID> authorizedProperties ) {
+    public ResultSetFuture asyncLoadEntity( UUID entitySetId, String entityId, Set<UUID> authorizedProperties ) {
         return session.executeAsync( entitySetQuery.bind()
+                .setUUID( CommonColumns.ENTITY_SET_ID.cql(), entitySetId )
                 .setString( CommonColumns.ENTITYID.cql(), entityId )
                 .setSet( CommonColumns.PROPERTY_TYPE_ID.cql(), authorizedProperties ) );
     }
 
-    public ResultSetFuture asyncLoadEntity( String entityId, UUID syncId, Set<UUID> authorizedProperties ) {
-        return session.executeAsync( entitySetQuery.bind()
+    public ResultSetFuture asyncLoadEntity( UUID entitySetId, String entityId, UUID syncId, Set<UUID> authorizedProperties ) {
+        return session.executeAsync( entitySetQueryUpToSyncId.bind()
+                .setUUID( CommonColumns.ENTITY_SET_ID.cql(), entitySetId )
                 .setString( CommonColumns.ENTITYID.cql(), entityId )
                 .setSet( CommonColumns.PROPERTY_TYPE_ID.cql(), authorizedProperties )
                 .setUUID( CommonColumns.SYNCID.cql(), syncId ) );
@@ -284,8 +286,6 @@ public class CassandraDataManager {
                 counter = 0;
                 results = new ArrayList<ResultSetFuture>();
             }
-
-            UUID syncId = RowAdapters.syncId( entityIdRow );
             String entityId = RowAdapters.entityId( entityIdRow );
 
             results.add( asyncDeleteEntity( entitySetId, entityId ) );
@@ -327,14 +327,16 @@ public class CassandraDataManager {
 
     private static Select.Where entitySetQuery( CassandraTableBuilder ctb ) {
         return ctb.buildLoadAllQuery().where( QueryBuilder
-                .eq( CommonColumns.ENTITYID.cql(), CommonColumns.ENTITYID.bindMarker() ) )
+                .eq( CommonColumns.ENTITY_SET_ID.cql(), CommonColumns.ENTITY_SET_ID.bindMarker() ) )
+                .and( QueryBuilder.eq( CommonColumns.ENTITYID.cql(), CommonColumns.ENTITYID.bindMarker() ) )
                 .and( QueryBuilder.in( CommonColumns.PROPERTY_TYPE_ID.cql(),
                         CommonColumns.PROPERTY_TYPE_ID.bindMarker() ) );
     }
 
     private static Select.Where entitySetQueryUpToSyncId( CassandraTableBuilder ctb ) {
         return ctb.buildLoadAllQuery().where( QueryBuilder
-                .eq( CommonColumns.ENTITYID.cql(), CommonColumns.ENTITYID.bindMarker() ) )
+                .eq( CommonColumns.ENTITY_SET_ID.cql(), CommonColumns.ENTITY_SET_ID.bindMarker() ) )
+                .and( QueryBuilder.eq( CommonColumns.ENTITYID.cql(), CommonColumns.ENTITYID.bindMarker() ) )
                 .and( QueryBuilder.in( CommonColumns.PROPERTY_TYPE_ID.cql(),
                         CommonColumns.PROPERTY_TYPE_ID.bindMarker() ) )
                 .and( QueryBuilder.lte( CommonColumns.SYNCID.cql(), CommonColumns.SYNCID.bindMarker() ) );
@@ -342,7 +344,9 @@ public class CassandraDataManager {
 
     private static PreparedStatement prepareEntityIdsQuery( Session session ) {
         return session.prepare( QueryBuilder
-                .select().distinct()
+                .select()
+                .column( CommonColumns.ENTITY_SET_ID.cql() ).column( CommonColumns.ENTITYID.cql() )
+                .distinct()
                 .from( Table.DATA.getKeyspace(), Table.DATA.getName() )
                 .where( QueryBuilder.eq( CommonColumns.ENTITY_SET_ID.cql(), QueryBuilder.bindMarker() ) ) );
     }
@@ -396,7 +400,7 @@ public class CassandraDataManager {
 
         linkedKey.getValue().stream()
                 .map( key -> Pair.of( key.getEntitySetId(),
-                        asyncLoadEntity( key.getEntityId(),
+                        asyncLoadEntity( key.getEntitySetId(), key.getEntityId(),
                                 authorizedPropertyTypesForEntitySets.get( key.getEntitySetId() ).keySet() ) ) )
                 .map( rsfPair -> Pair.of( rsfPair.getKey(), rsfPair.getValue().getUninterruptibly() ) )
                 .map( rsPair -> RowAdapters.entityIdFQNPair( rsPair.getValue(),

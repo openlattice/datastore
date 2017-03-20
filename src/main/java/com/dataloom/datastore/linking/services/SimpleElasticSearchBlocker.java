@@ -76,7 +76,7 @@ public class SimpleElasticSearchBlocker implements Blocker {
                 .map( entityId -> new EntityKey( entitySetId, entityId ) );
 
         Stream<Pair<EntityKey, SetMultimap<UUID, Object>>> entityKeyDataPairs = entityKeys
-                .map( key -> Pair.of( key, dataManager.asyncLoadEntity( key.getEntityId(), propertiesSet ) ) )
+                .map( key -> Pair.of( key, dataManager.asyncLoadEntity( key.getEntitySetId(), key.getEntityId(), propertiesSet ) ) )
                 .map( rsfPair -> Pair.of( rsfPair.getKey(), rsfPair.getValue().getUninterruptibly() ) )
                 .map( rsPair -> Pair.of( rsPair.getKey(),
                         dataManager.rowToEntityIndexedById( rsPair.getValue(), propertiesMap ) ) );

@@ -165,7 +165,7 @@ public class PermissionsController implements PermissionsApi, AuthorizingCompone
             // compute total permission of each user
             Iterable<AceExplanation> explanation = Iterables.transform( resultMap.asMap().entrySet(),
                     this::computeAceExplanation );
-            return new AclExplanation( aclKey, explanation );
+            return new AclExplanation( aclKey, explanation::iterator );
         } else {
             throw new ForbiddenException( "Only owner of a securable object can access other users' access rights." );
         }
@@ -180,7 +180,6 @@ public class PermissionsController implements PermissionsApi, AuthorizingCompone
     private AceExplanation computeAceExplanation( Entry<Principal, Collection<Ace>> entry ) {
         Set<Permission> totalPermissions = entry.getValue().stream().flatMap( ace -> ace.getPermissions().stream() )
                 .collect( Collectors.toCollection( () -> EnumSet.noneOf( Permission.class ) ) );
-
         Set<Ace> aces = entry.getValue().stream().collect( Collectors.toSet() );
         Ace totalAce = new Ace( entry.getKey(), totalPermissions );
         return new AceExplanation( totalAce, aces );

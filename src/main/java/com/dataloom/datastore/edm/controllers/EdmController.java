@@ -63,7 +63,8 @@ import com.dataloom.edm.schemas.manager.HazelcastSchemaManager;
 import com.dataloom.edm.type.ComplexType;
 import com.dataloom.edm.type.EntityType;
 import com.dataloom.edm.type.EnumType;
-import com.dataloom.edm.type.LinkingType;
+import com.dataloom.edm.type.LinkingEntityType;
+import com.dataloom.edm.type.EdgeType;
 import com.dataloom.edm.type.PropertyType;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
@@ -709,43 +710,38 @@ public class EdmController implements EdmApi, AuthorizingComponent {
                 "Entity Set Type does not exist." );
     }
 
-
     @Override
     @RequestMapping(
-            path = LINKING_TYPE_PATH,
-            method = RequestMethod.GET,
-            produces = MediaType.APPLICATION_JSON_VALUE )
-    public Iterable<LinkingType> getLinkingTypes() {
-        return modelService.getLinkingTypes()::iterator;
+        path = EDGE_TYPE_PATH,
+        method = RequestMethod.POST,
+        produces = MediaType.APPLICATION_JSON_VALUE )
+    public UUID createEdgeType( @RequestBody EdgeType edgeType ) {
+        EntityType entityType = edgeType.getEdgeEntityType();
+        if ( entityType == null ) {
+            throw new IllegalArgumentException( "You cannot create an edge type without specifying its entity type" );
+        }
+        createEntityType( entityType );
+        modelService.createEdgeType( edgeType, entityType.getId() );
+        return entityType.getId();
     }
 
     @Override
     @RequestMapping(
-            path = LINKING_TYPE_PATH,
-            method = RequestMethod.POST,
-            produces = MediaType.APPLICATION_JSON_VALUE )
-    public UUID createLinkingType( @RequestBody LinkingType linkingType ) {
-        modelService.createLinkingType( linkingType );
-        return linkingType.getId();
-    }
-
-    @Override
-    @RequestMapping(
-            path = LINKING_TYPE_PATH + ID_PATH,
-            method = RequestMethod.DELETE,
-            produces = MediaType.APPLICATION_JSON_VALUE )
-    public Void deleteLinkingType( @PathVariable( ID ) UUID linkingTypeId ) {
+        path = EDGE_TYPE_PATH + ID_PATH,
+        method = RequestMethod.DELETE,
+        produces = MediaType.APPLICATION_JSON_VALUE )
+    public Void deleteEdgeType( @PathVariable( ID ) UUID edgeTypeId ) {
         ensureAdminAccess();
-        modelService.deleteLinkingType( linkingTypeId );
+        modelService.deleteEdgeType( edgeTypeId );
         return null;
     }
 
     @Override
     @RequestMapping(
-            path = LINKING_TYPE_PATH + ID_PATH,
-            method = RequestMethod.GET,
-            produces = MediaType.APPLICATION_JSON_VALUE )
-    public LinkingType getLinkingTypeById( @PathVariable( ID ) UUID linkingTypeId ) {
-        return modelService.getLinkingType( linkingTypeId );
+        path = EDGE_TYPE_PATH + ID_PATH,
+        method = RequestMethod.GET,
+        produces = MediaType.APPLICATION_JSON_VALUE )
+    public EdgeType getEdgeTypeById( @PathVariable( ID ) UUID edgeTypeId ) {
+        return modelService.getEdgeType( edgeTypeId );
     }
 }

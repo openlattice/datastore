@@ -29,14 +29,21 @@ import java.util.UUID;
 import javax.inject.Inject;
 import javax.servlet.http.HttpServletResponse;
 
-import com.dataloom.edm.type.ComplexType;
-import com.dataloom.edm.type.EnumType;
 import org.apache.olingo.commons.api.edm.FullQualifiedName;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.web.bind.annotation.RestController;
 
 import com.auth0.jwt.internal.org.apache.commons.lang3.StringUtils;
 import com.auth0.spring.security.api.Auth0JWTToken;
@@ -52,17 +59,21 @@ import com.dataloom.authorization.util.AuthorizationUtils;
 import com.dataloom.datastore.constants.CustomMediaType;
 import com.dataloom.datastore.services.CassandraDataManager;
 import com.dataloom.edm.EdmApi;
-import com.dataloom.edm.EntityDataModel;
 import com.dataloom.edm.EdmDetails;
+import com.dataloom.edm.EntityDataModel;
 import com.dataloom.edm.EntitySet;
-import com.dataloom.edm.type.EntityType;
-import com.dataloom.edm.type.PropertyType;
-import com.dataloom.exceptions.ErrorsDTO;
-import com.dataloom.exceptions.LoomExceptions;
 import com.dataloom.edm.Schema;
 import com.dataloom.edm.requests.EdmDetailsSelector;
 import com.dataloom.edm.requests.EdmRequest;
+import com.dataloom.edm.requests.MetadataUpdate;
 import com.dataloom.edm.schemas.manager.HazelcastSchemaManager;
+import com.dataloom.edm.type.ComplexType;
+import com.dataloom.edm.type.EdgeType;
+import com.dataloom.edm.type.EntityType;
+import com.dataloom.edm.type.EnumType;
+import com.dataloom.edm.type.PropertyType;
+import com.dataloom.exceptions.ErrorsDTO;
+import com.dataloom.exceptions.LoomExceptions;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -426,7 +437,7 @@ public class EdmController implements EdmApi, AuthorizingComponent {
     @Override
     @PostMapping(
         path = ENUM_TYPE_PATH,
-        produces = MediaType.APPLICATION_JSON_VALUE )
+        consumes = MediaType.APPLICATION_JSON_VALUE )
     public UUID createEnumType( @RequestBody EnumType enumType ) {
         modelService.createEnumTypeIfNotExists( enumType );
         return enumType.getId();
@@ -663,31 +674,35 @@ public class EdmController implements EdmApi, AuthorizingComponent {
     @Override
     @RequestMapping(
         path = PROPERTY_TYPE_PATH + ID_PATH,
-        method = RequestMethod.PATCH )
-    public Void renamePropertyType( @PathVariable( ID ) UUID propertyTypeId, @RequestBody FullQualifiedName newFqn ) {
+        method = RequestMethod.PATCH,
+        consumes = MediaType.APPLICATION_JSON_VALUE )
+    public Void updatePropertyTypeMetadata(
+            @PathVariable( ID ) UUID propertyTypeId,
+            @RequestBody MetadataUpdate update ) {
         ensureAdminAccess();
-        modelService.renamePropertyType( propertyTypeId, newFqn );
+        modelService.updatePropertyTypeMetadata( propertyTypeId, update );
         return null;
     }
 
     @Override
     @RequestMapping(
         path = ENTITY_TYPE_PATH + ID_PATH,
-        method = RequestMethod.PATCH )
-    public Void renameEntityType( @PathVariable( ID ) UUID entityTypeId, @RequestBody FullQualifiedName newFqn ) {
+        method = RequestMethod.PATCH,
+        consumes = MediaType.APPLICATION_JSON_VALUE )
+    public Void updateEntityTypeMetadata( @PathVariable( ID ) UUID entityTypeId, @RequestBody MetadataUpdate update ) {
         ensureAdminAccess();
-        modelService.renameEntityType( entityTypeId, newFqn );
+        modelService.updateEntityTypeMetadata( entityTypeId, update );
         return null;
     }
 
     @Override
     @RequestMapping(
         path = ENTITY_SETS_PATH + ID_PATH,
-        consumes = MediaType.TEXT_PLAIN_VALUE,
-        method = RequestMethod.PATCH )
-    public Void renameEntitySet( @PathVariable( ID ) UUID entitySetId, @RequestBody String newName ) {
+        method = RequestMethod.PATCH,
+        consumes = MediaType.APPLICATION_JSON_VALUE )
+    public Void updateEntitySetMetadata( @PathVariable( ID ) UUID entitySetId, @RequestBody MetadataUpdate update ) {
         ensureAdminAccess();
-        modelService.renameEntitySet( entitySetId, newName );
+        modelService.updateEntitySetMetadata( entitySetId, update );
         return null;
     }
 
@@ -706,4 +721,38 @@ public class EdmController implements EdmApi, AuthorizingComponent {
                 "Entity Set Type does not exist." );
     }
 
+    @Override
+    @RequestMapping(
+        path = EDGE_TYPE_PATH,
+        method = RequestMethod.POST,
+        produces = MediaType.APPLICATION_JSON_VALUE )
+    public UUID createEdgeType( @RequestBody EdgeType edgeType ) {
+        EntityType entityType = edgeType.getEdgeEntityType();
+        if ( entityType == null ) {
+            throw new IllegalArgumentException( "You cannot create an edge type without specifying its entity type" );
+        }
+        createEntityType( entityType );
+        modelService.createEdgeType( edgeType, entityType.getId() );
+        return entityType.getId();
+    }
+
+    @Override
+    @RequestMapping(
+        path = EDGE_TYPE_PATH + ID_PATH,
+        method = RequestMethod.DELETE,
+        produces = MediaType.APPLICATION_JSON_VALUE )
+    public Void deleteEdgeType( @PathVariable( ID ) UUID edgeTypeId ) {
+        ensureAdminAccess();
+        modelService.deleteEdgeType( edgeTypeId );
+        return null;
+    }
+
+    @Override
+    @RequestMapping(
+        path = EDGE_TYPE_PATH + ID_PATH,
+        method = RequestMethod.GET,
+        produces = MediaType.APPLICATION_JSON_VALUE )
+    public EdgeType getEdgeTypeById( @PathVariable( ID ) UUID edgeTypeId ) {
+        return modelService.getEdgeType( edgeTypeId );
+    }
 }

@@ -76,7 +76,6 @@ public class EdmControllerTests extends BootstrapDatastoreWithCassandra {
         return expected;
     }
 
-    @Test
     public ComplexType createComplexType() {
         PropertyType p1 = createPropertyType();
         PropertyType p2 = createPropertyType();
@@ -90,8 +89,12 @@ public class EdmControllerTests extends BootstrapDatastoreWithCassandra {
 
         return expected;
     }
-
+    
     @Test
+    public void testCreateComplexType() {
+        createComplexType();
+    }
+
     public EnumType createEnumType() {
         EnumType expected = TestDataFactory.enumType();
         UUID enumTypeId = edm.createEnumType( expected );
@@ -101,6 +104,11 @@ public class EdmControllerTests extends BootstrapDatastoreWithCassandra {
         return expected;
     }
 
+    @Test
+    public void testCreateEnumType(){
+        createEnumType();
+    }
+    
     public EntitySet createEntitySet() {
         EntityType entityType = createEntityType();
 

@@ -334,7 +334,7 @@ public class CustomCSVPopulation {
                     keyPropertyType,
                     propertyTypeIdsSet,
                     Optional.absent(),
-                    SecurableObjectType.EntityType );
+                    Optional.of( SecurableObjectType.EntityType ) );
             // Add property types to entity type
 
             // Create Entity Type in database

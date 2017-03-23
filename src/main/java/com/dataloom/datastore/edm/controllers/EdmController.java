@@ -677,7 +677,9 @@ public class EdmController implements EdmApi, AuthorizingComponent {
         path = PROPERTY_TYPE_PATH + ID_PATH,
         method = RequestMethod.PATCH,
         consumes = MediaType.APPLICATION_JSON_VALUE )
-    public Void updatePropertyTypeMetadata( @PathVariable( ID ) UUID propertyTypeId, @RequestBody MetadataUpdate update ) {
+    public Void updatePropertyTypeMetadata(
+            @PathVariable( ID ) UUID propertyTypeId,
+            @RequestBody MetadataUpdate update ) {
         ensureAdminAccess();
         modelService.updatePropertyTypeMetadata( propertyTypeId, update );
         return null;

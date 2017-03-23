@@ -12,7 +12,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.dataloom.data.EntityKey;
-import com.dataloom.datasource.UUIDs.Syncs;
 import com.dataloom.edm.type.PropertyType;
 import com.dataloom.linking.Entity;
 import com.dataloom.linking.HazelcastLinkingGraphs;
@@ -79,13 +78,9 @@ public class LinkingService {
         SetMultimap<UUID, UUID> linkIndexedByPropertyTypes = getLinkIndexedByPropertyTypes( linkingProperties );
         SetMultimap<UUID, UUID> linkIndexedByEntitySets = getLinkIndexedByEntitySets( linkingProperties );
 
-        // TODO may be deprecated, depending on whether syncIds is required to do reads.
-        Map<UUID, UUID> entitySetsWithSyncIds = linkIndexedByEntitySets.keySet().stream()
-                .collect( Collectors.toMap( esId -> esId, esId -> Syncs.BASE.getSyncId() ) );
-
         // Warning: We assume that the restrictions on links are enforced/validated as specified in LinkingApi. In
         // particular, from now on we work on the assumption that only identical property types are linked on.
-        initializeComponents( entitySetsWithSyncIds, linkIndexedByPropertyTypes, linkIndexedByEntitySets );
+        initializeComponents( linkIndexedByEntitySets.keySet(), linkIndexedByPropertyTypes, linkIndexedByEntitySets );
 
         UUID graphId = linkingGraph.getGraphIdFromEntitySetId( linkedEntitySetId );
 
@@ -105,15 +100,15 @@ public class LinkingService {
         // through matcher to get a score.
         pairs
                 .forEach( entityPair -> {
-                    if( entityPair.getBackingCollection().size() == 2 ){
-                        //The pair actually consists of two entities; we should add the edge to the graph if necessary.
+                    if ( entityPair.getBackingCollection().size() == 2 ) {
+                        // The pair actually consists of two entities; we should add the edge to the graph if necessary.
                         final LinkingEdge edge = fromUnorderedPair( graphId, entityPair );
-                        if( buffer.tryAddEdge( edge ) ) {
+                        if ( buffer.tryAddEdge( edge ) ) {
                             double weight = matcher.dist( entityPair );
                             buffer.setEdgeWeight( new WeightedLinkingEdge( weight, edge ) );
                         }
                     } else {
-                        //The pair consists of one entity; we should add a vertex to the graph if necessary.
+                        // The pair consists of one entity; we should add a vertex to the graph if necessary.
                         final EntityKey ek = getEntityKeyFromSingletonPair( entityPair );
                         linkingGraph.getOrCreateVertex( graphId, ek );
                     }
@@ -142,7 +137,7 @@ public class LinkingService {
             authorizedPropertyTypesForEntitySets.put( esId, authorizedPropertyTypes );
         }
 
-        //Consume the iterable to trigger indexing!
+        // Consume the iterable to trigger indexing!
         cdm.getLinkedEntitySetData( linkedEntitySetId, authorizedPropertyTypesForEntitySets ).forEach( m -> {} );
     }
 
@@ -164,11 +159,11 @@ public class LinkingService {
     }
 
     private void initializeComponents(
-            Map<UUID, UUID> entitySetsWithSyncIds,
+            Set<UUID> linkingEntitySets,
             SetMultimap<UUID, UUID> linkIndexedByPropertyTypes,
             SetMultimap<UUID, UUID> linkIndexedByEntitySets ) {
-        blocker.setLinking( entitySetsWithSyncIds, linkIndexedByPropertyTypes, linkIndexedByEntitySets );
-        matcher.setLinking( entitySetsWithSyncIds, linkIndexedByPropertyTypes, linkIndexedByEntitySets );
+        blocker.setLinking( linkingEntitySets, linkIndexedByPropertyTypes, linkIndexedByEntitySets );
+        matcher.setLinking( linkingEntitySets, linkIndexedByPropertyTypes, linkIndexedByEntitySets );
     }
 
     /**

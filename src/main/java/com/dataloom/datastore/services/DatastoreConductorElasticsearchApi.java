@@ -12,6 +12,7 @@ import org.slf4j.LoggerFactory;
 import com.dataloom.authorization.Permission;
 import com.dataloom.authorization.Principal;
 import com.dataloom.edm.EntitySet;
+import com.dataloom.edm.type.EntityType;
 import com.dataloom.edm.type.PropertyType;
 import com.dataloom.linking.Entity;
 import com.dataloom.organization.Organization;
@@ -30,7 +31,7 @@ import com.kryptnostic.conductor.rpc.SearchEntitySetDataLambda;
 
 public class DatastoreConductorElasticsearchApi implements ConductorElasticsearchApi {
 
-    private static final Logger          logger = LoggerFactory.getLogger( DatastoreConductorElasticsearchApi.class );
+    private static final Logger logger = LoggerFactory.getLogger( DatastoreConductorElasticsearchApi.class );
 
     private final DurableExecutorService executor;
 
@@ -39,7 +40,7 @@ public class DatastoreConductorElasticsearchApi implements ConductorElasticsearc
     }
 
     @Override
-    public Boolean saveEntitySetToElasticsearch(
+    public boolean saveEntitySetToElasticsearch(
             EntitySet entitySet,
             List<PropertyType> propertyTypes,
             Principal principal ) {
@@ -57,7 +58,7 @@ public class DatastoreConductorElasticsearchApi implements ConductorElasticsearc
     }
 
     @Override
-    public Boolean deleteEntitySet( UUID entitySetId ) {
+    public boolean deleteEntitySet( UUID entitySetId ) {
         try {
             return executor.submit( ConductorElasticsearchCall
                     .wrap( ElasticsearchLambdas.deleteEntitySet( entitySetId ) ) ).get();
@@ -91,7 +92,7 @@ public class DatastoreConductorElasticsearchApi implements ConductorElasticsearc
     }
 
     @Override
-    public Boolean updateEntitySetPermissions( UUID entitySetId, Principal principal, Set<Permission> permissions ) {
+    public boolean updateEntitySetPermissions( UUID entitySetId, Principal principal, Set<Permission> permissions ) {
         try {
             return executor.submit( ConductorElasticsearchCall
                     .wrap( ElasticsearchLambdas.updateEntitySetPermissions( entitySetId, principal, permissions ) ) )
@@ -103,7 +104,7 @@ public class DatastoreConductorElasticsearchApi implements ConductorElasticsearc
     }
 
     @Override
-    public Boolean updateEntitySetMetadata( EntitySet entitySet ) {
+    public boolean updateEntitySetMetadata( EntitySet entitySet ) {
         try {
             return executor.submit( ConductorElasticsearchCall
                     .wrap( ElasticsearchLambdas.updateEntitySetMetadata( entitySet ) ) ).get();
@@ -114,11 +115,12 @@ public class DatastoreConductorElasticsearchApi implements ConductorElasticsearc
     }
 
     @Override
-    public Boolean updatePropertyTypesInEntitySet( UUID entitySetId, List<PropertyType> newPropertyTypes ) {
+    public boolean updatePropertyTypesInEntitySet( UUID entitySetId, List<PropertyType> newPropertyTypes ) {
         try {
             return executor.submit( ConductorElasticsearchCall
                     .wrap( ElasticsearchLambdas.updatePropertyTypesInEntitySet( entitySetId,
-                            newPropertyTypes ) ) ).get();
+                            newPropertyTypes ) ) )
+                    .get();
         } catch ( InterruptedException | ExecutionException e ) {
             logger.debug( "unable to update property types in entity set in elasticsearch" );
             return false;
@@ -126,7 +128,7 @@ public class DatastoreConductorElasticsearchApi implements ConductorElasticsearc
     }
 
     @Override
-    public Boolean createOrganization( Organization organization, Principal principal ) {
+    public boolean createOrganization( Organization organization, Principal principal ) {
         try {
             return executor.submit( ConductorElasticsearchCall
                     .wrap( ElasticsearchLambdas.createOrganization( organization, principal ) ) ).get();
@@ -137,7 +139,7 @@ public class DatastoreConductorElasticsearchApi implements ConductorElasticsearc
     }
 
     @Override
-    public Boolean updateOrganizationPermissions(
+    public boolean updateOrganizationPermissions(
             UUID organizationId,
             Principal principal,
             Set<Permission> permissions ) {
@@ -154,7 +156,7 @@ public class DatastoreConductorElasticsearchApi implements ConductorElasticsearc
     }
 
     @Override
-    public Boolean deleteOrganization( UUID organizationId ) {
+    public boolean deleteOrganization( UUID organizationId ) {
         try {
             return executor.submit( ConductorElasticsearchCall
                     .wrap( ElasticsearchLambdas.deleteOrganization( organizationId ) ) ).get();
@@ -184,7 +186,7 @@ public class DatastoreConductorElasticsearchApi implements ConductorElasticsearc
     }
 
     @Override
-    public Boolean updateOrganization( UUID id, Optional<String> optionalTitle, Optional<String> optionalDescription ) {
+    public boolean updateOrganization( UUID id, Optional<String> optionalTitle, Optional<String> optionalDescription ) {
         try {
             return executor.submit( ConductorElasticsearchCall
                     .wrap( ElasticsearchLambdas.updateOrganization( id,
@@ -198,7 +200,7 @@ public class DatastoreConductorElasticsearchApi implements ConductorElasticsearc
     }
 
     @Override
-    public Boolean createEntityData( UUID entitySetId, String entityId, Map<UUID, Object> propertyValues ) {
+    public boolean createEntityData( UUID entitySetId, String entityId, Map<UUID, Object> propertyValues ) {
         try {
             return executor.submit( ConductorElasticsearchCall.wrap(
                     new EntityDataLambdas( entitySetId, entityId, propertyValues ) ) ).get();
@@ -268,6 +270,116 @@ public class DatastoreConductorElasticsearchApi implements ConductorElasticsearc
             return queryResults;
         } catch ( InterruptedException | ExecutionException e ) {
             logger.debug( "unable to execute entity set data search" );
+            return new SearchResult( 0, Lists.newArrayList() );
+        }
+    }
+
+    @Override
+    public boolean saveEntityTypeToElasticsearch( EntityType entityType ) {
+        try {
+            return executor.submit( ConductorElasticsearchCall
+                    .wrap( ElasticsearchLambdas.saveEntityTypeToElasticsearch( entityType ) ) ).get();
+        } catch ( InterruptedException | ExecutionException e ) {
+            logger.debug( "unable to save entity type to elasticsearch" );
+            return false;
+        }
+    }
+
+    @Override
+    public boolean savePropertyTypeToElasticsearch( PropertyType propertyType ) {
+        try {
+            return executor.submit( ConductorElasticsearchCall
+                    .wrap( ElasticsearchLambdas.savePropertyTypeToElasticsearch( propertyType ) ) ).get();
+        } catch ( InterruptedException | ExecutionException e ) {
+            logger.debug( "unable to save property type to elasticsearch" );
+            return false;
+        }
+    }
+
+    @Override
+    public boolean deleteEntityType( UUID entityTypeId ) {
+        try {
+            return executor.submit( ConductorElasticsearchCall
+                    .wrap( ElasticsearchLambdas.deleteEntityType( entityTypeId ) ) ).get();
+        } catch ( InterruptedException | ExecutionException e ) {
+            logger.debug( "unable to delete entity type from elasticsearch" );
+            return false;
+        }
+    }
+
+    @Override
+    public boolean deletePropertyType( UUID propertyTypeId ) {
+        try {
+            return executor.submit( ConductorElasticsearchCall
+                    .wrap( ElasticsearchLambdas.deletePropertyType( propertyTypeId ) ) ).get();
+        } catch ( InterruptedException | ExecutionException e ) {
+            logger.debug( "unable to delete property type from elasticsearch" );
+            return false;
+        }
+    }
+
+    @Override
+    public SearchResult executeEntityTypeSearch( String searchTerm, int start, int maxHits ) {
+        try {
+            SearchResult queryResults = executor.submit( ConductorElasticsearchCall.wrap(
+                    ElasticsearchLambdas.executeEntityTypeSearch(
+                            searchTerm,
+                            start,
+                            maxHits ) ) )
+                    .get();
+            return queryResults;
+        } catch ( InterruptedException | ExecutionException e ) {
+            logger.debug( "unable to execute entity type search" );
+            return new SearchResult( 0, Lists.newArrayList() );
+        }
+    }
+
+    @Override
+    public SearchResult executePropertyTypeSearch( String searchTerm, int start, int maxHits ) {
+        try {
+            SearchResult queryResults = executor.submit( ConductorElasticsearchCall.wrap(
+                    ElasticsearchLambdas.executePropertyTypeSearch(
+                            searchTerm,
+                            start,
+                            maxHits ) ) )
+                    .get();
+            return queryResults;
+        } catch ( InterruptedException | ExecutionException e ) {
+            logger.debug( "unable to execute property type search" );
+            return new SearchResult( 0, Lists.newArrayList() );
+        }
+    }
+    
+    @Override
+    public SearchResult executeFQNEntityTypeSearch( String namespace, String name, int start, int maxHits ) {
+        try {
+            SearchResult queryResults = executor.submit( ConductorElasticsearchCall.wrap(
+                    ElasticsearchLambdas.executeFQNEntityTypeSearch(
+                            namespace,
+                            name,
+                            start,
+                            maxHits ) ) )
+                    .get();
+            return queryResults;
+        } catch ( InterruptedException | ExecutionException e ) {
+            logger.debug( "unable to execute property type search" );
+            return new SearchResult( 0, Lists.newArrayList() );
+        }
+    }
+
+    @Override
+    public SearchResult executeFQNPropertyTypeSearch( String namespace, String name, int start, int maxHits ) {
+        try {
+            SearchResult queryResults = executor.submit( ConductorElasticsearchCall.wrap(
+                    ElasticsearchLambdas.executeFQNPropertyTypeSearch(
+                            namespace,
+                            name,
+                            start,
+                            maxHits ) ) )
+                    .get();
+            return queryResults;
+        } catch ( InterruptedException | ExecutionException e ) {
+            logger.debug( "unable to execute property type search" );
             return new SearchResult( 0, Lists.newArrayList() );
         }
     }

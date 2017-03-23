@@ -37,6 +37,7 @@ import com.dataloom.datastore.authentication.MultipleAuthenticatedUsersBase;
 import com.dataloom.edm.EntitySet;
 import com.dataloom.edm.type.EntityType;
 import com.dataloom.mapstores.TestDataFactory;
+import com.datastax.driver.core.utils.UUIDs;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
@@ -45,7 +46,7 @@ import com.google.common.collect.SetMultimap;
 public class DataControllerTest extends MultipleAuthenticatedUsersBase {
 
     private static final int    numberOfEntries = 10;
-    private static final UUID   syncId          = Syncs.BASE.getSyncId();
+    private static final UUID   syncId          = UUIDs.timeBased();
     private static final Random random          = new Random();
 
     @BeforeClass
@@ -79,7 +80,7 @@ public class DataControllerTest extends MultipleAuthenticatedUsersBase {
         Set<UUID> selectedProperties = et.getProperties().stream().filter( pid -> random.nextBoolean() )
                 .collect( Collectors.toSet() );
         EntitySetSelection ess = new EntitySetSelection(
-                Optional.of( ImmutableSet.of( syncId ) ),
+                Optional.of( syncId ),
                 Optional.of( selectedProperties ) );
         Iterable<SetMultimap<FullQualifiedName, Object>> results = dataApi.loadEntitySetData( es.getId(), ess, null );
 

@@ -24,7 +24,28 @@ import java.util.UUID;
 
 import org.apache.commons.lang3.NotImplementedException;
 
+import com.dataloom.hazelcast.HazelcastMap;
+import com.datastax.driver.core.utils.UUIDs;
+import com.hazelcast.core.HazelcastInstance;
+import com.hazelcast.core.IMap;
+
 public class DatasourceManager {
+    private final IMap<UUID, UUID> latestSyncIds;
+
+    public DatasourceManager( HazelcastInstance hazelcastInstance ) {
+        this.latestSyncIds = hazelcastInstance.getMap( HazelcastMap.SYNC_IDS.name() );
+    }
+
+    public UUID getLatestSyncId( UUID entitySetId ) {
+        UUID newSyncId = UUIDs.timeBased();
+        UUID latestSyncId = latestSyncIds.putIfAbsent( entitySetId, newSyncId );
+        return ( latestSyncId != null) ? latestSyncId : newSyncId;
+    }
+
+    public void updateLatestSyncId( UUID entitySetId, UUID latestSyncId ) {
+        latestSyncIds.put( entitySetId, latestSyncId );
+    }
+
     public UUID createDatasource( UUID aclId, String name, String description, UUID syncId ) {
         throw new NotImplementedException( "MTR WAS HERE." );
     }

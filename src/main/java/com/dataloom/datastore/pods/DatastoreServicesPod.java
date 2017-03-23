@@ -226,7 +226,7 @@ public class DatastoreServicesPod {
 
     @Bean
     public DatasourceManager datasourceManager() {
-        return new DatasourceManager();
+        return new DatasourceManager( hazelcastInstance );
     }
 
     @Bean
@@ -330,7 +330,7 @@ public class DatastoreServicesPod {
     }
 
     @Bean
-    public EmptyPermissionRemover removeEmptyPermissions(){
+    public EmptyPermissionRemover removeEmptyPermissions() {
         return new EmptyPermissionRemover( cassandraConfiguration.getKeyspace(), session );
     }
 }

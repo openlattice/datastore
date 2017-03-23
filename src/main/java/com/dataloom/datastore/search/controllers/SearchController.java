@@ -44,6 +44,7 @@ import com.dataloom.datastore.services.SearchService;
 import com.dataloom.edm.EntitySet;
 import com.dataloom.search.SearchApi;
 import com.dataloom.search.requests.AdvancedSearch;
+import com.dataloom.search.requests.FQNSearchTerm;
 import com.dataloom.search.requests.Search;
 import com.dataloom.search.requests.SearchResult;
 import com.dataloom.search.requests.SearchTerm;
@@ -161,4 +162,49 @@ public class SearchController implements SearchApi, AuthorizingComponent {
         return new SearchResult( 0, Lists.newArrayList() );
     }
 
+    @RequestMapping(
+        path = { ENTITY_TYPES },
+        method = RequestMethod.POST,
+        produces = { MediaType.APPLICATION_JSON_VALUE } )
+    @Override
+    public SearchResult executeEntityTypeSearch( @RequestBody SearchTerm searchTerm ) {
+        return searchService.executeEntityTypeSearch( searchTerm.getSearchTerm(),
+                searchTerm.getStart(),
+                searchTerm.getMaxHits() );
+    }
+
+    @RequestMapping(
+        path = { PROPERTY_TYPES },
+        method = RequestMethod.POST,
+        produces = { MediaType.APPLICATION_JSON_VALUE } )
+    @Override
+    public SearchResult executePropertyTypeSearch( @RequestBody SearchTerm searchTerm ) {
+        return searchService.executePropertyTypeSearch( searchTerm.getSearchTerm(),
+                searchTerm.getStart(),
+                searchTerm.getMaxHits() );
+    }
+
+    @RequestMapping(
+        path = { ENTITY_TYPES + FQN },
+        method = RequestMethod.POST,
+        produces = { MediaType.APPLICATION_JSON_VALUE } )
+    @Override
+    public SearchResult executeFQNEntityTypeSearch( @RequestBody FQNSearchTerm searchTerm ) {
+        return searchService.executeFQNEntityTypeSearch( searchTerm.getNamespace(),
+                searchTerm.getName(),
+                searchTerm.getStart(),
+                searchTerm.getMaxHits() );
+    }
+
+    @RequestMapping(
+        path = { PROPERTY_TYPES + FQN },
+        method = RequestMethod.POST,
+        produces = { MediaType.APPLICATION_JSON_VALUE } )
+    @Override
+    public SearchResult executeFQNPropertyTypeSearch( @RequestBody FQNSearchTerm searchTerm ) {
+        return searchService.executeFQNPropertyTypeSearch( searchTerm.getNamespace(),
+                searchTerm.getName(),
+                searchTerm.getStart(),
+                searchTerm.getMaxHits() );
+    }
 }

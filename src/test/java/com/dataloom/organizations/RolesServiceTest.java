@@ -9,6 +9,7 @@ import java.util.UUID;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.Assert;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -22,7 +23,6 @@ import com.dataloom.organization.roles.OrganizationRole;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
 
 import digital.loom.rhizome.authentication.AuthenticationTest;
 import digital.loom.rhizome.authentication.AuthenticationTestRequestOptions;
@@ -131,7 +131,8 @@ public class RolesServiceTest extends OrganizationsTest {
         Assert.assertFalse( Iterables.contains( usersOfRoleAfterRemoving, user2.getId() ) );
     }
 
-    @Test
+    // TODO: Temporarily turn off manual token expiration
+    @Ignore
     public void testRefreshToken() {
         // add role to user2
         OrganizationRole newRole = createRole( organizationId );

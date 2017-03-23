@@ -52,6 +52,7 @@ import org.junit.Test;
 
 import com.dataloom.datastore.BootstrapDatastoreWithCassandra;
 import com.dataloom.edm.type.PropertyType;
+import com.datastax.driver.core.utils.UUIDs;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Optional;
 import com.google.common.collect.HashMultimap;
@@ -104,7 +105,7 @@ public class DataManagerTest extends BootstrapDatastoreWithCassandra {
     @Test
     public void testWriteAndRead() {
         final UUID entitySetId = UUID.randomUUID();
-        final UUID syncId = UUID.randomUUID();
+        final UUID syncId = UUIDs.timeBased();
 
         Map<UUID, PropertyType> propertyTypes = generateProperties( 5 );
         Map<UUID, EdmPrimitiveTypeKind> propertiesWithDataType = propertyTypes.entrySet().stream()
@@ -112,7 +113,7 @@ public class DataManagerTest extends BootstrapDatastoreWithCassandra {
         Map<String, SetMultimap<UUID, Object>> entities = generateData( 10, propertiesWithDataType, 1 );
 
         testWriteData( entitySetId, syncId, entities, propertiesWithDataType );
-        Set<SetMultimap<FullQualifiedName, Object>> result = testReadData( ImmutableSet.of( syncId ),
+        Set<SetMultimap<FullQualifiedName, Object>> result = testReadData( syncId,
                 entitySetId,
                 propertyTypes );
 
@@ -124,11 +125,12 @@ public class DataManagerTest extends BootstrapDatastoreWithCassandra {
         Assert.assertEquals( convertValueToString( expected, propertiesWithDataTypeIndexedByFqn, this::getStringFromRaw ), convertValueToString( result, propertiesWithDataTypeIndexedByFqn, this::getStringFromNormalized ) );
     }
     
+    
     @Test
     public void testWriteAndDelete() {
         final UUID entitySetId = UUID.randomUUID();
-        final UUID firstSyncId = UUID.randomUUID();
-        final UUID secondSyncId = UUID.randomUUID();
+        final UUID firstSyncId = UUIDs.timeBased();
+        final UUID secondSyncId = UUIDs.timeBased();
 
         Map<UUID, PropertyType> propertyTypes = generateProperties( 5 );
         Map<UUID, EdmPrimitiveTypeKind> propertiesWithDataType = propertyTypes.entrySet().stream()
@@ -142,14 +144,14 @@ public class DataManagerTest extends BootstrapDatastoreWithCassandra {
 
         dataService.deleteEntitySetData( entitySetId );
         
-        Assert.assertEquals( 0, testReadData( ImmutableSet.of( firstSyncId, secondSyncId ),
+        Assert.assertEquals( 0, testReadData( secondSyncId,
                 entitySetId,
                 propertyTypes ).size() );
     }
 
     @Ignore
     public void populateEmployeeCsv() throws FileNotFoundException, IOException {
-        final UUID syncId = UUID.randomUUID();
+        final UUID syncId = UUIDs.timeBased();
         final UUID entitySetId = UUID.randomUUID();
         // Four property types: Employee Name, Title, Department, Salary
         Map<String, UUID> idLookup = getUUIDsForEmployeeCsvProperties();
@@ -200,10 +202,10 @@ public class DataManagerTest extends BootstrapDatastoreWithCassandra {
     }
 
     public Set<SetMultimap<FullQualifiedName, Object>> testReadData(
-            Set<UUID> syncIds,
+            UUID syncId,
             UUID entitySetId,
             Map<UUID, PropertyType> propertyTypes ) {
-        return Sets.newHashSet( dataService.getEntitySetData( entitySetId, syncIds, propertyTypes ) );
+        return Sets.newHashSet( dataService.getEntitySetData( entitySetId, syncId, propertyTypes ) );
     }
 
     private Map<UUID, PropertyType> generateProperties( int n ) {

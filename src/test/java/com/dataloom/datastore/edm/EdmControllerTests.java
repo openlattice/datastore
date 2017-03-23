@@ -19,6 +19,8 @@
 
 package com.dataloom.datastore.edm;
 
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -27,6 +29,8 @@ import com.dataloom.datastore.BootstrapDatastoreWithCassandra;
 
 import com.dataloom.edm.type.ComplexType;
 import com.dataloom.edm.type.EnumType;
+
+import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.olingo.commons.api.edm.FullQualifiedName;
 import org.junit.AfterClass;
 import org.junit.Assert;
@@ -38,11 +42,13 @@ import com.dataloom.datastore.authentication.AuthenticatedRestCallsTest;
 import com.dataloom.edm.EdmApi;
 import com.dataloom.edm.EntityDataModel;
 import com.dataloom.edm.EntitySet;
+import com.dataloom.edm.requests.MetadataUpdate;
 import com.dataloom.edm.type.EntityType;
 import com.dataloom.edm.type.PropertyType;
 import com.dataloom.mapstores.TestDataFactory;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
 
 public class EdmControllerTests extends BootstrapDatastoreWithCassandra {
     private final static Logger logger = LoggerFactory.getLogger( AuthenticatedRestCallsTest.class );
@@ -103,18 +109,16 @@ public class EdmControllerTests extends BootstrapDatastoreWithCassandra {
         Assert.assertEquals( expected.getId(), enumTypeId );
         return expected;
     }
-
-    @Test
-    public void testCreateEnumType(){
-        createEnumType();
-    }
     
     public EntitySet createEntitySet() {
-        EntityType entityType = createEntityType();
+        return createEntitySetForEntityType( UUID.randomUUID() );
+    }
+
+    public EntitySet createEntitySetForEntityType( UUID entityTypeId ) {
 
         EntitySet es = new EntitySet(
                 UUID.randomUUID(),
-                entityType.getId(),
+                entityTypeId,
                 TestDataFactory.name(),
                 "foobar",
                 Optional.<String>of( "barred" ),
@@ -183,24 +187,140 @@ public class EdmControllerTests extends BootstrapDatastoreWithCassandra {
         Set<PropertyType> apts = ImmutableSet.copyOf( edm.getPropertyTypes() );
         Assert.assertTrue( apts.contains( propertyType ) );
     }
+    
+    @Test
+    public void testUpdatePropertyTypeNonPK() {
+        PropertyType pt = createPropertyType();
+
+        String newTitle = RandomStringUtils.randomAlphanumeric( 5 );
+        String newDescription = RandomStringUtils.randomAlphanumeric( 5 );
+
+        edm.updatePropertyTypeMetadata( pt.getId(), new MetadataUpdate( Optional.of( newTitle ), Optional.of( newDescription ), Optional.absent(), Optional.absent(), Optional.absent() ) );
+
+        PropertyType updatedPt = edm.getPropertyType( pt.getId() );
+        Assert.assertEquals( newTitle, updatedPt.getTitle() );
+        Assert.assertEquals( newDescription, updatedPt.getDescription() );
+    }
 
     @Test
-    public void testRenameTypes() {
+    public void testUpdatePropertyTypePK() {
         PropertyType pt = createPropertyType();
-        EntityType et = createEntityType();
-        EntitySet es = createEntitySet();
 
         FullQualifiedName newPtFqn = TestDataFactory.fqn();
+        
+        edm.updatePropertyTypeMetadata( pt.getId(), new MetadataUpdate( Optional.absent(), Optional.absent(), Optional.absent(), Optional.absent(), Optional.of( newPtFqn ) ) );
+
+        PropertyType updatedPt = edm.getPropertyType( pt.getId() );
+        Assert.assertEquals( newPtFqn, updatedPt.getType() );
+    }
+    
+    @Test
+    public void testUpdateEntityTypeNonPK() {
+        EntityType et = createEntityType();
+
+        String newTitle = RandomStringUtils.randomAlphanumeric( 5 );
+        String newDescription = RandomStringUtils.randomAlphanumeric( 5 );
+
+        edm.updateEntityTypeMetadata( et.getId(), new MetadataUpdate( Optional.of( newTitle ), Optional.of( newDescription ), Optional.absent(), Optional.absent(), Optional.absent() ) );
+
+        EntityType updatedEt = edm.getEntityType( et.getId() );
+        Assert.assertEquals( newTitle, updatedEt.getTitle() );
+        Assert.assertEquals( newDescription, updatedEt.getDescription() );
+    }
+
+    @Test
+    public void testUpdateEntityTypePK() {
+        EntityType et = createEntityType();
+
         FullQualifiedName newEtFqn = TestDataFactory.fqn();
+        
+        edm.updateEntityTypeMetadata( et.getId(), new MetadataUpdate( Optional.absent(), Optional.absent(), Optional.absent(), Optional.absent(), Optional.of( newEtFqn ) ) );
+
+        EntityType updatedEt = edm.getEntityType( et.getId() );
+        Assert.assertEquals( newEtFqn, updatedEt.getType() );
+    }
+    
+    @Test
+    public void testUpdateEntitySetNonPK() {
+        EntitySet es = createEntitySet();
+
+        String newTitle = RandomStringUtils.randomAlphanumeric( 5 );
+        String newDescription = RandomStringUtils.randomAlphanumeric( 5 );
+        Set<String> newContacts = new HashSet<>(Arrays.asList( RandomStringUtils.randomAlphanumeric( 5 ), RandomStringUtils.randomAlphanumeric( 5 ) ));
+        
+        edm.updateEntitySetMetadata( es.getId(), new MetadataUpdate( Optional.of( newTitle ), Optional.of( newDescription ), Optional.absent(), Optional.of( newContacts ), Optional.absent() ) );
+
+        EntitySet updatedEs = edm.getEntitySet( es.getId() );
+        Assert.assertEquals( newTitle, updatedEs.getTitle() );
+        Assert.assertEquals( newDescription, updatedEs.getDescription() );
+        Assert.assertEquals( newContacts, updatedEs.getContacts() );
+    }
+
+    @Test
+    public void testUpdateEntitySetPK() {
+        EntitySet es = createEntitySet();
+
         String newEsName = TestDataFactory.name();
+        
+        edm.updateEntitySetMetadata( es.getId(), new MetadataUpdate( Optional.absent(), Optional.absent(), Optional.of( newEsName ), Optional.absent(), Optional.absent() ) );
 
-        edm.renamePropertyType( pt.getId(), newPtFqn );
-        edm.renameEntityType( et.getId(), newEtFqn );
-        edm.renameEntitySet( es.getId(), newEsName );
+        EntitySet updatedEs = edm.getEntitySet( es.getId() );
+        Assert.assertEquals( newEsName, updatedEs.getName() );
+    }
+    
+    @Test
+    public void testAddPropertyTypesToEntityTypeViaController() {
+        PropertyType pt = createPropertyType();
+        EntityType base = createEntityType();
+        EntityType child1 = TestDataFactory.childEntityType( base.getId(), pt );
+        EntityType child2 = TestDataFactory.childEntityType( base.getId(), pt );
+        EntityType grandchild = TestDataFactory.childEntityType( child1.getId(), pt );
 
-        Assert.assertEquals( newPtFqn, edm.getPropertyType( pt.getId() ).getType() );
-        Assert.assertEquals( newEtFqn, edm.getEntityType( et.getId() ).getType() );
-        Assert.assertEquals( newEsName, edm.getEntitySet( es.getId() ).getName() );
+        UUID newProp = UUID.randomUUID();
+        edm.addPropertyTypeToEntityType( base.getId(), newProp );
+        
+        Assert.assertTrue( base.getProperties().contains( newProp ) );
+        Assert.assertTrue( child1.getProperties().contains( newProp ) );
+        Assert.assertTrue( child2.getProperties().contains( newProp ) );
+        Assert.assertTrue( grandchild.getProperties().contains( newProp ) );
+    }
+    
+    @Test
+    public void removePropertyTypesFromEntityTypeViaController() {
+        UUID ptId = UUID.randomUUID();
+        UUID ptId2 = UUID.randomUUID();
+        Set<UUID> propertyTypes = Sets.newHashSet( ptId, ptId2 );
+        PropertyType key = createPropertyType();
+        EntityType base = TestDataFactory.childEntityTypeWithPropertyType( UUID.randomUUID(), propertyTypes, key );
+        EntityType child1 = TestDataFactory.childEntityTypeWithPropertyType( base.getId(), propertyTypes, key );
+        EntityType child2 = TestDataFactory.childEntityTypeWithPropertyType( base.getId(), propertyTypes, key );
+        EntityType grandchild = TestDataFactory.childEntityTypeWithPropertyType( child1.getId(), propertyTypes, key );
+        
+        edm.removePropertyTypeFromEntityType( child1.getId(), ptId );
+        Assert.assertTrue( base.getProperties().contains( ptId ) );
+        Assert.assertTrue( child1.getProperties().contains( ptId ) );
+        Assert.assertTrue( child2.getProperties().contains( ptId ) );
+        Assert.assertTrue( grandchild.getProperties().contains( ptId ) );
+        
+        edm.removePropertyTypeFromEntityType( base.getId(), key.getId() );
+        Assert.assertTrue( base.getProperties().contains( key.getId() ) );
+        Assert.assertTrue( child1.getProperties().contains( key.getId() ) );
+        Assert.assertTrue( child2.getProperties().contains( key.getId() ) );
+        Assert.assertTrue( grandchild.getProperties().contains( key.getId() ) );
+        
+        edm.removePropertyTypeFromEntityType( base.getId(), ptId );
+        Assert.assertFalse( base.getProperties().contains( ptId ) );
+        Assert.assertFalse( child1.getProperties().contains( ptId ) );
+        Assert.assertFalse( child2.getProperties().contains( ptId ) );
+        Assert.assertFalse( grandchild.getProperties().contains( ptId ) );
+        
+        createEntitySetForEntityType( grandchild.getId() );
+        
+        edm.removePropertyTypeFromEntityType( base.getId(), ptId2 );
+        Assert.assertTrue( base.getProperties().contains( ptId2 ) );
+        Assert.assertTrue( child1.getProperties().contains( ptId2 ) );
+        Assert.assertTrue( child2.getProperties().contains( ptId2 ) );
+        Assert.assertTrue( grandchild.getProperties().contains( ptId2 ) );
     }
 
     @AfterClass

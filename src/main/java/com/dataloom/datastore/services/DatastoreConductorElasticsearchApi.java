@@ -30,7 +30,7 @@ import com.kryptnostic.conductor.rpc.SearchEntitySetDataLambda;
 
 public class DatastoreConductorElasticsearchApi implements ConductorElasticsearchApi {
 
-    private static final Logger          logger = LoggerFactory.getLogger( DatastoreConductorElasticsearchApi.class );
+    private static final Logger logger = LoggerFactory.getLogger( DatastoreConductorElasticsearchApi.class );
 
     private final DurableExecutorService executor;
 
@@ -271,5 +271,4 @@ public class DatastoreConductorElasticsearchApi implements ConductorElasticsearc
             return new SearchResult( 0, Lists.newArrayList() );
         }
     }
-
 }

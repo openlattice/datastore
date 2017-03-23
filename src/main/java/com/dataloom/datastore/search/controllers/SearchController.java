@@ -160,4 +160,5 @@ public class SearchController implements SearchApi, AuthorizingComponent {
         }
         return new SearchResult( 0, Lists.newArrayList() );
     }
+
 }

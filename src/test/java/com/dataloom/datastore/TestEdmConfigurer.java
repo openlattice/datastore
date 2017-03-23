@@ -27,6 +27,7 @@ import org.apache.olingo.commons.api.edm.FullQualifiedName;
 import org.junit.Assert;
 
 import com.dataloom.authorization.Principal;
+import com.dataloom.authorization.securable.SecurableObjectType;
 import com.dataloom.edm.EntitySet;
 import com.dataloom.edm.Schema;
 import com.dataloom.edm.exceptions.TypeExistsException;
@@ -159,7 +160,8 @@ public class TestEdmConfigurer {
                         EMPLOYEE_NAME_PROP_ID,
                         EMPLOYEE_DEPT_PROP_ID,
                         EMPLOYEE_SALARY_PROP_ID ) ),
-                Optional.absent() );
+                Optional.absent(),
+                SecurableObjectType.EntityType );
     }
 
     private static void createPropertyTypes( EdmManager dms ) {

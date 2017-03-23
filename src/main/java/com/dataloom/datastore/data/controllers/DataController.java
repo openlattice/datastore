@@ -174,13 +174,13 @@ public class DataController implements DataApi, AuthorizingComponent {
         if ( req == null ) {
             return loadEntitySetData( entitySetId, Optional.absent(), Optional.absent() );
         } else {
-            return loadEntitySetData( entitySetId, req.getSyncIds(), req.getSelectedProperties() );
+            return loadEntitySetData( entitySetId, req.getSyncId(), req.getSelectedProperties() );
         }
     }
 
     private Iterable<SetMultimap<FullQualifiedName, Object>> loadEntitySetData(
             UUID entitySetId,
-            Optional<Set<UUID>> syncIds,
+            Optional<UUID> syncId,
             Optional<Set<UUID>> selectedProperties ) {
         if ( authz.checkIfHasPermissions( ImmutableList.of( entitySetId ),
                 Principals.getCurrentPrincipals(),
@@ -188,7 +188,7 @@ public class DataController implements DataApi, AuthorizingComponent {
             if( listingService.isLinkedEntitySet( entitySetId ) ){
                 return loadLinkedEntitySetData( entitySetId );
             } else {
-                return loadNormalEntitySetData( entitySetId, syncIds, selectedProperties );
+                return loadNormalEntitySetData( entitySetId, syncId, selectedProperties );
             }
         } else {
             throw new ForbiddenException( "Insufficient permissions to read the entity set or it doesn't exist." );
@@ -197,13 +197,11 @@ public class DataController implements DataApi, AuthorizingComponent {
     
     private Iterable<SetMultimap<FullQualifiedName, Object>> loadNormalEntitySetData(
             UUID entitySetId,
-            Optional<Set<UUID>> syncIds,
+            Optional<UUID> syncId,
             Optional<Set<UUID>> selectedProperties ){
-        Set<UUID> ids;
-        if ( !syncIds.isPresent() || syncIds.get().isEmpty() ) {
-            ids = getLatestSyncIds();
-        } else {
-            ids = syncIds.get();
+        UUID id = null;
+        if ( syncId.isPresent() ) {
+            id = syncId.get();
         }
         Set<UUID> authorizedProperties;
         if ( selectedProperties.isPresent() && !selectedProperties.get().isEmpty() ) {
@@ -220,7 +218,7 @@ public class DataController implements DataApi, AuthorizingComponent {
 
         Map<UUID, PropertyType> authorizedPropertyTypes = authorizedProperties.stream()
                 .collect( Collectors.toMap( ptId -> ptId, ptId -> dms.getPropertyType( ptId ) ) );
-        return cdm.getEntitySetData( entitySetId, ids, authorizedPropertyTypes );   
+        return cdm.getEntitySetData( entitySetId, id, authorizedPropertyTypes );   
     }
     
     private Iterable<SetMultimap<FullQualifiedName, Object>> loadLinkedEntitySetData(
@@ -315,11 +313,6 @@ public class DataController implements DataApi, AuthorizingComponent {
                                 EnumSet.of( Permission.WRITE ) );
                     }
                 } );
-    }
-
-    private Set<UUID> getLatestSyncIds() {
-        // TODO Ho Chung: Should be obtained from DatasourcesApi once that is done.
-        return ImmutableSet.of( Syncs.BASE.getSyncId() );
     }
 
     @Override

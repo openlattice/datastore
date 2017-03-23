@@ -13,7 +13,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.dataloom.linking.Entity;
-import com.dataloom.linking.SortedCassandraLinkingEdgeBuffer;
 import com.dataloom.linking.components.Matcher;
 import com.dataloom.linking.util.UnorderedPair;
 import com.google.common.collect.ImmutableSet;
@@ -25,7 +24,7 @@ import com.kryptnostic.datastore.services.EdmManager;
  *
  */
 public class SimpleMatcher implements Matcher {
-    private static final Logger                              logger                  = LoggerFactory
+    private static final Logger     logger          = LoggerFactory
             .getLogger( SimpleMatcher.class );
 
     private SetMultimap<UUID, UUID> linkIndexedByPropertyTypes;
@@ -34,8 +33,8 @@ public class SimpleMatcher implements Matcher {
     private Map<UUID, Double>       weights;
 
     private static DoubleMetaphone  doubleMetaphone = new DoubleMetaphone();
-    
-    private static final double MAX_DISTANCE = Double.POSITIVE_INFINITY;
+
+    private static final double     MAX_DISTANCE    = Double.POSITIVE_INFINITY;
 
     private final EdmManager        dms;
 
@@ -63,7 +62,7 @@ public class SimpleMatcher implements Matcher {
                 Object val0 = elem0.getProperties().get( pidAsString );
                 Object val1 = elem1.getProperties().get( pidAsString );
                 if ( val0 != null && val1 != null ) {
-                    if( dist == MAX_DISTANCE ){
+                    if ( dist == MAX_DISTANCE ) {
                         dist = 0;
                     }
                     // Both values are non-null; score can be computed.
@@ -76,7 +75,7 @@ public class SimpleMatcher implements Matcher {
 
     @Override
     public void setLinking(
-            Map<UUID, UUID> entitySetsWithSyncIds,
+            Set<UUID> linkingEntitySets,
             SetMultimap<UUID, UUID> linkIndexedByPropertyTypes,
             SetMultimap<UUID, UUID> linkIndexedByEntitySets ) {
         this.linkIndexedByPropertyTypes = linkIndexedByPropertyTypes;
@@ -170,7 +169,7 @@ public class SimpleMatcher implements Matcher {
      * @return
      */
     private double getDistance( UUID propertyTypeId, String val0, String val1 ) {
-        if( val0 == null || val1 == null ){
+        if ( val0 == null || val1 == null ) {
             return MAX_DISTANCE;
         }
         switch ( getPropertyName( propertyTypeId ) ) {

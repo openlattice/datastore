@@ -52,16 +52,20 @@ import com.dataloom.authorization.util.AuthorizationUtils;
 import com.dataloom.datastore.constants.CustomMediaType;
 import com.dataloom.datastore.services.CassandraDataManager;
 import com.dataloom.edm.EdmApi;
-import com.dataloom.edm.EntityDataModel;
 import com.dataloom.edm.EdmDetails;
+import com.dataloom.edm.EntityDataModel;
 import com.dataloom.edm.EntitySet;
-import com.dataloom.edm.type.EntityType;
-import com.dataloom.edm.type.PropertyType;
 import com.dataloom.edm.Schema;
 import com.dataloom.edm.requests.EdmDetailsSelector;
 import com.dataloom.edm.requests.EdmRequest;
 import com.dataloom.edm.requests.MetadataUpdate;
 import com.dataloom.edm.schemas.manager.HazelcastSchemaManager;
+import com.dataloom.edm.type.ComplexType;
+import com.dataloom.edm.type.EntityType;
+import com.dataloom.edm.type.EnumType;
+import com.dataloom.edm.type.LinkingEntityType;
+import com.dataloom.edm.type.EdgeType;
+import com.dataloom.edm.type.PropertyType;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -708,4 +712,38 @@ public class EdmController implements EdmApi, AuthorizingComponent {
                 "Entity Set Type does not exist." );
     }
 
+    @Override
+    @RequestMapping(
+        path = EDGE_TYPE_PATH,
+        method = RequestMethod.POST,
+        produces = MediaType.APPLICATION_JSON_VALUE )
+    public UUID createEdgeType( @RequestBody EdgeType edgeType ) {
+        EntityType entityType = edgeType.getEdgeEntityType();
+        if ( entityType == null ) {
+            throw new IllegalArgumentException( "You cannot create an edge type without specifying its entity type" );
+        }
+        createEntityType( entityType );
+        modelService.createEdgeType( edgeType, entityType.getId() );
+        return entityType.getId();
+    }
+
+    @Override
+    @RequestMapping(
+        path = EDGE_TYPE_PATH + ID_PATH,
+        method = RequestMethod.DELETE,
+        produces = MediaType.APPLICATION_JSON_VALUE )
+    public Void deleteEdgeType( @PathVariable( ID ) UUID edgeTypeId ) {
+        ensureAdminAccess();
+        modelService.deleteEdgeType( edgeTypeId );
+        return null;
+    }
+
+    @Override
+    @RequestMapping(
+        path = EDGE_TYPE_PATH + ID_PATH,
+        method = RequestMethod.GET,
+        produces = MediaType.APPLICATION_JSON_VALUE )
+    public EdgeType getEdgeTypeById( @PathVariable( ID ) UUID edgeTypeId ) {
+        return modelService.getEdgeType( edgeTypeId );
+    }
 }

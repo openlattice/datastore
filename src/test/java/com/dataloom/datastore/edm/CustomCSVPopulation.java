@@ -43,12 +43,13 @@ import org.spark_project.guava.collect.Sets;
 
 import com.dataloom.authorization.Principal;
 import com.dataloom.authorization.PrincipalType;
+import com.dataloom.authorization.securable.SecurableObjectType;
 import com.dataloom.datastore.services.CassandraDataManager;
 import com.dataloom.edm.EntitySet;
-import com.dataloom.edm.type.EntityType;
-import com.dataloom.edm.type.PropertyType;
 import com.dataloom.edm.Schema;
 import com.dataloom.edm.schemas.manager.HazelcastSchemaManager;
+import com.dataloom.edm.type.EntityType;
+import com.dataloom.edm.type.PropertyType;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectWriter;
 import com.fasterxml.jackson.dataformat.csv.CsvMapper;
@@ -332,7 +333,8 @@ public class CustomCSVPopulation {
                     ImmutableSet.of(),
                     keyPropertyType,
                     propertyTypeIdsSet,
-                    Optional.absent() );
+                    Optional.absent(),
+                    SecurableObjectType.EntityType );
             // Add property types to entity type
 
             // Create Entity Type in database

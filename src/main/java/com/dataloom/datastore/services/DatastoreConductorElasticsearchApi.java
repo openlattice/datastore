@@ -30,7 +30,7 @@ import com.kryptnostic.conductor.rpc.SearchEntitySetDataLambda;
 
 public class DatastoreConductorElasticsearchApi implements ConductorElasticsearchApi {
 
-    private static final Logger          logger = LoggerFactory.getLogger( DatastoreConductorElasticsearchApi.class );
+    private static final Logger logger = LoggerFactory.getLogger( DatastoreConductorElasticsearchApi.class );
 
     private final DurableExecutorService executor;
 
@@ -39,7 +39,7 @@ public class DatastoreConductorElasticsearchApi implements ConductorElasticsearc
     }
 
     @Override
-    public Boolean saveEntitySetToElasticsearch(
+    public boolean saveEntitySetToElasticsearch(
             EntitySet entitySet,
             List<PropertyType> propertyTypes,
             Principal principal ) {
@@ -57,7 +57,7 @@ public class DatastoreConductorElasticsearchApi implements ConductorElasticsearc
     }
 
     @Override
-    public Boolean deleteEntitySet( UUID entitySetId ) {
+    public boolean deleteEntitySet( UUID entitySetId ) {
         try {
             return executor.submit( ConductorElasticsearchCall
                     .wrap( ElasticsearchLambdas.deleteEntitySet( entitySetId ) ) ).get();
@@ -91,7 +91,7 @@ public class DatastoreConductorElasticsearchApi implements ConductorElasticsearc
     }
 
     @Override
-    public Boolean updateEntitySetPermissions( UUID entitySetId, Principal principal, Set<Permission> permissions ) {
+    public boolean updateEntitySetPermissions( UUID entitySetId, Principal principal, Set<Permission> permissions ) {
         try {
             return executor.submit( ConductorElasticsearchCall
                     .wrap( ElasticsearchLambdas.updateEntitySetPermissions( entitySetId, principal, permissions ) ) )
@@ -103,7 +103,7 @@ public class DatastoreConductorElasticsearchApi implements ConductorElasticsearc
     }
 
     @Override
-    public Boolean updateEntitySetMetadata( EntitySet entitySet ) {
+    public boolean updateEntitySetMetadata( EntitySet entitySet ) {
         try {
             return executor.submit( ConductorElasticsearchCall
                     .wrap( ElasticsearchLambdas.updateEntitySetMetadata( entitySet ) ) ).get();
@@ -114,7 +114,7 @@ public class DatastoreConductorElasticsearchApi implements ConductorElasticsearc
     }
 
     @Override
-    public Boolean updatePropertyTypesInEntitySet( UUID entitySetId, List<PropertyType> newPropertyTypes ) {
+    public boolean updatePropertyTypesInEntitySet( UUID entitySetId, List<PropertyType> newPropertyTypes ) {
         try {
             return executor.submit( ConductorElasticsearchCall
                     .wrap( ElasticsearchLambdas.updatePropertyTypesInEntitySet( entitySetId,
@@ -126,7 +126,7 @@ public class DatastoreConductorElasticsearchApi implements ConductorElasticsearc
     }
 
     @Override
-    public Boolean createOrganization( Organization organization, Principal principal ) {
+    public boolean createOrganization( Organization organization, Principal principal ) {
         try {
             return executor.submit( ConductorElasticsearchCall
                     .wrap( ElasticsearchLambdas.createOrganization( organization, principal ) ) ).get();
@@ -137,7 +137,7 @@ public class DatastoreConductorElasticsearchApi implements ConductorElasticsearc
     }
 
     @Override
-    public Boolean updateOrganizationPermissions(
+    public boolean updateOrganizationPermissions(
             UUID organizationId,
             Principal principal,
             Set<Permission> permissions ) {
@@ -154,7 +154,7 @@ public class DatastoreConductorElasticsearchApi implements ConductorElasticsearc
     }
 
     @Override
-    public Boolean deleteOrganization( UUID organizationId ) {
+    public boolean deleteOrganization( UUID organizationId ) {
         try {
             return executor.submit( ConductorElasticsearchCall
                     .wrap( ElasticsearchLambdas.deleteOrganization( organizationId ) ) ).get();
@@ -184,7 +184,7 @@ public class DatastoreConductorElasticsearchApi implements ConductorElasticsearc
     }
 
     @Override
-    public Boolean updateOrganization( UUID id, Optional<String> optionalTitle, Optional<String> optionalDescription ) {
+    public boolean updateOrganization( UUID id, Optional<String> optionalTitle, Optional<String> optionalDescription ) {
         try {
             return executor.submit( ConductorElasticsearchCall
                     .wrap( ElasticsearchLambdas.updateOrganization( id,
@@ -198,7 +198,7 @@ public class DatastoreConductorElasticsearchApi implements ConductorElasticsearc
     }
 
     @Override
-    public Boolean createEntityData( UUID entitySetId, String entityId, Map<UUID, Object> propertyValues ) {
+    public boolean createEntityData( UUID entitySetId, String entityId, Map<UUID, Object> propertyValues ) {
         try {
             return executor.submit( ConductorElasticsearchCall.wrap(
                     new EntityDataLambdas( entitySetId, entityId, propertyValues ) ) ).get();
@@ -271,5 +271,4 @@ public class DatastoreConductorElasticsearchApi implements ConductorElasticsearc
             return new SearchResult( 0, Lists.newArrayList() );
         }
     }
-
 }

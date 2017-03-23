@@ -430,7 +430,7 @@ public class EdmController implements EdmApi, AuthorizingComponent {
     @Override
     @PostMapping(
         path = ENUM_TYPE_PATH,
-        produces = MediaType.APPLICATION_JSON_VALUE )
+        consumes = MediaType.APPLICATION_JSON_VALUE )
     public UUID createEnumType( @RequestBody EnumType enumType ) {
         modelService.createEnumTypeIfNotExists( enumType );
         return enumType.getId();
@@ -667,31 +667,33 @@ public class EdmController implements EdmApi, AuthorizingComponent {
     @Override
     @RequestMapping(
         path = PROPERTY_TYPE_PATH + ID_PATH,
-        method = RequestMethod.PATCH )
-    public Void renamePropertyType( @PathVariable( ID ) UUID propertyTypeId, @RequestBody FullQualifiedName newFqn ) {
+        method = RequestMethod.PATCH,
+        consumes = MediaType.APPLICATION_JSON_VALUE )
+    public Void updatePropertyTypeMetadata( @PathVariable( ID ) UUID propertyTypeId, @RequestBody MetadataUpdate update ) {
         ensureAdminAccess();
-        modelService.renamePropertyType( propertyTypeId, newFqn );
+        modelService.updatePropertyTypeMetadata( propertyTypeId, update );
         return null;
     }
 
     @Override
     @RequestMapping(
         path = ENTITY_TYPE_PATH + ID_PATH,
-        method = RequestMethod.PATCH )
-    public Void renameEntityType( @PathVariable( ID ) UUID entityTypeId, @RequestBody FullQualifiedName newFqn ) {
+        method = RequestMethod.PATCH,
+        consumes = MediaType.APPLICATION_JSON_VALUE )
+    public Void updateEntityTypeMetadata( @PathVariable( ID ) UUID entityTypeId, @RequestBody MetadataUpdate update ) {
         ensureAdminAccess();
-        modelService.renameEntityType( entityTypeId, newFqn );
+        modelService.updateEntityTypeMetadata( entityTypeId, update );
         return null;
     }
 
     @Override
     @RequestMapping(
         path = ENTITY_SETS_PATH + ID_PATH,
-        consumes = MediaType.TEXT_PLAIN_VALUE,
-        method = RequestMethod.PATCH )
-    public Void renameEntitySet( @PathVariable( ID ) UUID entitySetId, @RequestBody String newName ) {
+        method = RequestMethod.PATCH,
+        consumes = MediaType.APPLICATION_JSON_VALUE )
+    public Void updateEntitySetMetadata( @PathVariable( ID ) UUID entitySetId, @RequestBody MetadataUpdate update ) {
         ensureAdminAccess();
-        modelService.renameEntitySet( entitySetId, newName );
+        modelService.updateEntitySetMetadata( entitySetId, update );
         return null;
     }
 

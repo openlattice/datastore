@@ -271,5 +271,4 @@ public class DatastoreConductorElasticsearchApi implements ConductorElasticsearc
             return new SearchResult( 0, Lists.newArrayList() );
         }
     }
-
 }

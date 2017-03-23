@@ -211,7 +211,7 @@ public class CassandraDataManager {
 
             // does not write the row if some property values that user is trying to write to are not authorized.
             if ( !authorizedProperties.containsAll( propertyValues.keySet() ) ) {
-                logger.info( "Entity {} not written because not all property values are authorized.", entity.getKey() );
+                logger.error( "Entity {} not written because not all property values are authorized.", entity.getKey() );
                 return;
             }
 
@@ -220,7 +220,7 @@ public class CassandraDataManager {
                 normalizedPropertyValues = CassandraSerDesFactory.validateFormatAndNormalize( propertyValues,
                         authorizedPropertiesWithDataType );
             } catch ( Exception e ) {
-                logger.info( "Entity {} not written because some property values are of invalid format.",
+                logger.error( "Entity {} not written because some property values are of invalid format.",
                         entity.getKey() );
                 return;
             }

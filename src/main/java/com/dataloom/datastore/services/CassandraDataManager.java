@@ -88,6 +88,8 @@ public class CassandraDataManager {
 
     private final PreparedStatement      readNumRPCRowsQuery;
 
+    private final PreparedStatement      mostRecentSyncIdQuery;
+
     public CassandraDataManager( Session session, ObjectMapper mapper, HazelcastLinkingGraphs linkingGraph ) {
         this.session = session;
         this.mapper = mapper;
@@ -105,6 +107,7 @@ public class CassandraDataManager {
 
         this.linkedEntitiesQuery = prepareLinkedEntitiesQuery( session );
         this.readNumRPCRowsQuery = prepareReadNumRPCRowsQuery( session );
+        this.mostRecentSyncIdQuery = prepareMostRecentSyncIdQuery( session );
     }
 
     public Iterable<SetMultimap<FullQualifiedName, Object>> getEntitySetData(
@@ -188,7 +191,11 @@ public class CassandraDataManager {
                 .setSet( CommonColumns.PROPERTY_TYPE_ID.cql(), authorizedProperties ) );
     }
 
-    public ResultSetFuture asyncLoadEntity( UUID entitySetId, String entityId, UUID syncId, Set<UUID> authorizedProperties ) {
+    public ResultSetFuture asyncLoadEntity(
+            UUID entitySetId,
+            String entityId,
+            UUID syncId,
+            Set<UUID> authorizedProperties ) {
         return session.executeAsync( entitySetQueryUpToSyncId.bind()
                 .setUUID( CommonColumns.ENTITY_SET_ID.cql(), entitySetId )
                 .setString( CommonColumns.ENTITYID.cql(), entityId )
@@ -211,7 +218,8 @@ public class CassandraDataManager {
 
             // does not write the row if some property values that user is trying to write to are not authorized.
             if ( !authorizedProperties.containsAll( propertyValues.keySet() ) ) {
-                logger.error( "Entity {} not written because not all property values are authorized.", entity.getKey() );
+                logger.error( "Entity {} not written because not all property values are authorized.",
+                        entity.getKey() );
                 return;
             }
 
@@ -265,6 +273,12 @@ public class CassandraDataManager {
         ResultSet rs = session.execute( bs );
         return StreamUtil.stream( rs )
                 .map( r -> r.getBytes( CommonColumns.RPC_VALUE.cql() ).array() );
+    }
+
+    public UUID getMostRecentSyncIdForEntitySet( UUID entitySetId ) {
+        BoundStatement bs = mostRecentSyncIdQuery.bind().setUUID( CommonColumns.ENTITY_SET_ID.cql(), entitySetId );
+        Row row = session.execute( bs ).one();
+        return ( row == null ) ? null : row.getUUID( CommonColumns.SYNCID.cql() );
     }
 
     /**
@@ -379,6 +393,12 @@ public class CassandraDataManager {
         return session.prepare( Table.DATA.getBuilder().buildDeleteByPartitionKeyQuery() );
     }
 
+    private static PreparedStatement prepareMostRecentSyncIdQuery( Session session ) {
+        return session.prepare( QueryBuilder.select().from( Table.SYNC_IDS.getKeyspace(), Table.SYNC_IDS.getName() )
+                .where( QueryBuilder.eq( CommonColumns.ENTITY_SET_ID.cql(), CommonColumns.ENTITY_SET_ID.bindMarker() ) )
+                .limit( 1 ) );
+    }
+
     /**
      * Auxiliary methods for linking entity sets
      */
@@ -400,7 +420,8 @@ public class CassandraDataManager {
 
         linkedKey.getValue().stream()
                 .map( key -> Pair.of( key.getEntitySetId(),
-                        asyncLoadEntity( key.getEntitySetId(), key.getEntityId(),
+                        asyncLoadEntity( key.getEntitySetId(),
+                                key.getEntityId(),
                                 authorizedPropertyTypesForEntitySets.get( key.getEntitySetId() ).keySet() ) ) )
                 .map( rsfPair -> Pair.of( rsfPair.getKey(), rsfPair.getValue().getUninterruptibly() ) )
                 .map( rsPair -> RowAdapters.entityIdFQNPair( rsPair.getValue(),

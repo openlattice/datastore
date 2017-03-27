@@ -22,6 +22,8 @@ package com.dataloom.datastore.services;
 import java.util.Set;
 import java.util.UUID;
 
+import javax.inject.Inject;
+
 import org.apache.commons.lang3.NotImplementedException;
 
 import com.dataloom.hazelcast.HazelcastMap;
@@ -30,6 +32,10 @@ import com.hazelcast.core.HazelcastInstance;
 import com.hazelcast.core.IMap;
 
 public class DatasourceManager {
+    
+    @Inject
+    private CassandraDataManager cdm;
+    
     private final IMap<UUID, UUID> latestSyncIds;
 
     public DatasourceManager( HazelcastInstance hazelcastInstance ) {
@@ -37,13 +43,19 @@ public class DatasourceManager {
     }
 
     public UUID getLatestSyncId( UUID entitySetId ) {
-        UUID newSyncId = UUIDs.timeBased();
-        UUID latestSyncId = latestSyncIds.putIfAbsent( entitySetId, newSyncId );
-        return ( latestSyncId != null) ? latestSyncId : newSyncId;
+        UUID latestSyncId = cdm.getMostRecentSyncIdForEntitySet( entitySetId );
+        return ( latestSyncId != null) ? latestSyncId : createNewSyncIdForEntitySet( entitySetId );
     }
 
     public void updateLatestSyncId( UUID entitySetId, UUID latestSyncId ) {
+        
         latestSyncIds.put( entitySetId, latestSyncId );
+    }
+    
+    public UUID createNewSyncIdForEntitySet( UUID entitySetId ) {
+        UUID newSyncId = UUIDs.timeBased();
+        latestSyncIds.put( entitySetId, newSyncId );
+        return newSyncId;
     }
 
     public UUID createDatasource( UUID aclId, String name, String description, UUID syncId ) {

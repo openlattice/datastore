@@ -394,5 +394,15 @@ public class DataController implements DataApi, AuthorizingComponent {
             @RequestBody Map<String, SetMultimap<UUID, Object>> entities ) {
         return createEntityData( entitySetId, datasourceManager.getLatestSyncId( entitySetId ), entities );
     }
+        
+    @Override
+    @RequestMapping(
+            path = { SET_ID_PATH + "/syncId" },
+            method = RequestMethod.GET,
+            consumes = MediaType.APPLICATION_JSON_VALUE )
+    public UUID getNewSyncId(
+            @PathVariable( SET_ID ) UUID entitySetId ) {
+        return datasourceManager.createNewSyncIdForEntitySet( entitySetId );
+    }
 
 }

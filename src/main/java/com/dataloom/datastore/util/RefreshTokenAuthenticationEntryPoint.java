@@ -7,6 +7,7 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import org.springframework.http.MediaType;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.web.AuthenticationEntryPoint;
 
@@ -36,7 +37,7 @@ public class RefreshTokenAuthenticationEntryPoint implements AuthenticationEntry
             HttpServletRequest request,
             HttpServletResponse response,
             AuthenticationException authException ) throws IOException, ServletException {
-        response.setContentType( "application/json" );
+        response.setContentType( MediaType.APPLICATION_JSON_VALUE );
         final PrintWriter writer = response.getWriter();
         if ( isPreflight( request ) ) {
             response.setStatus( HttpServletResponse.SC_NO_CONTENT );

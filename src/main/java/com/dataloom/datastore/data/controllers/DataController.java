@@ -203,10 +203,7 @@ public class DataController implements DataApi, AuthorizingComponent {
             UUID entitySetId,
             Optional<UUID> syncId,
             Optional<Set<UUID>> selectedProperties ){
-        UUID id = null;
-        if ( syncId.isPresent() ) {
-            id = syncId.get();
-        }
+        UUID id = ( syncId.isPresent() ) ? id = syncId.get() : datasourceManager.getLatestSyncId( entitySetId );
         Set<UUID> authorizedProperties;
         if ( selectedProperties.isPresent() && !selectedProperties.get().isEmpty() ) {
             if ( !authzHelper.getAllPropertiesOnEntitySet( entitySetId ).containsAll( selectedProperties.get() ) ) {
@@ -393,16 +390,6 @@ public class DataController implements DataApi, AuthorizingComponent {
             @PathVariable( SET_ID ) UUID entitySetId,
             @RequestBody Map<String, SetMultimap<UUID, Object>> entities ) {
         return createEntityData( entitySetId, datasourceManager.getLatestSyncId( entitySetId ), entities );
-    }
-        
-    @Override
-    @RequestMapping(
-            path = { SET_ID_PATH + "/syncId" },
-            method = RequestMethod.GET,
-            consumes = MediaType.APPLICATION_JSON_VALUE )
-    public UUID getNewSyncId(
-            @PathVariable( SET_ID ) UUID entitySetId ) {
-        return datasourceManager.createNewSyncIdForEntitySet( entitySetId );
     }
 
 }

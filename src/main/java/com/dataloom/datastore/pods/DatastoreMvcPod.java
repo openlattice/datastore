@@ -49,16 +49,17 @@ import com.dataloom.datastore.requests.controllers.PermissionsRequestsController
 import com.dataloom.datastore.search.controllers.SearchController;
 import com.dataloom.datastore.util.DataStoreExceptionHandler;
 import com.dataloom.organizations.controllers.OrganizationsController;
+import com.dataloom.sync.SyncController;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ryantenney.metrics.spring.config.annotation.EnableMetrics;
 
 @Configuration
 @ComponentScan(
-    basePackageClasses = { DataController.class, SearchController.class, 
+    basePackageClasses = { DataController.class, SearchController.class,
             PermissionsController.class, PermissionsRequestsController.class, AuthorizationsController.class,
             PrincipalDirectoryController.class,
             EdmController.class, OrganizationsController.class,
-            DataStoreExceptionHandler.class, LinkingController.class, AnalysisController.class },
+            DataStoreExceptionHandler.class, LinkingController.class, AnalysisController.class, SyncController.class },
     includeFilters = @ComponentScan.Filter(
         value = { org.springframework.stereotype.Controller.class,
                 org.springframework.web.bind.annotation.RestControllerAdvice.class },

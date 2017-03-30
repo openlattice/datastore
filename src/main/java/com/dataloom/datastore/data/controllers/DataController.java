@@ -25,6 +25,7 @@ import com.dataloom.authentication.LoomAuth0AuthenticationProvider;
 import com.dataloom.authorization.*;
 import com.dataloom.data.DataApi;
 import com.dataloom.data.requests.EntitySetSelection;
+import com.dataloom.data.requests.Event;
 import com.dataloom.datasource.UUIDs.Syncs;
 import com.dataloom.datastore.constants.CustomMediaType;
 import com.dataloom.datastore.services.CassandraDataManager;
@@ -377,6 +378,79 @@ public class DataController implements DataApi, AuthorizingComponent {
     @Override
     public AuthorizationManager getAuthorizationManager() {
         return authz;
+    }
+
+    @Override
+    @RequestMapping(
+            path = { "/" + EVENT_DATA + "/" + SET_ID_PATH + "/" + SYNC_ID_PATH },
+            method = RequestMethod.PUT,
+            consumes = MediaType.APPLICATION_JSON_VALUE )
+    public Void createEventData(
+            @PathVariable( SET_ID ) UUID entitySetId,
+            @PathVariable( SYNC_ID ) UUID syncId,
+            @RequestBody Set<Event> events ) {
+        if ( authz.checkIfHasPermissions( ImmutableList.of( entitySetId ),
+                Principals.getCurrentPrincipals(),
+                EnumSet.of( Permission.WRITE ) ) ) {
+            // To avoid re-doing authz check more of than once every 250 ms during an integration we cache the
+            // results.cd ../
+            AuthorizationKey ak = new AuthorizationKey( Principals.getCurrentUser(), entitySetId, syncId );
+
+            Set<UUID> authorizedProperties = authorizedPropertyCache.getUnchecked( ak );
+
+            Set<UUID> keyProperties = dms.getEntityTypeByEntitySetId( entitySetId ).getKey();
+
+            if ( !authorizedProperties.containsAll( keyProperties ) ) {
+                throw new ForbiddenException(
+                        "Insufficient permissions to write to some of the key property types of the entity set." );
+            }
+
+            Map<UUID, EdmPrimitiveTypeKind> authorizedPropertiesWithDataType;
+
+            try {
+                authorizedPropertiesWithDataType = primitiveTypeKinds
+                        .getAll( authorizedProperties );
+            } catch ( ExecutionException e ) {
+                logger.error(
+                        "Unable to load data types for authorized properties for user " + Principals.getCurrentUser()
+                                + " and entity set " + entitySetId + "." );
+                throw new ResourceNotFoundException( "Unable to load data types for authorized properties." );
+            }
+
+            cdm.createEventData( entitySetId, syncId, events, authorizedPropertiesWithDataType );
+        } else {
+            throw new ForbiddenException( "Insufficient permissions to write to the entity set or it doesn't exist." );
+        }
+        return null;
+    }
+
+
+    @Override
+    @RequestMapping(
+            value = "/" + EVENT_DATA + "/" + TICKET_PATH + "/" + SYNC_ID_PATH,
+            method = RequestMethod.PATCH,
+            consumes = MediaType.APPLICATION_JSON_VALUE )
+    public Void storeEventData(
+            @PathVariable( TICKET ) UUID ticket,
+            @PathVariable( SYNC_ID ) UUID syncId,
+            @RequestBody Set<Event> events ) {
+
+        // To avoid re-doing authz check more of than once every 250 ms during an integration we cache the
+        // results.cd ../
+        UUID entitySetId = sts.getAuthorizedEntitySet( Principals.getCurrentUser(), ticket );
+        Set<UUID> authorizedProperties = sts.getAuthorizedProperties( Principals.getCurrentUser(), ticket );
+        Map<UUID, EdmPrimitiveTypeKind> authorizedPropertiesWithDataType;
+        try {
+            authorizedPropertiesWithDataType = primitiveTypeKinds
+                    .getAll( authorizedProperties );
+        } catch ( ExecutionException e ) {
+            logger.error( "Unable to load data types for authorized properties for user " + Principals.getCurrentUser()
+                    + " and entity set " + entitySetId + "." );
+            throw new ResourceNotFoundException( "Unable to load data types for authorized properties." );
+        }
+
+        cdm.createEventData( entitySetId, syncId, events, authorizedPropertiesWithDataType );
+        return null;
     }
 
 }

@@ -19,6 +19,7 @@
 
 package com.dataloom.datastore.pods;
 
+import javax.annotation.PostConstruct;
 import javax.inject.Inject;
 
 import org.springframework.context.annotation.Bean;
@@ -44,8 +45,6 @@ import com.dataloom.datastore.scripts.EntitySetContactsPopulator;
 import com.dataloom.datastore.services.AnalysisService;
 import com.dataloom.datastore.services.CassandraDataManager;
 import com.dataloom.datastore.services.DatasourceManager;
-import com.dataloom.datastore.services.DatastoreConductorElasticsearchApi;
-import com.dataloom.datastore.services.DatastoreConductorSparkApi;
 import com.dataloom.datastore.services.LinkingService;
 import com.dataloom.datastore.services.SearchService;
 import com.dataloom.datastore.services.SyncTicketService;
@@ -54,6 +53,8 @@ import com.dataloom.edm.properties.CassandraTypeManager;
 import com.dataloom.edm.schemas.SchemaQueryService;
 import com.dataloom.edm.schemas.cassandra.CassandraSchemaQueryService;
 import com.dataloom.edm.schemas.manager.HazelcastSchemaManager;
+import com.dataloom.graph.core.GraphQueryService;
+import com.dataloom.graph.core.LoomGraph;
 import com.dataloom.linking.CassandraLinkingGraphsQueryService;
 import com.dataloom.linking.HazelcastLinkingGraphs;
 import com.dataloom.linking.HazelcastListingService;
@@ -274,7 +275,7 @@ public class DatastoreServicesPod {
 
     @Bean
     public Clusterer clusterer() {
-        return new ClusteringPartitioner(cassandraConfiguration.getKeyspace(), session, cgqs(), linkingGraph() );
+        return new ClusteringPartitioner( cassandraConfiguration.getKeyspace(), session, cgqs(), linkingGraph() );
     }
 
     @Bean
@@ -292,20 +293,35 @@ public class DatastoreServicesPod {
                 dataModelService(),
                 cassandraDataManager() );
     }
-    
+
     @Bean
     public AnalysisService analysisService() {
         return new AnalysisService();
     }
 
-    //Startup scripts
+    // Startup scripts
     @Bean
     public EntitySetContactsPopulator entitySetContactsPopulator() {
-        return new EntitySetContactsPopulator( cassandraConfiguration.getKeyspace(), session, dataModelService(), userDirectoryService(), hazelcastInstance );
+        return new EntitySetContactsPopulator(
+                cassandraConfiguration.getKeyspace(),
+                session,
+                dataModelService(),
+                userDirectoryService(),
+                hazelcastInstance );
     }
 
     @Bean
-    public EmptyPermissionRemover removeEmptyPermissions(){
+    public EmptyPermissionRemover removeEmptyPermissions() {
         return new EmptyPermissionRemover( cassandraConfiguration.getKeyspace(), session );
+    }
+
+    @Bean
+    public GraphQueryService graphQueryService() {
+        return new GraphQueryService( session, defaultObjectMapper() );
+    }
+
+    @PostConstruct
+    public void initGraphService() {
+        LoomGraph.init( hazelcastInstance, graphQueryService() );
     }
 }

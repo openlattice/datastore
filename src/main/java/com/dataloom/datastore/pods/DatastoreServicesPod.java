@@ -317,7 +317,7 @@ public class DatastoreServicesPod {
 
     @Bean
     public GraphQueryService graphQueryService() {
-        return new GraphQueryService( session, defaultObjectMapper() );
+        return new GraphQueryService( session );
     }
 
     @PostConstruct

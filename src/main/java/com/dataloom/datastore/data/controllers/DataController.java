@@ -282,7 +282,6 @@ public class DataController implements DataApi, AuthorizingComponent {
             }
 
             cdm.createEntityData( entitySetId, syncId, entities, authorizedPropertiesWithDataType );
-            datasourceManager.updateLatestSyncId( entitySetId, syncId );
         } else {
             throw new ForbiddenException( "Insufficient permissions to write to the entity set or it doesn't exist." );
         }
@@ -372,7 +371,6 @@ public class DataController implements DataApi, AuthorizingComponent {
             throw new ResourceNotFoundException( "Unable to load data types for authorized properties." );
         }
         cdm.createEntityData( entitySetId, syncId, entities, authorizedPropertiesWithDataType );
-        datasourceManager.updateLatestSyncId( entitySetId, syncId );
         return null;
     }
 

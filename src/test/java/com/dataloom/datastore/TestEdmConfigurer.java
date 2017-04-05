@@ -161,7 +161,7 @@ public class TestEdmConfigurer {
                         EMPLOYEE_DEPT_PROP_ID,
                         EMPLOYEE_SALARY_PROP_ID ) ),
                 Optional.absent(),
-                SecurableObjectType.EntityType );
+                Optional.of( SecurableObjectType.EntityType ) );
     }
 
     private static void createPropertyTypes( EdmManager dms ) {

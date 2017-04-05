@@ -288,7 +288,7 @@ public class CassandraDataManager {
     public UUID getMostRecentSyncIdForEntitySet( UUID entitySetId ) {
         BoundStatement bs = mostRecentSyncIdQuery.bind().setUUID( CommonColumns.ENTITY_SET_ID.cql(), entitySetId );
         Row row = session.execute( bs ).one();
-        return ( row == null ) ? null : row.getUUID( CommonColumns.LATEST_SYNC_ID.cql() );
+        return ( row == null ) ? null : row.getUUID( CommonColumns.CURRENT_SYNC_ID.cql() );
     }
 
     public void addSyncIdToEntitySet( UUID entitySetId, UUID syncId ) {

@@ -49,11 +49,11 @@ public class SyncController implements SyncApi {
         path = { ENTITY_SET_ID_PATH },
         method = RequestMethod.GET,
         consumes = MediaType.APPLICATION_JSON_VALUE )
-    public UUID getLatestSyncId( @PathVariable UUID entitySetId ) {
+    public UUID getCurrentSyncId( @PathVariable UUID entitySetId ) {
         if ( authz.checkIfHasPermissions( ImmutableList.of( entitySetId ),
                 Principals.getCurrentPrincipals(),
                 EnumSet.of( Permission.READ ) ) ) {
-            return datasourceManager.getLatestSyncId( entitySetId );
+            return datasourceManager.getCurrentSyncId( entitySetId );
         } else {
             throw new ForbiddenException(
                     "Insufficient permissions to read the sync id of the entity set or it doesn't exist." );
@@ -65,15 +65,31 @@ public class SyncController implements SyncApi {
         path = { ENTITY_SET_ID_PATH + SYNC_ID_PATH },
         method = RequestMethod.POST,
         consumes = MediaType.APPLICATION_JSON_VALUE )
-    public Void setLatestSyncId( @PathVariable UUID entitySetId, @PathVariable UUID syncId ) {
+    public Void setCurrentSyncId( @PathVariable UUID entitySetId, @PathVariable UUID syncId ) {
         if ( authz.checkIfHasPermissions( ImmutableList.of( entitySetId ),
                 Principals.getCurrentPrincipals(),
                 EnumSet.of( Permission.WRITE ) ) ) {
-            datasourceManager.setLatestSyncId( entitySetId, syncId );
+            datasourceManager.setCurrentSyncId( entitySetId, syncId );
             return null;
         } else {
             throw new ForbiddenException(
-                    "Insufficient permissions to set the latest sync id of the entity set or it doesn't exist." );
+                    "Insufficient permissions to set the current sync id of the entity set or it doesn't exist." );
+        }
+    }
+
+    @Override
+    @RequestMapping(
+        path = { LATEST + ENTITY_SET_ID_PATH },
+        method = RequestMethod.GET,
+        consumes = MediaType.APPLICATION_JSON_VALUE )
+    public UUID getLatestSyncId( @PathVariable UUID entitySetId ) {
+        if ( authz.checkIfHasPermissions( ImmutableList.of( entitySetId ),
+                Principals.getCurrentPrincipals(),
+                EnumSet.of( Permission.READ ) ) ) {
+            return datasourceManager.getLatestSyncId( entitySetId );
+        } else {
+            throw new ForbiddenException(
+                    "Insufficient permissions to read the latest sync id of the entity set or it doesn't exist." );
         }
     }
 }

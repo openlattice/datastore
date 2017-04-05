@@ -54,7 +54,7 @@ import com.dataloom.organizations.events.OrganizationUpdatedEvent;
 import com.dataloom.search.requests.AdvancedSearch;
 import com.dataloom.search.requests.SearchResult;
 import com.dataloom.search.requests.SearchTerm;
-import com.dataloom.sync.events.LatestSyncUpdatedEvent;
+import com.dataloom.sync.events.CurrentSyncUpdatedEvent;
 import com.dataloom.sync.events.SyncIdCreatedEvent;
 import com.google.common.base.Optional;
 import com.google.common.collect.Lists;
@@ -147,13 +147,13 @@ public class SearchService {
     public void deleteEntitySet( EntitySetDeletedEvent event ) {
         elasticsearchApi.deleteEntitySet( event.getEntitySetId() );
     }
-    
+
     @Subscribe
-    public void deleteIndicesBeforeLatestSync( LatestSyncUpdatedEvent event ) {
+    public void deleteIndicesBeforeCurrentSync( CurrentSyncUpdatedEvent event ) {
         UUID entitySetId = event.getEntitySetId();
-        cdm.getAllPreviousSyncIds( entitySetId, event.getLatestSyncId() ).forEach( syncId -> { 
+        cdm.getAllPreviousSyncIds( entitySetId, event.getCurrentSyncId() ).forEach( syncId -> {
             elasticsearchApi.deleteEntitySetForSyncId( entitySetId, syncId );
-        });
+        } );
     }
 
     @Subscribe
@@ -183,7 +183,7 @@ public class SearchService {
     @Subscribe
     public void createEntityData( EntityDataCreatedEvent event ) {
         UUID syncId = ( event.getOptionalSyncId().isPresent() ) ? event.getOptionalSyncId().get()
-                : datasourceManager.getLatestSyncId( event.getEntitySetId() );
+                : datasourceManager.getCurrentSyncId( event.getEntitySetId() );
         elasticsearchApi.createEntityData( event.getEntitySetId(),
                 syncId,
                 event.getEntityId(),
@@ -194,7 +194,7 @@ public class SearchService {
             UUID entitySetId,
             SearchTerm searchTerm,
             Set<UUID> authorizedProperties ) {
-        UUID syncId = datasourceManager.getLatestSyncId( entitySetId );
+        UUID syncId = datasourceManager.getCurrentSyncId( entitySetId );
         return elasticsearchApi.executeEntitySetDataSearch( entitySetId,
                 syncId,
                 searchTerm.getSearchTerm(),
@@ -221,8 +221,11 @@ public class SearchService {
             boolean explain ) {
         Map<UUID, UUID> entitySetAndSyncIds = Maps.newHashMap();
         entitySetIds.forEach( entitySetId -> entitySetAndSyncIds.put( entitySetId,
-                datasourceManager.getLatestSyncId( entitySetId ) ) );
-        return elasticsearchApi.executeEntitySetDataSearchAcrossIndices( entitySetAndSyncIds, fieldSearches, size, explain );
+                datasourceManager.getCurrentSyncId( entitySetId ) ) );
+        return elasticsearchApi.executeEntitySetDataSearchAcrossIndices( entitySetAndSyncIds,
+                fieldSearches,
+                size,
+                explain );
     }
 
     public SearchResult executeAdvancedEntitySetDataSearch(
@@ -236,7 +239,7 @@ public class SearchService {
         } );
 
         if ( !authorizedSearches.isEmpty() ) {
-            UUID syncId = datasourceManager.getLatestSyncId( entitySetId );
+            UUID syncId = datasourceManager.getCurrentSyncId( entitySetId );
             return elasticsearchApi.executeAdvancedEntitySetDataSearch( entitySetId,
                     syncId,
                     authorizedSearches,

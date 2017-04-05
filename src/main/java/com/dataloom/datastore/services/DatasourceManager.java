@@ -29,7 +29,7 @@ import org.apache.commons.lang3.NotImplementedException;
 
 import com.dataloom.edm.type.PropertyType;
 import com.dataloom.hazelcast.HazelcastMap;
-import com.dataloom.sync.events.LatestSyncUpdatedEvent;
+import com.dataloom.sync.events.CurrentSyncUpdatedEvent;
 import com.dataloom.sync.events.SyncIdCreatedEvent;
 import com.datastax.driver.core.utils.UUIDs;
 import com.google.common.collect.Lists;
@@ -49,19 +49,19 @@ public class DatasourceManager {
     @Inject
     private EventBus               eventBus;
 
-    private final IMap<UUID, UUID> latestSyncIds;
+    private final IMap<UUID, UUID> currentSyncIds;
 
     public DatasourceManager( HazelcastInstance hazelcastInstance ) {
-        this.latestSyncIds = hazelcastInstance.getMap( HazelcastMap.SYNC_IDS.name() );
+        this.currentSyncIds = hazelcastInstance.getMap( HazelcastMap.SYNC_IDS.name() );
     }
 
-    public UUID getLatestSyncId( UUID entitySetId ) {
-        return latestSyncIds.get( entitySetId );
+    public UUID getCurrentSyncId( UUID entitySetId ) {
+        return currentSyncIds.get( entitySetId );
     }
 
-    public void setLatestSyncId( UUID entitySetId, UUID syncId ) {
-        latestSyncIds.put( entitySetId, syncId );
-        eventBus.post( new LatestSyncUpdatedEvent( entitySetId, syncId ) );
+    public void setCurrentSyncId( UUID entitySetId, UUID syncId ) {
+        currentSyncIds.put( entitySetId, syncId );
+        eventBus.post( new CurrentSyncUpdatedEvent( entitySetId, syncId ) );
     }
 
     public UUID createNewSyncIdForEntitySet( UUID entitySetId ) {
@@ -72,6 +72,10 @@ public class DatasourceManager {
                 dms.getEntityType( dms.getEntitySet( entitySetId ).getEntityTypeId() ).getProperties() ) );
         eventBus.post( new SyncIdCreatedEvent( entitySetId, newSyncId, propertyTypes ) );
         return newSyncId;
+    }
+    
+    public UUID getLatestSyncId( UUID entitySetId ) {
+        return cdm.getMostRecentSyncIdForEntitySet( entitySetId );
     }
 
     public UUID createDatasource( UUID aclId, String name, String description, UUID syncId ) {

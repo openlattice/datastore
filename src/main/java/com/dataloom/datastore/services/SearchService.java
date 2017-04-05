@@ -215,13 +215,10 @@ public class SearchService {
     }
 
     public List<Entity> executeEntitySetDataSearchAcrossIndices(
-            Set<UUID> entitySetIds,
+            Map<UUID, UUID> entitySetAndSyncIds,
             Map<UUID, Set<String>> fieldSearches,
             int size,
             boolean explain ) {
-        Map<UUID, UUID> entitySetAndSyncIds = Maps.newHashMap();
-        entitySetIds.forEach( entitySetId -> entitySetAndSyncIds.put( entitySetId,
-                datasourceManager.getCurrentSyncId( entitySetId ) ) );
         return elasticsearchApi.executeEntitySetDataSearchAcrossIndices( entitySetAndSyncIds,
                 fieldSearches,
                 size,

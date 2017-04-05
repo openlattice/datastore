@@ -75,7 +75,7 @@ public class SimpleMatcher implements Matcher {
 
     @Override
     public void setLinking(
-            Set<UUID> linkingEntitySets,
+            Map<UUID, UUID> linkingEntitySetsWithSyncId,
             SetMultimap<UUID, UUID> linkIndexedByPropertyTypes,
             SetMultimap<UUID, UUID> linkIndexedByEntitySets ) {
         this.linkIndexedByPropertyTypes = linkIndexedByPropertyTypes;

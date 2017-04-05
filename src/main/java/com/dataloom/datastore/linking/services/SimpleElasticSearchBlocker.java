@@ -13,7 +13,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.dataloom.data.EntityKey;
-import com.dataloom.datastore.services.CassandraDataManager;
 import com.dataloom.datastore.services.SearchService;
 import com.dataloom.edm.type.PropertyType;
 import com.dataloom.linking.Entity;
@@ -22,6 +21,7 @@ import com.dataloom.linking.util.UnorderedPair;
 import com.dataloom.streams.StreamUtil;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.SetMultimap;
+import com.kryptnostic.datastore.services.CassandraDataManager;
 import com.kryptnostic.datastore.services.EdmManager;
 
 public class SimpleElasticSearchBlocker implements Blocker {
@@ -32,6 +32,7 @@ public class SimpleElasticSearchBlocker implements Blocker {
     private SearchService              searchService;
 
     private SetMultimap<UUID, UUID>    linkIndexedByEntitySets;
+    private Map<UUID, UUID> linkingEntitySetsWithSyncId;
     private Set<UUID>                  linkingES;
 
     // Number of search results taken in each block.
@@ -50,11 +51,12 @@ public class SimpleElasticSearchBlocker implements Blocker {
 
     @Override
     public void setLinking(
-            Set<UUID> linkingEntitySets,
+            Map<UUID,UUID> linkingEntitySetsWithSyncId,
             SetMultimap<UUID, UUID> linkIndexedByPropertyTypes,
             SetMultimap<UUID, UUID> linkIndexedByEntitySets ) {
         this.linkIndexedByEntitySets = linkIndexedByEntitySets;
-        this.linkingES = new HashSet<>( linkingEntitySets );
+        this.linkingEntitySetsWithSyncId = linkingEntitySetsWithSyncId;
+        this.linkingES = new HashSet<>( linkingEntitySetsWithSyncId.keySet() );
     }
 
     @Override
@@ -73,7 +75,7 @@ public class SimpleElasticSearchBlocker implements Blocker {
         Iterable<String> entityIds = dataManager.getEntityIds( entitySetId );
 
         Stream<EntityKey> entityKeys = StreamUtil.stream( entityIds )
-                .map( entityId -> new EntityKey( entitySetId, entityId ) );
+                .map( entityId -> new EntityKey( entitySetId, entityId, linkingEntitySetsWithSyncId.get( entitySetId ) ) );
 
         Stream<Pair<EntityKey, SetMultimap<UUID, Object>>> entityKeyDataPairs = entityKeys
                 .map( key -> Pair.of( key, dataManager.asyncLoadEntity( key.getEntitySetId(), key.getEntityId(), propertiesSet ) ) )
@@ -93,7 +95,7 @@ public class SimpleElasticSearchBlocker implements Blocker {
                     Collectors.toMap( entry -> entry.getKey().toString(), entry -> entry.getValue() ) );
 
             // Blocking step: fire off query to elasticsearch.
-            List<Entity> queryResults = searchService.executeEntitySetDataSearchAcrossIndices( linkingES,
+            List<Entity> queryResults = searchService.executeEntitySetDataSearchAcrossIndices( linkingEntitySetsWithSyncId,
                     properties,
                     blockSize,
                     explain );

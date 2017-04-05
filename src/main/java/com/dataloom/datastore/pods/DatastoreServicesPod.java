@@ -35,6 +35,7 @@ import com.dataloom.authorization.EdmAuthorizationHelper;
 import com.dataloom.authorization.HazelcastAbstractSecurableObjectResolveTypeService;
 import com.dataloom.authorization.HazelcastAclKeyReservationService;
 import com.dataloom.authorization.HazelcastAuthorizationService;
+import com.dataloom.authorization.Principals;
 import com.dataloom.clustering.ClusteringPartitioner;
 import com.dataloom.data.serializers.FullQualifedNameJacksonDeserializer;
 import com.dataloom.data.serializers.FullQualifedNameJacksonSerializer;
@@ -43,7 +44,6 @@ import com.dataloom.datastore.linking.services.SimpleMatcher;
 import com.dataloom.datastore.scripts.EmptyPermissionRemover;
 import com.dataloom.datastore.scripts.EntitySetContactsPopulator;
 import com.dataloom.datastore.services.AnalysisService;
-import com.dataloom.datastore.services.CassandraDataManager;
 import com.dataloom.datastore.services.DatasourceManager;
 import com.dataloom.datastore.services.LinkingService;
 import com.dataloom.datastore.services.SearchService;
@@ -63,6 +63,10 @@ import com.dataloom.linking.components.Clusterer;
 import com.dataloom.linking.components.Matcher;
 import com.dataloom.mappers.ObjectMappers;
 import com.dataloom.organizations.HazelcastOrganizationService;
+import com.dataloom.organizations.roles.HazelcastRolesService;
+import com.dataloom.organizations.roles.RolesManager;
+import com.dataloom.organizations.roles.RolesQueryService;
+import com.dataloom.organizations.roles.TokenExpirationTracker;
 import com.dataloom.requests.HazelcastPermissionsRequestsService;
 import com.dataloom.requests.HazelcastRequestsManager;
 import com.dataloom.requests.PermissionsRequestsManager;
@@ -72,6 +76,7 @@ import com.datastax.driver.core.Session;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.eventbus.EventBus;
 import com.hazelcast.core.HazelcastInstance;
+import com.kryptnostic.datastore.services.CassandraDataManager;
 import com.kryptnostic.datastore.services.CassandraEntitySetManager;
 import com.kryptnostic.datastore.services.EdmManager;
 import com.kryptnostic.datastore.services.EdmService;
@@ -186,7 +191,27 @@ public class DatastoreServicesPod {
 
     @Bean
     public CassandraDataManager cassandraDataManager() {
-        return new CassandraDataManager( session, defaultObjectMapper(), linkingGraph() );
+        return new CassandraDataManager( session, defaultObjectMapper(), linkingGraph(), loomGraph() );
+    }
+    
+    @Bean
+    public RolesQueryService rolesQueryService(){
+        return new RolesQueryService( session );
+    }
+    
+    @Bean
+    public TokenExpirationTracker tokenTracker(){
+        return new TokenExpirationTracker( hazelcastInstance );
+    }
+    
+    @PostConstruct
+    public void setExpiringTokenTracker(){
+        Principals.setExpiringTokenTracker( tokenTracker() );
+    }
+    
+    @Bean
+    public RolesManager rolesService(){
+        return new HazelcastRolesService( hazelcastInstance, rolesQueryService(), aclKeyReservationService(), tokenTracker(), userDirectoryService(), securableObjectTypes(), authorizationManager() );
     }
 
     @Bean
@@ -197,12 +222,13 @@ public class DatastoreServicesPod {
                 hazelcastInstance,
                 aclKeyReservationService(),
                 authorizationManager(),
-                userDirectoryService() );
+                userDirectoryService(),
+                rolesService() );
     }
 
     @Bean
     public DatasourceManager datasourceManager() {
-        return new DatasourceManager();
+        return new DatasourceManager( hazelcastInstance );
     }
 
     @Bean
@@ -291,7 +317,8 @@ public class DatastoreServicesPod {
                 eventBus,
                 hazelcastListingService(),
                 dataModelService(),
-                cassandraDataManager() );
+                cassandraDataManager(),
+                datasourceManager() );
     }
 
     @Bean
@@ -313,15 +340,15 @@ public class DatastoreServicesPod {
     @Bean
     public EmptyPermissionRemover removeEmptyPermissions() {
         return new EmptyPermissionRemover( cassandraConfiguration.getKeyspace(), session );
-    }
+    }   
 
     @Bean
     public GraphQueryService graphQueryService() {
         return new GraphQueryService( session );
     }
 
-    @PostConstruct
-    public void initGraphService() {
-        LoomGraph.init( hazelcastInstance, graphQueryService() );
+    @Bean
+    public LoomGraph loomGraph() {
+        return new LoomGraph( hazelcastInstance, graphQueryService() );
     }
 }

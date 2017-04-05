@@ -17,6 +17,7 @@ import com.dataloom.mappers.ObjectMappers;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.google.common.collect.Lists;
 import com.google.common.collect.SetMultimap;
+import com.kryptnostic.datastore.services.CassandraDataManager;
 
 public class AnalysisService {
 

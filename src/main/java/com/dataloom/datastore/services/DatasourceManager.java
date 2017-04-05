@@ -66,9 +66,7 @@ public class DatasourceManager {
 
     public UUID createNewSyncIdForEntitySet( UUID entitySetId ) {
         UUID newSyncId = UUIDs.timeBased();
-        boolean shouldSetAsLatest = getLatestSyncId( entitySetId ) == null;
         cdm.addSyncIdToEntitySet( entitySetId, newSyncId );
-        if ( shouldSetAsLatest ) setLatestSyncId( entitySetId, newSyncId );
         
         List<PropertyType> propertyTypes = Lists.newArrayList( dms.getPropertyTypes(
                 dms.getEntityType( dms.getEntitySet( entitySetId ).getEntityTypeId() ).getProperties() ) );

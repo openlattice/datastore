@@ -25,7 +25,6 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 import javax.inject.Inject;
 import javax.servlet.http.HttpServletResponse;
@@ -59,6 +58,7 @@ import com.dataloom.authorization.securable.SecurableObjectType;
 import com.dataloom.authorization.util.AuthorizationUtils;
 import com.dataloom.datastore.constants.CustomMediaType;
 import com.dataloom.datastore.services.CassandraDataManager;
+import com.dataloom.datastore.services.DatasourceManager;
 import com.dataloom.edm.EdmApi;
 import com.dataloom.edm.EdmDetails;
 import com.dataloom.edm.EntityDataModel;
@@ -109,6 +109,9 @@ public class EdmController implements EdmApi, AuthorizingComponent {
 
     @Inject
     private CassandraDataManager                      dataManager;
+
+    @Inject
+    private DatasourceManager                         datasourceManager;
 
     @Override
     @RequestMapping(
@@ -344,6 +347,7 @@ public class EdmController implements EdmApi, AuthorizingComponent {
                 createdEntitySets.put( entitySet.getName(), entitySet.getId() );
                 securableObjectTypes.createSecurableObjectType( ImmutableList.of( entitySet.getId() ),
                         SecurableObjectType.EntitySet );
+                datasourceManager.createNewSyncIdForEntitySet( entitySet.getId() );
             } catch ( Exception e ) {
                 dto.addError( LoomExceptions.OTHER_EXCEPTION, entitySet.getName() + ": " + e.getMessage() );
             }

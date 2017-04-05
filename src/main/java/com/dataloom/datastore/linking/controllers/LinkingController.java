@@ -40,6 +40,7 @@ import com.dataloom.authorization.AuthorizingComponent;
 import com.dataloom.authorization.Permission;
 import com.dataloom.authorization.Principals;
 import com.dataloom.data.EntityKey;
+import com.dataloom.datastore.services.DatasourceManager;
 import com.dataloom.datastore.services.LinkingService;
 import com.dataloom.edm.EntitySet;
 import com.dataloom.edm.set.LinkingEntitySet;
@@ -74,6 +75,9 @@ public class LinkingController implements LinkingApi, AuthorizingComponent {
     @Inject
     private LinkingService          linkingService;
 
+    @Inject
+    private DatasourceManager       datasourceManager;
+
     @Override
     @PostMapping(
         value = "/"
@@ -104,12 +108,14 @@ public class LinkingController implements LinkingApi, AuthorizingComponent {
         Set<Map<UUID, UUID>> linkingProperties = linkingEntitySet.getLinkingProperties();
         Set<UUID> linkingES = LinkingService.getLinkingSets( linkingProperties );
         EntitySet entitySet = linkingEntitySet.getEntitySet();
-        
+
         // Validate, compute the ownable property types after merging.
         Set<UUID> ownablePropertyTypes = validateAndGetOwnablePropertyTypes( entitySet, linkingProperties );
 
         edm.createEntitySet( Principals.getCurrentUser(), entitySet, ownablePropertyTypes );
         UUID linkedEntitySetId = entitySet.getId();
+        datasourceManager.createNewSyncIdForEntitySet( linkedEntitySetId );
+
         listings.setLinkedEntitySets( linkedEntitySetId, linkingES );
 
         return linkingService.link( linkedEntitySetId, linkingProperties, ownablePropertyTypes );

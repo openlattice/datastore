@@ -223,7 +223,7 @@ public class CassandraDataManager {
                     results,
                     entity.getKey(),
                     entity.getValue() );
-            defaultGraph.getOrCreateVertex( new EntityKey( entitySetId, entity.getKey() ) );
+            defaultGraph.getOrCreateVertex( new EntityKey( entitySetId, entity.getKey(), syncId ) );
         } );
 
         results.forEach( ResultSetFuture::getUninterruptibly );
@@ -249,7 +249,7 @@ public class CassandraDataManager {
             LoomVertex src = defaultGraph.getOrCreateVertex( event.getSrc() );
             LoomVertex dst = defaultGraph.getOrCreateVertex( event.getDst() );
             
-            defaultGraph.addEdge( src, dst, new EntityKey( entitySetId, event.getEntityId() ) );
+            defaultGraph.addEdge( src, dst, new EntityKey( entitySetId, event.getEntityId(), syncId ) );
         } );
 
         results.forEach( ResultSetFuture::getUninterruptibly );

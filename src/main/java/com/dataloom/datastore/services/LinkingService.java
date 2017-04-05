@@ -43,6 +43,7 @@ public class LinkingService {
     private final HazelcastListingService listingService;
     private final EdmManager              dms;
     private final CassandraDataManager    cdm;
+    private final DatasourceManager       dsm;
     private final String                  keyspace;
     private final Session                 session;
 
@@ -57,7 +58,8 @@ public class LinkingService {
             EventBus eventBus,
             HazelcastListingService listingService,
             EdmManager dms,
-            CassandraDataManager cdm ) {
+            CassandraDataManager cdm,
+            DatasourceManager dsm ) {
         this.linkingGraph = linkingGraph;
 
         this.blocker = blocker;
@@ -72,6 +74,7 @@ public class LinkingService {
         this.listingService = listingService;
         this.dms = dms;
         this.cdm = cdm;
+        this.dsm = dsm;
     }
 
     public UUID link( UUID linkedEntitySetId, Set<Map<UUID, UUID>> linkingProperties, Set<UUID> ownablePropertyTypes ) {
@@ -80,7 +83,7 @@ public class LinkingService {
 
         // Warning: We assume that the restrictions on links are enforced/validated as specified in LinkingApi. In
         // particular, from now on we work on the assumption that only identical property types are linked on.
-        initializeComponents( linkIndexedByEntitySets.keySet(), linkIndexedByPropertyTypes, linkIndexedByEntitySets );
+        initializeComponents( dsm.getLatestSyncId( linkIndexedByEntitySets.keySet() ), linkIndexedByPropertyTypes, linkIndexedByEntitySets );
 
         UUID graphId = linkingGraph.getGraphIdFromEntitySetId( linkedEntitySetId );
 
@@ -159,11 +162,11 @@ public class LinkingService {
     }
 
     private void initializeComponents(
-            Set<UUID> linkingEntitySets,
+            Map<UUID, UUID> linkingEntitySetsWithSyncIds,
             SetMultimap<UUID, UUID> linkIndexedByPropertyTypes,
             SetMultimap<UUID, UUID> linkIndexedByEntitySets ) {
-        blocker.setLinking( linkingEntitySets, linkIndexedByPropertyTypes, linkIndexedByEntitySets );
-        matcher.setLinking( linkingEntitySets, linkIndexedByPropertyTypes, linkIndexedByEntitySets );
+        blocker.setLinking( linkingEntitySetsWithSyncIds, linkIndexedByPropertyTypes, linkIndexedByEntitySets );
+        matcher.setLinking( linkingEntitySetsWithSyncIds, linkIndexedByPropertyTypes, linkIndexedByEntitySets );
     }
 
     /**

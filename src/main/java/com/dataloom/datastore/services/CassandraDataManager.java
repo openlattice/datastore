@@ -79,7 +79,7 @@ public class CassandraDataManager {
     private final ObjectMapper           mapper;
     private final HazelcastLinkingGraphs linkingGraph;
     // TODO Warning: For now, all entities are written into the same graph
-    private final LoomGraph              defaultGraph = new LoomGraph();
+    private final LoomGraph              loomGraph;
 
     private final PreparedStatement      writeDataQuery;
 
@@ -94,10 +94,11 @@ public class CassandraDataManager {
 
     private final PreparedStatement      readNumRPCRowsQuery;
 
-    public CassandraDataManager( Session session, ObjectMapper mapper, HazelcastLinkingGraphs linkingGraph ) {
+    public CassandraDataManager( Session session, ObjectMapper mapper, HazelcastLinkingGraphs linkingGraph, LoomGraph loomGraph ) {
         this.session = session;
         this.mapper = mapper;
         this.linkingGraph = linkingGraph;
+        this.loomGraph = loomGraph;
 
         CassandraTableBuilder dataTableDefinitions = Table.DATA.getBuilder();
 
@@ -223,7 +224,7 @@ public class CassandraDataManager {
                     results,
                     entity.getKey(),
                     entity.getValue() );
-            defaultGraph.getOrCreateVertex( new EntityKey( entitySetId, entity.getKey(), syncId ) );
+            loomGraph.getOrCreateVertex( new EntityKey( entitySetId, entity.getKey(), syncId ) );
         } );
 
         results.forEach( ResultSetFuture::getUninterruptibly );
@@ -246,10 +247,10 @@ public class CassandraDataManager {
                     results,
                     event.getEntityId(),
                     event.getDetails() );
-            LoomVertex src = defaultGraph.getOrCreateVertex( event.getSrc() );
-            LoomVertex dst = defaultGraph.getOrCreateVertex( event.getDst() );
+            LoomVertex src = loomGraph.getOrCreateVertex( event.getSrc() );
+            LoomVertex dst = loomGraph.getOrCreateVertex( event.getDst() );
             
-            defaultGraph.addEdge( src, dst, new EntityKey( entitySetId, event.getEntityId(), syncId ) );
+            loomGraph.addEdge( src, dst, new EntityKey( entitySetId, event.getEntityId(), syncId ) );
         } );
 
         results.forEach( ResultSetFuture::getUninterruptibly );

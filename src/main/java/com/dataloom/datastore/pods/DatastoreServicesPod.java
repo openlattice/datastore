@@ -186,7 +186,7 @@ public class DatastoreServicesPod {
 
     @Bean
     public CassandraDataManager cassandraDataManager() {
-        return new CassandraDataManager( session, defaultObjectMapper(), linkingGraph() );
+        return new CassandraDataManager( session, defaultObjectMapper(), linkingGraph(), loomGraph() );
     }
 
     @Bean
@@ -291,7 +291,8 @@ public class DatastoreServicesPod {
                 eventBus,
                 hazelcastListingService(),
                 dataModelService(),
-                cassandraDataManager() );
+                cassandraDataManager(),
+                datasourceManager() );
     }
 
     @Bean
@@ -313,15 +314,15 @@ public class DatastoreServicesPod {
     @Bean
     public EmptyPermissionRemover removeEmptyPermissions() {
         return new EmptyPermissionRemover( cassandraConfiguration.getKeyspace(), session );
-    }
+    }   
 
     @Bean
     public GraphQueryService graphQueryService() {
         return new GraphQueryService( session );
     }
 
-    @PostConstruct
-    public void initGraphService() {
-        LoomGraph.init( hazelcastInstance, graphQueryService() );
+    @Bean
+    public LoomGraph loomGraph() {
+        return new LoomGraph( hazelcastInstance, graphQueryService() );
     }
 }

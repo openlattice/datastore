@@ -78,6 +78,10 @@ public class DatasourceManager {
     public UUID getLatestSyncId( UUID entitySetId ) {
         return cdm.getMostRecentSyncIdForEntitySet( entitySetId );
     }
+    
+    public Iterable<UUID> getAllSyncIds( UUID entitySetId ) {
+        return cdm.getAllSyncIds( entitySetId );
+    }
 
     public UUID createDatasource( UUID aclId, String name, String description, UUID syncId ) {
         throw new NotImplementedException( "MTR WAS HERE." );

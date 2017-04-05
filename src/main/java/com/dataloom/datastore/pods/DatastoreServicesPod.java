@@ -191,7 +191,7 @@ public class DatastoreServicesPod {
 
     @Bean
     public CassandraDataManager cassandraDataManager() {
-        return new CassandraDataManager( session, defaultObjectMapper(), linkingGraph(), loomGraph() );
+        return new CassandraDataManager( session, defaultObjectMapper(), linkingGraph(), loomGraph(), datasourceManager() );
     }
     
     @Bean

@@ -349,6 +349,6 @@ public class DatastoreServicesPod {
 
     @Bean
     public LoomGraph loomGraph() {
-        return new LoomGraph( hazelcastInstance, graphQueryService() );
+        return new LoomGraph( hazelcastInstance, cassandraDataManager(), graphQueryService() );
     }
 }

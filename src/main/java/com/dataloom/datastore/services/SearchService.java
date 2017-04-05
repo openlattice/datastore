@@ -62,6 +62,7 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.google.common.eventbus.EventBus;
 import com.google.common.eventbus.Subscribe;
+import com.kryptnostic.datastore.services.CassandraDataManager;
 
 public class SearchService {
     private static final Logger                       logger = LoggerFactory.getLogger( SearchService.class );

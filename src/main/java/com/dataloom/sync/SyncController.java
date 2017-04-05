@@ -59,4 +59,21 @@ public class SyncController implements SyncApi {
                     "Insufficient permissions to read the sync id of the entity set or it doesn't exist." );
         }
     }
+
+    @Override
+    @RequestMapping(
+        path = { ENTITY_SET_ID_PATH + SYNC_ID_PATH },
+        method = RequestMethod.POST,
+        consumes = MediaType.APPLICATION_JSON_VALUE )
+    public Void setLatestSyncId( @PathVariable UUID entitySetId, @PathVariable UUID syncId ) {
+        if ( authz.checkIfHasPermissions( ImmutableList.of( entitySetId ),
+                Principals.getCurrentPrincipals(),
+                EnumSet.of( Permission.WRITE ) ) ) {
+            datasourceManager.setLatestSyncId( entitySetId, syncId );
+            return null;
+        } else {
+            throw new ForbiddenException(
+                    "Insufficient permissions to set the latest sync id of the entity set or it doesn't exist." );
+        }
+    }
 }

@@ -19,6 +19,7 @@
 
 package com.dataloom.datastore.services;
 
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
@@ -26,16 +27,28 @@ import javax.inject.Inject;
 
 import org.apache.commons.lang3.NotImplementedException;
 
+import com.dataloom.edm.type.PropertyType;
 import com.dataloom.hazelcast.HazelcastMap;
+import com.dataloom.sync.events.LatestSyncUpdatedEvent;
+import com.dataloom.sync.events.SyncIdCreatedEvent;
 import com.datastax.driver.core.utils.UUIDs;
+import com.google.common.collect.Lists;
+import com.google.common.eventbus.EventBus;
 import com.hazelcast.core.HazelcastInstance;
 import com.hazelcast.core.IMap;
+import com.kryptnostic.datastore.services.EdmService;
 
 public class DatasourceManager {
-    
+
     @Inject
-    private CassandraDataManager cdm;
-    
+    private CassandraDataManager   cdm;
+
+    @Inject
+    private EdmService             dms;
+
+    @Inject
+    private EventBus               eventBus;
+
     private final IMap<UUID, UUID> latestSyncIds;
 
     public DatasourceManager( HazelcastInstance hazelcastInstance ) {
@@ -43,18 +56,23 @@ public class DatasourceManager {
     }
 
     public UUID getLatestSyncId( UUID entitySetId ) {
-        UUID latestSyncId = cdm.getMostRecentSyncIdForEntitySet( entitySetId );
-        return ( latestSyncId != null) ? latestSyncId : createNewSyncIdForEntitySet( entitySetId );
+        return latestSyncIds.get( entitySetId );
     }
 
-    public void updateLatestSyncId( UUID entitySetId, UUID latestSyncId ) {
-        
-        latestSyncIds.put( entitySetId, latestSyncId );
+    public void setLatestSyncId( UUID entitySetId, UUID syncId ) {
+        latestSyncIds.put( entitySetId, syncId );
+        eventBus.post( new LatestSyncUpdatedEvent( entitySetId, syncId ) );
     }
-    
+
     public UUID createNewSyncIdForEntitySet( UUID entitySetId ) {
         UUID newSyncId = UUIDs.timeBased();
-        latestSyncIds.put( entitySetId, newSyncId );
+        boolean shouldSetAsLatest = getLatestSyncId( entitySetId ) == null;
+        cdm.addSyncIdToEntitySet( entitySetId, newSyncId );
+        if ( shouldSetAsLatest ) setLatestSyncId( entitySetId, newSyncId );
+        
+        List<PropertyType> propertyTypes = Lists.newArrayList( dms.getPropertyTypes(
+                dms.getEntityType( dms.getEntitySet( entitySetId ).getEntityTypeId() ).getProperties() ) );
+        eventBus.post( new SyncIdCreatedEvent( entitySetId, newSyncId, propertyTypes ) );
         return newSyncId;
     }
 

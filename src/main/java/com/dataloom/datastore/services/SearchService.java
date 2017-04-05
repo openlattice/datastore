@@ -54,6 +54,8 @@ import com.dataloom.organizations.events.OrganizationUpdatedEvent;
 import com.dataloom.search.requests.AdvancedSearch;
 import com.dataloom.search.requests.SearchResult;
 import com.dataloom.search.requests.SearchTerm;
+import com.dataloom.sync.events.LatestSyncUpdatedEvent;
+import com.dataloom.sync.events.SyncIdCreatedEvent;
 import com.google.common.base.Optional;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -75,6 +77,12 @@ public class SearchService {
 
     @Inject
     private DatastoreConductorElasticsearchApi        elasticsearchApi;
+
+    @Inject
+    private DatasourceManager                         datasourceManager;
+
+    @Inject
+    private CassandraDataManager                      cdm;
 
     @PostConstruct
     public void initializeBus() {
@@ -129,8 +137,23 @@ public class SearchService {
     }
 
     @Subscribe
+    public void createSecurableObjectIndexForSyncId( SyncIdCreatedEvent event ) {
+        elasticsearchApi.createSecurableObjectIndex( event.getEntitySetId(),
+                event.getSyncId(),
+                event.getPropertyTypes() );
+    }
+
+    @Subscribe
     public void deleteEntitySet( EntitySetDeletedEvent event ) {
         elasticsearchApi.deleteEntitySet( event.getEntitySetId() );
+    }
+    
+    @Subscribe
+    public void deleteIndicesBeforeLatestSync( LatestSyncUpdatedEvent event ) {
+        UUID entitySetId = event.getEntitySetId();
+        cdm.getAllPreviousSyncIds( entitySetId, event.getLatestSyncId() ).forEach( syncId -> { 
+            elasticsearchApi.deleteEntitySetForSyncId( entitySetId, syncId );
+        });
     }
 
     @Subscribe
@@ -159,14 +182,21 @@ public class SearchService {
 
     @Subscribe
     public void createEntityData( EntityDataCreatedEvent event ) {
-        elasticsearchApi.createEntityData( event.getEntitySetId(), event.getEntityId(), event.getPropertyValues() );
+        UUID syncId = ( event.getOptionalSyncId().isPresent() ) ? event.getOptionalSyncId().get()
+                : datasourceManager.getLatestSyncId( event.getEntitySetId() );
+        elasticsearchApi.createEntityData( event.getEntitySetId(),
+                syncId,
+                event.getEntityId(),
+                event.getPropertyValues() );
     }
 
     public SearchResult executeEntitySetDataSearch(
             UUID entitySetId,
             SearchTerm searchTerm,
             Set<UUID> authorizedProperties ) {
+        UUID syncId = datasourceManager.getLatestSyncId( entitySetId );
         return elasticsearchApi.executeEntitySetDataSearch( entitySetId,
+                syncId,
                 searchTerm.getSearchTerm(),
                 searchTerm.getStart(),
                 searchTerm.getMaxHits(),
@@ -189,7 +219,10 @@ public class SearchService {
             Map<UUID, Set<String>> fieldSearches,
             int size,
             boolean explain ) {
-        return elasticsearchApi.executeEntitySetDataSearchAcrossIndices( entitySetIds, fieldSearches, size, explain );
+        Map<UUID, UUID> entitySetAndSyncIds = Maps.newHashMap();
+        entitySetIds.forEach( entitySetId -> entitySetAndSyncIds.put( entitySetId,
+                datasourceManager.getLatestSyncId( entitySetId ) ) );
+        return elasticsearchApi.executeEntitySetDataSearchAcrossIndices( entitySetAndSyncIds, fieldSearches, size, explain );
     }
 
     public SearchResult executeAdvancedEntitySetDataSearch(
@@ -203,7 +236,9 @@ public class SearchService {
         } );
 
         if ( !authorizedSearches.isEmpty() ) {
+            UUID syncId = datasourceManager.getLatestSyncId( entitySetId );
             return elasticsearchApi.executeAdvancedEntitySetDataSearch( entitySetId,
+                    syncId,
                     authorizedSearches,
                     search.getStart(),
                     search.getMaxHits(),
@@ -212,43 +247,43 @@ public class SearchService {
 
         return new SearchResult( 0, Lists.newArrayList() );
     }
-    
+
     @Subscribe
     public void createEntityType( EntityTypeCreatedEvent event ) {
         EntityType entityType = event.getEntityType();
         elasticsearchApi.saveEntityTypeToElasticsearch( entityType );
     }
-    
+
     @Subscribe
     public void createPropertyType( PropertyTypeCreatedEvent event ) {
         PropertyType propertyType = event.getPropertyType();
         elasticsearchApi.savePropertyTypeToElasticsearch( propertyType );
     }
-    
+
     @Subscribe
     public void deleteEntityType( EntityTypeDeletedEvent event ) {
         UUID entityTypeId = event.getEntityTypeId();
         elasticsearchApi.deleteEntityType( entityTypeId );
     }
-    
+
     @Subscribe
     public void deletePropertyType( PropertyTypeDeletedEvent event ) {
         UUID propertyTypeId = event.getPropertyTypeId();
         elasticsearchApi.deletePropertyType( propertyTypeId );
     }
-    
+
     public SearchResult executeEntityTypeSearch( String searchTerm, int start, int maxHits ) {
         return elasticsearchApi.executeEntityTypeSearch( searchTerm, start, maxHits );
     }
-    
+
     public SearchResult executePropertyTypeSearch( String searchTerm, int start, int maxHits ) {
         return elasticsearchApi.executePropertyTypeSearch( searchTerm, start, maxHits );
     }
-    
+
     public SearchResult executeFQNEntityTypeSearch( String namespace, String name, int start, int maxHits ) {
         return elasticsearchApi.executeFQNEntityTypeSearch( namespace, name, start, maxHits );
     }
-    
+
     public SearchResult executeFQNPropertyTypeSearch( String namespace, String name, int start, int maxHits ) {
         return elasticsearchApi.executeFQNPropertyTypeSearch( namespace, name, start, maxHits );
     }

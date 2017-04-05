@@ -31,10 +31,10 @@ import com.dataloom.authentication.LoomAuthentication;
 import com.dataloom.authorization.AuthorizationManager;
 import com.dataloom.authorization.Principal;
 import com.dataloom.client.RetrofitFactory;
-import com.dataloom.datastore.services.CassandraDataManager;
 import com.dataloom.edm.schemas.manager.HazelcastSchemaManager;
 import com.geekbeast.rhizome.tests.bootstrap.CassandraBootstrap;
 import com.google.common.collect.Sets;
+import com.kryptnostic.datastore.services.CassandraDataManager;
 import com.kryptnostic.datastore.services.EdmManager;
 import com.kryptnostic.rhizome.pods.SparkPod;
 

@@ -13,7 +13,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.dataloom.data.EntityKey;
-import com.dataloom.datastore.services.CassandraDataManager;
 import com.dataloom.datastore.services.SearchService;
 import com.dataloom.edm.type.PropertyType;
 import com.dataloom.linking.Entity;
@@ -22,6 +21,7 @@ import com.dataloom.linking.util.UnorderedPair;
 import com.dataloom.streams.StreamUtil;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.SetMultimap;
+import com.kryptnostic.datastore.services.CassandraDataManager;
 import com.kryptnostic.datastore.services.EdmManager;
 
 public class SimpleElasticSearchBlocker implements Blocker {

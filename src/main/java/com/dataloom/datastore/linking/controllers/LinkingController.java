@@ -114,7 +114,8 @@ public class LinkingController implements LinkingApi, AuthorizingComponent {
 
         edm.createEntitySet( Principals.getCurrentUser(), entitySet, ownablePropertyTypes );
         UUID linkedEntitySetId = entitySet.getId();
-        datasourceManager.createNewSyncIdForEntitySet( linkedEntitySetId );
+        datasourceManager.setCurrentSyncId( linkedEntitySetId,
+                datasourceManager.createNewSyncIdForEntitySet( linkedEntitySetId ) );
 
         listings.setLinkedEntitySets( linkedEntitySetId, linkingES );
 

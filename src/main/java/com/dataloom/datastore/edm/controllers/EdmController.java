@@ -347,7 +347,8 @@ public class EdmController implements EdmApi, AuthorizingComponent {
                 createdEntitySets.put( entitySet.getName(), entitySet.getId() );
                 securableObjectTypes.createSecurableObjectType( ImmutableList.of( entitySet.getId() ),
                         SecurableObjectType.EntitySet );
-                datasourceManager.createNewSyncIdForEntitySet( entitySet.getId() );
+                datasourceManager.setCurrentSyncId( entitySet.getId(),
+                        datasourceManager.createNewSyncIdForEntitySet( entitySet.getId() ) );
             } catch ( Exception e ) {
                 dto.addError( LoomExceptions.OTHER_EXCEPTION, entitySet.getName() + ": " + e.getMessage() );
             }

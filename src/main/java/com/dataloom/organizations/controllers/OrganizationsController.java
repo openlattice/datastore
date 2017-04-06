@@ -109,7 +109,6 @@ public class OrganizationsController implements AuthorizingComponent, Organizati
                 Optional.of( org.getId() ),
                 org.getTitle(),
                 Optional.of( org.getDescription() ),
-                Optional.of( org.getTrustedOrganizations() ),
                 org.getAutoApprovedEmails(),
                 org.getMembers(),
                 authorizedRoles );

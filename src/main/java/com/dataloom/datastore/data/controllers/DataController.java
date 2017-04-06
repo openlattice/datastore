@@ -65,7 +65,6 @@ import com.dataloom.data.DataApi;
 import com.dataloom.data.requests.EntitySetSelection;
 import com.dataloom.data.requests.Event;
 import com.dataloom.datastore.constants.CustomMediaType;
-import com.dataloom.datastore.services.DatasourceManager;
 import com.dataloom.datastore.services.SyncTicketService;
 import com.dataloom.edm.processors.EdmPrimitiveTypeKindGetter;
 import com.dataloom.edm.type.PropertyType;
@@ -80,6 +79,7 @@ import com.google.common.collect.SetMultimap;
 import com.google.common.collect.Sets;
 import com.kryptnostic.datastore.exceptions.ResourceNotFoundException;
 import com.kryptnostic.datastore.services.CassandraDataManager;
+import com.kryptnostic.datastore.services.DatasourceManager;
 import com.kryptnostic.datastore.services.EdmService;
 import com.kryptnostic.datastore.util.Util;
 

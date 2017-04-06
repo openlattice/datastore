@@ -47,7 +47,7 @@ import org.apache.olingo.server.api.uri.UriResourceEntitySet;
 
 import com.dataloom.datasource.UUIDs.Syncs;
 import com.dataloom.datastore.DatastoreUtil;
-import com.dataloom.datastore.services.DatasourceManager;
+import com.kryptnostic.datastore.services.DatasourceManager;
 import com.kryptnostic.datastore.services.ODataStorageService;
 
 public class KryptnosticEntityProcessor implements EntityProcessor {

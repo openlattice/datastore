@@ -40,7 +40,6 @@ import com.dataloom.authorization.AuthorizingComponent;
 import com.dataloom.authorization.Permission;
 import com.dataloom.authorization.Principals;
 import com.dataloom.data.EntityKey;
-import com.dataloom.datastore.services.DatasourceManager;
 import com.dataloom.datastore.services.LinkingService;
 import com.dataloom.edm.EntitySet;
 import com.dataloom.edm.set.LinkingEntitySet;
@@ -51,6 +50,7 @@ import com.dataloom.linking.LinkingApi;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.SetMultimap;
+import com.kryptnostic.datastore.services.DatasourceManager;
 import com.kryptnostic.datastore.services.EdmManager;
 
 import retrofit2.http.Body;

@@ -15,8 +15,8 @@ import com.dataloom.authorization.AuthorizationManager;
 import com.dataloom.authorization.ForbiddenException;
 import com.dataloom.authorization.Permission;
 import com.dataloom.authorization.Principals;
-import com.dataloom.datastore.services.DatasourceManager;
 import com.google.common.collect.ImmutableList;
+import com.kryptnostic.datastore.services.DatasourceManager;
 
 @RestController
 @RequestMapping( SyncApi.CONTROLLER )

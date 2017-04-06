@@ -85,7 +85,7 @@ public class LinkingService {
 
         // Warning: We assume that the restrictions on links are enforced/validated as specified in LinkingApi. In
         // particular, from now on we work on the assumption that only identical property types are linked on.
-        initializeComponents( dsm.getLatestSyncId( linkIndexedByEntitySets.keySet() ), linkIndexedByPropertyTypes, linkIndexedByEntitySets );
+        initializeComponents( dsm.getCurrentSyncId( linkIndexedByEntitySets.keySet() ), linkIndexedByPropertyTypes, linkIndexedByEntitySets );
 
         UUID graphId = linkingGraph.getGraphIdFromEntitySetId( linkedEntitySetId );
 

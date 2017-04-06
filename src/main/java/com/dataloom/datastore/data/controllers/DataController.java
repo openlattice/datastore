@@ -62,8 +62,11 @@ import com.dataloom.authorization.ForbiddenException;
 import com.dataloom.authorization.Permission;
 import com.dataloom.authorization.Principals;
 import com.dataloom.data.DataApi;
+import com.dataloom.data.EntityKey;
+import com.dataloom.data.requests.BulkDataCreation;
+import com.dataloom.data.requests.Connection;
+import com.dataloom.data.requests.DataCreation;
 import com.dataloom.data.requests.EntitySetSelection;
-import com.dataloom.data.requests.Event;
 import com.dataloom.datastore.constants.CustomMediaType;
 import com.dataloom.datastore.services.SyncTicketService;
 import com.dataloom.edm.processors.EdmPrimitiveTypeKindGetter;
@@ -399,13 +402,13 @@ public class DataController implements DataApi, AuthorizingComponent {
 
     @Override
     @RequestMapping(
-        path = { "/" + EVENT_DATA + "/" + SET_ID_PATH + "/" + SYNC_ID_PATH },
+        path = { "/" + CONNECTION_DATA + "/" + SET_ID_PATH + "/" + SYNC_ID_PATH },
         method = RequestMethod.PUT,
         consumes = MediaType.APPLICATION_JSON_VALUE )
-    public Void createEventData(
+    public Void createConnectionData(
             @PathVariable( SET_ID ) UUID entitySetId,
             @PathVariable( SYNC_ID ) UUID syncId,
-            @RequestBody Set<Event> events ) {
+            @RequestBody Set<Connection> connections ) {
         if ( authz.checkIfHasPermissions( ImmutableList.of( entitySetId ),
                 Principals.getCurrentPrincipals(),
                 EnumSet.of( Permission.WRITE ) ) ) {
@@ -434,7 +437,7 @@ public class DataController implements DataApi, AuthorizingComponent {
                 throw new ResourceNotFoundException( "Unable to load data types for authorized properties." );
             }
 
-            cdm.createEventData( entitySetId, syncId, events, authorizedPropertiesWithDataType );
+            cdm.createConnectionData( entitySetId, syncId, connections, authorizedPropertiesWithDataType );
         } else {
             throw new ForbiddenException( "Insufficient permissions to write to the entity set or it doesn't exist." );
         }
@@ -443,13 +446,13 @@ public class DataController implements DataApi, AuthorizingComponent {
 
     @Override
     @RequestMapping(
-        value = "/" + EVENT_DATA + "/" + TICKET_PATH + "/" + SYNC_ID_PATH,
+        value = "/" + CONNECTION_DATA + "/" + TICKET_PATH + "/" + SYNC_ID_PATH,
         method = RequestMethod.PATCH,
         consumes = MediaType.APPLICATION_JSON_VALUE )
-    public Void storeEventData(
+    public Void storeConnectionData(
             @PathVariable( TICKET ) UUID ticket,
             @PathVariable( SYNC_ID ) UUID syncId,
-            @RequestBody Set<Event> events ) {
+            @RequestBody Set<Connection> connections ) {
 
         // To avoid re-doing authz check more of than once every 250 ms during an integration we cache the
         // results.cd ../
@@ -465,7 +468,7 @@ public class DataController implements DataApi, AuthorizingComponent {
             throw new ResourceNotFoundException( "Unable to load data types for authorized properties." );
         }
 
-        cdm.createEventData( entitySetId, syncId, events, authorizedPropertiesWithDataType );
+        cdm.createConnectionData( entitySetId, syncId, connections, authorizedPropertiesWithDataType );
         return null;
     }
 
@@ -478,6 +481,59 @@ public class DataController implements DataApi, AuthorizingComponent {
             @PathVariable( SET_ID ) UUID entitySetId,
             @RequestBody Map<String, SetMultimap<UUID, Object>> entities ) {
         return createEntityData( entitySetId, datasourceManager.getCurrentSyncId( entitySetId ), entities );
+    }
+
+    @Override
+    @RequestMapping(
+        value = "/" + ENTITY_DATA,
+        method = RequestMethod.PATCH,
+        consumes = MediaType.APPLICATION_JSON_VALUE )
+    public Void createEntityAndConnectionData( @RequestBody BulkDataCreation data ) {
+        Set<DataCreation> entitiesToCreate = Sets.newHashSet();
+        Set<DataCreation> connectionsToCreate = Sets.newHashSet();
+        data.getEntites().entrySet().forEach( entry -> {
+            UUID entitySetId = sts.getAuthorizedEntitySet( Principals.getCurrentUser(), entry.getKey() );
+            Set<UUID> authorizedProperties = sts.getAuthorizedProperties( Principals.getCurrentUser(), entry.getKey() );
+            Map<UUID, EdmPrimitiveTypeKind> authorizedPropertiesWithDataType;
+            try {
+                authorizedPropertiesWithDataType = primitiveTypeKinds
+                        .getAll( authorizedProperties );
+            } catch ( ExecutionException e ) {
+                logger.error(
+                        "Unable to load data types for authorized properties for user " + Principals.getCurrentUser()
+                                + " and entity set " + entitySetId + "." );
+                throw new ResourceNotFoundException( "Unable to load data types for authorized properties." );
+            }
+            EntityKey key = new EntityKey( entitySetId, entry.getValue().getEntityId(), entry.getValue().getSyncId() );
+            entitiesToCreate
+                    .add( new DataCreation( key, entry.getValue().getDetails(), authorizedPropertiesWithDataType ) );
+        } );
+
+        data.getConnections().entrySet().forEach( entry -> {
+            UUID entitySetId = sts.getAuthorizedEntitySet( Principals.getCurrentUser(), entry.getKey() );
+            Set<UUID> authorizedProperties = sts.getAuthorizedProperties( Principals.getCurrentUser(), entry.getKey() );
+            Map<UUID, EdmPrimitiveTypeKind> authorizedPropertiesWithDataType;
+            try {
+                authorizedPropertiesWithDataType = primitiveTypeKinds
+                        .getAll( authorizedProperties );
+            } catch ( ExecutionException e ) {
+                logger.error(
+                        "Unable to load data types for authorized properties for user " + Principals.getCurrentUser()
+                                + " and entity set " + entitySetId + "." );
+                throw new ResourceNotFoundException( "Unable to load data types for authorized properties." );
+            }
+            EntityKey key = new EntityKey( entitySetId, entry.getValue().getEntityId(), entry.getValue().getSyncId() );
+            connectionsToCreate.add( new DataCreation(
+                    key,
+                    Optional.of( entry.getValue().getSrc() ),
+                    Optional.of( entry.getValue().getDst() ),
+                    entry.getValue().getDetails(),
+                    authorizedPropertiesWithDataType ) );
+        } );
+
+        cdm.createEntityAndConnectionData( entitiesToCreate, connectionsToCreate );
+        return null;
+
     }
 
 }

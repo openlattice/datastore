@@ -37,6 +37,7 @@ import com.dataloom.authorization.Principal;
 import com.dataloom.authorization.events.AclUpdateEvent;
 import com.dataloom.authorization.securable.SecurableObjectType;
 import com.dataloom.data.events.EntityDataCreatedEvent;
+import com.dataloom.data.events.EntityDataDeletedEvent;
 import com.dataloom.edm.events.EntitySetCreatedEvent;
 import com.dataloom.edm.events.EntitySetDeletedEvent;
 import com.dataloom.edm.events.EntitySetMetadataUpdatedEvent;
@@ -194,6 +195,14 @@ public class SearchService {
                 syncId,
                 event.getEntityId(),
                 event.getPropertyValues() );
+    }
+
+    @Subscribe
+    public void deleteEntityData( EntityDataDeletedEvent event ) {
+        Iterable<UUID> syncIds = ( event.getSyncId().isPresent() ) ? Lists.newArrayList( event.getSyncId().get() )
+                : datasourceManager.getAllSyncIds( event.getEntitySetId() );
+        syncIds.forEach(
+                syncId -> elasticsearchApi.deleteEntityData( event.getEntitySetId(), syncId, event.getEntityId() ) );
     }
 
     public SearchResult executeEntitySetDataSearch(

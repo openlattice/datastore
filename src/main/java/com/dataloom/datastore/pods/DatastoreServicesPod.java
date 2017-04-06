@@ -44,7 +44,6 @@ import com.dataloom.datastore.linking.services.SimpleMatcher;
 import com.dataloom.datastore.scripts.EmptyPermissionRemover;
 import com.dataloom.datastore.scripts.EntitySetContactsPopulator;
 import com.dataloom.datastore.services.AnalysisService;
-import com.dataloom.datastore.services.DatasourceManager;
 import com.dataloom.datastore.services.LinkingService;
 import com.dataloom.datastore.services.SearchService;
 import com.dataloom.datastore.services.SyncTicketService;
@@ -78,6 +77,7 @@ import com.google.common.eventbus.EventBus;
 import com.hazelcast.core.HazelcastInstance;
 import com.kryptnostic.datastore.services.CassandraDataManager;
 import com.kryptnostic.datastore.services.CassandraEntitySetManager;
+import com.kryptnostic.datastore.services.DatasourceManager;
 import com.kryptnostic.datastore.services.EdmManager;
 import com.kryptnostic.datastore.services.EdmService;
 import com.kryptnostic.datastore.services.ODataStorageService;
@@ -228,7 +228,7 @@ public class DatastoreServicesPod {
 
     @Bean
     public DatasourceManager datasourceManager() {
-        return new DatasourceManager( hazelcastInstance );
+        return new DatasourceManager( session, hazelcastInstance );
     }
 
     @Bean

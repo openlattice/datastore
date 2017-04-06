@@ -489,15 +489,9 @@ public class DataController implements DataApi, AuthorizingComponent {
         consumes = MediaType.APPLICATION_JSON_VALUE )
     public Void createEntityAndConnectionData( @RequestBody BulkDataCreation data ) {
         Map<UUID, Map<UUID, EdmPrimitiveTypeKind>> authorizedPropertiesByEntitySetId = Maps.newHashMap();
-        Set<UUID> ticketIds = data.getEntities().keySet();
-        ticketIds.addAll( data.getConnections().keySet() );
 
-        ticketIds.stream().forEach( ticket -> {
+        data.getTickets().stream().forEach( ticket -> {
             UUID entitySetId = sts.getAuthorizedEntitySet( Principals.getCurrentUser(), ticket );
-            if ( entitySetId != data.getEntities().get( ticket ).getKey().getEntitySetId()
-                    && entitySetId != data.getConnections().get( ticket ).getKey().getEntitySetId() ) {
-                throw new IllegalArgumentException( "The sync ticket does not match the requested entity set id" );
-            }
             Set<UUID> authorizedProperties = sts.getAuthorizedProperties( Principals.getCurrentUser(), ticket );
             Map<UUID, EdmPrimitiveTypeKind> authorizedPropertiesWithDataType;
             try {
@@ -512,8 +506,8 @@ public class DataController implements DataApi, AuthorizingComponent {
             authorizedPropertiesByEntitySetId.put( entitySetId, authorizedPropertiesWithDataType );
         } );
 
-        cdm.createEntityAndConnectionData( data.getEntities().values(),
-                data.getConnections().values(),
+        cdm.createEntityAndConnectionData( data.getEntities(),
+                data.getConnections(),
                 authorizedPropertiesByEntitySetId );
         return null;
 

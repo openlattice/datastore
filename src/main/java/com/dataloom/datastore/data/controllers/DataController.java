@@ -28,6 +28,7 @@ import com.dataloom.data.requests.EntitySetSelection;
 import com.dataloom.datasource.UUIDs.Syncs;
 import com.dataloom.datastore.constants.CustomMediaType;
 import com.dataloom.datastore.services.CassandraDataManager;
+import com.dataloom.datastore.services.DatasourceManager;
 import com.dataloom.datastore.services.SyncTicketService;
 import com.dataloom.edm.type.PropertyType;
 import com.dataloom.linking.HazelcastListingService;
@@ -94,6 +95,9 @@ public class DataController implements DataApi, AuthorizingComponent {
 
     @Inject
     private HazelcastListingService listingService;
+    
+    @Inject
+    private DatasourceManager datasourceManager;
     
     private LoadingCache<UUID, EdmPrimitiveTypeKind>  primitiveTypeKinds;
     private LoadingCache<AuthorizationKey, Set<UUID>> authorizedPropertyCache;
@@ -199,10 +203,7 @@ public class DataController implements DataApi, AuthorizingComponent {
             UUID entitySetId,
             Optional<UUID> syncId,
             Optional<Set<UUID>> selectedProperties ){
-        UUID id = null;
-        if ( syncId.isPresent() ) {
-            id = syncId.get();
-        }
+        UUID id = ( syncId.isPresent() ) ? id = syncId.get() : datasourceManager.getCurrentSyncId( entitySetId );
         Set<UUID> authorizedProperties;
         if ( selectedProperties.isPresent() && !selectedProperties.get().isEmpty() ) {
             if ( !authzHelper.getAllPropertiesOnEntitySet( entitySetId ).containsAll( selectedProperties.get() ) ) {
@@ -369,7 +370,6 @@ public class DataController implements DataApi, AuthorizingComponent {
                     + " and entity set " + entitySetId + "." );
             throw new ResourceNotFoundException( "Unable to load data types for authorized properties." );
         }
-
         cdm.createEntityData( entitySetId, syncId, entities, authorizedPropertiesWithDataType );
         return null;
     }
@@ -377,6 +377,17 @@ public class DataController implements DataApi, AuthorizingComponent {
     @Override
     public AuthorizationManager getAuthorizationManager() {
         return authz;
+    }
+
+    @Override
+    @RequestMapping(
+            path = { "/" + ENTITY_DATA + "/" + SET_ID_PATH },
+            method = RequestMethod.PUT,
+            consumes = MediaType.APPLICATION_JSON_VALUE )
+    public Void createEntityData(
+            @PathVariable( SET_ID ) UUID entitySetId,
+            @RequestBody Map<String, SetMultimap<UUID, Object>> entities ) {
+        return createEntityData( entitySetId, datasourceManager.getCurrentSyncId( entitySetId ), entities );
     }
 
 }

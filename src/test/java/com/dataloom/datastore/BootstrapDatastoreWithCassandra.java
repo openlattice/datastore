@@ -60,17 +60,17 @@ public class BootstrapDatastoreWithCassandra extends CassandraBootstrap {
     protected static CassandraDataManager            dataService;
     protected static HazelcastSchemaManager          schemaManager;
 
+    protected static final AuthenticationTestRequestOptions authOptions1 = new AuthenticationTestRequestOptions()
+            .setUsernameOrEmail( "tests1@kryptnostic.com" )
+            .setPassword( "abracadabra" );
+    protected static final AuthenticationTestRequestOptions authOptions2 = new AuthenticationTestRequestOptions()
+            .setUsernameOrEmail( "tests2@kryptnostic.com" )
+            .setPassword( "abracadabra" );
+    protected static final AuthenticationTestRequestOptions authOptions3 = new AuthenticationTestRequestOptions()
+            .setUsernameOrEmail( "tests3@kryptnostic.com" )
+            .setPassword( "abracadabra" );
+    
     static {
-        AuthenticationTestRequestOptions authOptions1 = new AuthenticationTestRequestOptions()
-                .setUsernameOrEmail( "tests1@kryptnostic.com" )
-                .setPassword( "abracadabra" );
-        AuthenticationTestRequestOptions authOptions2 = new AuthenticationTestRequestOptions()
-                .setUsernameOrEmail( "tests2@kryptnostic.com" )
-                .setPassword( "abracadabra" );
-        AuthenticationTestRequestOptions authOptions3 = new AuthenticationTestRequestOptions()
-                .setUsernameOrEmail( "tests3@kryptnostic.com" )
-                .setPassword( "abracadabra" );
-
         String jwtAdmin = AuthenticationTest.authenticate().getCredentials().getIdToken();
         String jwtUser1 = AuthenticationTest.getAuthentication( authOptions1 ).getCredentials().getIdToken();
         String jwtUser2 = AuthenticationTest.getAuthentication( authOptions2 ).getCredentials().getIdToken();

@@ -62,7 +62,8 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.google.common.eventbus.EventBus;
 import com.google.common.eventbus.Subscribe;
-import com.kryptnostic.datastore.services.CassandraDataManager;
+import com.kryptnostic.datastore.services.DatasourceManager;
+import com.kryptnostic.datastore.services.EdmManager;
 
 public class SearchService {
     private static final Logger                       logger = LoggerFactory.getLogger( SearchService.class );
@@ -81,9 +82,9 @@ public class SearchService {
 
     @Inject
     private DatasourceManager                         datasourceManager;
-
+    
     @Inject
-    private CassandraDataManager                      cdm;
+    private EdmManager                                dataModelService;
 
     @PostConstruct
     public void initializeBus() {
@@ -139,9 +140,13 @@ public class SearchService {
 
     @Subscribe
     public void createSecurableObjectIndexForSyncId( SyncIdCreatedEvent event ) {
-        elasticsearchApi.createSecurableObjectIndex( event.getEntitySetId(),
+        UUID entitySetId = event.getEntitySetId();
+        List<PropertyType> propertyTypes = Lists.newArrayList( dataModelService.getPropertyTypes(
+                dataModelService.getEntityType( dataModelService.getEntitySet( entitySetId ).getEntityTypeId() )
+                        .getProperties() ) );
+        elasticsearchApi.createSecurableObjectIndex( entitySetId,
                 event.getSyncId(),
-                event.getPropertyTypes() );
+                propertyTypes );
     }
 
     @Subscribe
@@ -152,7 +157,7 @@ public class SearchService {
     @Subscribe
     public void deleteIndicesBeforeCurrentSync( CurrentSyncUpdatedEvent event ) {
         UUID entitySetId = event.getEntitySetId();
-        cdm.getAllPreviousSyncIds( entitySetId, event.getCurrentSyncId() ).forEach( syncId -> {
+        datasourceManager.getAllPreviousSyncIds( entitySetId, event.getCurrentSyncId() ).forEach( syncId -> {
             elasticsearchApi.deleteEntitySetForSyncId( entitySetId, syncId );
         } );
     }

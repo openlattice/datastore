@@ -57,7 +57,6 @@ import com.dataloom.authorization.Principals;
 import com.dataloom.authorization.securable.SecurableObjectType;
 import com.dataloom.authorization.util.AuthorizationUtils;
 import com.dataloom.datastore.constants.CustomMediaType;
-import com.dataloom.datastore.services.DatasourceManager;
 import com.dataloom.edm.EdmApi;
 import com.dataloom.edm.EdmDetails;
 import com.dataloom.edm.EntityDataModel;
@@ -83,6 +82,7 @@ import com.kryptnostic.datastore.exceptions.BadRequestException;
 import com.kryptnostic.datastore.exceptions.BatchException;
 import com.kryptnostic.datastore.services.CassandraDataManager;
 import com.kryptnostic.datastore.services.CassandraEntitySetManager;
+import com.kryptnostic.datastore.services.DatasourceManager;
 import com.kryptnostic.datastore.services.EdmManager;
 
 @RestController

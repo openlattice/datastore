@@ -38,9 +38,9 @@ import org.springframework.web.bind.annotation.RestController;
 import com.dataloom.datastore.odata.KryptnosticEntityCollectionProcessor;
 import com.dataloom.datastore.odata.KryptnosticEntityProcessor;
 import com.dataloom.datastore.odata.LoomEdmProvider;
-import com.dataloom.datastore.services.DatasourceManager;
 import com.dataloom.edm.schemas.manager.HazelcastSchemaManager;
 import com.hazelcast.core.HazelcastInstance;
+import com.kryptnostic.datastore.services.DatasourceManager;
 import com.kryptnostic.datastore.services.EdmManager;
 import com.kryptnostic.datastore.services.ODataStorageService;
 

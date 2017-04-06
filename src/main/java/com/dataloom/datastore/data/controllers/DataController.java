@@ -494,6 +494,10 @@ public class DataController implements DataApi, AuthorizingComponent {
 
         ticketIds.stream().forEach( ticket -> {
             UUID entitySetId = sts.getAuthorizedEntitySet( Principals.getCurrentUser(), ticket );
+            if ( entitySetId != data.getEntities().get( ticket ).getKey().getEntitySetId()
+                    && entitySetId != data.getConnections().get( ticket ).getKey().getEntitySetId() ) {
+                throw new IllegalArgumentException( "The sync ticket does not match the requested entity set id" );
+            }
             Set<UUID> authorizedProperties = sts.getAuthorizedProperties( Principals.getCurrentUser(), ticket );
             Map<UUID, EdmPrimitiveTypeKind> authorizedPropertiesWithDataType;
             try {

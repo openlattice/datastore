@@ -121,10 +121,7 @@ public class RequestsController implements RequestsApi, AuthorizingComponent {
     public Void updateStatuses( @RequestBody Set<Status> statuses ) {
         if ( statuses.stream().map( Status::getAclKey ).allMatch( this::owns ) ) {
             Map<AceKey, Status> statusMap = RequestUtil.statusMap( statuses );
-            for( Status status : statuses ) {
-                Map<AceKey,Status> s = ImmutableMap.of( RequestUtil.aceKey( status ), status);
-                hrm.submitAll( s );
-            }
+            hrm.submitAll( statusMap );
             return null;
         }
         throw new ForbiddenException();

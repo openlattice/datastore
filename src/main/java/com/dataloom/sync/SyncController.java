@@ -30,7 +30,7 @@ public class SyncController implements SyncApi {
 
     @Override
     @RequestMapping(
-        path = { ENTITY_SET_ID_PATH + NEW },
+        path = { ENTITY_SET_ID_PATH },
         method = RequestMethod.GET,
         consumes = MediaType.APPLICATION_JSON_VALUE )
     public UUID acquireSyncId( @PathVariable UUID entitySetId ) {
@@ -46,7 +46,7 @@ public class SyncController implements SyncApi {
 
     @Override
     @RequestMapping(
-        path = { ENTITY_SET_ID_PATH },
+        path = { ENTITY_SET_ID_PATH + CURRENT },
         method = RequestMethod.GET,
         consumes = MediaType.APPLICATION_JSON_VALUE )
     public UUID getCurrentSyncId( @PathVariable UUID entitySetId ) {
@@ -79,7 +79,7 @@ public class SyncController implements SyncApi {
 
     @Override
     @RequestMapping(
-        path = { LATEST + ENTITY_SET_ID_PATH },
+        path = { ENTITY_SET_ID_PATH + LATEST },
         method = RequestMethod.GET,
         consumes = MediaType.APPLICATION_JSON_VALUE )
     public UUID getLatestSyncId( @PathVariable UUID entitySetId ) {

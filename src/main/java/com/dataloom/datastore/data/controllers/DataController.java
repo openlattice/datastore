@@ -491,7 +491,7 @@ public class DataController implements DataApi, AuthorizingComponent {
     public Void createEntityAndConnectionData( @RequestBody BulkDataCreation data ) {
         Set<DataCreation> entitiesToCreate = Sets.newHashSet();
         Set<DataCreation> connectionsToCreate = Sets.newHashSet();
-        data.getEntites().entrySet().forEach( entry -> {
+        data.getEntities().entrySet().forEach( entry -> {
             UUID entitySetId = sts.getAuthorizedEntitySet( Principals.getCurrentUser(), entry.getKey() );
             Set<UUID> authorizedProperties = sts.getAuthorizedProperties( Principals.getCurrentUser(), entry.getKey() );
             Map<UUID, EdmPrimitiveTypeKind> authorizedPropertiesWithDataType;

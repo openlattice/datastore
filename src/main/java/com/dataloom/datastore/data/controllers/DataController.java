@@ -62,8 +62,8 @@ import com.dataloom.authorization.ForbiddenException;
 import com.dataloom.authorization.Permission;
 import com.dataloom.authorization.Principals;
 import com.dataloom.data.DataApi;
+import com.dataloom.data.requests.Association;
 import com.dataloom.data.requests.BulkDataCreation;
-import com.dataloom.data.requests.Connection;
 import com.dataloom.data.requests.EntitySetSelection;
 import com.dataloom.datastore.constants.CustomMediaType;
 import com.dataloom.datastore.services.SyncTicketService;
@@ -401,13 +401,13 @@ public class DataController implements DataApi, AuthorizingComponent {
 
     @Override
     @RequestMapping(
-        path = { "/" + CONNECTION_DATA + "/" + SET_ID_PATH + "/" + SYNC_ID_PATH },
+        path = { "/" + ASSOCIATION_DATA + "/" + SET_ID_PATH + "/" + SYNC_ID_PATH },
         method = RequestMethod.PUT,
         consumes = MediaType.APPLICATION_JSON_VALUE )
-    public Void createConnectionData(
+    public Void createAssociationData(
             @PathVariable( SET_ID ) UUID entitySetId,
             @PathVariable( SYNC_ID ) UUID syncId,
-            @RequestBody Set<Connection> connections ) {
+            @RequestBody Set<Association> associations ) {
         if ( authz.checkIfHasPermissions( ImmutableList.of( entitySetId ),
                 Principals.getCurrentPrincipals(),
                 EnumSet.of( Permission.WRITE ) ) ) {
@@ -436,7 +436,7 @@ public class DataController implements DataApi, AuthorizingComponent {
                 throw new ResourceNotFoundException( "Unable to load data types for authorized properties." );
             }
 
-            cdm.createConnectionData( entitySetId, syncId, connections, authorizedPropertiesWithDataType );
+            cdm.createAssociationData( entitySetId, syncId, associations, authorizedPropertiesWithDataType );
         } else {
             throw new ForbiddenException( "Insufficient permissions to write to the entity set or it doesn't exist." );
         }
@@ -445,13 +445,13 @@ public class DataController implements DataApi, AuthorizingComponent {
 
     @Override
     @RequestMapping(
-        value = "/" + CONNECTION_DATA + "/" + TICKET_PATH + "/" + SYNC_ID_PATH,
+        value = "/" + ASSOCIATION_DATA + "/" + TICKET_PATH + "/" + SYNC_ID_PATH,
         method = RequestMethod.PATCH,
         consumes = MediaType.APPLICATION_JSON_VALUE )
-    public Void storeConnectionData(
+    public Void storeAssociationData(
             @PathVariable( TICKET ) UUID ticket,
             @PathVariable( SYNC_ID ) UUID syncId,
-            @RequestBody Set<Connection> connections ) {
+            @RequestBody Set<Association> associations ) {
 
         // To avoid re-doing authz check more of than once every 250 ms during an integration we cache the
         // results.cd ../
@@ -467,7 +467,7 @@ public class DataController implements DataApi, AuthorizingComponent {
             throw new ResourceNotFoundException( "Unable to load data types for authorized properties." );
         }
 
-        cdm.createConnectionData( entitySetId, syncId, connections, authorizedPropertiesWithDataType );
+        cdm.createAssociationData( entitySetId, syncId, associations, authorizedPropertiesWithDataType );
         return null;
     }
 
@@ -487,7 +487,7 @@ public class DataController implements DataApi, AuthorizingComponent {
         value = "/" + ENTITY_DATA,
         method = RequestMethod.PATCH,
         consumes = MediaType.APPLICATION_JSON_VALUE )
-    public Void createEntityAndConnectionData( @RequestBody BulkDataCreation data ) {
+    public Void createEntityAndAssociationData( @RequestBody BulkDataCreation data ) {
         Map<UUID, Map<UUID, EdmPrimitiveTypeKind>> authorizedPropertiesByEntitySetId = Maps.newHashMap();
 
         data.getTickets().stream().forEach( ticket -> {
@@ -506,8 +506,8 @@ public class DataController implements DataApi, AuthorizingComponent {
             authorizedPropertiesByEntitySetId.put( entitySetId, authorizedPropertiesWithDataType );
         } );
 
-        cdm.createEntityAndConnectionData( data.getEntities(),
-                data.getConnections(),
+        cdm.createEntityAndAssociationData( data.getEntities(),
+                data.getAssociations(),
                 authorizedPropertiesByEntitySetId );
         return null;
 

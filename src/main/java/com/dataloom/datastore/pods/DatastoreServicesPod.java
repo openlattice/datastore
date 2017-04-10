@@ -37,6 +37,8 @@ import com.dataloom.authorization.HazelcastAclKeyReservationService;
 import com.dataloom.authorization.HazelcastAuthorizationService;
 import com.dataloom.authorization.Principals;
 import com.dataloom.clustering.ClusteringPartitioner;
+import com.dataloom.data.DataGraphManager;
+import com.dataloom.data.DataGraphService;
 import com.dataloom.data.serializers.FullQualifedNameJacksonDeserializer;
 import com.dataloom.data.serializers.FullQualifedNameJacksonSerializer;
 import com.dataloom.datastore.linking.services.SimpleElasticSearchBlocker;
@@ -191,27 +193,39 @@ public class DatastoreServicesPod {
 
     @Bean
     public CassandraDataManager cassandraDataManager() {
-        return new CassandraDataManager( session, defaultObjectMapper(), linkingGraph(), loomGraph(), datasourceManager() );
+        return new CassandraDataManager(
+                session,
+                defaultObjectMapper(),
+                linkingGraph(),
+                loomGraph(),
+                datasourceManager() );
     }
-    
+
     @Bean
-    public RolesQueryService rolesQueryService(){
+    public RolesQueryService rolesQueryService() {
         return new RolesQueryService( session );
     }
-    
+
     @Bean
-    public TokenExpirationTracker tokenTracker(){
+    public TokenExpirationTracker tokenTracker() {
         return new TokenExpirationTracker( hazelcastInstance );
     }
-    
+
     @PostConstruct
-    public void setExpiringTokenTracker(){
+    public void setExpiringTokenTracker() {
         Principals.setExpiringTokenTracker( tokenTracker() );
     }
-    
+
     @Bean
-    public RolesManager rolesService(){
-        return new HazelcastRolesService( hazelcastInstance, rolesQueryService(), aclKeyReservationService(), tokenTracker(), userDirectoryService(), securableObjectTypes(), authorizationManager() );
+    public RolesManager rolesService() {
+        return new HazelcastRolesService(
+                hazelcastInstance,
+                rolesQueryService(),
+                aclKeyReservationService(),
+                tokenTracker(),
+                userDirectoryService(),
+                securableObjectTypes(),
+                authorizationManager() );
     }
 
     @Bean
@@ -340,7 +354,7 @@ public class DatastoreServicesPod {
     @Bean
     public EmptyPermissionRemover removeEmptyPermissions() {
         return new EmptyPermissionRemover( cassandraConfiguration.getKeyspace(), session );
-    }   
+    }
 
     @Bean
     public GraphQueryService graphQueryService() {
@@ -349,6 +363,11 @@ public class DatastoreServicesPod {
 
     @Bean
     public LoomGraph loomGraph() {
-        return new LoomGraph( hazelcastInstance, cassandraDataManager(), graphQueryService() );
+        return new LoomGraph( graphQueryService() );
+    }
+
+    @Bean
+    public DataGraphManager dataGraphService() {
+        return new DataGraphService( cassandraDataManager(), loomGraph() );
     }
 }

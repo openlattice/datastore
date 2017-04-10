@@ -62,6 +62,7 @@ import com.dataloom.authorization.ForbiddenException;
 import com.dataloom.authorization.Permission;
 import com.dataloom.authorization.Principals;
 import com.dataloom.data.DataApi;
+import com.dataloom.data.DataGraphManager;
 import com.dataloom.data.requests.Association;
 import com.dataloom.data.requests.BulkDataCreation;
 import com.dataloom.data.requests.EntitySetSelection;
@@ -80,7 +81,6 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.SetMultimap;
 import com.google.common.collect.Sets;
 import com.kryptnostic.datastore.exceptions.ResourceNotFoundException;
-import com.kryptnostic.datastore.services.CassandraDataManager;
 import com.kryptnostic.datastore.services.DatasourceManager;
 import com.kryptnostic.datastore.services.EdmService;
 import com.kryptnostic.datastore.util.Util;
@@ -97,7 +97,7 @@ public class DataController implements DataApi, AuthorizingComponent {
     private EdmService                                dms;
 
     @Inject
-    private CassandraDataManager                      cdm;
+    private DataGraphManager dgm;
 
     @Inject
     private AuthorizationManager                      authz;
@@ -236,7 +236,7 @@ public class DataController implements DataApi, AuthorizingComponent {
 
         Map<UUID, PropertyType> authorizedPropertyTypes = authorizedProperties.stream()
                 .collect( Collectors.toMap( ptId -> ptId, ptId -> dms.getPropertyType( ptId ) ) );
-        return cdm.getEntitySetData( entitySetId, id, authorizedPropertyTypes );
+        return dgm.getEntitySetData( entitySetId, id, authorizedPropertyTypes );
     }
 
     private Iterable<SetMultimap<FullQualifiedName, Object>> loadLinkedEntitySetData(
@@ -262,7 +262,7 @@ public class DataController implements DataApi, AuthorizingComponent {
             authorizedPropertyTypesForEntitySets.put( esId, authorizedPropertyTypes );
         }
 
-        return cdm.getLinkedEntitySetData( linkedEntitySetId, authorizedPropertyTypesForEntitySets );
+        return dgm.getLinkedEntitySetData( linkedEntitySetId, authorizedPropertyTypesForEntitySets );
     }
 
     @RequestMapping(
@@ -301,7 +301,7 @@ public class DataController implements DataApi, AuthorizingComponent {
                 throw new ResourceNotFoundException( "Unable to load data types for authorized properties." );
             }
 
-            cdm.createEntityData( entitySetId, syncId, entities, authorizedPropertiesWithDataType );
+            dgm.createEntityData( entitySetId, syncId, entities, authorizedPropertiesWithDataType );
         } else {
             throw new ForbiddenException( "Insufficient permissions to write to the entity set or it doesn't exist." );
         }
@@ -390,7 +390,7 @@ public class DataController implements DataApi, AuthorizingComponent {
                     + " and entity set " + entitySetId + "." );
             throw new ResourceNotFoundException( "Unable to load data types for authorized properties." );
         }
-        cdm.createEntityData( entitySetId, syncId, entities, authorizedPropertiesWithDataType );
+        dgm.createEntityData( entitySetId, syncId, entities, authorizedPropertiesWithDataType );
         return null;
     }
 
@@ -436,7 +436,7 @@ public class DataController implements DataApi, AuthorizingComponent {
                 throw new ResourceNotFoundException( "Unable to load data types for authorized properties." );
             }
 
-            cdm.createAssociationData( entitySetId, syncId, associations, authorizedPropertiesWithDataType );
+            dgm.createAssociationData( entitySetId, syncId, associations, authorizedPropertiesWithDataType );
         } else {
             throw new ForbiddenException( "Insufficient permissions to write to the entity set or it doesn't exist." );
         }
@@ -467,7 +467,7 @@ public class DataController implements DataApi, AuthorizingComponent {
             throw new ResourceNotFoundException( "Unable to load data types for authorized properties." );
         }
 
-        cdm.createAssociationData( entitySetId, syncId, associations, authorizedPropertiesWithDataType );
+        dgm.createAssociationData( entitySetId, syncId, associations, authorizedPropertiesWithDataType );
         return null;
     }
 
@@ -506,7 +506,7 @@ public class DataController implements DataApi, AuthorizingComponent {
             authorizedPropertiesByEntitySetId.put( entitySetId, authorizedPropertiesWithDataType );
         } );
 
-        cdm.createEntityAndAssociationData( data.getEntities(),
+        dgm.createEntityAndAssociationData( data.getEntities(),
                 data.getAssociations(),
                 authorizedPropertiesByEntitySetId );
         return null;

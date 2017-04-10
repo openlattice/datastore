@@ -16,6 +16,7 @@ import com.dataloom.edm.type.EntityType;
 import com.dataloom.edm.type.PropertyType;
 import com.dataloom.linking.Entity;
 import com.dataloom.organization.Organization;
+import com.dataloom.search.requests.SearchDetails;
 import com.dataloom.search.requests.SearchResult;
 import com.google.common.base.Optional;
 import com.google.common.collect.Lists;
@@ -254,7 +255,7 @@ public class DatastoreConductorElasticsearchApi implements ConductorElasticsearc
     @Override
     public SearchResult executeAdvancedEntitySetDataSearch(
             UUID entitySetId,
-            Map<UUID, String> searches,
+            List<SearchDetails> searches,
             int start,
             int maxHits,
             Set<UUID> authorizedPropertyTypes ) {

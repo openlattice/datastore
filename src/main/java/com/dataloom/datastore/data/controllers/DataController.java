@@ -301,7 +301,7 @@ public class DataController implements DataApi, AuthorizingComponent {
                 throw new ResourceNotFoundException( "Unable to load data types for authorized properties." );
             }
 
-            dgm.createEntityData( entitySetId, syncId, entities, authorizedPropertiesWithDataType );
+            dgm.createEntities( entitySetId, syncId, entities, authorizedPropertiesWithDataType );
         } else {
             throw new ForbiddenException( "Insufficient permissions to write to the entity set or it doesn't exist." );
         }
@@ -390,7 +390,7 @@ public class DataController implements DataApi, AuthorizingComponent {
                     + " and entity set " + entitySetId + "." );
             throw new ResourceNotFoundException( "Unable to load data types for authorized properties." );
         }
-        dgm.createEntityData( entitySetId, syncId, entities, authorizedPropertiesWithDataType );
+        dgm.createEntities( entitySetId, syncId, entities, authorizedPropertiesWithDataType );
         return null;
     }
 
@@ -436,7 +436,7 @@ public class DataController implements DataApi, AuthorizingComponent {
                 throw new ResourceNotFoundException( "Unable to load data types for authorized properties." );
             }
 
-            dgm.createAssociationData( entitySetId, syncId, associations, authorizedPropertiesWithDataType );
+            dgm.createAssociations( entitySetId, syncId, associations, authorizedPropertiesWithDataType );
         } else {
             throw new ForbiddenException( "Insufficient permissions to write to the entity set or it doesn't exist." );
         }
@@ -467,7 +467,7 @@ public class DataController implements DataApi, AuthorizingComponent {
             throw new ResourceNotFoundException( "Unable to load data types for authorized properties." );
         }
 
-        dgm.createAssociationData( entitySetId, syncId, associations, authorizedPropertiesWithDataType );
+        dgm.createAssociations( entitySetId, syncId, associations, authorizedPropertiesWithDataType );
         return null;
     }
 
@@ -506,7 +506,7 @@ public class DataController implements DataApi, AuthorizingComponent {
             authorizedPropertiesByEntitySetId.put( entitySetId, authorizedPropertiesWithDataType );
         } );
 
-        dgm.createEntityAndAssociationData( data.getEntities(),
+        dgm.createEntitiesAndAssociations( data.getEntities(),
                 data.getAssociations(),
                 authorizedPropertiesByEntitySetId );
         return null;

@@ -56,6 +56,7 @@ import com.dataloom.edm.schemas.cassandra.CassandraSchemaQueryService;
 import com.dataloom.edm.schemas.manager.HazelcastSchemaManager;
 import com.dataloom.graph.core.GraphQueryService;
 import com.dataloom.graph.core.LoomGraph;
+import com.dataloom.graph.core.objects.LoomVertexFuture;
 import com.dataloom.linking.CassandraLinkingGraphsQueryService;
 import com.dataloom.linking.HazelcastLinkingGraphs;
 import com.dataloom.linking.HazelcastListingService;
@@ -369,5 +370,10 @@ public class DatastoreServicesPod {
     @Bean
     public DataGraphManager dataGraphService() {
         return new DataGraphService( cassandraDataManager(), loomGraph() );
+    }
+    
+    @PostConstruct
+    public void initLoomVertexFuture(){
+        LoomVertexFuture.setGraphQueryService( graphQueryService() );
     }
 }

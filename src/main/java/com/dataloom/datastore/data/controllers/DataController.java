@@ -35,7 +35,6 @@ import javax.inject.Inject;
 import javax.servlet.http.HttpServletResponse;
 
 import org.apache.olingo.commons.api.edm.EdmPrimitiveTypeKind;
-import org.apache.olingo.commons.api.edm.FullQualifiedName;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
@@ -63,6 +62,7 @@ import com.dataloom.authorization.Permission;
 import com.dataloom.authorization.Principals;
 import com.dataloom.data.DataApi;
 import com.dataloom.data.DataGraphManager;
+import com.dataloom.data.EntitySetData;
 import com.dataloom.data.requests.Association;
 import com.dataloom.data.requests.BulkDataCreation;
 import com.dataloom.data.requests.EntitySetSelection;
@@ -97,7 +97,7 @@ public class DataController implements DataApi, AuthorizingComponent {
     private EdmService                                dms;
 
     @Inject
-    private DataGraphManager dgm;
+    private DataGraphManager                          dgm;
 
     @Inject
     private AuthorizationManager                      authz;
@@ -143,7 +143,7 @@ public class DataController implements DataApi, AuthorizingComponent {
         path = { "/" + ENTITY_DATA + "/" + SET_ID_PATH },
         method = RequestMethod.GET,
         produces = { MediaType.APPLICATION_JSON_VALUE, CustomMediaType.TEXT_CSV_VALUE } )
-    public Iterable<SetMultimap<FullQualifiedName, Object>> loadEntitySetData(
+    public EntitySetData loadEntitySetData(
             @PathVariable( SET_ID ) UUID entitySetId,
             @RequestParam(
                 value = FILE_TYPE,
@@ -159,7 +159,7 @@ public class DataController implements DataApi, AuthorizingComponent {
     }
 
     @Override
-    public Iterable<SetMultimap<FullQualifiedName, Object>> loadEntitySetData(
+    public EntitySetData loadEntitySetData(
             UUID entitySetId,
             FileType fileType,
             String token ) {
@@ -174,7 +174,7 @@ public class DataController implements DataApi, AuthorizingComponent {
         path = { "/" + ENTITY_DATA + "/" + SET_ID_PATH },
         method = RequestMethod.POST,
         produces = { MediaType.APPLICATION_JSON_VALUE, CustomMediaType.TEXT_CSV_VALUE } )
-    public Iterable<SetMultimap<FullQualifiedName, Object>> loadEntitySetData(
+    public EntitySetData loadEntitySetData(
             @PathVariable( SET_ID ) UUID entitySetId,
             @RequestBody(
                 required = false ) EntitySetSelection req,
@@ -188,7 +188,7 @@ public class DataController implements DataApi, AuthorizingComponent {
     }
 
     @Override
-    public Iterable<SetMultimap<FullQualifiedName, Object>> loadEntitySetData(
+    public EntitySetData loadEntitySetData(
             UUID entitySetId,
             EntitySetSelection req,
             FileType fileType ) {
@@ -199,7 +199,7 @@ public class DataController implements DataApi, AuthorizingComponent {
         }
     }
 
-    private Iterable<SetMultimap<FullQualifiedName, Object>> loadEntitySetData(
+    private EntitySetData loadEntitySetData(
             UUID entitySetId,
             Optional<UUID> syncId,
             Optional<Set<UUID>> selectedProperties ) {
@@ -216,7 +216,7 @@ public class DataController implements DataApi, AuthorizingComponent {
         }
     }
 
-    private Iterable<SetMultimap<FullQualifiedName, Object>> loadNormalEntitySetData(
+    private EntitySetData loadNormalEntitySetData(
             UUID entitySetId,
             Optional<UUID> syncId,
             Optional<Set<UUID>> selectedProperties ) {
@@ -239,7 +239,7 @@ public class DataController implements DataApi, AuthorizingComponent {
         return dgm.getEntitySetData( entitySetId, id, authorizedPropertyTypes );
     }
 
-    private Iterable<SetMultimap<FullQualifiedName, Object>> loadLinkedEntitySetData(
+    private EntitySetData loadLinkedEntitySetData(
             UUID linkedEntitySetId ) {
         Set<UUID> authorizedPropertiesOfEntityType = dms.getEntityTypeByEntitySetId( linkedEntitySetId ).getProperties()
                 .stream().filter(

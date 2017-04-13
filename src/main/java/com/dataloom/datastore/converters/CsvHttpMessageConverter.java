@@ -21,7 +21,6 @@ package com.dataloom.datastore.converters;
 
 import java.io.IOException;
 import java.lang.reflect.Type;
-import java.util.Arrays;
 
 import org.apache.olingo.commons.api.edm.FullQualifiedName;
 import org.springframework.http.HttpInputMessage;
@@ -30,6 +29,7 @@ import org.springframework.http.converter.AbstractGenericHttpMessageConverter;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.http.converter.HttpMessageNotWritableException;
 
+import com.dataloom.data.EntitySetData;
 import com.dataloom.datastore.constants.CustomMediaType;
 import com.fasterxml.jackson.dataformat.csv.CsvGenerator;
 import com.fasterxml.jackson.dataformat.csv.CsvMapper;
@@ -39,11 +39,9 @@ import com.fasterxml.jackson.dataformat.csv.CsvSchema.ColumnType;
 import com.fasterxml.jackson.datatype.guava.GuavaModule;
 import com.fasterxml.jackson.datatype.joda.JodaModule;
 import com.fasterxml.jackson.module.afterburner.AfterburnerModule;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Multimap;
 
 public class CsvHttpMessageConverter
-        extends AbstractGenericHttpMessageConverter<Iterable<Multimap<FullQualifiedName, ?>>> {
+        extends AbstractGenericHttpMessageConverter<EntitySetData> {
 
     private final CsvMapper csvMapper = new CsvMapper();
 
@@ -56,7 +54,7 @@ public class CsvHttpMessageConverter
     }
 
     @Override
-    public Iterable<Multimap<FullQualifiedName, ?>> read(
+    public EntitySetData read(
             Type type,
             Class<?> contextClass,
             HttpInputMessage inputMessage )
@@ -66,22 +64,14 @@ public class CsvHttpMessageConverter
 
     @Override
     protected void writeInternal(
-            Iterable<Multimap<FullQualifiedName, ?>> t,
+            EntitySetData t,
             Type type,
             HttpOutputMessage outputMessage )
             throws IOException, HttpMessageNotWritableException {
-        CsvSchema schema = null;
         // Get schema
-        Multimap<FullQualifiedName, ?> obj  = null ;
-        try {
-            obj = t.iterator().next();
-            schema = schemaBuilder( obj );
-        } catch ( Exception e ) {
-            logger.error( "Cannot build Schema for CSV" );
-        }
+        CsvSchema schema = schemaBuilder( t );
         // Write to CSV
-        Iterable<Multimap<FullQualifiedName, ?>> reconstituted = Iterables.concat( Arrays.asList(  obj ), t  )::iterator;
-        csvMapper.writer( schema ).writeValue( outputMessage.getBody(),  reconstituted );
+        csvMapper.writer( schema ).writeValue( outputMessage.getBody(), t.getEntities() );
     }
 
     @Override
@@ -90,18 +80,17 @@ public class CsvHttpMessageConverter
     }
 
     @Override
-    protected Iterable<Multimap<FullQualifiedName, ?>> readInternal(
-            Class<? extends Iterable<Multimap<FullQualifiedName, ?>>> clazz,
+    protected EntitySetData readInternal(
+            Class<? extends EntitySetData> clazz,
             HttpInputMessage inputMessage ) throws IOException, HttpMessageNotReadableException {
         throw new UnsupportedOperationException( "CSV is not a supported input format" );
     }
 
-    public CsvSchema schemaBuilder( Multimap<FullQualifiedName, ?> obj ) {
+    public CsvSchema schemaBuilder( EntitySetData t ) {
         Builder schemaBuilder = CsvSchema.builder();
 
-        // Ignoring Property Multiplicity for now
-        for ( FullQualifiedName type : obj.keySet() ) {
-            schemaBuilder.addColumn( type.toString(), ColumnType.NUMBER_OR_STRING );
+        for ( FullQualifiedName type : t.getAuthorizedPropertyFqns() ) {
+            schemaBuilder.addColumn( type.toString(), ColumnType.ARRAY );
         }
         return schemaBuilder.setUseHeader( true ).build();
     }

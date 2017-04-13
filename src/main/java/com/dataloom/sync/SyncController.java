@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.dataloom.authorization.AuthorizationManager;
+import com.dataloom.authorization.AuthorizingComponent;
 import com.dataloom.authorization.ForbiddenException;
 import com.dataloom.authorization.Permission;
 import com.dataloom.authorization.Principals;
@@ -20,7 +21,7 @@ import com.kryptnostic.datastore.services.DatasourceManager;
 
 @RestController
 @RequestMapping( SyncApi.CONTROLLER )
-public class SyncController implements SyncApi {
+public class SyncController implements SyncApi, AuthorizingComponent {
 
     @Inject
     private AuthorizationManager authz;
@@ -32,7 +33,7 @@ public class SyncController implements SyncApi {
     @RequestMapping(
         path = { ENTITY_SET_ID_PATH },
         method = RequestMethod.GET,
-        consumes = MediaType.APPLICATION_JSON_VALUE )
+        produces = MediaType.APPLICATION_JSON_VALUE )
     public UUID acquireSyncId( @PathVariable UUID entitySetId ) {
         if ( authz.checkIfHasPermissions( ImmutableList.of( entitySetId ),
                 Principals.getCurrentPrincipals(),
@@ -48,7 +49,7 @@ public class SyncController implements SyncApi {
     @RequestMapping(
         path = { ENTITY_SET_ID_PATH + CURRENT },
         method = RequestMethod.GET,
-        consumes = MediaType.APPLICATION_JSON_VALUE )
+        produces = MediaType.APPLICATION_JSON_VALUE )
     public UUID getCurrentSyncId( @PathVariable UUID entitySetId ) {
         if ( authz.checkIfHasPermissions( ImmutableList.of( entitySetId ),
                 Principals.getCurrentPrincipals(),
@@ -64,7 +65,8 @@ public class SyncController implements SyncApi {
     @RequestMapping(
         path = { ENTITY_SET_ID_PATH + SYNC_ID_PATH },
         method = RequestMethod.POST,
-        consumes = MediaType.APPLICATION_JSON_VALUE )
+        consumes = MediaType.APPLICATION_JSON_VALUE,
+        produces = MediaType.APPLICATION_JSON_VALUE )
     public Void setCurrentSyncId( @PathVariable UUID entitySetId, @PathVariable UUID syncId ) {
         if ( authz.checkIfHasPermissions( ImmutableList.of( entitySetId ),
                 Principals.getCurrentPrincipals(),
@@ -81,7 +83,7 @@ public class SyncController implements SyncApi {
     @RequestMapping(
         path = { ENTITY_SET_ID_PATH + LATEST },
         method = RequestMethod.GET,
-        consumes = MediaType.APPLICATION_JSON_VALUE )
+        produces = MediaType.APPLICATION_JSON_VALUE )
     public UUID getLatestSyncId( @PathVariable UUID entitySetId ) {
         if ( authz.checkIfHasPermissions( ImmutableList.of( entitySetId ),
                 Principals.getCurrentPrincipals(),
@@ -91,5 +93,10 @@ public class SyncController implements SyncApi {
             throw new ForbiddenException(
                     "Insufficient permissions to read the latest sync id of the entity set or it doesn't exist." );
         }
+    }
+
+    @Override
+    public AuthorizationManager getAuthorizationManager() {
+        return authz;
     }
 }

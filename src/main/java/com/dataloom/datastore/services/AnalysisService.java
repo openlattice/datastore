@@ -18,6 +18,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.google.common.collect.Lists;
 import com.google.common.collect.SetMultimap;
 import com.kryptnostic.datastore.services.CassandraDataManager;
+import com.kryptnostic.datastore.services.DatasourceManager;
 
 public class AnalysisService {
 
@@ -28,13 +29,17 @@ public class AnalysisService {
 
     @Inject
     private CassandraDataManager       cdm;
+    
+    @Inject
+    private DatasourceManager                         datasourceManager;
 
     public List<SetMultimap<UUID, Object>> getTopUtilizers(
             UUID entitySetId,
             Set<UUID> propertyTypeIds,
             int maxHits,
             Map<UUID, PropertyType> propertyTypes ) {
-        UUID requestId = sparkApi.getTopUtilizers( entitySetId, propertyTypeIds, propertyTypes );
+        UUID syncId = datasourceManager.getCurrentSyncId( entitySetId );
+        UUID requestId = sparkApi.getTopUtilizers( entitySetId, syncId, propertyTypeIds, propertyTypes );
         List<SetMultimap<UUID, Object>> results = Lists.newArrayList();
         Iterator<byte[]> byteResults = cdm.readNumRPCRows( requestId, maxHits ).iterator();
         TypeReference<SetMultimap<UUID, Object>> resultType = new TypeReference<SetMultimap<UUID, Object>>() {};

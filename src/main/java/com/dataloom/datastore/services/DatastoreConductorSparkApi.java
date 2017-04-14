@@ -110,10 +110,15 @@ public class DatastoreConductorSparkApi implements ConductorSparkApi {
     }
 
     @Override
-    public UUID getTopUtilizers( UUID entitySetId, Set<UUID> propertyTypeIds, Map<UUID, PropertyType> propertyTypes ) {
+    public UUID getTopUtilizers(
+            UUID entitySetId,
+            UUID syncId,
+            Set<UUID> propertyTypeIds,
+            Map<UUID, PropertyType> propertyTypes ) {
         try {
             return executor.submit(
-                    ConductorCall.wrap( Lambdas.getTopUtilizers( entitySetId, propertyTypeIds, propertyTypes ) ) )
+                    ConductorCall
+                            .wrap( Lambdas.getTopUtilizers( entitySetId, syncId, propertyTypeIds, propertyTypes ) ) )
                     .get();
         } catch ( InterruptedException | ExecutionException e ) {
             logger.debug( "unable to execute get top utilizers" );

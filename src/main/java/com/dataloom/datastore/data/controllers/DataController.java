@@ -220,7 +220,7 @@ public class DataController implements DataApi, AuthorizingComponent {
             UUID entitySetId,
             Optional<UUID> syncId,
             Optional<Set<UUID>> selectedProperties ) {
-        UUID id = ( syncId.isPresent() ) ? id = syncId.get() : datasourceManager.getCurrentSyncId( entitySetId );
+        UUID id = ( syncId.isPresent() ) ? syncId.get() : datasourceManager.getCurrentSyncId( entitySetId );
         Set<UUID> authorizedProperties;
         if ( selectedProperties.isPresent() && !selectedProperties.get().isEmpty() ) {
             if ( !authzHelper.getAllPropertiesOnEntitySet( entitySetId ).containsAll( selectedProperties.get() ) ) {

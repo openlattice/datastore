@@ -32,8 +32,7 @@ public class SyncController implements SyncApi, AuthorizingComponent {
     @Override
     @RequestMapping(
         path = { ENTITY_SET_ID_PATH },
-        method = RequestMethod.GET,
-        produces = MediaType.APPLICATION_JSON_VALUE )
+        method = RequestMethod.GET )
     public UUID acquireSyncId( @PathVariable UUID entitySetId ) {
         if ( authz.checkIfHasPermissions( ImmutableList.of( entitySetId ),
                 Principals.getCurrentPrincipals(),
@@ -48,8 +47,7 @@ public class SyncController implements SyncApi, AuthorizingComponent {
     @Override
     @RequestMapping(
         path = { ENTITY_SET_ID_PATH + CURRENT },
-        method = RequestMethod.GET,
-        produces = MediaType.APPLICATION_JSON_VALUE )
+        method = RequestMethod.GET )
     public UUID getCurrentSyncId( @PathVariable UUID entitySetId ) {
         if ( authz.checkIfHasPermissions( ImmutableList.of( entitySetId ),
                 Principals.getCurrentPrincipals(),
@@ -64,9 +62,7 @@ public class SyncController implements SyncApi, AuthorizingComponent {
     @Override
     @RequestMapping(
         path = { ENTITY_SET_ID_PATH + SYNC_ID_PATH },
-        method = RequestMethod.POST,
-        consumes = MediaType.APPLICATION_JSON_VALUE,
-        produces = MediaType.APPLICATION_JSON_VALUE )
+        method = RequestMethod.POST )
     public Void setCurrentSyncId( @PathVariable UUID entitySetId, @PathVariable UUID syncId ) {
         if ( authz.checkIfHasPermissions( ImmutableList.of( entitySetId ),
                 Principals.getCurrentPrincipals(),
@@ -82,8 +78,7 @@ public class SyncController implements SyncApi, AuthorizingComponent {
     @Override
     @RequestMapping(
         path = { ENTITY_SET_ID_PATH + LATEST },
-        method = RequestMethod.GET,
-        produces = MediaType.APPLICATION_JSON_VALUE )
+        method = RequestMethod.GET )
     public UUID getLatestSyncId( @PathVariable UUID entitySetId ) {
         if ( authz.checkIfHasPermissions( ImmutableList.of( entitySetId ),
                 Principals.getCurrentPrincipals(),

@@ -76,7 +76,7 @@ public class CsvHttpMessageConverter
 
     @Override
     protected boolean supports( Class<?> clazz ) {
-        return Iterable.class.isAssignableFrom( clazz );
+        return EntitySetData.class.isAssignableFrom( clazz );
     }
 
     @Override

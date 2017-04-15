@@ -1,5 +1,6 @@
 package com.dataloom.datastore.linking.services;
 
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -131,14 +132,14 @@ public class SimpleMatcher implements Matcher {
         Set<String> set0;
         Set<String> set1;
         // TODO update the terrible toString's
-        if ( val0 instanceof Set<?> ) {
-            set0 = ( (Set<?>) val0 ).stream().map( obj -> obj.toString() ).collect( Collectors.toSet() );
+        if ( val0 instanceof Collection<?> ) {
+            set0 = ( (Collection<?>) val0 ).stream().map( obj -> obj.toString() ).collect( Collectors.toSet() );
         } else {
             set0 = ImmutableSet.of( val0.toString() );
         }
 
-        if ( val1 instanceof Set<?> ) {
-            set1 = ( (Set<?>) val1 ).stream().map( obj -> obj.toString() ).collect( Collectors.toSet() );
+        if ( val1 instanceof Collection<?> ) {
+            set1 = ( (Collection<?>) val1 ).stream().map( obj -> obj.toString() ).collect( Collectors.toSet() );
         } else {
             set1 = ImmutableSet.of( val1.toString() );
         }

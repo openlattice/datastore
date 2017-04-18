@@ -50,7 +50,7 @@ import com.dataloom.linking.LinkingApi;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.SetMultimap;
-import com.kryptnostic.datastore.services.DatasourceManager;
+import com.dataloom.data.DatasourceManager;
 import com.kryptnostic.datastore.services.EdmManager;
 
 import retrofit2.http.Body;

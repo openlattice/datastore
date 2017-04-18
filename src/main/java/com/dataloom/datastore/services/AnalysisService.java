@@ -17,8 +17,8 @@ import com.dataloom.mappers.ObjectMappers;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.google.common.collect.Lists;
 import com.google.common.collect.SetMultimap;
-import com.kryptnostic.datastore.services.CassandraDataManager;
-import com.kryptnostic.datastore.services.DatasourceManager;
+import com.dataloom.data.storage.CassandraEntityDatastore;
+import com.dataloom.data.DatasourceManager;
 
 public class AnalysisService {
 
@@ -28,7 +28,7 @@ public class AnalysisService {
     private DatastoreConductorSparkApi sparkApi;
 
     @Inject
-    private CassandraDataManager       cdm;
+    private CassandraEntityDatastore cdm;
     
     @Inject
     private DatasourceManager                         datasourceManager;

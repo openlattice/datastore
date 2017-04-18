@@ -31,23 +31,23 @@ import com.google.common.collect.SetMultimap;
 import com.google.common.collect.Sets;
 import com.google.common.eventbus.EventBus;
 import com.hazelcast.core.HazelcastInstance;
-import com.kryptnostic.datastore.services.CassandraDataManager;
-import com.kryptnostic.datastore.services.DatasourceManager;
+import com.dataloom.data.storage.CassandraEntityDatastore;
+import com.dataloom.data.DatasourceManager;
 import com.kryptnostic.datastore.services.EdmManager;
 
 public class LinkingService {
     private static final Logger           logger = LoggerFactory.getLogger( LinkingService.class );
 
-    private final HazelcastLinkingGraphs  linkingGraph;
-    private final Blocker                 blocker;
-    private final Matcher                 matcher;
-    private final Clusterer               clusterer;
-    private final HazelcastListingService listingService;
-    private final EdmManager              dms;
-    private final CassandraDataManager    cdm;
-    private final DatasourceManager       dsm;
-    private final String                  keyspace;
-    private final Session                 session;
+    private final HazelcastLinkingGraphs   linkingGraph;
+    private final Blocker                  blocker;
+    private final Matcher                  matcher;
+    private final Clusterer                clusterer;
+    private final HazelcastListingService  listingService;
+    private final EdmManager               dms;
+    private final CassandraEntityDatastore cdm;
+    private final DatasourceManager        dsm;
+    private final String                   keyspace;
+    private final Session                  session;
 
     public LinkingService(
             String keyspace,
@@ -60,7 +60,7 @@ public class LinkingService {
             EventBus eventBus,
             HazelcastListingService listingService,
             EdmManager dms,
-            CassandraDataManager cdm,
+            CassandraEntityDatastore cdm,
             DatasourceManager dsm ) {
         this.linkingGraph = linkingGraph;
 

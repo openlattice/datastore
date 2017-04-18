@@ -78,9 +78,9 @@ import com.datastax.driver.core.Session;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.eventbus.EventBus;
 import com.hazelcast.core.HazelcastInstance;
-import com.kryptnostic.datastore.services.CassandraDataManager;
+import com.dataloom.data.storage.CassandraEntityDatastore;
 import com.kryptnostic.datastore.services.CassandraEntitySetManager;
-import com.kryptnostic.datastore.services.DatasourceManager;
+import com.dataloom.data.DatasourceManager;
 import com.kryptnostic.datastore.services.EdmManager;
 import com.kryptnostic.datastore.services.EdmService;
 import com.kryptnostic.datastore.services.ODataStorageService;
@@ -193,8 +193,8 @@ public class DatastoreServicesPod {
     }
 
     @Bean
-    public CassandraDataManager cassandraDataManager() {
-        return new CassandraDataManager(
+    public CassandraEntityDatastore cassandraDataManager() {
+        return new CassandraEntityDatastore(
                 session,
                 defaultObjectMapper(),
                 linkingGraph(),

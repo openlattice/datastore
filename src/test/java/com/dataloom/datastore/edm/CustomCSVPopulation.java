@@ -55,7 +55,7 @@ import com.fasterxml.jackson.dataformat.csv.CsvMapper;
 import com.fasterxml.jackson.dataformat.csv.CsvSchema;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableSet;
-import com.kryptnostic.datastore.services.CassandraDataManager;
+import com.dataloom.data.storage.CassandraEntityDatastore;
 import com.kryptnostic.datastore.services.EdmManager;
 import com.kryptnostic.datastore.services.ODataStorageService;
 
@@ -70,10 +70,10 @@ public class CustomCSVPopulation {
 
     public static final String               NAMESPACE           = "stressTest";
     protected static final DatastoreServices ds                  = new DatastoreServices();
-    static EdmManager                        dms;
-    static ODataStorageService               odsc;
-    static CassandraDataManager              cdm;
-    static HazelcastSchemaManager            hsm;
+    static EdmManager               dms;
+    static ODataStorageService      odsc;
+    static CassandraEntityDatastore cdm;
+    static HazelcastSchemaManager   hsm;
 
     public static int                        defaultTypeSize     = 0;
     public static List<CustomPropertyType>   defaultTypeList     = new ArrayList<>();
@@ -489,7 +489,7 @@ public class CustomCSVPopulation {
         ds.sprout( "cassandra", "local" );
         dms = ds.getContext().getBean( EdmManager.class );
         odsc = ds.getContext().getBean( ODataStorageService.class );
-        cdm = ds.getContext().getBean( CassandraDataManager.class );
+        cdm = ds.getContext().getBean( CassandraEntityDatastore.class );
 
         // Create PropertyType, Entity Types, Entity Sets in database
         createPropertyTypes();

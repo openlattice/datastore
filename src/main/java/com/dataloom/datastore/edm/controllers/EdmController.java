@@ -80,9 +80,9 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.kryptnostic.datastore.exceptions.BadRequestException;
 import com.kryptnostic.datastore.exceptions.BatchException;
-import com.kryptnostic.datastore.services.CassandraDataManager;
+import com.dataloom.data.storage.CassandraEntityDatastore;
 import com.kryptnostic.datastore.services.CassandraEntitySetManager;
-import com.kryptnostic.datastore.services.DatasourceManager;
+import com.dataloom.data.DatasourceManager;
 import com.kryptnostic.datastore.services.EdmManager;
 
 @RestController
@@ -108,7 +108,7 @@ public class EdmController implements EdmApi, AuthorizingComponent {
     private LoomAuth0AuthenticationProvider           authProvider;
 
     @Inject
-    private CassandraDataManager                      dataManager;
+    private CassandraEntityDatastore dataManager;
 
     @Inject
     private DatasourceManager                         datasourceManager;

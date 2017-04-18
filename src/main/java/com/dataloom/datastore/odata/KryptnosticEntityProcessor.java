@@ -35,8 +35,6 @@ import org.apache.olingo.server.api.ODataLibraryException;
 import org.apache.olingo.server.api.ODataRequest;
 import org.apache.olingo.server.api.ODataResponse;
 import org.apache.olingo.server.api.ServiceMetadata;
-import org.apache.olingo.server.api.deserializer.DeserializerResult;
-import org.apache.olingo.server.api.deserializer.ODataDeserializer;
 import org.apache.olingo.server.api.processor.EntityProcessor;
 import org.apache.olingo.server.api.serializer.EntitySerializerOptions;
 import org.apache.olingo.server.api.serializer.ODataSerializer;
@@ -45,9 +43,8 @@ import org.apache.olingo.server.api.uri.UriInfo;
 import org.apache.olingo.server.api.uri.UriParameter;
 import org.apache.olingo.server.api.uri.UriResourceEntitySet;
 
-import com.dataloom.datasource.UUIDs.Syncs;
 import com.dataloom.datastore.DatastoreUtil;
-import com.kryptnostic.datastore.services.DatasourceManager;
+import com.dataloom.data.DatasourceManager;
 import com.kryptnostic.datastore.services.ODataStorageService;
 
 public class KryptnosticEntityProcessor implements EntityProcessor {

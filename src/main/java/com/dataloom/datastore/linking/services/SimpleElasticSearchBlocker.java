@@ -21,15 +21,15 @@ import com.dataloom.linking.util.UnorderedPair;
 import com.dataloom.streams.StreamUtil;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.SetMultimap;
-import com.kryptnostic.datastore.services.CassandraDataManager;
+import com.dataloom.data.storage.CassandraEntityDatastore;
 import com.kryptnostic.datastore.services.EdmManager;
 
 public class SimpleElasticSearchBlocker implements Blocker {
     private static final Logger        logger    = LoggerFactory.getLogger( SimpleElasticSearchBlocker.class );
 
-    private final EdmManager           dms;
-    private final CassandraDataManager dataManager;
-    private SearchService              searchService;
+    private final EdmManager               dms;
+    private final CassandraEntityDatastore dataManager;
+    private       SearchService            searchService;
 
     private SetMultimap<UUID, UUID>    linkIndexedByEntitySets;
     private Map<UUID, UUID> linkingEntitySetsWithSyncId;
@@ -42,7 +42,7 @@ public class SimpleElasticSearchBlocker implements Blocker {
 
     public SimpleElasticSearchBlocker(
             EdmManager dms,
-            CassandraDataManager dataManager,
+            CassandraEntityDatastore dataManager,
             SearchService searchService ) {
         this.dataManager = dataManager;
         this.dms = dms;

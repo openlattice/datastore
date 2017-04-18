@@ -81,7 +81,7 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.SetMultimap;
 import com.google.common.collect.Sets;
 import com.kryptnostic.datastore.exceptions.ResourceNotFoundException;
-import com.kryptnostic.datastore.services.DatasourceManager;
+import com.dataloom.data.DatasourceManager;
 import com.kryptnostic.datastore.services.EdmService;
 import com.kryptnostic.datastore.util.Util;
 

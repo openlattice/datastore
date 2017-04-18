@@ -1,6 +1,7 @@
 package com.dataloom.datastore.analysis.controllers;
 
 import java.util.EnumSet;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -52,7 +53,7 @@ public class AnalysisController implements AnalysisApi {
             }
         }
         Map<UUID, PropertyType> propertyTypes = edm.getPropertyTypesAsMap( authorizedProperties );
-        return analysisService.getTopUtilizers( entitySetId, propertyTypeIds, numResults, propertyTypes );
+        return analysisService.getTopUtilizers( entitySetId, new HashSet<>( propertyTypeIds ), numResults, propertyTypes );
     }
 
 }

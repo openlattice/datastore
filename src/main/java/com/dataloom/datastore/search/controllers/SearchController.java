@@ -20,6 +20,7 @@
 package com.dataloom.datastore.search.controllers;
 
 import java.util.EnumSet;
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -40,6 +41,7 @@ import com.dataloom.authorization.AuthorizingComponent;
 import com.dataloom.authorization.EdmAuthorizationHelper;
 import com.dataloom.authorization.Permission;
 import com.dataloom.authorization.Principals;
+import com.dataloom.data.requests.NeighborEntityDetails;
 import com.dataloom.datastore.services.SearchService;
 import com.dataloom.edm.EntitySet;
 import com.dataloom.search.SearchApi;
@@ -206,5 +208,16 @@ public class SearchController implements SearchApi, AuthorizingComponent {
                 searchTerm.getName(),
                 searchTerm.getStart(),
                 searchTerm.getMaxHits() );
+    }
+
+    @RequestMapping(
+            path = { ENTITY_SET_ID_PATH + ENTITY_ID_PATH },
+            method = RequestMethod.GET,
+            produces = { MediaType.APPLICATION_JSON_VALUE } )
+    @Override
+    public List<NeighborEntityDetails> executeEntityNeighborSearch(
+            @PathVariable( ENTITY_SET_ID ) UUID entitySetId,
+            @PathVariable( ENTITY_ID ) UUID entityId) {
+        return searchService.executeEntityNeighborSearch( entitySetId, entityId );
     }
 }

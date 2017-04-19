@@ -218,6 +218,11 @@ public class SearchController implements SearchApi, AuthorizingComponent {
     public List<NeighborEntityDetails> executeEntityNeighborSearch(
             @PathVariable( ENTITY_SET_ID ) UUID entitySetId,
             @PathVariable( ENTITY_ID ) UUID entityId) {
-        return searchService.executeEntityNeighborSearch( entitySetId, entityId );
+        if ( authorizations.checkIfHasPermissions( ImmutableList.of( entitySetId ),
+                Principals.getCurrentPrincipals(),
+                EnumSet.of( Permission.READ ) ) ) {
+            return searchService.executeEntityNeighborSearch( entityId );
+        }
+        return Lists.newArrayList();
     }
 }

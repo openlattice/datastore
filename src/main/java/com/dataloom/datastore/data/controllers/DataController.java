@@ -301,7 +301,12 @@ public class DataController implements DataApi, AuthorizingComponent {
                 throw new ResourceNotFoundException( "Unable to load data types for authorized properties." );
             }
 
-            dgm.createEntities( entitySetId, syncId, entities, authorizedPropertiesWithDataType );
+            try {
+                dgm.createEntities( entitySetId, syncId, entities, authorizedPropertiesWithDataType );
+            } catch ( ExecutionException | InterruptedException e ) {
+                logger.error( "Failed to create entities for entity set {} with sync {}", entitySetId, syncId );
+                throw new IllegalStateException( "Failed to create entities.");
+            }
         } else {
             throw new ForbiddenException( "Insufficient permissions to write to the entity set or it doesn't exist." );
         }
@@ -390,7 +395,12 @@ public class DataController implements DataApi, AuthorizingComponent {
                     + " and entity set " + entitySetId + "." );
             throw new ResourceNotFoundException( "Unable to load data types for authorized properties." );
         }
-        dgm.createEntities( entitySetId, syncId, entities, authorizedPropertiesWithDataType );
+        try{
+            dgm.createEntities( entitySetId, syncId, entities, authorizedPropertiesWithDataType );
+        } catch ( ExecutionException | InterruptedException e ) {
+            logger.error( "Failed to create entities for entity set {} with sync {}", entitySetId, syncId );
+            throw new IllegalStateException( "Failed to create entities.");
+        }
         return null;
     }
 
@@ -436,7 +446,12 @@ public class DataController implements DataApi, AuthorizingComponent {
                 throw new ResourceNotFoundException( "Unable to load data types for authorized properties." );
             }
 
+            try{
             dgm.createAssociations( entitySetId, syncId, associations, authorizedPropertiesWithDataType );
+            } catch ( ExecutionException | InterruptedException e ) {
+                logger.error( "Failed to create associations for entity set {} with sync {}", entitySetId, syncId );
+                throw new IllegalStateException( "Failed to create associations.");
+            }
         } else {
             throw new ForbiddenException( "Insufficient permissions to write to the entity set or it doesn't exist." );
         }
@@ -466,8 +481,12 @@ public class DataController implements DataApi, AuthorizingComponent {
                     + " and entity set " + entitySetId + "." );
             throw new ResourceNotFoundException( "Unable to load data types for authorized properties." );
         }
-
+        try{
         dgm.createAssociations( entitySetId, syncId, associations, authorizedPropertiesWithDataType );
+        } catch ( ExecutionException | InterruptedException e ) {
+            logger.error( "Failed to create associations for entity set {} with sync {}", entitySetId, syncId );
+            throw new IllegalStateException( "Failed to associations.");
+        }
         return null;
     }
 
@@ -506,9 +525,14 @@ public class DataController implements DataApi, AuthorizingComponent {
             authorizedPropertiesByEntitySetId.put( entitySetId, authorizedPropertiesWithDataType );
         } );
 
+        try{
         dgm.createEntitiesAndAssociations( data.getEntities(),
                 data.getAssociations(),
                 authorizedPropertiesByEntitySetId );
+        } catch ( ExecutionException | InterruptedException e ) {
+            logger.error( "Failed to bulk create entities/associations." );
+            throw new IllegalStateException( "Failed to bulk create entities/associations." );
+        }
         return null;
 
     }

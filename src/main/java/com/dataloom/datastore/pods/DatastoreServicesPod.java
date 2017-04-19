@@ -39,8 +39,12 @@ import com.dataloom.authorization.Principals;
 import com.dataloom.clustering.ClusteringPartitioner;
 import com.dataloom.data.DataGraphManager;
 import com.dataloom.data.DataGraphService;
+import com.dataloom.data.DatasourceManager;
+import com.dataloom.data.EntityKeyIdService;
+import com.dataloom.data.ids.CassandraEntityKeyIdService;
 import com.dataloom.data.serializers.FullQualifedNameJacksonDeserializer;
 import com.dataloom.data.serializers.FullQualifedNameJacksonSerializer;
+import com.dataloom.data.storage.CassandraEntityDatastore;
 import com.dataloom.datastore.linking.services.SimpleElasticSearchBlocker;
 import com.dataloom.datastore.linking.services.SimpleMatcher;
 import com.dataloom.datastore.scripts.EmptyPermissionRemover;
@@ -56,7 +60,6 @@ import com.dataloom.edm.schemas.cassandra.CassandraSchemaQueryService;
 import com.dataloom.edm.schemas.manager.HazelcastSchemaManager;
 import com.dataloom.graph.core.GraphQueryService;
 import com.dataloom.graph.core.LoomGraph;
-import com.dataloom.graph.core.objects.LoomVertexFuture;
 import com.dataloom.linking.CassandraLinkingGraphsQueryService;
 import com.dataloom.linking.HazelcastLinkingGraphs;
 import com.dataloom.linking.HazelcastListingService;
@@ -78,9 +81,7 @@ import com.datastax.driver.core.Session;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.eventbus.EventBus;
 import com.hazelcast.core.HazelcastInstance;
-import com.dataloom.data.storage.CassandraEntityDatastore;
 import com.kryptnostic.datastore.services.CassandraEntitySetManager;
-import com.dataloom.data.DatasourceManager;
 import com.kryptnostic.datastore.services.EdmManager;
 import com.kryptnostic.datastore.services.EdmService;
 import com.kryptnostic.datastore.services.ODataStorageService;
@@ -364,16 +365,16 @@ public class DatastoreServicesPod {
 
     @Bean
     public LoomGraph loomGraph() {
-        return new LoomGraph( graphQueryService() );
+        return new LoomGraph( graphQueryService(), hazelcastInstance );
     }
 
     @Bean
-    public DataGraphManager dataGraphService() {
-        return new DataGraphService( cassandraDataManager(), loomGraph() );
+    public EntityKeyIdService idService() {
+        return new CassandraEntityKeyIdService();
     }
     
-    @PostConstruct
-    public void initLoomVertexFuture(){
-        LoomVertexFuture.setGraphQueryService( graphQueryService() );
+    @Bean
+    public DataGraphManager dataGraphService() {
+        return new DataGraphService( hazelcastInstance, cassandraDataManager(), loomGraph(), idService() );
     }
 }

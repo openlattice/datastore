@@ -39,8 +39,12 @@ import com.dataloom.authorization.Principals;
 import com.dataloom.clustering.ClusteringPartitioner;
 import com.dataloom.data.DataGraphManager;
 import com.dataloom.data.DataGraphService;
+import com.dataloom.data.DatasourceManager;
+import com.dataloom.data.EntityKeyIdService;
+import com.dataloom.data.ids.HazelcastEntityKeyIdService;
 import com.dataloom.data.serializers.FullQualifedNameJacksonDeserializer;
 import com.dataloom.data.serializers.FullQualifedNameJacksonSerializer;
+import com.dataloom.data.storage.CassandraEntityDatastore;
 import com.dataloom.datastore.linking.services.SimpleElasticSearchBlocker;
 import com.dataloom.datastore.linking.services.SimpleMatcher;
 import com.dataloom.datastore.scripts.EmptyPermissionRemover;
@@ -56,7 +60,6 @@ import com.dataloom.edm.schemas.cassandra.CassandraSchemaQueryService;
 import com.dataloom.edm.schemas.manager.HazelcastSchemaManager;
 import com.dataloom.graph.core.GraphQueryService;
 import com.dataloom.graph.core.LoomGraph;
-import com.dataloom.graph.core.objects.LoomVertexFuture;
 import com.dataloom.linking.CassandraLinkingGraphsQueryService;
 import com.dataloom.linking.HazelcastLinkingGraphs;
 import com.dataloom.linking.HazelcastListingService;
@@ -77,10 +80,9 @@ import com.dataloom.requests.RequestQueryService;
 import com.datastax.driver.core.Session;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.eventbus.EventBus;
+import com.google.common.util.concurrent.ListeningExecutorService;
 import com.hazelcast.core.HazelcastInstance;
-import com.dataloom.data.storage.CassandraEntityDatastore;
 import com.kryptnostic.datastore.services.CassandraEntitySetManager;
-import com.dataloom.data.DatasourceManager;
 import com.kryptnostic.datastore.services.EdmManager;
 import com.kryptnostic.datastore.services.EdmService;
 import com.kryptnostic.datastore.services.ODataStorageService;
@@ -95,19 +97,22 @@ import digital.loom.rhizome.configuration.auth0.Auth0Configuration;
 public class DatastoreServicesPod {
 
     @Inject
-    private CassandraConfiguration cassandraConfiguration;
+    private CassandraConfiguration   cassandraConfiguration;
 
     @Inject
-    private HazelcastInstance      hazelcastInstance;
+    private HazelcastInstance        hazelcastInstance;
 
     @Inject
-    private Session                session;
+    private Session                  session;
 
     @Inject
-    private Auth0Configuration     auth0Configuration;
+    private Auth0Configuration       auth0Configuration;
 
     @Inject
-    private EventBus               eventBus;
+    private ListeningExecutorService executor;
+
+    @Inject
+    private EventBus                 eventBus;
 
     @Bean
     public ObjectMapper defaultObjectMapper() {
@@ -364,16 +369,22 @@ public class DatastoreServicesPod {
 
     @Bean
     public LoomGraph loomGraph() {
-        return new LoomGraph( graphQueryService() );
+        return new LoomGraph( graphQueryService(), hazelcastInstance );
+    }
+
+    @Bean
+    public EntityKeyIdService idService() {
+        return new HazelcastEntityKeyIdService( hazelcastInstance, executor );
     }
 
     @Bean
     public DataGraphManager dataGraphService() {
-        return new DataGraphService( cassandraDataManager(), loomGraph() );
-    }
-    
-    @PostConstruct
-    public void initLoomVertexFuture(){
-        LoomVertexFuture.setGraphQueryService( graphQueryService() );
+        return new DataGraphService(
+                hazelcastInstance,
+                cassandraDataManager(),
+                loomGraph(),
+                idService(),
+                executor,
+                eventBus );
     }
 }

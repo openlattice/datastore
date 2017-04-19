@@ -347,7 +347,7 @@ public class SearchService {
         // map entity key ids to entity set ids, and map each edge type to all neighbor vertex types connected by that
         // edge type
         edges.forEach( edge -> {
-            boolean vertexIsSrc = entityId == edge.getKey().getSrcEntityKeyId();
+            boolean vertexIsSrc = entityId.equals( edge.getKey().getSrcEntityKeyId() );
             EntityKey edgeEntityKey = entityKeyService.getEntityKey( edge.getKey().getEdgeEntityKeyId() );
             UUID neighborId = ( vertexIsSrc ) ? edge.getKey().getDstEntityKeyId() : edge.getKey().getSrcEntityKeyId();
             EntityKey neighborEntityKey = entityKeyService.getEntityKey( neighborId );
@@ -391,7 +391,7 @@ public class SearchService {
 
         // create a NeighborEntityDetails object for each edge based on authorizations
         edges.forEach( edge -> {
-            boolean vertexIsSrc = entityId == edge.getKey().getSrcEntityKeyId();
+            boolean vertexIsSrc = entityId.equals( edge.getKey().getSrcEntityKeyId() );
             NeighborEntityDetails neighbor = getNeighborEntityDetails( edge,
                     entityKeyIdToEntityKey,
                     authorizedEdgeESIdsToVertexESIds,

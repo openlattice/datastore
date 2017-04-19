@@ -43,9 +43,9 @@ import com.dataloom.authorization.events.AclUpdateEvent;
 import com.dataloom.authorization.securable.SecurableObjectType;
 import com.dataloom.data.DatasourceManager;
 import com.dataloom.data.EntityKey;
+import com.dataloom.data.EntityKeyIdService;
 import com.dataloom.data.events.EntityDataCreatedEvent;
 import com.dataloom.data.events.EntityDataDeletedEvent;
-import com.dataloom.data.ids.HazelcastEntityKeyIdService;
 import com.dataloom.data.requests.NeighborEntityDetails;
 import com.dataloom.data.storage.CassandraEntityDatastore;
 import com.dataloom.edm.EntitySet;
@@ -111,7 +111,7 @@ public class SearchService {
     private EdmAuthorizationHelper                    authzHelper;
 
     @Inject
-    private HazelcastEntityKeyIdService               entityKeyService;
+    private EntityKeyIdService                        entityKeyService;
 
     @PostConstruct
     public void initializeBus() {

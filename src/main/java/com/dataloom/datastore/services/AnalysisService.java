@@ -11,7 +11,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.dataloom.analysis.requests.TopUtilizerDetails;
-import com.dataloom.data.DataGraphService;
+import com.dataloom.data.DataGraphManager;
 import com.dataloom.data.DatasourceManager;
 import com.dataloom.data.EntitySetData;
 import com.dataloom.edm.type.PropertyType;
@@ -21,7 +21,7 @@ public class AnalysisService {
     private static final Logger logger = LoggerFactory.getLogger( AnalysisService.class );
 
     @Inject
-    private DataGraphService    dgs;
+    private DataGraphManager    dgm;
 
     @Inject
     private DatasourceManager   datasourceManager;
@@ -33,7 +33,7 @@ public class AnalysisService {
             Map<UUID, PropertyType> authorizedPropertyTypes ) {
         UUID syncId = datasourceManager.getCurrentSyncId( entitySetId );
         try {
-            return dgs.getTopUtilizers( entitySetId, syncId, topUtilizerDetails, numResults, authorizedPropertyTypes );
+            return dgm.getTopUtilizers( entitySetId, syncId, topUtilizerDetails, numResults, authorizedPropertyTypes );
         } catch ( InterruptedException | ExecutionException e ) {
             logger.debug( "Unable to get top utilizer data." );
             return null;

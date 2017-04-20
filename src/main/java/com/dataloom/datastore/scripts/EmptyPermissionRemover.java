@@ -34,11 +34,9 @@ public class EmptyPermissionRemover {
                         .and( QueryBuilder.eq( CommonColumns.PRINCIPAL_ID.cql(),
                                 CommonColumns.PRINCIPAL_ID.bindMarker() ) ) );
 
-        // Trigger script to remove empty permissions in permissions table
-        removeEmptyPermissions();
     }
 
-    public void removeEmptyPermissions() {
+    public void run() {
         ResultSet rs = session.execute( QueryBuilder.select().all().from( keyspace, Table.PERMISSIONS.getName() ) );
 
         for ( Row row : rs ) {

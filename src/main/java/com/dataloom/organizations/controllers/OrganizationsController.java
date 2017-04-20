@@ -56,6 +56,7 @@ import com.dataloom.organization.OrganizationsApi;
 import com.dataloom.organization.roles.OrganizationRole;
 import com.dataloom.organization.roles.RoleKey;
 import com.dataloom.organizations.HazelcastOrganizationService;
+import com.dataloom.organizations.roles.RolesUtil;
 import com.dataloom.streams.StreamUtil;
 import com.google.common.base.Optional;
 import com.google.common.base.Predicates;
@@ -308,7 +309,7 @@ public class OrganizationsController implements AuthorizingComponent, Organizati
     private Set<Principal> getAuthorizedRoles( UUID organizationId, Permission permission ) {
         return StreamUtil.stream( organizations.getRolesInFull( organizationId ) )
                 .filter( role -> isAuthorized( permission ).test( role.getAclKey() ) )
-                .map( role -> role.getPrincipal() ).collect( Collectors.toSet() );
+                .map( role -> RolesUtil.getPrincipal( role ) ).collect( Collectors.toSet() );
     }
 
     @Override

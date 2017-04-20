@@ -55,12 +55,9 @@ public class EntitySetContactsPopulator implements Serializable {
         this.dms = dms;
         this.uds = uds;
         this.entitySets = hazelcastInstance.getMap( HazelcastMap.ENTITY_SETS.name() );
-        
-        //Trigger script to populate entity set contacts field
-        populateEntitySetContactsField();
     }
 
-    public void populateEntitySetContactsField() {
+    public void run() {
         StreamUtil.stream( dms.getEntitySets() )
                 .filter( es -> es.getContacts() == null || es.getContacts().isEmpty() )
                 .forEach( es -> {

@@ -58,19 +58,19 @@ public class EntitySetContactsPopulator implements Serializable {
     }
 
     public void run() {
-        StreamUtil.stream( dms.getEntitySets() )
-                .filter( es -> es.getContacts() == null || es.getContacts().isEmpty() )
-                .forEach( es -> {
-                    Set<String> contacts = StreamUtil.stream( getOwnerForEntitySet( Arrays.asList( es.getId() ) ) )
-                            .map( principal -> getUserAsString( principal ) )
-                            .collect( Collectors.toSet() );
-                    
-                    if( contacts.isEmpty() ){
-                        contacts = ImmutableSet.of( "No contacts found" );
-                    }
-                    
-                    entitySets.executeOnKey( es.getId(), new UpdateEntitySetContactsProcessor( contacts ) );
-        } );
+//        StreamUtil.stream( dms.getEntitySets() )
+//                .filter( es -> es.getContacts() == null || es.getContacts().isEmpty() )
+//                .forEach( es -> {
+//                    Set<String> contacts = StreamUtil.stream( getOwnerForEntitySet( Arrays.asList( es.getId() ) ) )
+//                            .map( principal -> getUserAsString( principal ) )
+//                            .collect( Collectors.toSet() );
+//
+//                    if( contacts.isEmpty() ){
+//                        contacts = ImmutableSet.of( "No contacts found" );
+//                    }
+//
+//                    entitySets.executeOnKey( es.getId(), new UpdateEntitySetContactsProcessor( contacts ) );
+//        } );
     }
     
     private Iterable<Principal> getOwnerForEntitySet( List<UUID> entitySetId ){

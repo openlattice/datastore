@@ -63,7 +63,7 @@ public class DataControllerTest extends MultipleAuthenticatedUsersBase {
                 syncId,
                 TestDataFactory.randomStringEntityData( numberOfEntries, et.getProperties() ) );
 
-        Iterable<SetMultimap<FullQualifiedName, Object>> results = dataApi.loadEntitySetData( es.getId(), null, "" );
+        Iterable<SetMultimap<FullQualifiedName, Object>> results = dataApi.loadEntitySetData( es.getId(), null, "" ).getEntities();
         Assert.assertEquals( numberOfEntries, Iterables.size( results ) );
     }
 
@@ -82,7 +82,7 @@ public class DataControllerTest extends MultipleAuthenticatedUsersBase {
         EntitySetSelection ess = new EntitySetSelection(
                 Optional.of( syncId ),
                 Optional.of( selectedProperties ) );
-        Iterable<SetMultimap<FullQualifiedName, Object>> results = dataApi.loadEntitySetData( es.getId(), ess, null );
+        Iterable<SetMultimap<FullQualifiedName, Object>> results = dataApi.loadEntitySetData( es.getId(), ess, null ).getEntities();
 
         // check results
         // For each entity, collect its property value in one set, and collect all these sets together.
@@ -121,7 +121,7 @@ public class DataControllerTest extends MultipleAuthenticatedUsersBase {
         dataApi.releaseSyncTicket( ticket );
 
         // not passing in token should retain current security context
-        Iterable<SetMultimap<FullQualifiedName, Object>> results = dataApi.loadEntitySetData( es.getId(), null, "" );
+        Iterable<SetMultimap<FullQualifiedName, Object>> results = dataApi.loadEntitySetData( es.getId(), null, "" ).getEntities();
         Assert.assertEquals( numberOfEntries, Iterables.size( results ) );
 
     }

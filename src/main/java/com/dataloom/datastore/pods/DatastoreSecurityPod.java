@@ -19,13 +19,19 @@
 
 package com.dataloom.datastore.pods;
 
+import javax.inject.Inject;
+
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.method.configuration.EnableGlobalMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.web.AuthenticationEntryPoint;
 
 import com.dataloom.authentication.LoomAuth0AuthenticationProvider;
+import com.dataloom.datastore.util.RefreshTokenAuthenticationEntryPoint;
+import com.dataloom.organizations.roles.TokenExpirationTracker;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import digital.loom.rhizome.authentication.Auth0SecurityPod;
 import digital.loom.rhizome.authentication.ConfigurableAuth0AuthenticationProvider;
@@ -37,9 +43,15 @@ import digital.loom.rhizome.authentication.ConfigurableAuth0AuthenticationProvid
     debug = false )
 public class DatastoreSecurityPod extends Auth0SecurityPod {
 
+    @Inject
+    ObjectMapper defaultObjectMapper;
+    
+    @Inject
+    TokenExpirationTracker tokenTracker;
+    
     @Override
     protected ConfigurableAuth0AuthenticationProvider getAuthenticationProvider() {
-        return new LoomAuth0AuthenticationProvider( getAuthenticationApiClient() );
+        return new LoomAuth0AuthenticationProvider( getAuthenticationApiClient(), tokenTracker );
     }
 
     @Override
@@ -50,4 +62,10 @@ public class DatastoreSecurityPod extends Auth0SecurityPod {
                 .antMatchers( "/datastore/**" ).hasAnyAuthority( "admin", "ADMIN", "AuthenticatedUser" );
 //                .antMatchers( "/datastore/**" ).hasAnyAuthority( "AuthenticatedUser", "AuthenticatedUser" );
     }
+    
+    @Override
+    public AuthenticationEntryPoint auth0AuthenticationEntryPoint() {
+        return new RefreshTokenAuthenticationEntryPoint( defaultObjectMapper );
+    }
+    
 }

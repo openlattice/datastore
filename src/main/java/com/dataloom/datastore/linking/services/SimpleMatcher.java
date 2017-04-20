@@ -177,8 +177,12 @@ public class SimpleMatcher implements Matcher {
             case "name":
             case "firstname":
             case "lastname":
-                return 1 - StringUtils.getJaroWinklerDistance( doubleMetaphone.encode( val0 ),
-                        doubleMetaphone.encode( val1 ) );
+                String newVal0 = doubleMetaphone.encode( val0 );
+                String newVal1 = doubleMetaphone.encode( val1 );
+                if ( newVal0 == null || newVal1 == null ) {
+                    return MAX_DISTANCE;
+                }
+                return 1 - StringUtils.getJaroWinklerDistance( newVal0, newVal1 );
             default:
                 return 1 - StringUtils.getJaroWinklerDistance( val0, val1 );
         }

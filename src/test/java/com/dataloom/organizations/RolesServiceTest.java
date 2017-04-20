@@ -20,6 +20,7 @@ import com.dataloom.directory.pojo.Auth0UserBasic;
 import com.dataloom.mapstores.TestDataFactory;
 import com.dataloom.organization.OrganizationsApi;
 import com.dataloom.organization.roles.OrganizationRole;
+import com.dataloom.organizations.roles.RolesUtil;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
@@ -76,7 +77,7 @@ public class RolesServiceTest extends OrganizationsTest {
 
         Set<Principal> allRoles = ImmutableSet.copyOf( organizations.getRoles( organizationId ) );
 
-        Assert.assertTrue( allRoles.contains( newRole.getPrincipal() ) );
+        Assert.assertTrue( allRoles.contains( RolesUtil.getPrincipal( newRole ) ) );
         Assert.assertEquals( initialNumRoles + 1, allRoles.size() );
     }
 
@@ -107,7 +108,7 @@ public class RolesServiceTest extends OrganizationsTest {
 
         organizations.deleteRole( organizationId, newRole.getId() );
 
-        Assert.assertFalse( Iterables.contains( organizations.getRoles( organizationId ), newRole.getPrincipal() ) );
+        Assert.assertFalse( Iterables.contains( organizations.getRoles( organizationId ), RolesUtil.getPrincipal( newRole ) ) );
     }
 
     @Test

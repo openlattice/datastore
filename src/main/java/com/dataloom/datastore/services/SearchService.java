@@ -66,6 +66,7 @@ import com.dataloom.organizations.events.OrganizationCreatedEvent;
 import com.dataloom.organizations.events.OrganizationDeletedEvent;
 import com.dataloom.organizations.events.OrganizationUpdatedEvent;
 import com.dataloom.search.requests.AdvancedSearch;
+import com.dataloom.search.requests.SearchDetails;
 import com.dataloom.search.requests.SearchResult;
 import com.dataloom.search.requests.SearchTerm;
 import com.dataloom.sync.events.CurrentSyncUpdatedEvent;
@@ -277,11 +278,12 @@ public class SearchService {
             UUID entitySetId,
             AdvancedSearch search,
             Set<UUID> authorizedProperties ) {
-        Map<UUID, String> authorizedSearches = Maps.newHashMap();
-        search.getSearches().entrySet().forEach( entry -> {
-            if ( authorizedProperties.contains( entry.getKey() ) )
-                authorizedSearches.put( entry.getKey(), entry.getValue() );
-        } );
+        List<SearchDetails> authorizedSearches = Lists.newArrayList();
+        search.getSearches().forEach( searchDetails -> {
+            if ( authorizedProperties.contains( searchDetails.getPropertyType() ) ) {
+                authorizedSearches.add( searchDetails );
+            }
+        });
 
         if ( !authorizedSearches.isEmpty() ) {
             UUID syncId = datasourceManager.getCurrentSyncId( entitySetId );

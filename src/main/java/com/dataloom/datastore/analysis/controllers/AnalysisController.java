@@ -43,7 +43,7 @@ public class AnalysisController implements AnalysisApi {
         path = { ENTITY_SET_ID_PATH + NUM_RESULTS_PATH },
         method = RequestMethod.POST )
     @Override
-    public EntitySetData getTopUtilizers(
+    public Iterable<SetMultimap<Object, Object>> getTopUtilizers(
             @PathVariable( ENTITY_SET_ID ) UUID entitySetId,
             @PathVariable( NUM_RESULTS ) int numResults,
             @RequestBody List<TopUtilizerDetails> topUtilizerDetails ) {

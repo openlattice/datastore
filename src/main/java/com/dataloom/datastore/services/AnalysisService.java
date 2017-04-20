@@ -15,6 +15,7 @@ import com.dataloom.data.DataGraphManager;
 import com.dataloom.data.DatasourceManager;
 import com.dataloom.data.EntitySetData;
 import com.dataloom.edm.type.PropertyType;
+import com.google.common.collect.SetMultimap;
 
 public class AnalysisService {
 
@@ -26,7 +27,7 @@ public class AnalysisService {
     @Inject
     private DatasourceManager   datasourceManager;
 
-    public EntitySetData getTopUtilizers(
+    public Iterable<SetMultimap<Object, Object>> getTopUtilizers(
             UUID entitySetId,
             int numResults,
             List<TopUtilizerDetails> topUtilizerDetails,

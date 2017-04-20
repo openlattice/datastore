@@ -16,6 +16,7 @@ import com.dataloom.edm.type.EntityType;
 import com.dataloom.edm.type.PropertyType;
 import com.dataloom.linking.Entity;
 import com.dataloom.organization.Organization;
+import com.dataloom.search.requests.SearchDetails;
 import com.dataloom.search.requests.SearchResult;
 import com.google.common.base.Optional;
 import com.google.common.collect.Lists;
@@ -56,12 +57,38 @@ public class DatastoreConductorElasticsearchApi implements ConductorElasticsearc
             return false;
         }
     }
+    
+    @Override
+    public boolean createSecurableObjectIndex( UUID entitySetId, UUID syncId, List<PropertyType> propertyTypes ) {
+        try {
+            return executor.submit( ConductorElasticsearchCall
+                    .wrap( ElasticsearchLambdas.createSecurableObjectIndex(
+                            entitySetId,
+                            syncId,
+                            propertyTypes ) ) )
+                    .get();
+        } catch ( InterruptedException | ExecutionException e ) {
+            logger.debug( "unable to save entity set to elasticsearch" );
+            return false;
+        }
+    }
 
     @Override
     public boolean deleteEntitySet( UUID entitySetId ) {
         try {
             return executor.submit( ConductorElasticsearchCall
                     .wrap( ElasticsearchLambdas.deleteEntitySet( entitySetId ) ) ).get();
+        } catch ( InterruptedException | ExecutionException e ) {
+            logger.debug( "unable to delete entity set from elasticsearch" );
+            return false;
+        }
+    }
+    
+    @Override
+    public boolean deleteEntitySetForSyncId( UUID entitySetId, UUID syncId ) {
+        try {
+            return executor.submit( ConductorElasticsearchCall
+                    .wrap( ElasticsearchLambdas.deleteEntitySetForSyncId( entitySetId, syncId ) ) ).get();
         } catch ( InterruptedException | ExecutionException e ) {
             logger.debug( "unable to delete entity set from elasticsearch" );
             return false;
@@ -200,12 +227,22 @@ public class DatastoreConductorElasticsearchApi implements ConductorElasticsearc
     }
 
     @Override
-    public boolean createEntityData( UUID entitySetId, String entityId, Map<UUID, Object> propertyValues ) {
+    public boolean createEntityData( UUID entitySetId, UUID syncId, String entityId, Map<UUID, Object> propertyValues ) {
         try {
             return executor.submit( ConductorElasticsearchCall.wrap(
-                    new EntityDataLambdas( entitySetId, entityId, propertyValues ) ) ).get();
+                    new EntityDataLambdas( entitySetId, syncId, entityId, propertyValues ) ) ).get();
         } catch ( InterruptedException | ExecutionException e ) {
             logger.debug( "unable to save entity data to elasticsearch" );
+            return false;
+        }
+    }
+    
+    @Override
+    public boolean deleteEntityData( UUID entitySetId, UUID syncId, String entityId ) {
+        try {
+            return executor.submit( ConductorElasticsearchCall.wrap( ElasticsearchLambdas.deleteEntityData( entitySetId, syncId, entityId ) ) ).get();
+        } catch ( InterruptedException | ExecutionException e ) {
+            logger.debug( "unable to delete entity data from elasticsearch" );
             return false;
         }
     }
@@ -213,6 +250,7 @@ public class DatastoreConductorElasticsearchApi implements ConductorElasticsearc
     @Override
     public SearchResult executeEntitySetDataSearch(
             UUID entitySetId,
+            UUID syncId,
             String searchTerm,
             int start,
             int maxHits,
@@ -221,6 +259,7 @@ public class DatastoreConductorElasticsearchApi implements ConductorElasticsearc
             SearchResult queryResults = executor.submit( ConductorElasticsearchCall.wrap(
                     new SearchEntitySetDataLambda(
                             entitySetId,
+                            syncId,
                             searchTerm,
                             start,
                             maxHits,
@@ -236,13 +275,13 @@ public class DatastoreConductorElasticsearchApi implements ConductorElasticsearc
 
     @Override
     public List<Entity> executeEntitySetDataSearchAcrossIndices(
-            Set<UUID> entitySetIds,
+            Map<UUID, UUID> entitySetAndSyncIds,
             Map<UUID, Set<String>> fieldSearches,
             int size,
             boolean explain ) {
         try {
             List<Entity> queryResults = executor.submit( ConductorElasticsearchCall.wrap(
-                    new SearchEntitySetDataAcrossIndicesLambda( entitySetIds, fieldSearches, size, explain ) ) ).get();
+                    new SearchEntitySetDataAcrossIndicesLambda( entitySetAndSyncIds, fieldSearches, size, explain ) ) ).get();
             return queryResults;
 
         } catch ( InterruptedException | ExecutionException e ) {
@@ -254,7 +293,8 @@ public class DatastoreConductorElasticsearchApi implements ConductorElasticsearc
     @Override
     public SearchResult executeAdvancedEntitySetDataSearch(
             UUID entitySetId,
-            Map<UUID, String> searches,
+            UUID syncId,
+            List<SearchDetails> searches,
             int start,
             int maxHits,
             Set<UUID> authorizedPropertyTypes ) {
@@ -262,6 +302,7 @@ public class DatastoreConductorElasticsearchApi implements ConductorElasticsearc
             SearchResult queryResults = executor.submit( ConductorElasticsearchCall.wrap(
                     new AdvancedSearchEntitySetDataLambda(
                             entitySetId,
+                            syncId,
                             searches,
                             start,
                             maxHits,

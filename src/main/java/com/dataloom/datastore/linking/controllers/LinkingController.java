@@ -50,6 +50,7 @@ import com.dataloom.linking.LinkingApi;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.SetMultimap;
+import com.dataloom.data.DatasourceManager;
 import com.kryptnostic.datastore.services.EdmManager;
 
 import retrofit2.http.Body;
@@ -73,6 +74,9 @@ public class LinkingController implements LinkingApi, AuthorizingComponent {
 
     @Inject
     private LinkingService          linkingService;
+
+    @Inject
+    private DatasourceManager       datasourceManager;
 
     @Override
     @PostMapping(
@@ -104,12 +108,15 @@ public class LinkingController implements LinkingApi, AuthorizingComponent {
         Set<Map<UUID, UUID>> linkingProperties = linkingEntitySet.getLinkingProperties();
         Set<UUID> linkingES = LinkingService.getLinkingSets( linkingProperties );
         EntitySet entitySet = linkingEntitySet.getEntitySet();
-        
+
         // Validate, compute the ownable property types after merging.
         Set<UUID> ownablePropertyTypes = validateAndGetOwnablePropertyTypes( entitySet, linkingProperties );
 
         edm.createEntitySet( Principals.getCurrentUser(), entitySet, ownablePropertyTypes );
         UUID linkedEntitySetId = entitySet.getId();
+        datasourceManager.setCurrentSyncId( linkedEntitySetId,
+                datasourceManager.createNewSyncIdForEntitySet( linkedEntitySetId ) );
+
         listings.setLinkedEntitySets( linkedEntitySetId, linkingES );
 
         return linkingService.link( linkedEntitySetId, linkingProperties, ownablePropertyTypes );

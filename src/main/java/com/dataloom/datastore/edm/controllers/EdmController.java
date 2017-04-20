@@ -56,6 +56,8 @@ import com.dataloom.authorization.Permission;
 import com.dataloom.authorization.Principals;
 import com.dataloom.authorization.securable.SecurableObjectType;
 import com.dataloom.authorization.util.AuthorizationUtils;
+import com.dataloom.data.DatasourceManager;
+import com.dataloom.data.storage.CassandraEntityDatastore;
 import com.dataloom.datastore.constants.CustomMediaType;
 import com.dataloom.edm.EdmApi;
 import com.dataloom.edm.EdmDetails;
@@ -80,9 +82,7 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.kryptnostic.datastore.exceptions.BadRequestException;
 import com.kryptnostic.datastore.exceptions.BatchException;
-import com.dataloom.data.storage.CassandraEntityDatastore;
 import com.kryptnostic.datastore.services.CassandraEntitySetManager;
-import com.dataloom.data.DatasourceManager;
 import com.kryptnostic.datastore.services.EdmManager;
 
 @RestController
@@ -108,7 +108,7 @@ public class EdmController implements EdmApi, AuthorizingComponent {
     private LoomAuth0AuthenticationProvider           authProvider;
 
     @Inject
-    private CassandraEntityDatastore dataManager;
+    private CassandraEntityDatastore                  dataManager;
 
     @Inject
     private DatasourceManager                         datasourceManager;
@@ -543,6 +543,15 @@ public class EdmController implements EdmApi, AuthorizingComponent {
     public Iterable<EntityType> getEntityTypes() {
         return modelService.getEntityTypes()::iterator;
     }
+    
+    @Override
+    @RequestMapping(
+        path = ASSOCIATION_TYPE_PATH,
+        method = RequestMethod.GET,
+        produces = MediaType.APPLICATION_JSON_VALUE )
+    public Iterable<EntityType> getAssociationEntityTypes() {
+        return modelService.getAssociationEntityTypes()::iterator;
+    }
 
     @Override
     @RequestMapping(
@@ -729,7 +738,7 @@ public class EdmController implements EdmApi, AuthorizingComponent {
 
     @Override
     @RequestMapping(
-        path = EDGE_TYPE_PATH,
+        path = ASSOCIATION_TYPE_PATH,
         method = RequestMethod.POST,
         produces = MediaType.APPLICATION_JSON_VALUE )
     public UUID createEdgeType( @RequestBody EdgeType edgeType ) {
@@ -744,7 +753,7 @@ public class EdmController implements EdmApi, AuthorizingComponent {
 
     @Override
     @RequestMapping(
-        path = EDGE_TYPE_PATH + ID_PATH,
+        path = ASSOCIATION_TYPE_PATH + ID_PATH,
         method = RequestMethod.DELETE,
         produces = MediaType.APPLICATION_JSON_VALUE )
     public Void deleteEdgeType( @PathVariable( ID ) UUID edgeTypeId ) {
@@ -755,7 +764,7 @@ public class EdmController implements EdmApi, AuthorizingComponent {
 
     @Override
     @RequestMapping(
-        path = EDGE_TYPE_PATH + ID_PATH,
+        path = ASSOCIATION_TYPE_PATH + ID_PATH,
         method = RequestMethod.GET,
         produces = MediaType.APPLICATION_JSON_VALUE )
     public EdgeType getEdgeTypeById( @PathVariable( ID ) UUID edgeTypeId ) {

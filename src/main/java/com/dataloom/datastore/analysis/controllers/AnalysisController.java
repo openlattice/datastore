@@ -16,8 +16,10 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.dataloom.analysis.AnalysisApi;
+import com.dataloom.analysis.requests.TopUtilizerDetails;
 import com.dataloom.authorization.EdmAuthorizationHelper;
 import com.dataloom.authorization.Permission;
+import com.dataloom.data.EntitySetData;
 import com.dataloom.datastore.services.AnalysisService;
 import com.dataloom.edm.type.PropertyType;
 import com.google.common.collect.Lists;
@@ -41,19 +43,15 @@ public class AnalysisController implements AnalysisApi {
         path = { ENTITY_SET_ID_PATH + NUM_RESULTS_PATH },
         method = RequestMethod.POST )
     @Override
-    public List<SetMultimap<UUID, Object>> getTopUtilizers(
+    public EntitySetData getTopUtilizers(
             @PathVariable( ENTITY_SET_ID ) UUID entitySetId,
             @PathVariable( NUM_RESULTS ) int numResults,
-            @RequestBody Set<UUID> propertyTypeIds ) {
+            @RequestBody List<TopUtilizerDetails> topUtilizerDetails ) {
         Set<UUID> authorizedProperties = authorizationsHelper.getAuthorizedPropertiesOnEntitySet( entitySetId,
                 EnumSet.of( Permission.READ ) );
-        for ( UUID propertyTypeId : propertyTypeIds ) {
-            if ( !authorizedProperties.contains( propertyTypeId ) ) {
-                return Lists.newArrayList();
-            }
-        }
-        Map<UUID, PropertyType> propertyTypes = edm.getPropertyTypesAsMap( authorizedProperties );
-        return analysisService.getTopUtilizers( entitySetId, new HashSet<>( propertyTypeIds ), numResults, propertyTypes );
+        if ( authorizedProperties.size() == 0 ) return null;
+        Map<UUID, PropertyType> authorizedPropertyTypes = edm.getPropertyTypesAsMap( authorizedProperties );
+        return analysisService.getTopUtilizers( entitySetId, numResults, topUtilizerDetails, authorizedPropertyTypes );
     }
 
 }

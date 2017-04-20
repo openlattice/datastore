@@ -47,6 +47,7 @@ import com.dataloom.data.serializers.FullQualifedNameJacksonSerializer;
 import com.dataloom.data.storage.CassandraEntityDatastore;
 import com.dataloom.datastore.linking.services.SimpleElasticSearchBlocker;
 import com.dataloom.datastore.linking.services.SimpleMatcher;
+import com.dataloom.datastore.scripts.DefaultOrganizationCreator;
 import com.dataloom.datastore.scripts.EmptyPermissionRemover;
 import com.dataloom.datastore.scripts.EntitySetContactsPopulator;
 import com.dataloom.datastore.services.AnalysisService;
@@ -346,22 +347,6 @@ public class DatastoreServicesPod {
         return new AnalysisService();
     }
 
-    // Startup scripts
-    @Bean
-    public EntitySetContactsPopulator entitySetContactsPopulator() {
-        return new EntitySetContactsPopulator(
-                cassandraConfiguration.getKeyspace(),
-                session,
-                dataModelService(),
-                userDirectoryService(),
-                hazelcastInstance );
-    }
-
-    @Bean
-    public EmptyPermissionRemover removeEmptyPermissions() {
-        return new EmptyPermissionRemover( cassandraConfiguration.getKeyspace(), session );
-    }
-
     @Bean
     public GraphQueryService graphQueryService() {
         return new GraphQueryService( session );
@@ -386,5 +371,23 @@ public class DatastoreServicesPod {
                 idService(),
                 executor,
                 eventBus );
+    }
+    
+    // Startup scripts
+    @PostConstruct
+    public void scripts() {
+        //Populate entity set contacts
+        new EntitySetContactsPopulator(
+                cassandraConfiguration.getKeyspace(),
+                session,
+                dataModelService(),
+                userDirectoryService(),
+                hazelcastInstance ).run();
+        
+        //Remove empty permissions
+        new EmptyPermissionRemover( cassandraConfiguration.getKeyspace(), session ).run();
+        
+        //Create default organization and roles
+        new DefaultOrganizationCreator( organizationsManager(), rolesService() ).run();
     }
 }

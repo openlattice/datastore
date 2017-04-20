@@ -31,7 +31,7 @@ import com.dataloom.datastore.BootstrapDatastoreWithCassandra;
 import com.dataloom.mapstores.TestDataFactory;
 import com.dataloom.organization.Organization;
 import com.dataloom.organization.OrganizationsApi;
-import com.dataloom.organization.roles.OrganizationRole;
+import com.dataloom.organizations.roles.RolesUtil;
 import com.google.common.collect.ImmutableSet;
 
 public class OrganizationsTest extends BootstrapDatastoreWithCassandra {
@@ -50,13 +50,13 @@ public class OrganizationsTest extends BootstrapDatastoreWithCassandra {
         Iterable<Organization> iorgs = organizations.getOrganizations();
         Assert.assertNotNull( iorgs );
         Set<Organization> orgs = ImmutableSet.copyOf( iorgs );
-        
+
         Organization organization = createOrganization();
-        
+
         iorgs = organizations.getOrganizations();
         Assert.assertNotNull( iorgs );
         Assert.assertTrue( !orgs.contains( organization ) );
-        
+
         orgs = ImmutableSet.copyOf( iorgs );
         Assert.assertNotNull( orgs );
         Assert.assertTrue( orgs.contains( organization ) );
@@ -71,7 +71,9 @@ public class OrganizationsTest extends BootstrapDatastoreWithCassandra {
     public void addPrincipal() {
         Organization org = createOrganization();
         Principal p = TestDataFactory.rolePrincipal();
-        Principal expectedP = new Principal( PrincipalType.ROLE, OrganizationRole.getStringRepresentation( org.getId(), p.getId() ) );
+        Principal expectedP = new Principal(
+                PrincipalType.ROLE,
+                RolesUtil.getStringRepresentation( org.getId(), p.getId() ) );
 
         Set<Principal> ps = organizations.getPrincipals( org.getId() );
         Assert.assertNotNull( ps );

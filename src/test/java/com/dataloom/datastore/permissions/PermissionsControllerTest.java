@@ -41,6 +41,7 @@ import com.dataloom.datastore.authentication.MultipleAuthenticatedUsersBase;
 import com.dataloom.edm.EntitySet;
 import com.dataloom.mapstores.TestDataFactory;
 import com.dataloom.organization.roles.OrganizationRole;
+import com.dataloom.organizations.roles.RolesUtil;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -71,8 +72,8 @@ public class PermissionsControllerTest extends MultipleAuthenticatedUsersBase {
         organizationsApi.createRole( r1 );
         organizationsApi.createRole( r2 );
 
-        role1 = r1.getPrincipal();
-        role2 = r2.getPrincipal();
+        role1 = RolesUtil.getPrincipal( r1 );
+        role2 = RolesUtil.getPrincipal( r2 );
 
         // add roles to user1
         organizationsApi.addRoleToUser( organizationId, r1.getId(), user1.getId() );

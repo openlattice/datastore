@@ -24,28 +24,26 @@ import com.auth0.spring.security.api.Auth0JWTToken;
 import com.dataloom.authentication.LoomAuth0AuthenticationProvider;
 import com.dataloom.authorization.*;
 import com.dataloom.data.DataApi;
+import com.dataloom.data.DataGraphManager;
+import com.dataloom.data.DatasourceManager;
+import com.dataloom.data.EntitySetData;
+import com.dataloom.data.requests.Association;
+import com.dataloom.data.requests.BulkDataCreation;
 import com.dataloom.data.requests.EntitySetSelection;
-import com.dataloom.datasource.UUIDs.Syncs;
 import com.dataloom.datastore.constants.CustomMediaType;
-import com.dataloom.datastore.services.CassandraDataManager;
 import com.dataloom.datastore.services.SyncTicketService;
+import com.dataloom.edm.processors.EdmPrimitiveTypeKindGetter;
 import com.dataloom.edm.type.PropertyType;
 import com.dataloom.linking.HazelcastListingService;
-import com.dataloom.edm.EntitySet;
-import com.dataloom.edm.processors.EdmPrimitiveTypeKindGetter;
 import com.google.common.base.Optional;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.SetMultimap;
-import com.google.common.collect.Sets;
+import com.google.common.collect.*;
 import com.kryptnostic.datastore.exceptions.ResourceNotFoundException;
 import com.kryptnostic.datastore.services.EdmService;
 import com.kryptnostic.datastore.util.Util;
 import org.apache.olingo.commons.api.edm.EdmPrimitiveTypeKind;
-import org.apache.olingo.commons.api.edm.FullQualifiedName;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
@@ -53,18 +51,12 @@ import org.springframework.http.MediaType;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.client.HttpServerErrorException;
 
 import javax.annotation.PostConstruct;
 import javax.inject.Inject;
 import javax.servlet.http.HttpServletResponse;
-
-import java.util.Arrays;
-import java.util.EnumSet;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -81,7 +73,7 @@ public class DataController implements DataApi, AuthorizingComponent {
     private EdmService dms;
 
     @Inject
-    private CassandraDataManager cdm;
+    private DataGraphManager dgm;
 
     @Inject
     private AuthorizationManager authz;
@@ -94,7 +86,10 @@ public class DataController implements DataApi, AuthorizingComponent {
 
     @Inject
     private HazelcastListingService listingService;
-    
+
+    @Inject
+    private DatasourceManager datasourceManager;
+
     private LoadingCache<UUID, EdmPrimitiveTypeKind>  primitiveTypeKinds;
     private LoadingCache<AuthorizationKey, Set<UUID>> authorizedPropertyCache;
 
@@ -124,12 +119,14 @@ public class DataController implements DataApi, AuthorizingComponent {
             path = { "/" + ENTITY_DATA + "/" + SET_ID_PATH },
             method = RequestMethod.GET,
             produces = { MediaType.APPLICATION_JSON_VALUE, CustomMediaType.TEXT_CSV_VALUE } )
-    public Iterable<SetMultimap<FullQualifiedName, Object>> loadEntitySetData(
+    public EntitySetData loadEntitySetData(
             @PathVariable( SET_ID ) UUID entitySetId,
             @RequestParam(
                     value = FILE_TYPE,
                     required = false ) FileType fileType,
-            @RequestParam(value = TOKEN, required = false ) String token,
+            @RequestParam(
+                    value = TOKEN,
+                    required = false ) String token,
             HttpServletResponse response ) {
         setContentDisposition( response, entitySetId.toString(), fileType );
         setDownloadContentType( response, fileType );
@@ -138,11 +135,11 @@ public class DataController implements DataApi, AuthorizingComponent {
     }
 
     @Override
-    public Iterable<SetMultimap<FullQualifiedName, Object>> loadEntitySetData(
+    public EntitySetData loadEntitySetData(
             UUID entitySetId,
             FileType fileType,
             String token ) {
-        if( StringUtils.isNotBlank( token ) ) {
+        if ( StringUtils.isNotBlank( token ) ) {
             Authentication authentication = authProvider.authenticate( new Auth0JWTToken( token ) );
             SecurityContextHolder.getContext().setAuthentication( authentication );
         }
@@ -153,7 +150,7 @@ public class DataController implements DataApi, AuthorizingComponent {
             path = { "/" + ENTITY_DATA + "/" + SET_ID_PATH },
             method = RequestMethod.POST,
             produces = { MediaType.APPLICATION_JSON_VALUE, CustomMediaType.TEXT_CSV_VALUE } )
-    public Iterable<SetMultimap<FullQualifiedName, Object>> loadEntitySetData(
+    public EntitySetData loadEntitySetData(
             @PathVariable( SET_ID ) UUID entitySetId,
             @RequestBody(
                     required = false ) EntitySetSelection req,
@@ -167,7 +164,7 @@ public class DataController implements DataApi, AuthorizingComponent {
     }
 
     @Override
-    public Iterable<SetMultimap<FullQualifiedName, Object>> loadEntitySetData(
+    public EntitySetData loadEntitySetData(
             UUID entitySetId,
             EntitySetSelection req,
             FileType fileType ) {
@@ -178,14 +175,14 @@ public class DataController implements DataApi, AuthorizingComponent {
         }
     }
 
-    private Iterable<SetMultimap<FullQualifiedName, Object>> loadEntitySetData(
+    private EntitySetData loadEntitySetData(
             UUID entitySetId,
             Optional<UUID> syncId,
             Optional<Set<UUID>> selectedProperties ) {
         if ( authz.checkIfHasPermissions( ImmutableList.of( entitySetId ),
                 Principals.getCurrentPrincipals(),
                 EnumSet.of( Permission.READ ) ) ) {
-            if( listingService.isLinkedEntitySet( entitySetId ) ){
+            if ( listingService.isLinkedEntitySet( entitySetId ) ) {
                 return loadLinkedEntitySetData( entitySetId );
             } else {
                 return loadNormalEntitySetData( entitySetId, syncId, selectedProperties );
@@ -194,15 +191,12 @@ public class DataController implements DataApi, AuthorizingComponent {
             throw new ForbiddenException( "Insufficient permissions to read the entity set or it doesn't exist." );
         }
     }
-    
-    private Iterable<SetMultimap<FullQualifiedName, Object>> loadNormalEntitySetData(
+
+    private EntitySetData loadNormalEntitySetData(
             UUID entitySetId,
             Optional<UUID> syncId,
-            Optional<Set<UUID>> selectedProperties ){
-        UUID id = null;
-        if ( syncId.isPresent() ) {
-            id = syncId.get();
-        }
+            Optional<Set<UUID>> selectedProperties ) {
+        UUID id = ( syncId.isPresent() ) ? syncId.get() : datasourceManager.getCurrentSyncId( entitySetId );
         Set<UUID> authorizedProperties;
         if ( selectedProperties.isPresent() && !selectedProperties.get().isEmpty() ) {
             if ( !authzHelper.getAllPropertiesOnEntitySet( entitySetId ).containsAll( selectedProperties.get() ) ) {
@@ -218,32 +212,35 @@ public class DataController implements DataApi, AuthorizingComponent {
 
         Map<UUID, PropertyType> authorizedPropertyTypes = authorizedProperties.stream()
                 .collect( Collectors.toMap( ptId -> ptId, ptId -> dms.getPropertyType( ptId ) ) );
-        return cdm.getEntitySetData( entitySetId, id, authorizedPropertyTypes );   
+        return dgm.getEntitySetData( entitySetId, id, authorizedPropertyTypes );
     }
-    
-    private Iterable<SetMultimap<FullQualifiedName, Object>> loadLinkedEntitySetData(
+
+    private EntitySetData loadLinkedEntitySetData(
             UUID linkedEntitySetId ) {
-        Set<UUID> authorizedPropertiesOfEntityType = dms.getEntityTypeByEntitySetId( linkedEntitySetId ).getProperties().stream().filter(
-                propertyId -> {
-                    List<UUID> aclKey = Arrays.asList( linkedEntitySetId, propertyId );
-                    return isAuthorized( Permission.READ ).test( aclKey );
-                }).collect( Collectors.toSet() );
-        
+        Set<UUID> authorizedPropertiesOfEntityType = dms.getEntityTypeByEntitySetId( linkedEntitySetId ).getProperties()
+                .stream().filter(
+                        propertyId -> {
+                            List<UUID> aclKey = Arrays.asList( linkedEntitySetId, propertyId );
+                            return isAuthorized( Permission.READ ).test( aclKey );
+                        } )
+                .collect( Collectors.toSet() );
+
         Map<UUID, Map<UUID, PropertyType>> authorizedPropertyTypesForEntitySets = new HashMap<>();
-        
-        for( UUID esId : listingService.getLinkedEntitySets( linkedEntitySetId ) ){
+
+        for ( UUID esId : listingService.getLinkedEntitySets( linkedEntitySetId ) ) {
             Set<UUID> propertiesOfEntitySet = dms.getEntityTypeByEntitySetId( esId ).getProperties();
-            Set<UUID> authorizedProperties = Sets.intersection( authorizedPropertiesOfEntityType, propertiesOfEntitySet );
-            
+            Set<UUID> authorizedProperties = Sets.intersection( authorizedPropertiesOfEntityType,
+                    propertiesOfEntitySet );
+
             Map<UUID, PropertyType> authorizedPropertyTypes = authorizedProperties.stream()
                     .collect( Collectors.toMap( ptId -> ptId, ptId -> dms.getPropertyType( ptId ) ) );
-            
+
             authorizedPropertyTypesForEntitySets.put( esId, authorizedPropertyTypes );
         }
-        
-        return cdm.getLinkedEntitySetData( linkedEntitySetId, authorizedPropertyTypesForEntitySets );
+
+        return dgm.getLinkedEntitySetData( linkedEntitySetId, authorizedPropertyTypesForEntitySets );
     }
-    
+
     @RequestMapping(
             path = { "/" + ENTITY_DATA + "/" + SET_ID_PATH + "/" + SYNC_ID_PATH },
             method = RequestMethod.PUT,
@@ -279,8 +276,12 @@ public class DataController implements DataApi, AuthorizingComponent {
                                 + " and entity set " + entitySetId + "." );
                 throw new ResourceNotFoundException( "Unable to load data types for authorized properties." );
             }
-
-            cdm.createEntityData( entitySetId, syncId, entities, authorizedPropertiesWithDataType );
+            try {
+                dgm.createEntities( entitySetId, syncId, entities, authorizedPropertiesWithDataType );
+            } catch ( ExecutionException | InterruptedException e ) {
+                logger.error( "Unable to bulk create entity data.", e );
+                throw new HttpServerErrorException( HttpStatus.INTERNAL_SERVER_ERROR, e.getMessage() );
+            }
         } else {
             throw new ForbiddenException( "Insufficient permissions to write to the entity set or it doesn't exist." );
         }
@@ -369,14 +370,146 @@ public class DataController implements DataApi, AuthorizingComponent {
                     + " and entity set " + entitySetId + "." );
             throw new ResourceNotFoundException( "Unable to load data types for authorized properties." );
         }
-
-        cdm.createEntityData( entitySetId, syncId, entities, authorizedPropertiesWithDataType );
+        try {
+            dgm.createEntities( entitySetId, syncId, entities, authorizedPropertiesWithDataType );
+        } catch ( ExecutionException | InterruptedException e ) {
+            logger.error( "Unable to bulk store entity data.", e );
+            throw new HttpServerErrorException( HttpStatus.INTERNAL_SERVER_ERROR, e.getMessage() );
+        }
         return null;
     }
 
     @Override
     public AuthorizationManager getAuthorizationManager() {
         return authz;
+    }
+
+    @Override
+    @RequestMapping(
+            path = { "/" + ASSOCIATION_DATA + "/" + SET_ID_PATH + "/" + SYNC_ID_PATH },
+            method = RequestMethod.PUT,
+            consumes = MediaType.APPLICATION_JSON_VALUE )
+    public Void createAssociationData(
+            @PathVariable( SET_ID ) UUID entitySetId,
+            @PathVariable( SYNC_ID ) UUID syncId,
+            @RequestBody Set<Association> associations ) {
+        if ( authz.checkIfHasPermissions( ImmutableList.of( entitySetId ),
+                Principals.getCurrentPrincipals(),
+                EnumSet.of( Permission.WRITE ) ) ) {
+            // To avoid re-doing authz check more of than once every 250 ms during an integration we cache the
+            // results.cd ../
+            AuthorizationKey ak = new AuthorizationKey( Principals.getCurrentUser(), entitySetId, syncId );
+
+            Set<UUID> authorizedProperties = authorizedPropertyCache.getUnchecked( ak );
+
+            Set<UUID> keyProperties = dms.getEntityTypeByEntitySetId( entitySetId ).getKey();
+
+            if ( !authorizedProperties.containsAll( keyProperties ) ) {
+                throw new ForbiddenException(
+                        "Insufficient permissions to write to some of the key property types of the entity set." );
+            }
+
+            Map<UUID, EdmPrimitiveTypeKind> authorizedPropertiesWithDataType;
+
+            try {
+                authorizedPropertiesWithDataType = primitiveTypeKinds
+                        .getAll( authorizedProperties );
+            } catch ( ExecutionException e ) {
+                logger.error(
+                        "Unable to load data types for authorized properties for user " + Principals.getCurrentUser()
+                                + " and entity set " + entitySetId + "." );
+                throw new ResourceNotFoundException( "Unable to load data types for authorized properties." );
+            }
+            try {
+                dgm.createAssociations( entitySetId, syncId, associations, authorizedPropertiesWithDataType );
+            } catch ( ExecutionException | InterruptedException e ) {
+                logger.error( "Unable to bulk create association data.", e );
+                throw new HttpServerErrorException( HttpStatus.INTERNAL_SERVER_ERROR, e.getMessage() );
+            }
+        } else {
+            throw new ForbiddenException( "Insufficient permissions to write to the entity set or it doesn't exist." );
+        }
+        return null;
+    }
+
+    @Override
+    @RequestMapping(
+            value = "/" + ASSOCIATION_DATA + "/" + TICKET_PATH + "/" + SYNC_ID_PATH,
+            method = RequestMethod.PATCH,
+            consumes = MediaType.APPLICATION_JSON_VALUE )
+    public Void storeAssociationData(
+            @PathVariable( TICKET ) UUID ticket,
+            @PathVariable( SYNC_ID ) UUID syncId,
+            @RequestBody Set<Association> associations ) {
+
+        // To avoid re-doing authz check more of than once every 250 ms during an integration we cache the
+        // results.cd ../
+        UUID entitySetId = sts.getAuthorizedEntitySet( Principals.getCurrentUser(), ticket );
+        Set<UUID> authorizedProperties = sts.getAuthorizedProperties( Principals.getCurrentUser(), ticket );
+        Map<UUID, EdmPrimitiveTypeKind> authorizedPropertiesWithDataType;
+        try {
+            authorizedPropertiesWithDataType = primitiveTypeKinds
+                    .getAll( authorizedProperties );
+        } catch ( ExecutionException e ) {
+            logger.error( "Unable to load data types for authorized properties for user " + Principals.getCurrentUser()
+                    + " and entity set " + entitySetId + "." );
+            throw new ResourceNotFoundException( "Unable to load data types for authorized properties." );
+        }
+
+        try {
+            dgm.createAssociations( entitySetId, syncId, associations, authorizedPropertiesWithDataType );
+        } catch ( ExecutionException | InterruptedException e ) {
+            logger.error( "Unable to bulk store association data.", e );
+            throw new HttpServerErrorException( HttpStatus.INTERNAL_SERVER_ERROR, e.getMessage() );
+        }
+        return null;
+    }
+
+    @Override
+    @RequestMapping(
+            path = { "/" + ENTITY_DATA + "/" + SET_ID_PATH },
+            method = RequestMethod.PUT,
+            consumes = MediaType.APPLICATION_JSON_VALUE )
+    public Void createEntityData(
+            @PathVariable( SET_ID ) UUID entitySetId,
+            @RequestBody Map<String, SetMultimap<UUID, Object>> entities ) {
+        return createEntityData( entitySetId, datasourceManager.getCurrentSyncId( entitySetId ), entities );
+    }
+
+    @Override
+    @RequestMapping(
+            value = "/" + ENTITY_DATA,
+            method = RequestMethod.PATCH,
+            consumes = MediaType.APPLICATION_JSON_VALUE )
+    public Void createEntityAndAssociationData( @RequestBody BulkDataCreation data ) {
+        Map<UUID, Map<UUID, EdmPrimitiveTypeKind>> authorizedPropertiesByEntitySetId = Maps.newHashMap();
+
+        data.getTickets().stream().forEach( ticket -> {
+            UUID entitySetId = sts.getAuthorizedEntitySet( Principals.getCurrentUser(), ticket );
+            Set<UUID> authorizedProperties = sts.getAuthorizedProperties( Principals.getCurrentUser(), ticket );
+            Map<UUID, EdmPrimitiveTypeKind> authorizedPropertiesWithDataType;
+            try {
+                authorizedPropertiesWithDataType = primitiveTypeKinds
+                        .getAll( authorizedProperties );
+            } catch ( ExecutionException e ) {
+                logger.error(
+                        "Unable to load data types for authorized properties for user " + Principals.getCurrentUser()
+                                + " and entity set " + entitySetId + "." );
+                throw new ResourceNotFoundException( "Unable to load data types for authorized properties." );
+            }
+            authorizedPropertiesByEntitySetId.put( entitySetId, authorizedPropertiesWithDataType );
+        } );
+
+        try {
+            dgm.createEntitiesAndAssociations( data.getEntities(),
+                    data.getAssociations(),
+                    authorizedPropertiesByEntitySetId );
+        } catch ( ExecutionException | InterruptedException e ) {
+            logger.error( "Unable to bulk create data.", e );
+            throw new HttpServerErrorException( HttpStatus.INTERNAL_SERVER_ERROR, e.getMessage() );
+        }
+        return null;
+
     }
 
 }

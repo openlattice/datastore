@@ -31,10 +31,10 @@ import com.dataloom.authentication.LoomAuthentication;
 import com.dataloom.authorization.AuthorizationManager;
 import com.dataloom.authorization.Principal;
 import com.dataloom.client.RetrofitFactory;
-import com.dataloom.datastore.services.CassandraDataManager;
 import com.dataloom.edm.schemas.manager.HazelcastSchemaManager;
 import com.geekbeast.rhizome.tests.bootstrap.CassandraBootstrap;
 import com.google.common.collect.Sets;
+import com.dataloom.data.storage.CassandraEntityDatastore;
 import com.kryptnostic.datastore.services.EdmManager;
 import com.kryptnostic.rhizome.pods.SparkPod;
 
@@ -49,28 +49,28 @@ public class BootstrapDatastoreWithCassandra extends CassandraBootstrap {
     protected static final Principal                 admin;
     protected static final Principal                 user1;
     protected static final Principal                 user2;
-    protected static final Principal                 user3;
-    protected static final Retrofit                  retrofit;
-    protected static final Retrofit                  retrofit1;
-    protected static final Retrofit                  retrofit2;
-    protected static final Retrofit                  retrofit3;
-    protected static LoomAuth0AuthenticationProvider loomAuthProvider;
-    protected static EdmManager                      dms;
-    protected static AuthorizationManager            am;
-    protected static CassandraDataManager            dataService;
-    protected static HazelcastSchemaManager          schemaManager;
+    protected static final Principal                       user3;
+    protected static final Retrofit                        retrofit;
+    protected static final Retrofit                        retrofit1;
+    protected static final Retrofit                        retrofit2;
+    protected static final Retrofit                        retrofit3;
+    protected static       LoomAuth0AuthenticationProvider loomAuthProvider;
+    protected static       EdmManager                      dms;
+    protected static       AuthorizationManager            am;
+    protected static       CassandraEntityDatastore        dataService;
+    protected static       HazelcastSchemaManager          schemaManager;
 
+    protected static final AuthenticationTestRequestOptions authOptions1 = new AuthenticationTestRequestOptions()
+            .setUsernameOrEmail( "tests1@kryptnostic.com" )
+            .setPassword( "abracadabra" );
+    protected static final AuthenticationTestRequestOptions authOptions2 = new AuthenticationTestRequestOptions()
+            .setUsernameOrEmail( "tests2@kryptnostic.com" )
+            .setPassword( "abracadabra" );
+    protected static final AuthenticationTestRequestOptions authOptions3 = new AuthenticationTestRequestOptions()
+            .setUsernameOrEmail( "tests3@kryptnostic.com" )
+            .setPassword( "abracadabra" );
+    
     static {
-        AuthenticationTestRequestOptions authOptions1 = new AuthenticationTestRequestOptions()
-                .setUsernameOrEmail( "tests1@kryptnostic.com" )
-                .setPassword( "abracadabra" );
-        AuthenticationTestRequestOptions authOptions2 = new AuthenticationTestRequestOptions()
-                .setUsernameOrEmail( "tests2@kryptnostic.com" )
-                .setPassword( "abracadabra" );
-        AuthenticationTestRequestOptions authOptions3 = new AuthenticationTestRequestOptions()
-                .setUsernameOrEmail( "tests3@kryptnostic.com" )
-                .setPassword( "abracadabra" );
-
         String jwtAdmin = AuthenticationTest.authenticate().getCredentials().getIdToken();
         String jwtUser1 = AuthenticationTest.getAuthentication( authOptions1 ).getCredentials().getIdToken();
         String jwtUser2 = AuthenticationTest.getAuthentication( authOptions2 ).getCredentials().getIdToken();
@@ -91,7 +91,7 @@ public class BootstrapDatastoreWithCassandra extends CassandraBootstrap {
         loomAuthProvider = getBean( LoomAuth0AuthenticationProvider.class );
         dms = getBean( EdmManager.class );
         am = getBean( AuthorizationManager.class );
-        dataService = getBean( CassandraDataManager.class );
+        dataService = getBean( CassandraEntityDatastore.class );
         schemaManager = getBean( HazelcastSchemaManager.class );
 
         admin = toPrincipal( jwtAdmin );

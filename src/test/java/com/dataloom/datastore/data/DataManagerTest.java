@@ -205,7 +205,7 @@ public class DataManagerTest extends BootstrapDatastoreWithCassandra {
             UUID syncId,
             UUID entitySetId,
             Map<UUID, PropertyType> propertyTypes ) {
-        return Sets.newHashSet( dataService.getEntitySetData( entitySetId, syncId, propertyTypes ) );
+        return Sets.newHashSet( dataService.getEntitySetData( entitySetId, syncId, propertyTypes ).getEntities() );
     }
 
     private Map<UUID, PropertyType> generateProperties( int n ) {

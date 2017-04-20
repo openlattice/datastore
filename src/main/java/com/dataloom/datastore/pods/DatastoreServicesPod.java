@@ -19,6 +19,7 @@
 
 package com.dataloom.datastore.pods;
 
+import javax.annotation.PostConstruct;
 import javax.inject.Inject;
 
 import org.springframework.context.annotation.Bean;
@@ -34,18 +35,21 @@ import com.dataloom.authorization.EdmAuthorizationHelper;
 import com.dataloom.authorization.HazelcastAbstractSecurableObjectResolveTypeService;
 import com.dataloom.authorization.HazelcastAclKeyReservationService;
 import com.dataloom.authorization.HazelcastAuthorizationService;
+import com.dataloom.authorization.Principals;
 import com.dataloom.clustering.ClusteringPartitioner;
+import com.dataloom.data.DataGraphManager;
+import com.dataloom.data.DataGraphService;
+import com.dataloom.data.DatasourceManager;
+import com.dataloom.data.EntityKeyIdService;
+import com.dataloom.data.ids.HazelcastEntityKeyIdService;
 import com.dataloom.data.serializers.FullQualifedNameJacksonDeserializer;
 import com.dataloom.data.serializers.FullQualifedNameJacksonSerializer;
+import com.dataloom.data.storage.CassandraEntityDatastore;
 import com.dataloom.datastore.linking.services.SimpleElasticSearchBlocker;
 import com.dataloom.datastore.linking.services.SimpleMatcher;
 import com.dataloom.datastore.scripts.EmptyPermissionRemover;
 import com.dataloom.datastore.scripts.EntitySetContactsPopulator;
 import com.dataloom.datastore.services.AnalysisService;
-import com.dataloom.datastore.services.CassandraDataManager;
-import com.dataloom.datastore.services.DatasourceManager;
-import com.dataloom.datastore.services.DatastoreConductorElasticsearchApi;
-import com.dataloom.datastore.services.DatastoreConductorSparkApi;
 import com.dataloom.datastore.services.LinkingService;
 import com.dataloom.datastore.services.SearchService;
 import com.dataloom.datastore.services.SyncTicketService;
@@ -54,6 +58,8 @@ import com.dataloom.edm.properties.CassandraTypeManager;
 import com.dataloom.edm.schemas.SchemaQueryService;
 import com.dataloom.edm.schemas.cassandra.CassandraSchemaQueryService;
 import com.dataloom.edm.schemas.manager.HazelcastSchemaManager;
+import com.dataloom.graph.core.GraphQueryService;
+import com.dataloom.graph.core.LoomGraph;
 import com.dataloom.linking.CassandraLinkingGraphsQueryService;
 import com.dataloom.linking.HazelcastLinkingGraphs;
 import com.dataloom.linking.HazelcastListingService;
@@ -62,6 +68,10 @@ import com.dataloom.linking.components.Clusterer;
 import com.dataloom.linking.components.Matcher;
 import com.dataloom.mappers.ObjectMappers;
 import com.dataloom.organizations.HazelcastOrganizationService;
+import com.dataloom.organizations.roles.HazelcastRolesService;
+import com.dataloom.organizations.roles.RolesManager;
+import com.dataloom.organizations.roles.RolesQueryService;
+import com.dataloom.organizations.roles.TokenExpirationTracker;
 import com.dataloom.requests.HazelcastPermissionsRequestsService;
 import com.dataloom.requests.HazelcastRequestsManager;
 import com.dataloom.requests.PermissionsRequestsManager;
@@ -70,6 +80,7 @@ import com.dataloom.requests.RequestQueryService;
 import com.datastax.driver.core.Session;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.eventbus.EventBus;
+import com.google.common.util.concurrent.ListeningExecutorService;
 import com.hazelcast.core.HazelcastInstance;
 import com.kryptnostic.datastore.services.CassandraEntitySetManager;
 import com.kryptnostic.datastore.services.EdmManager;
@@ -86,19 +97,22 @@ import digital.loom.rhizome.configuration.auth0.Auth0Configuration;
 public class DatastoreServicesPod {
 
     @Inject
-    private CassandraConfiguration cassandraConfiguration;
+    private CassandraConfiguration   cassandraConfiguration;
 
     @Inject
-    private HazelcastInstance      hazelcastInstance;
+    private HazelcastInstance        hazelcastInstance;
 
     @Inject
-    private Session                session;
+    private Session                  session;
 
     @Inject
-    private Auth0Configuration     auth0Configuration;
+    private Auth0Configuration       auth0Configuration;
 
     @Inject
-    private EventBus               eventBus;
+    private ListeningExecutorService executor;
+
+    @Inject
+    private EventBus                 eventBus;
 
     @Bean
     public ObjectMapper defaultObjectMapper() {
@@ -184,8 +198,40 @@ public class DatastoreServicesPod {
     }
 
     @Bean
-    public CassandraDataManager cassandraDataManager() {
-        return new CassandraDataManager( session, defaultObjectMapper(), linkingGraph() );
+    public CassandraEntityDatastore cassandraDataManager() {
+        return new CassandraEntityDatastore(
+                session,
+                defaultObjectMapper(),
+                linkingGraph(),
+                loomGraph(),
+                datasourceManager() );
+    }
+
+    @Bean
+    public RolesQueryService rolesQueryService() {
+        return new RolesQueryService( session );
+    }
+
+    @Bean
+    public TokenExpirationTracker tokenTracker() {
+        return new TokenExpirationTracker( hazelcastInstance );
+    }
+
+    @PostConstruct
+    public void setExpiringTokenTracker() {
+        Principals.setExpiringTokenTracker( tokenTracker() );
+    }
+
+    @Bean
+    public RolesManager rolesService() {
+        return new HazelcastRolesService(
+                hazelcastInstance,
+                rolesQueryService(),
+                aclKeyReservationService(),
+                tokenTracker(),
+                userDirectoryService(),
+                securableObjectTypes(),
+                authorizationManager() );
     }
 
     @Bean
@@ -196,12 +242,13 @@ public class DatastoreServicesPod {
                 hazelcastInstance,
                 aclKeyReservationService(),
                 authorizationManager(),
-                userDirectoryService() );
+                userDirectoryService(),
+                rolesService() );
     }
 
     @Bean
     public DatasourceManager datasourceManager() {
-        return new DatasourceManager();
+        return new DatasourceManager( session, hazelcastInstance );
     }
 
     @Bean
@@ -274,7 +321,7 @@ public class DatastoreServicesPod {
 
     @Bean
     public Clusterer clusterer() {
-        return new ClusteringPartitioner(cassandraConfiguration.getKeyspace(), session, cgqs(), linkingGraph() );
+        return new ClusteringPartitioner( cassandraConfiguration.getKeyspace(), session, cgqs(), linkingGraph() );
     }
 
     @Bean
@@ -290,22 +337,54 @@ public class DatastoreServicesPod {
                 eventBus,
                 hazelcastListingService(),
                 dataModelService(),
-                cassandraDataManager() );
+                cassandraDataManager(),
+                datasourceManager() );
     }
-    
+
     @Bean
     public AnalysisService analysisService() {
         return new AnalysisService();
     }
 
-    //Startup scripts
+    // Startup scripts
     @Bean
     public EntitySetContactsPopulator entitySetContactsPopulator() {
-        return new EntitySetContactsPopulator( cassandraConfiguration.getKeyspace(), session, dataModelService(), userDirectoryService(), hazelcastInstance );
+        return new EntitySetContactsPopulator(
+                cassandraConfiguration.getKeyspace(),
+                session,
+                dataModelService(),
+                userDirectoryService(),
+                hazelcastInstance );
     }
 
     @Bean
-    public EmptyPermissionRemover removeEmptyPermissions(){
+    public EmptyPermissionRemover removeEmptyPermissions() {
         return new EmptyPermissionRemover( cassandraConfiguration.getKeyspace(), session );
+    }
+
+    @Bean
+    public GraphQueryService graphQueryService() {
+        return new GraphQueryService( session );
+    }
+
+    @Bean
+    public LoomGraph loomGraph() {
+        return new LoomGraph( graphQueryService(), hazelcastInstance );
+    }
+
+    @Bean
+    public EntityKeyIdService idService() {
+        return new HazelcastEntityKeyIdService( hazelcastInstance, executor );
+    }
+
+    @Bean
+    public DataGraphManager dataGraphService() {
+        return new DataGraphService(
+                hazelcastInstance,
+                cassandraDataManager(),
+                loomGraph(),
+                idService(),
+                executor,
+                eventBus );
     }
 }

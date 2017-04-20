@@ -44,7 +44,6 @@ import org.spark_project.guava.collect.Sets;
 import com.dataloom.authorization.Principal;
 import com.dataloom.authorization.PrincipalType;
 import com.dataloom.authorization.securable.SecurableObjectType;
-import com.dataloom.datastore.services.CassandraDataManager;
 import com.dataloom.edm.EntitySet;
 import com.dataloom.edm.Schema;
 import com.dataloom.edm.schemas.manager.HazelcastSchemaManager;
@@ -56,6 +55,7 @@ import com.fasterxml.jackson.dataformat.csv.CsvMapper;
 import com.fasterxml.jackson.dataformat.csv.CsvSchema;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableSet;
+import com.dataloom.data.storage.CassandraEntityDatastore;
 import com.kryptnostic.datastore.services.EdmManager;
 import com.kryptnostic.datastore.services.ODataStorageService;
 
@@ -70,10 +70,10 @@ public class CustomCSVPopulation {
 
     public static final String               NAMESPACE           = "stressTest";
     protected static final DatastoreServices ds                  = new DatastoreServices();
-    static EdmManager                        dms;
-    static ODataStorageService               odsc;
-    static CassandraDataManager              cdm;
-    static HazelcastSchemaManager            hsm;
+    static EdmManager               dms;
+    static ODataStorageService      odsc;
+    static CassandraEntityDatastore cdm;
+    static HazelcastSchemaManager   hsm;
 
     public static int                        defaultTypeSize     = 0;
     public static List<CustomPropertyType>   defaultTypeList     = new ArrayList<>();
@@ -334,7 +334,7 @@ public class CustomCSVPopulation {
                     keyPropertyType,
                     propertyTypeIdsSet,
                     Optional.absent(),
-                    SecurableObjectType.EntityType );
+                    Optional.of( SecurableObjectType.EntityType ) );
             // Add property types to entity type
 
             // Create Entity Type in database
@@ -489,7 +489,7 @@ public class CustomCSVPopulation {
         ds.sprout( "cassandra", "local" );
         dms = ds.getContext().getBean( EdmManager.class );
         odsc = ds.getContext().getBean( ODataStorageService.class );
-        cdm = ds.getContext().getBean( CassandraDataManager.class );
+        cdm = ds.getContext().getBean( CassandraEntityDatastore.class );
 
         // Create PropertyType, Entity Types, Entity Sets in database
         createPropertyTypes();

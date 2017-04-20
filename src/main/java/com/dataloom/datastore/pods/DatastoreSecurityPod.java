@@ -29,6 +29,7 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.web.AuthenticationEntryPoint;
 
 import com.dataloom.authentication.LoomAuth0AuthenticationProvider;
+import com.dataloom.authorization.SystemRole;
 import com.dataloom.datastore.util.RefreshTokenAuthenticationEntryPoint;
 import com.dataloom.organizations.roles.TokenExpirationTracker;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -59,7 +60,7 @@ public class DatastoreSecurityPod extends Auth0SecurityPod {
         http.authorizeRequests()
                 .antMatchers( HttpMethod.OPTIONS ).permitAll()
                 .antMatchers( "/datastore/data/entitydata/*" ).permitAll()
-                .antMatchers( "/datastore/**" ).hasAnyAuthority( "admin", "ADMIN", "AuthenticatedUser" );
+                .antMatchers( "/datastore/**" ).hasAnyAuthority( SystemRole.valuesAsArray() );
 //                .antMatchers( "/datastore/**" ).hasAnyAuthority( "AuthenticatedUser", "AuthenticatedUser" );
     }
     

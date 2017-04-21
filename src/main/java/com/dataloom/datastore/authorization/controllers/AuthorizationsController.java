@@ -61,7 +61,7 @@ public class AuthorizationsController implements AuthorizationsApi, AuthorizingC
         consumes = MediaType.APPLICATION_JSON_VALUE,
         produces = MediaType.APPLICATION_JSON_VALUE )
     public Iterable<Authorization> checkAuthorizations( @RequestBody Set<AccessCheck> queries ) {
-        return queries.stream().map( this::getAuth )::iterator;
+        return queries.parallelStream().map( this::getAuth )::iterator;
     }
 
     @Override

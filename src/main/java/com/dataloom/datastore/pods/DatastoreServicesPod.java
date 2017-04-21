@@ -377,12 +377,12 @@ public class DatastoreServicesPod {
     @PostConstruct
     public void scripts() {
         //Populate entity set contacts
-        new EntitySetContactsPopulator(
-                cassandraConfiguration.getKeyspace(),
-                session,
-                dataModelService(),
-                userDirectoryService(),
-                hazelcastInstance ).run();
+//        new EntitySetContactsPopulator(
+//                cassandraConfiguration.getKeyspace(),
+//                session,
+//                dataModelService(),
+//                userDirectoryService(),
+//                hazelcastInstance ).run();
         
         //Remove empty permissions
         new EmptyPermissionRemover( cassandraConfiguration.getKeyspace(), session ).run();

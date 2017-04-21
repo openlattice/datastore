@@ -388,6 +388,6 @@ public class DatastoreServicesPod {
         new EmptyPermissionRemover( cassandraConfiguration.getKeyspace(), session ).run();
         
         //Create default organization and roles
-        new DefaultOrganizationCreator( organizationsManager(), rolesService() ).run();
+        //new DefaultOrganizationCreator( organizationsManager(), rolesService() ).run();
     }
 }

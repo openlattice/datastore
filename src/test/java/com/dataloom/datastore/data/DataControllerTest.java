@@ -63,7 +63,7 @@ public class DataControllerTest extends MultipleAuthenticatedUsersBase {
                 syncId,
                 TestDataFactory.randomStringEntityData( numberOfEntries, et.getProperties() ) );
 
-        Iterable<SetMultimap<FullQualifiedName, Object>> results = dataApi.loadEntitySetData( es.getId(), null, "" ).getEntities();
+        Iterable<SetMultimap<FullQualifiedName, Object>> results = dataApi.loadEntitySetData( es.getId(), null, "" );
         Assert.assertEquals( numberOfEntries, Iterables.size( results ) );
     }
 
@@ -121,7 +121,7 @@ public class DataControllerTest extends MultipleAuthenticatedUsersBase {
         dataApi.releaseSyncTicket( ticket );
 
         // not passing in token should retain current security context
-        Iterable<SetMultimap<FullQualifiedName, Object>> results = dataApi.loadEntitySetData( es.getId(), null, "" ).getEntities();
+        Iterable<SetMultimap<FullQualifiedName, Object>> results = dataApi.loadEntitySetData( es.getId(), null, "" );
         Assert.assertEquals( numberOfEntries, Iterables.size( results ) );
 
     }

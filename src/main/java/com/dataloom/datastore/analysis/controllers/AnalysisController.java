@@ -47,6 +47,7 @@ public class AnalysisController implements AnalysisApi {
             @PathVariable( ENTITY_SET_ID ) UUID entitySetId,
             @PathVariable( NUM_RESULTS ) int numResults,
             @RequestBody List<TopUtilizerDetails> topUtilizerDetails ) {
+        if ( topUtilizerDetails.size() == 0 ) return Lists.newArrayList();
         Set<UUID> authorizedProperties = authorizationsHelper.getAuthorizedPropertiesOnEntitySet( entitySetId,
                 EnumSet.of( Permission.READ ) );
         if ( authorizedProperties.size() == 0 ) return null;

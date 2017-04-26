@@ -1,6 +1,7 @@
 package com.dataloom.datastore.services;
 
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -8,10 +9,13 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import org.apache.olingo.commons.api.edm.FullQualifiedName;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.dataloom.data.DatasourceManager;
 import com.dataloom.data.EntityKey;
+import com.dataloom.data.storage.CassandraEntityDatastore;
 import com.dataloom.edm.type.PropertyType;
 import com.dataloom.linking.Entity;
 import com.dataloom.linking.HazelcastLinkingGraphs;
@@ -31,8 +35,6 @@ import com.google.common.collect.SetMultimap;
 import com.google.common.collect.Sets;
 import com.google.common.eventbus.EventBus;
 import com.hazelcast.core.HazelcastInstance;
-import com.dataloom.data.storage.CassandraEntityDatastore;
-import com.dataloom.data.DatasourceManager;
 import com.kryptnostic.datastore.services.EdmManager;
 
 public class LinkingService {
@@ -130,6 +132,12 @@ public class LinkingService {
     }
 
     private void mergeEntities( UUID linkedEntitySetId, Set<UUID> ownablePropertyTypes ) {
+        LinkedHashSet<FullQualifiedName> orderedPropertyFqns = dms.getEntityTypeByEntitySetId( linkedEntitySetId )
+                .getProperties().stream()
+                .filter( ownablePropertyTypes::contains )
+                .map( ptId -> dms.getPropertyType( ptId ).getType() )
+                .collect( Collectors.toCollection( () -> new LinkedHashSet<>() ) );
+        
         Map<UUID, Map<UUID, PropertyType>> authorizedPropertyTypesForEntitySets = new HashMap<>();
 
         for ( UUID esId : listingService.getLinkedEntitySets( linkedEntitySetId ) ) {
@@ -143,7 +151,7 @@ public class LinkingService {
         }
 
         // Consume the iterable to trigger indexing!
-        cdm.getLinkedEntitySetData( linkedEntitySetId, authorizedPropertyTypesForEntitySets ).getEntities().forEach( m -> {} );
+        cdm.getLinkedEntitySetData( linkedEntitySetId, orderedPropertyFqns, authorizedPropertyTypesForEntitySets ).getEntities().forEach( m -> {} );
     }
 
     private LinkingEdge fromUnorderedPair( UUID graphId, UnorderedPair<Entity> p ) {

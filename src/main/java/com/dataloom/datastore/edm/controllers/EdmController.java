@@ -70,7 +70,7 @@ import com.dataloom.edm.requests.MetadataUpdate;
 import com.dataloom.edm.schemas.manager.HazelcastSchemaManager;
 import com.dataloom.edm.type.AssociationDetails;
 import com.dataloom.edm.type.ComplexType;
-import com.dataloom.edm.type.EdgeType;
+import com.dataloom.edm.type.AssociationType;
 import com.dataloom.edm.type.EntityType;
 import com.dataloom.edm.type.EnumType;
 import com.dataloom.edm.type.PropertyType;
@@ -742,13 +742,13 @@ public class EdmController implements EdmApi, AuthorizingComponent {
         path = ASSOCIATION_TYPE_PATH,
         method = RequestMethod.POST,
         produces = MediaType.APPLICATION_JSON_VALUE )
-    public UUID createEdgeType( @RequestBody EdgeType edgeType ) {
-        EntityType entityType = edgeType.getEdgeEntityType();
+    public UUID createAssociationType( @RequestBody AssociationType associationType ) {
+        EntityType entityType = associationType.getAssociationEntityType();
         if ( entityType == null ) {
             throw new IllegalArgumentException( "You cannot create an edge type without specifying its entity type" );
         }
         createEntityType( entityType );
-        modelService.createEdgeType( edgeType, entityType.getId() );
+        modelService.createAssociationType( associationType, entityType.getId() );
         return entityType.getId();
     }
 
@@ -757,9 +757,9 @@ public class EdmController implements EdmApi, AuthorizingComponent {
         path = ASSOCIATION_TYPE_PATH + ID_PATH,
         method = RequestMethod.DELETE,
         produces = MediaType.APPLICATION_JSON_VALUE )
-    public Void deleteEdgeType( @PathVariable( ID ) UUID edgeTypeId ) {
+    public Void deleteAssociationType( @PathVariable( ID ) UUID associationTypeId ) {
         ensureAdminAccess();
-        modelService.deleteEdgeType( edgeTypeId );
+        modelService.deleteAssociationType( associationTypeId );
         return null;
     }
 
@@ -768,8 +768,8 @@ public class EdmController implements EdmApi, AuthorizingComponent {
         path = ASSOCIATION_TYPE_PATH + ID_PATH,
         method = RequestMethod.GET,
         produces = MediaType.APPLICATION_JSON_VALUE )
-    public EdgeType getEdgeTypeById( @PathVariable( ID ) UUID edgeTypeId ) {
-        return modelService.getEdgeType( edgeTypeId );
+    public AssociationType getAssociationTypeById( @PathVariable( ID ) UUID associationTypeId ) {
+        return modelService.getAssociationType( associationTypeId );
     }
 
     @Override

@@ -68,6 +68,7 @@ import com.dataloom.edm.requests.EdmDetailsSelector;
 import com.dataloom.edm.requests.EdmRequest;
 import com.dataloom.edm.requests.MetadataUpdate;
 import com.dataloom.edm.schemas.manager.HazelcastSchemaManager;
+import com.dataloom.edm.type.AssociationDetails;
 import com.dataloom.edm.type.ComplexType;
 import com.dataloom.edm.type.EdgeType;
 import com.dataloom.edm.type.EntityType;
@@ -769,5 +770,14 @@ public class EdmController implements EdmApi, AuthorizingComponent {
         produces = MediaType.APPLICATION_JSON_VALUE )
     public EdgeType getEdgeTypeById( @PathVariable( ID ) UUID edgeTypeId ) {
         return modelService.getEdgeType( edgeTypeId );
+    }
+
+    @Override
+    @RequestMapping(
+            path = ASSOCIATION_TYPE_PATH + ID_PATH + DETAILED_PATH,
+            method = RequestMethod.GET,
+            produces = MediaType.APPLICATION_JSON_VALUE )
+    public AssociationDetails getAssociationDetailsForType( @PathVariable( ID ) UUID associationTypeId ) {
+        return modelService.getAssociationDetails( associationTypeId );
     }
 }

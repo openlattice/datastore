@@ -23,6 +23,7 @@ import com.dataloom.analysis.requests.TopUtilizerDetails;
 import com.dataloom.authorization.EdmAuthorizationHelper;
 import com.dataloom.authorization.Permission;
 import com.dataloom.data.EntitySetData;
+import com.dataloom.data.requests.FileType;
 import com.dataloom.datastore.constants.CustomMediaType;
 import com.dataloom.datastore.services.AnalysisService;
 import com.dataloom.edm.type.PropertyType;

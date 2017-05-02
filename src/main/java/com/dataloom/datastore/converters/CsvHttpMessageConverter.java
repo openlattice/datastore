@@ -22,7 +22,6 @@ package com.dataloom.datastore.converters;
 import java.io.IOException;
 import java.lang.reflect.Type;
 
-import org.apache.olingo.commons.api.edm.FullQualifiedName;
 import org.springframework.http.HttpInputMessage;
 import org.springframework.http.HttpOutputMessage;
 import org.springframework.http.converter.AbstractGenericHttpMessageConverter;
@@ -41,7 +40,7 @@ import com.fasterxml.jackson.datatype.joda.JodaModule;
 import com.fasterxml.jackson.module.afterburner.AfterburnerModule;
 
 public class CsvHttpMessageConverter
-        extends AbstractGenericHttpMessageConverter<EntitySetData> {
+        extends AbstractGenericHttpMessageConverter<EntitySetData<?>> {
 
     private final CsvMapper csvMapper = new CsvMapper();
 
@@ -64,7 +63,7 @@ public class CsvHttpMessageConverter
 
     @Override
     protected void writeInternal(
-            EntitySetData t,
+            EntitySetData<?> t,
             Type type,
             HttpOutputMessage outputMessage )
             throws IOException, HttpMessageNotWritableException {
@@ -81,7 +80,7 @@ public class CsvHttpMessageConverter
 
     @Override
     protected EntitySetData<?> readInternal(
-            Class<? extends EntitySetData> clazz,
+            Class<? extends EntitySetData<?>> clazz,
             HttpInputMessage inputMessage ) throws IOException, HttpMessageNotReadableException {
         throw new UnsupportedOperationException( "CSV is not a supported input format" );
     }

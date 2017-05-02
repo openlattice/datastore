@@ -147,7 +147,7 @@ public class DataController implements DataApi, AuthorizingComponent {
         path = { "/" + ENTITY_DATA + "/" + SET_ID_PATH },
         method = RequestMethod.GET,
         produces = { MediaType.APPLICATION_JSON_VALUE, CustomMediaType.TEXT_CSV_VALUE } )
-    public EntitySetData loadEntitySetData(
+    public EntitySetData<FullQualifiedName> loadEntitySetData(
             @PathVariable( SET_ID ) UUID entitySetId,
             @RequestParam(
                 value = FILE_TYPE,
@@ -163,7 +163,7 @@ public class DataController implements DataApi, AuthorizingComponent {
     }
 
     @Override
-    public EntitySetData loadEntitySetData(
+    public EntitySetData<FullQualifiedName> loadEntitySetData(
             UUID entitySetId,
             FileType fileType,
             String token ) {
@@ -178,7 +178,7 @@ public class DataController implements DataApi, AuthorizingComponent {
         path = { "/" + ENTITY_DATA + "/" + SET_ID_PATH },
         method = RequestMethod.POST,
         produces = { MediaType.APPLICATION_JSON_VALUE, CustomMediaType.TEXT_CSV_VALUE } )
-    public EntitySetData loadEntitySetData(
+    public EntitySetData<FullQualifiedName> loadEntitySetData(
             @PathVariable( SET_ID ) UUID entitySetId,
             @RequestBody(
                 required = false ) EntitySetSelection req,
@@ -192,7 +192,7 @@ public class DataController implements DataApi, AuthorizingComponent {
     }
 
     @Override
-    public EntitySetData loadEntitySetData(
+    public EntitySetData<FullQualifiedName> loadEntitySetData(
             UUID entitySetId,
             EntitySetSelection req,
             FileType fileType ) {
@@ -203,7 +203,7 @@ public class DataController implements DataApi, AuthorizingComponent {
         }
     }
 
-    private EntitySetData loadEntitySetData(
+    private EntitySetData<FullQualifiedName> loadEntitySetData(
             UUID entitySetId,
             Optional<UUID> syncId,
             Optional<Set<UUID>> selectedProperties ) {
@@ -220,7 +220,7 @@ public class DataController implements DataApi, AuthorizingComponent {
         }
     }
 
-    private EntitySetData loadNormalEntitySetData(
+    private EntitySetData<FullQualifiedName> loadNormalEntitySetData(
             UUID entitySetId,
             Optional<UUID> syncId,
             Optional<Set<UUID>> selectedProperties ) {
@@ -249,7 +249,7 @@ public class DataController implements DataApi, AuthorizingComponent {
         return dgm.getEntitySetData( entitySetId, id, orderedPropertyNames, authorizedPropertyTypes );
     }
 
-    private EntitySetData loadLinkedEntitySetData(
+    private EntitySetData<FullQualifiedName> loadLinkedEntitySetData(
             UUID linkedEntitySetId ) {
         LinkedHashSet<UUID> authorizedPropertiesOfEntityType = dms.getEntityTypeByEntitySetId( linkedEntitySetId ).getProperties()
                 .stream().filter(

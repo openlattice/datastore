@@ -133,9 +133,7 @@ public class RequestsControllerTest extends MultipleAuthenticatedUsersBase {
                 .map( status -> {
                     // Approve each request
                     Status approved = new Status(
-                            status.getAclKey(),
-                            status.getPermissions(),
-                            status.getReason(),
+                            status.getRequest(),
                             status.getPrincipal(),
                             RequestStatus.APPROVED );
                     return approved;

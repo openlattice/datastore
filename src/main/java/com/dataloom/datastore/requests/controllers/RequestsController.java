@@ -119,7 +119,7 @@ public class RequestsController implements RequestsApi, AuthorizingComponent {
         consumes = MediaType.APPLICATION_JSON_VALUE,
         produces = MediaType.APPLICATION_JSON_VALUE )
     public Void updateStatuses( @RequestBody Set<Status> statuses ) {
-        if ( statuses.stream().map( Status::getAclKey ).allMatch( this::owns ) ) {
+        if ( statuses.stream().map( Status::getRequest ).map( Request::getAclKey ).allMatch( this::owns ) ) {
             Map<AceKey, Status> statusMap = RequestUtil.statusMap( statuses );
             hrm.submitAll( statusMap );
             return null;

@@ -70,6 +70,7 @@ import com.dataloom.data.EntitySetData;
 import com.dataloom.data.requests.Association;
 import com.dataloom.data.requests.BulkDataCreation;
 import com.dataloom.data.requests.EntitySetSelection;
+import com.dataloom.data.requests.FileType;
 import com.dataloom.datastore.constants.CustomMediaType;
 import com.dataloom.datastore.services.SyncTicketService;
 import com.dataloom.edm.processors.EdmPrimitiveTypeKindGetter;

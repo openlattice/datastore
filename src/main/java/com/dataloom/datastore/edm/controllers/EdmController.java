@@ -644,7 +644,7 @@ public class EdmController implements EdmApi, AuthorizingComponent {
 
     @Override
     @RequestMapping(
-        path = NAMESPACE + NAMESPACE_PATH + PROPERTY_TYPE_PATH,
+        path =  PROPERTY_TYPE_PATH + "/" + NAMESPACE + NAMESPACE_PATH,
         method = RequestMethod.GET,
         produces = MediaType.APPLICATION_JSON_VALUE )
     public Iterable<PropertyType> getPropertyTypesInNamespace( @PathVariable( NAMESPACE ) String namespace ) {

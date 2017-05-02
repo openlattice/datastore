@@ -57,6 +57,7 @@ import com.dataloom.authorization.Principals;
 import com.dataloom.authorization.securable.SecurableObjectType;
 import com.dataloom.authorization.util.AuthorizationUtils;
 import com.dataloom.data.DatasourceManager;
+import com.dataloom.data.requests.FileType;
 import com.dataloom.data.storage.CassandraEntityDatastore;
 import com.dataloom.datastore.constants.CustomMediaType;
 import com.dataloom.edm.EdmApi;
@@ -543,7 +544,7 @@ public class EdmController implements EdmApi, AuthorizingComponent {
     public Iterable<EntityType> getEntityTypes() {
         return modelService.getEntityTypes()::iterator;
     }
-    
+
     @Override
     @RequestMapping(
         path = ASSOCIATION_TYPE_PATH,

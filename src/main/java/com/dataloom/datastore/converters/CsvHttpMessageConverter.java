@@ -54,7 +54,7 @@ public class CsvHttpMessageConverter
     }
 
     @Override
-    public EntitySetData read(
+    public EntitySetData<?> read(
             Type type,
             Class<?> contextClass,
             HttpInputMessage inputMessage )
@@ -80,17 +80,17 @@ public class CsvHttpMessageConverter
     }
 
     @Override
-    protected EntitySetData readInternal(
+    protected EntitySetData<?> readInternal(
             Class<? extends EntitySetData> clazz,
             HttpInputMessage inputMessage ) throws IOException, HttpMessageNotReadableException {
         throw new UnsupportedOperationException( "CSV is not a supported input format" );
     }
 
-    public CsvSchema schemaBuilder( EntitySetData t ) {
+    public CsvSchema schemaBuilder( EntitySetData<?> t ) {
         Builder schemaBuilder = CsvSchema.builder();
 
-        for ( FullQualifiedName type : t.getAuthorizedPropertyFqns() ) {
-            schemaBuilder.addColumn( type.toString(), ColumnType.ARRAY );
+        for ( String title : t.getColumnTitles() ) {
+            schemaBuilder.addColumn( title, ColumnType.ARRAY );
         }
         return schemaBuilder.setUseHeader( true ).build();
     }

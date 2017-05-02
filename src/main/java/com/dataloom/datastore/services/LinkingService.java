@@ -132,10 +132,11 @@ public class LinkingService {
     }
 
     private void mergeEntities( UUID linkedEntitySetId, Set<UUID> ownablePropertyTypes ) {
-        LinkedHashSet<FullQualifiedName> orderedPropertyFqns = dms.getEntityTypeByEntitySetId( linkedEntitySetId )
+        LinkedHashSet<String> orderedPropertyNames = dms.getEntityTypeByEntitySetId( linkedEntitySetId )
                 .getProperties().stream()
                 .filter( ownablePropertyTypes::contains )
                 .map( ptId -> dms.getPropertyType( ptId ).getType() )
+                .map( fqn -> fqn.toString() )
                 .collect( Collectors.toCollection( () -> new LinkedHashSet<>() ) );
         
         Map<UUID, Map<UUID, PropertyType>> authorizedPropertyTypesForEntitySets = new HashMap<>();
@@ -151,7 +152,7 @@ public class LinkingService {
         }
 
         // Consume the iterable to trigger indexing!
-        cdm.getLinkedEntitySetData( linkedEntitySetId, orderedPropertyFqns, authorizedPropertyTypesForEntitySets ).getEntities().forEach( m -> {} );
+        cdm.getLinkedEntitySetData( linkedEntitySetId, orderedPropertyNames, authorizedPropertyTypesForEntitySets ).getEntities().forEach( m -> {} );
     }
 
     private LinkingEdge fromUnorderedPair( UUID graphId, UnorderedPair<Entity> p ) {

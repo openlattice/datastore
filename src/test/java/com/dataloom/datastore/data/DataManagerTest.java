@@ -109,8 +109,9 @@ public class DataManagerTest extends BootstrapDatastoreWithCassandra {
         final UUID syncId = UUIDs.timeBased();
 
         LinkedHashMap<UUID, PropertyType> propertyTypes = generateProperties( 5 );
-        LinkedHashSet<FullQualifiedName> orderedPropertyFqns = propertyTypes.entrySet().stream()
+        LinkedHashSet<String> orderedPropertyNames = propertyTypes.entrySet().stream()
                 .map( entry -> entry.getValue().getType() )
+                .map( fqn -> fqn.toString() )
                 .collect( Collectors.toCollection( () -> new LinkedHashSet<>() ) );
         Map<UUID, EdmPrimitiveTypeKind> propertiesWithDataType = propertyTypes.entrySet().stream()
                 .collect( Collectors.toMap( e -> e.getKey(), e -> e.getValue().getDatatype() ) );
@@ -119,7 +120,7 @@ public class DataManagerTest extends BootstrapDatastoreWithCassandra {
         testWriteData( entitySetId, syncId, entities, propertiesWithDataType );
         Set<SetMultimap<FullQualifiedName, Object>> result = testReadData( syncId,
                 entitySetId,
-                orderedPropertyFqns,
+                orderedPropertyNames,
                 propertyTypes );
 
         Set<SetMultimap<FullQualifiedName, Object>> expected = convertGeneratedDataFromUuidToFqn( entities );
@@ -140,8 +141,9 @@ public class DataManagerTest extends BootstrapDatastoreWithCassandra {
         final UUID secondSyncId = UUIDs.timeBased();
 
         LinkedHashMap<UUID, PropertyType> propertyTypes = generateProperties( 5 );
-        LinkedHashSet<FullQualifiedName> orderedPropertyFqns = propertyTypes.entrySet().stream()
+        LinkedHashSet<String> orderedPropertyNames = propertyTypes.entrySet().stream()
                 .map( entry -> entry.getValue().getType() )
+                .map( fqn -> fqn.toString() )
                 .collect( Collectors.toCollection( () -> new LinkedHashSet<>() ) );
         Map<UUID, EdmPrimitiveTypeKind> propertiesWithDataType = propertyTypes.entrySet().stream()
                 .collect( Collectors.toMap( e -> e.getKey(), e -> e.getValue().getDatatype() ) );
@@ -156,7 +158,7 @@ public class DataManagerTest extends BootstrapDatastoreWithCassandra {
 
         Assert.assertEquals( 0, testReadData( secondSyncId,
                 entitySetId,
-                orderedPropertyFqns,
+                orderedPropertyNames,
                 propertyTypes ).size() );
     }
 
@@ -215,10 +217,10 @@ public class DataManagerTest extends BootstrapDatastoreWithCassandra {
     public Set<SetMultimap<FullQualifiedName, Object>> testReadData(
             UUID syncId,
             UUID entitySetId,
-            LinkedHashSet<FullQualifiedName> orderedPropertyFqns,
+            LinkedHashSet<String> orderedPropertyNames,
             Map<UUID, PropertyType> propertyTypes ) {
         return Sets.newHashSet(
-                dataService.getEntitySetData( entitySetId, syncId, orderedPropertyFqns, propertyTypes ).getEntities() );
+                dataService.getEntitySetData( entitySetId, syncId, orderedPropertyNames, propertyTypes ).getEntities() );
     }
 
     private LinkedHashMap<UUID, PropertyType> generateProperties( int n ) {

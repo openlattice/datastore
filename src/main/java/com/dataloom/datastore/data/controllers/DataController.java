@@ -22,6 +22,7 @@ package com.dataloom.datastore.data.controllers;
 import java.util.Arrays;
 import java.util.EnumSet;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -237,21 +238,32 @@ public class DataController implements DataApi, AuthorizingComponent {
                     EnumSet.of( Permission.READ ) );
         }
 
+        LinkedHashSet<String> orderedPropertyNames = authzHelper.getAllPropertiesOnEntitySet( entitySetId )
+                .stream()
+                .filter( authorizedProperties::contains )
+                .map( ptId -> dms.getPropertyType( ptId ).getType() )
+                .map( fqn -> fqn.toString() )
+                .collect( Collectors.toCollection( () -> new LinkedHashSet<>() ) );
         Map<UUID, PropertyType> authorizedPropertyTypes = authorizedProperties.stream()
                 .collect( Collectors.toMap( ptId -> ptId, ptId -> dms.getPropertyType( ptId ) ) );
-        return dgm.getEntitySetData( entitySetId, id, authorizedPropertyTypes );
+        return dgm.getEntitySetData( entitySetId, id, orderedPropertyNames, authorizedPropertyTypes );
     }
 
     private EntitySetData<FullQualifiedName> loadLinkedEntitySetData(
             UUID linkedEntitySetId ) {
-        Set<UUID> authorizedPropertiesOfEntityType = dms.getEntityTypeByEntitySetId( linkedEntitySetId ).getProperties()
+        LinkedHashSet<UUID> authorizedPropertiesOfEntityType = dms.getEntityTypeByEntitySetId( linkedEntitySetId ).getProperties()
                 .stream().filter(
                         propertyId -> {
                             List<UUID> aclKey = Arrays.asList( linkedEntitySetId, propertyId );
                             return isAuthorized( Permission.READ ).test( aclKey );
                         } )
-                .collect( Collectors.toSet() );
+                .collect( Collectors.toCollection( () -> new LinkedHashSet<>() ) );
 
+        LinkedHashSet<String> orderedPropertyFqns = authorizedPropertiesOfEntityType
+                .stream().map( ptId -> dms.getPropertyType( ptId ).getType() )
+                .map( fqn -> fqn.toString() )
+                .collect( Collectors.toCollection( () -> new LinkedHashSet<>() ) );
+        
         Map<UUID, Map<UUID, PropertyType>> authorizedPropertyTypesForEntitySets = new HashMap<>();
 
         for ( UUID esId : listingService.getLinkedEntitySets( linkedEntitySetId ) ) {
@@ -265,7 +277,7 @@ public class DataController implements DataApi, AuthorizingComponent {
             authorizedPropertyTypesForEntitySets.put( esId, authorizedPropertyTypes );
         }
 
-        return dgm.getLinkedEntitySetData( linkedEntitySetId, authorizedPropertyTypesForEntitySets );
+        return dgm.getLinkedEntitySetData( linkedEntitySetId, orderedPropertyFqns, authorizedPropertyTypesForEntitySets );
     }
 
     @RequestMapping(

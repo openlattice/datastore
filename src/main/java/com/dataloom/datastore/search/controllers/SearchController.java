@@ -46,6 +46,7 @@ import com.dataloom.datastore.services.SearchService;
 import com.dataloom.edm.EntitySet;
 import com.dataloom.search.SearchApi;
 import com.dataloom.search.requests.AdvancedSearch;
+import com.dataloom.search.requests.DataSearchResult;
 import com.dataloom.search.requests.FQNSearchTerm;
 import com.dataloom.search.requests.Search;
 import com.dataloom.search.requests.SearchResult;
@@ -132,7 +133,7 @@ public class SearchController implements SearchApi, AuthorizingComponent {
         method = RequestMethod.POST,
         produces = { MediaType.APPLICATION_JSON_VALUE } )
     @Override
-    public SearchResult executeEntitySetDataQuery(
+    public DataSearchResult executeEntitySetDataQuery(
             @PathVariable( ENTITY_SET_ID ) UUID entitySetId,
             @RequestBody SearchTerm searchTerm ) {
         if ( authorizations.checkIfHasPermissions( ImmutableList.of( entitySetId ),
@@ -143,7 +144,7 @@ public class SearchController implements SearchApi, AuthorizingComponent {
             if ( !authorizedProperties.isEmpty() )
                 return searchService.executeEntitySetDataSearch( entitySetId, searchTerm, authorizedProperties );
         }
-        return new SearchResult( 0, Lists.newArrayList() );
+        return new DataSearchResult( 0, Lists.newArrayList() );
     }
 
     @RequestMapping(
@@ -151,7 +152,7 @@ public class SearchController implements SearchApi, AuthorizingComponent {
         method = RequestMethod.POST,
         produces = { MediaType.APPLICATION_JSON_VALUE } )
     @Override
-    public SearchResult executeAdvancedEntitySetDataQuery(
+    public DataSearchResult executeAdvancedEntitySetDataQuery(
             @PathVariable( ENTITY_SET_ID ) UUID entitySetId,
             @RequestBody AdvancedSearch search ) {
         if ( authorizations.checkIfHasPermissions( ImmutableList.of( entitySetId ),
@@ -161,7 +162,7 @@ public class SearchController implements SearchApi, AuthorizingComponent {
                     EnumSet.of( Permission.READ ) );
             return searchService.executeAdvancedEntitySetDataSearch( entitySetId, search, authorizedProperties );
         }
-        return new SearchResult( 0, Lists.newArrayList() );
+        return new DataSearchResult( 0, Lists.newArrayList() );
     }
 
     @RequestMapping(

@@ -545,7 +545,7 @@ public class EdmController implements EdmApi, AuthorizingComponent {
     public Iterable<EntityType> getEntityTypes() {
         return modelService.getEntityTypes()::iterator;
     }
-    
+
     @Override
     @RequestMapping(
         path = ASSOCIATION_TYPE_PATH,

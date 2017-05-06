@@ -30,6 +30,7 @@ import java.util.Base64;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
@@ -41,9 +42,9 @@ import java.util.stream.Collectors;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.olingo.commons.api.edm.EdmPrimitiveTypeKind;
 import org.apache.olingo.commons.api.edm.FullQualifiedName;
-import org.apache.olingo.commons.api.edm.geo.SRID;
 import org.apache.olingo.commons.api.edm.geo.Geospatial.Dimension;
 import org.apache.olingo.commons.api.edm.geo.Point;
+import org.apache.olingo.commons.api.edm.geo.SRID;
 import org.joda.time.DateTime;
 import org.junit.Assert;
 import org.junit.BeforeClass;
@@ -68,8 +69,8 @@ public class DataManagerTest extends BootstrapDatastoreWithCassandra {
     private static final int                        edmTypesSize;
 
     private static final Random                     random   = new Random();
-    private static final SRID srid = SRID.valueOf( "4326" );
-    private static final Base64.Encoder encoder = Base64.getUrlEncoder();
+    private static final SRID                       srid     = SRID.valueOf( "4326" );
+    private static final Base64.Encoder             encoder  = Base64.getUrlEncoder();
     private static ObjectMapper                     mapper;
 
     static {
@@ -96,10 +97,10 @@ public class DataManagerTest extends BootstrapDatastoreWithCassandra {
 
     @BeforeClass
     public static void initDMTest() {
-//        if ( initLock.readLock().tryLock() ) {
-            mapper = ds.getContext().getBean( ObjectMapper.class );
-//        }
-//        initLock.readLock().unlock();
+        // if ( initLock.readLock().tryLock() ) {
+        mapper = ds.getContext().getBean( ObjectMapper.class );
+        // }
+        // initLock.readLock().unlock();
     }
 
     @Test
@@ -107,7 +108,11 @@ public class DataManagerTest extends BootstrapDatastoreWithCassandra {
         final UUID entitySetId = UUID.randomUUID();
         final UUID syncId = UUIDs.timeBased();
 
-        Map<UUID, PropertyType> propertyTypes = generateProperties( 5 );
+        LinkedHashMap<UUID, PropertyType> propertyTypes = generateProperties( 5 );
+        LinkedHashSet<String> orderedPropertyNames = propertyTypes.entrySet().stream()
+                .map( entry -> entry.getValue().getType() )
+                .map( fqn -> fqn.toString() )
+                .collect( Collectors.toCollection( () -> new LinkedHashSet<>() ) );
         Map<UUID, EdmPrimitiveTypeKind> propertiesWithDataType = propertyTypes.entrySet().stream()
                 .collect( Collectors.toMap( e -> e.getKey(), e -> e.getValue().getDatatype() ) );
         Map<String, SetMultimap<UUID, Object>> entities = generateData( 10, propertiesWithDataType, 1 );
@@ -115,27 +120,34 @@ public class DataManagerTest extends BootstrapDatastoreWithCassandra {
         testWriteData( entitySetId, syncId, entities, propertiesWithDataType );
         Set<SetMultimap<FullQualifiedName, Object>> result = testReadData( syncId,
                 entitySetId,
+                orderedPropertyNames,
                 propertyTypes );
 
         Set<SetMultimap<FullQualifiedName, Object>> expected = convertGeneratedDataFromUuidToFqn( entities );
 
-        Map<FullQualifiedName, EdmPrimitiveTypeKind> propertiesWithDataTypeIndexedByFqn = propertyTypes.entrySet().stream()
+        Map<FullQualifiedName, EdmPrimitiveTypeKind> propertiesWithDataTypeIndexedByFqn = propertyTypes.entrySet()
+                .stream()
                 .collect( Collectors.toMap( e -> e.getValue().getType(), e -> e.getValue().getDatatype() ) );
-        
-        Assert.assertEquals( convertValueToString( expected, propertiesWithDataTypeIndexedByFqn, this::getStringFromRaw ), convertValueToString( result, propertiesWithDataTypeIndexedByFqn, this::getStringFromNormalized ) );
+
+        Assert.assertEquals(
+                convertValueToString( expected, propertiesWithDataTypeIndexedByFqn, this::getStringFromRaw ),
+                convertValueToString( result, propertiesWithDataTypeIndexedByFqn, this::getStringFromNormalized ) );
     }
-    
-    
+
     @Test
     public void testWriteAndDelete() {
         final UUID entitySetId = UUID.randomUUID();
         final UUID firstSyncId = UUIDs.timeBased();
         final UUID secondSyncId = UUIDs.timeBased();
 
-        Map<UUID, PropertyType> propertyTypes = generateProperties( 5 );
+        LinkedHashMap<UUID, PropertyType> propertyTypes = generateProperties( 5 );
+        LinkedHashSet<String> orderedPropertyNames = propertyTypes.entrySet().stream()
+                .map( entry -> entry.getValue().getType() )
+                .map( fqn -> fqn.toString() )
+                .collect( Collectors.toCollection( () -> new LinkedHashSet<>() ) );
         Map<UUID, EdmPrimitiveTypeKind> propertiesWithDataType = propertyTypes.entrySet().stream()
                 .collect( Collectors.toMap( e -> e.getKey(), e -> e.getValue().getDatatype() ) );
-        
+
         Map<String, SetMultimap<UUID, Object>> firstEntities = generateData( 10, propertiesWithDataType, 1 );
         testWriteData( entitySetId, firstSyncId, firstEntities, propertiesWithDataType );
 
@@ -143,9 +155,10 @@ public class DataManagerTest extends BootstrapDatastoreWithCassandra {
         testWriteData( entitySetId, secondSyncId, secondEntities, propertiesWithDataType );
 
         dataService.deleteEntitySetData( entitySetId );
-        
+
         Assert.assertEquals( 0, testReadData( secondSyncId,
                 entitySetId,
+                orderedPropertyNames,
                 propertyTypes ).size() );
     }
 
@@ -204,13 +217,15 @@ public class DataManagerTest extends BootstrapDatastoreWithCassandra {
     public Set<SetMultimap<FullQualifiedName, Object>> testReadData(
             UUID syncId,
             UUID entitySetId,
+            LinkedHashSet<String> orderedPropertyNames,
             Map<UUID, PropertyType> propertyTypes ) {
-        return Sets.newHashSet( dataService.getEntitySetData( entitySetId, syncId, propertyTypes ).getEntities() );
+        return Sets.newHashSet(
+                dataService.getEntitySetData( entitySetId, syncId, orderedPropertyNames, propertyTypes ).getEntities() );
     }
 
-    private Map<UUID, PropertyType> generateProperties( int n ) {
+    private LinkedHashMap<UUID, PropertyType> generateProperties( int n ) {
         System.out.println( "Generating Properties..." );
-        Map<UUID, PropertyType> propertyTypes = new HashMap<>();
+        LinkedHashMap<UUID, PropertyType> propertyTypes = new LinkedHashMap<>();
         for ( int i = 0; i < n; i++ ) {
             UUID propertyId = UUID.randomUUID();
             propertyTypes.put( propertyId, getRandomPropertyType( propertyId ) );
@@ -313,7 +328,7 @@ public class DataManagerTest extends BootstrapDatastoreWithCassandra {
     }
 
     private PropertyType getRandomPropertyType( UUID id ) {
-//        EdmPrimitiveTypeKind type = getRandomEdmType();
+        // EdmPrimitiveTypeKind type = getRandomEdmType();
         EdmPrimitiveTypeKind type = EdmPrimitiveTypeKind.Date;
         return new PropertyType(
                 id,
@@ -338,7 +353,7 @@ public class DataManagerTest extends BootstrapDatastoreWithCassandra {
         Object rawObj;
         switch ( type ) {
             case Binary:
-                byte[] b = new byte[10];
+                byte[] b = new byte[ 10 ];
                 random.nextBytes( b );
                 rawObj = encoder.encode( b );
                 break;
@@ -362,7 +377,8 @@ public class DataManagerTest extends BootstrapDatastoreWithCassandra {
                 rawObj = random.nextDouble();
                 break;
             case Duration:
-                rawObj = "P" + random.nextInt( 30 ) + "D" + "T" + random.nextInt( 24 ) + "H" + random.nextInt( 60 ) + "M"
+                rawObj = "P" + random.nextInt( 30 ) + "D" + "T" + random.nextInt( 24 ) + "H" + random.nextInt( 60 )
+                        + "M"
                         + random.nextInt( 60 )
                         + "S";
                 break;
@@ -416,37 +432,37 @@ public class DataManagerTest extends BootstrapDatastoreWithCassandra {
         Set<SetMultimap<FullQualifiedName, String>> result = new HashSet<>();
         for ( SetMultimap<FullQualifiedName, Object> map : set ) {
             SetMultimap<FullQualifiedName, String> ans = HashMultimap.create();
-            map.entries().stream().forEach( e -> ans.put( e.getKey(), getStringFunction.apply( e.getValue(), propertiesWithDataTypeIndexedByFqn.get( e.getKey() ) ) ) );
+            map.entries().stream().forEach( e -> ans.put( e.getKey(),
+                    getStringFunction.apply( e.getValue(), propertiesWithDataTypeIndexedByFqn.get( e.getKey() ) ) ) );
             result.add( ans );
         }
         return result;
     }
-    
+
     /**
      * Generate a random double within [-a,a]
      */
-    private static double randomDouble( double a ){
-        return 2*a*random.nextDouble() - a;
+    private static double randomDouble( double a ) {
+        return 2 * a * random.nextDouble() - a;
     }
-    
-    private String getStringFromNormalized( Object value, EdmPrimitiveTypeKind type ){
-        switch ( type ){
+
+    private String getStringFromNormalized( Object value, EdmPrimitiveTypeKind type ) {
+        switch ( type ) {
             case Binary:
-                return encoder.encodeToString( ((ByteBuffer) value ).array() );
+                return encoder.encodeToString( ( (ByteBuffer) value ).array() );
             default:
                 return value.toString();
         }
     }
 
-    @SuppressWarnings( "unchecked" )    
-    private String getStringFromRaw( Object value, EdmPrimitiveTypeKind type ){
-        switch ( type ){
+    @SuppressWarnings( "unchecked" )
+    private String getStringFromRaw( Object value, EdmPrimitiveTypeKind type ) {
+        switch ( type ) {
             case GeographyPoint:
-                if( value instanceof LinkedHashMap ){
+                if ( value instanceof LinkedHashMap ) {
                     LinkedHashMap<String, Object> point = (LinkedHashMap<String, Object>) value;
                     return point.get( "y" ) + "," + point.get( "x" );
-                }
-                else if( value instanceof Point ){
+                } else if ( value instanceof Point ) {
                     Point point = (Point) value;
                     return point.getY() + "," + point.getX();
                 }

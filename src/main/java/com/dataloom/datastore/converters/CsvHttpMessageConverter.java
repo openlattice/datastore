@@ -88,8 +88,8 @@ public class CsvHttpMessageConverter
     public CsvSchema schemaBuilder( EntitySetData<?> t ) {
         Builder schemaBuilder = CsvSchema.builder();
 
-        for ( Object type : t.getColumnTitles() ) {
-            schemaBuilder.addColumn( type.toString(), ColumnType.ARRAY );
+        for ( String title : t.getColumnTitles() ) {
+            schemaBuilder.addColumn( title, ColumnType.ARRAY );
         }
         return schemaBuilder.setUseHeader( true ).build();
     }

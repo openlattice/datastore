@@ -1,6 +1,7 @@
 package com.dataloom.datastore.analysis.controllers;
 
 import java.util.EnumSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -84,8 +85,9 @@ public class AnalysisController implements AnalysisApi {
                 numResults,
                 topUtilizerDetails,
                 authorizedPropertyTypes );
-        Set<Object> columnTitles = authorizedPropertyTypes.values().stream().map( pt -> pt.getType() )
-                .collect( Collectors.toSet() );
+        LinkedHashSet<String> columnTitles = authorizedPropertyTypes.values().stream().map( pt -> pt.getType() )
+                .map( fqn -> fqn.toString() )
+                .collect( Collectors.toCollection( () -> new LinkedHashSet<String>() ) );
         columnTitles.add( "count" );
         columnTitles.add( "id" );
         return new EntitySetData<Object>( columnTitles, utilizers );

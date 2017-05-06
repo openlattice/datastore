@@ -66,12 +66,14 @@ import com.dataloom.organizations.events.OrganizationCreatedEvent;
 import com.dataloom.organizations.events.OrganizationDeletedEvent;
 import com.dataloom.organizations.events.OrganizationUpdatedEvent;
 import com.dataloom.search.requests.AdvancedSearch;
+import com.dataloom.search.requests.DataSearchResult;
 import com.dataloom.search.requests.SearchDetails;
 import com.dataloom.search.requests.SearchResult;
 import com.dataloom.search.requests.SearchTerm;
 import com.dataloom.sync.events.CurrentSyncUpdatedEvent;
 import com.dataloom.sync.events.SyncIdCreatedEvent;
 import com.google.common.base.Optional;
+import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -232,7 +234,7 @@ public class SearchService {
                 syncId -> elasticsearchApi.deleteEntityData( event.getEntitySetId(), syncId, event.getEntityId() ) );
     }
 
-    public SearchResult executeEntitySetDataSearch(
+    public DataSearchResult executeEntitySetDataSearch(
             UUID entitySetId,
             SearchTerm searchTerm,
             Set<UUID> authorizedProperties ) {
@@ -243,13 +245,17 @@ public class SearchService {
                 searchTerm.getStart(),
                 searchTerm.getMaxHits(),
                 authorizedProperties );
-        result.getHits().replaceAll( hit -> {
+        Map<UUID, PropertyType> authorizedPropertyTypes = Maps.newHashMap();
+        authorizedProperties.forEach( id -> authorizedPropertyTypes.put( id, dataModelService.getPropertyType( id ) ) );
+        List<SetMultimap<Object, Object>> results = result.getHits().stream().map( hit -> {
             String entityId = hit.get( "id" ).toString();
             UUID vertexId = entityKeyService.getEntityKeyId( new EntityKey( entitySetId, entityId, syncId ) );
-            hit.put( "id", vertexId.toString() );
-            return hit;
-        } );
-        return result;
+            SetMultimap<Object, Object> fullRow = HashMultimap
+                    .create( dataManager.getEntity( entitySetId, syncId, entityId, authorizedPropertyTypes ) );
+            fullRow.put( "id", vertexId.toString() );
+            return fullRow;
+        } ).collect( Collectors.toList() );
+        return new DataSearchResult( result.getNumHits(), results );
     }
 
     @Subscribe
@@ -274,7 +280,7 @@ public class SearchService {
                 explain );
     }
 
-    public SearchResult executeAdvancedEntitySetDataSearch(
+    public DataSearchResult executeAdvancedEntitySetDataSearch(
             UUID entitySetId,
             AdvancedSearch search,
             Set<UUID> authorizedProperties ) {
@@ -283,19 +289,32 @@ public class SearchService {
             if ( authorizedProperties.contains( searchDetails.getPropertyType() ) ) {
                 authorizedSearches.add( searchDetails );
             }
-        });
+        } );
 
         if ( !authorizedSearches.isEmpty() ) {
             UUID syncId = datasourceManager.getCurrentSyncId( entitySetId );
-            return elasticsearchApi.executeAdvancedEntitySetDataSearch( entitySetId,
+            SearchResult result = elasticsearchApi.executeAdvancedEntitySetDataSearch( entitySetId,
                     syncId,
                     authorizedSearches,
                     search.getStart(),
                     search.getMaxHits(),
                     authorizedProperties );
+
+            Map<UUID, PropertyType> authorizedPropertyTypes = Maps.newHashMap();
+            authorizedProperties
+                    .forEach( id -> authorizedPropertyTypes.put( id, dataModelService.getPropertyType( id ) ) );
+            List<SetMultimap<Object, Object>> results = result.getHits().stream().map( hit -> {
+                String entityId = hit.get( "id" ).toString();
+                UUID vertexId = entityKeyService.getEntityKeyId( new EntityKey( entitySetId, entityId, syncId ) );
+                SetMultimap<Object, Object> fullRow = HashMultimap
+                        .create( dataManager.getEntity( entitySetId, syncId, entityId, authorizedPropertyTypes ) );
+                fullRow.put( "id", vertexId.toString() );
+                return fullRow;
+            } ).collect( Collectors.toList() );
+            return new DataSearchResult( result.getNumHits(), results );
         }
 
-        return new SearchResult( 0, Lists.newArrayList() );
+        return new DataSearchResult( 0, Lists.newArrayList() );
     }
 
     @Subscribe

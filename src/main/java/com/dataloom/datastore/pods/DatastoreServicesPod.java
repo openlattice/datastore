@@ -47,9 +47,7 @@ import com.dataloom.data.serializers.FullQualifedNameJacksonSerializer;
 import com.dataloom.data.storage.CassandraEntityDatastore;
 import com.dataloom.datastore.linking.services.SimpleElasticSearchBlocker;
 import com.dataloom.datastore.linking.services.SimpleMatcher;
-import com.dataloom.datastore.scripts.DefaultOrganizationCreator;
 import com.dataloom.datastore.scripts.EmptyPermissionRemover;
-import com.dataloom.datastore.scripts.EntitySetContactsPopulator;
 import com.dataloom.datastore.services.AnalysisService;
 import com.dataloom.datastore.services.LinkingService;
 import com.dataloom.datastore.services.SearchService;
@@ -68,6 +66,8 @@ import com.dataloom.linking.components.Blocker;
 import com.dataloom.linking.components.Clusterer;
 import com.dataloom.linking.components.Matcher;
 import com.dataloom.mappers.ObjectMappers;
+import com.dataloom.neuron.Neuron;
+import com.dataloom.neuron.pods.NeuronPod;
 import com.dataloom.organizations.HazelcastOrganizationService;
 import com.dataloom.organizations.roles.HazelcastRolesService;
 import com.dataloom.organizations.roles.RolesManager;
@@ -94,7 +94,11 @@ import digital.loom.rhizome.authentication.Auth0Pod;
 import digital.loom.rhizome.configuration.auth0.Auth0Configuration;
 
 @Configuration
-@Import( { CassandraPod.class, Auth0Pod.class } )
+@Import( {
+        Auth0Pod.class,
+        CassandraPod.class,
+        NeuronPod.class
+} )
 public class DatastoreServicesPod {
 
     @Inject
@@ -114,6 +118,9 @@ public class DatastoreServicesPod {
 
     @Inject
     private EventBus                 eventBus;
+
+    @Inject
+    private Neuron                   neuron;
 
     @Bean
     public ObjectMapper defaultObjectMapper() {
@@ -292,7 +299,7 @@ public class DatastoreServicesPod {
 
     @Bean
     public HazelcastRequestsManager hazelcastRequestsManager() {
-        return new HazelcastRequestsManager( hazelcastInstance, rqs() );
+        return new HazelcastRequestsManager( hazelcastInstance, rqs(), neuron );
     }
 
     @Bean
@@ -372,7 +379,7 @@ public class DatastoreServicesPod {
                 executor,
                 eventBus );
     }
-    
+
     // Startup scripts
     @PostConstruct
     public void scripts() {
@@ -383,10 +390,10 @@ public class DatastoreServicesPod {
 //                dataModelService(),
 //                userDirectoryService(),
 //                hazelcastInstance ).run();
-        
+
         //Remove empty permissions
         new EmptyPermissionRemover( cassandraConfiguration.getKeyspace(), session ).run();
-        
+
         //Create default organization and roles
         //new DefaultOrganizationCreator( organizationsManager(), rolesService() ).run();
     }

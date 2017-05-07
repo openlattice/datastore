@@ -70,7 +70,7 @@ public class DataManagerTest extends BootstrapDatastoreWithCassandra {
 
     private static final Random                     random   = new Random();
     private static final SRID                       srid     = SRID.valueOf( "4326" );
-    private static final Base64.Encoder             encoder  = Base64.getUrlEncoder();
+    private static final Base64.Encoder             encoder  = Base64.getEncoder();
     private static ObjectMapper                     mapper;
 
     static {

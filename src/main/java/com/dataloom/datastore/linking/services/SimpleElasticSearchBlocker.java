@@ -72,7 +72,7 @@ public class SimpleElasticSearchBlocker implements Blocker {
         Set<UUID> propertiesSet = ImmutableSet.copyOf( linkIndexedByEntitySets.get( entitySetId ) );
         Map<UUID, PropertyType> propertiesMap = propertiesSet.stream()
                 .collect( Collectors.toMap( ptId -> ptId, ptId -> dms.getPropertyType( ptId ) ) );
-        Iterable<String> entityIds = dataManager.getEntityIds( entitySetId );
+        Iterable<String> entityIds = dataManager.getEntityIds( entitySetId, linkingEntitySetsWithSyncId.get( entitySetId ) );
 
         Stream<EntityKey> entityKeys = StreamUtil.stream( entityIds )
                 .map( entityId -> new EntityKey( entitySetId, entityId, linkingEntitySetsWithSyncId.get( entitySetId ) ) );

@@ -1,7 +1,6 @@
 package com.dataloom.datastore.services;
 
 import java.util.HashMap;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -9,13 +8,14 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import org.apache.olingo.commons.api.edm.FullQualifiedName;
+import org.apache.commons.lang3.tuple.Pair;
+import org.apache.olingo.commons.api.edm.EdmPrimitiveTypeKind;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.dataloom.data.DataGraphManager;
 import com.dataloom.data.DatasourceManager;
 import com.dataloom.data.EntityKey;
-import com.dataloom.data.storage.CassandraEntityDatastore;
 import com.dataloom.edm.type.PropertyType;
 import com.dataloom.linking.Entity;
 import com.dataloom.linking.HazelcastLinkingGraphs;
@@ -31,10 +31,14 @@ import com.dataloom.linking.components.Matcher;
 import com.dataloom.linking.util.UnorderedPair;
 import com.datastax.driver.core.Session;
 import com.google.common.collect.HashMultimap;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Maps;
 import com.google.common.collect.SetMultimap;
 import com.google.common.collect.Sets;
 import com.google.common.eventbus.EventBus;
 import com.hazelcast.core.HazelcastInstance;
+import com.kryptnostic.datastore.cassandra.CommonColumns;
 import com.kryptnostic.datastore.services.EdmManager;
 
 public class LinkingService {
@@ -46,7 +50,7 @@ public class LinkingService {
     private final Clusterer                clusterer;
     private final HazelcastListingService  listingService;
     private final EdmManager               dms;
-    private final CassandraEntityDatastore cdm;
+    private final DataGraphManager dgm;
     private final DatasourceManager        dsm;
     private final String                   keyspace;
     private final Session                  session;
@@ -62,7 +66,7 @@ public class LinkingService {
             EventBus eventBus,
             HazelcastListingService listingService,
             EdmManager dms,
-            CassandraEntityDatastore cdm,
+            DataGraphManager dgm,
             DatasourceManager dsm ) {
         this.linkingGraph = linkingGraph;
 
@@ -77,7 +81,7 @@ public class LinkingService {
 
         this.listingService = listingService;
         this.dms = dms;
-        this.cdm = cdm;
+        this.dgm = dgm;
         this.dsm = dsm;
     }
 
@@ -132,16 +136,12 @@ public class LinkingService {
     }
 
     private void mergeEntities( UUID linkedEntitySetId, Set<UUID> ownablePropertyTypes ) {
-        LinkedHashSet<String> orderedPropertyNames = dms.getEntityTypeByEntitySetId( linkedEntitySetId )
-                .getProperties().stream()
-                .filter( ownablePropertyTypes::contains )
-                .map( ptId -> dms.getPropertyType( ptId ).getType() )
-                .map( fqn -> fqn.toString() )
-                .collect( Collectors.toCollection( () -> new LinkedHashSet<>() ) );
-        
         Map<UUID, Map<UUID, PropertyType>> authorizedPropertyTypesForEntitySets = new HashMap<>();
 
-        for ( UUID esId : listingService.getLinkedEntitySets( linkedEntitySetId ) ) {
+        // compute authorized property types for each of the linking entity sets, as well as the linked entity set itself
+        Set<UUID> linkingSets = listingService.getLinkedEntitySets( linkedEntitySetId );
+        Iterable<UUID> involvedEntitySets = Iterables.concat( linkingSets, ImmutableSet.of( linkedEntitySetId ) );
+        for ( UUID esId : involvedEntitySets ) {
             Set<UUID> propertiesOfEntitySet = dms.getEntityTypeByEntitySetId( esId ).getProperties();
             Set<UUID> authorizedProperties = Sets.intersection( ownablePropertyTypes, propertiesOfEntitySet );
 
@@ -150,9 +150,41 @@ public class LinkingService {
 
             authorizedPropertyTypesForEntitySets.put( esId, authorizedPropertyTypes );
         }
+        
+        UUID syncId = dsm.getCurrentSyncId( linkedEntitySetId );
+        
+        mergeVertices( linkedEntitySetId, syncId, authorizedPropertyTypesForEntitySets );
+        
+        mergeEdges( linkedEntitySetId, linkingSets, syncId );
+    }
 
-        // Consume the iterable to trigger indexing!
-        cdm.getLinkedEntitySetData( linkedEntitySetId, orderedPropertyNames, authorizedPropertyTypesForEntitySets ).getEntities().forEach( m -> {} );
+    private void mergeVertices( 
+            UUID linkedEntitySetId,
+            UUID syncId,
+            Map<UUID, Map<UUID, PropertyType>> authorizedPropertyTypesForEntitySets ){
+        Map<UUID, EdmPrimitiveTypeKind> authorizedPropertiesWithDataTypeForLinkedEntitySet = Maps.transformValues( authorizedPropertyTypesForEntitySets.get( linkedEntitySetId ), pt -> pt.getDatatype() );
+        
+        Iterable<Pair<UUID, Set<EntityKey>>> linkedEntityKeys = linkingGraph.getLinkedEntityKeys( linkedEntitySetId );
+        for( Pair<UUID, Set<EntityKey>> linkedKey : linkedEntityKeys ){
+            // compute merged entity
+            SetMultimap<UUID, Object> mergedEntityDetails = computeMergedEntity( linkedKey.getValue() );
+            String entityId = generateDefaultEntityId( mergedEntityDetails );
+
+            // create merged entity, in particular get back the entity key id for the new entity
+            UUID mergedEntityKeyId = dgm.createEntity( linkedEntitySetId, syncId, entityId, mergedEntityDetails, authorizedPropertiesWithDataTypeForLinkedEntitySet );
+            
+            // write to a lookup table from old entity key id to new, merged entity key id
+            idService.getEntityKeyIds( linkedKey.getValue() ).values().forEach( oldId -> lsgsa.saveToLookup( linkedEntitySetId, syncId, oldId, nmergedEntityKeyId ) );
+        }
+    }
+    
+    private void mergeEdges( UUID linkedEntitySetId, Set<UUID> linkingSets, UUID syncId ){
+        Map<CommonColumns, Set<UUID>> edgeSelection = new HashMap<>();
+        edgeSelection.put( CommonColumns.SRC_ENTITY_SET_ID, linkingSets );
+        edgeSelection.put( CommonColumns.DST_ENTITY_SET_ID, linkingSets );
+        edgeSelection.put( CommonColumns.EDGE_ENTITY_SET_ID, linkingSets );
+        
+        lm.getEdges( edgeSelection ).forEach( edge -> mergeEdge( linkedEntitySetId, syncId, edge ) );
     }
 
     private LinkingEdge fromUnorderedPair( UUID graphId, UnorderedPair<Entity> p ) {

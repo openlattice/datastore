@@ -15,6 +15,7 @@ import org.slf4j.LoggerFactory;
 
 import com.dataloom.data.DataGraphManager;
 import com.dataloom.data.DatasourceManager;
+import com.dataloom.data.EntityDatastore;
 import com.dataloom.data.EntityKey;
 import com.dataloom.edm.type.PropertyType;
 import com.dataloom.linking.Entity;
@@ -30,6 +31,7 @@ import com.dataloom.linking.components.Clusterer;
 import com.dataloom.linking.components.Matcher;
 import com.dataloom.linking.util.UnorderedPair;
 import com.datastax.driver.core.Session;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
@@ -39,17 +41,20 @@ import com.google.common.collect.Sets;
 import com.google.common.eventbus.EventBus;
 import com.hazelcast.core.HazelcastInstance;
 import com.kryptnostic.datastore.cassandra.CommonColumns;
+import com.kryptnostic.datastore.cassandra.RowAdapters;
 import com.kryptnostic.datastore.services.EdmManager;
 
 public class LinkingService {
     private static final Logger           logger = LoggerFactory.getLogger( LinkingService.class );
 
+    private final ObjectMapper mapper;
     private final HazelcastLinkingGraphs   linkingGraph;
     private final Blocker                  blocker;
     private final Matcher                  matcher;
     private final Clusterer                clusterer;
     private final HazelcastListingService  listingService;
     private final EdmManager               dms;
+    private final EntityDatastore eds;
     private final DataGraphManager dgm;
     private final DatasourceManager        dsm;
     private final String                   keyspace;
@@ -67,7 +72,9 @@ public class LinkingService {
             HazelcastListingService listingService,
             EdmManager dms,
             DataGraphManager dgm,
-            DatasourceManager dsm ) {
+            DatasourceManager dsm,
+            EntityDatastore eds,
+            ObjectMapper mapper ) {
         this.linkingGraph = linkingGraph;
 
         this.blocker = blocker;
@@ -83,6 +90,8 @@ public class LinkingService {
         this.dms = dms;
         this.dgm = dgm;
         this.dsm = dsm;
+        this.eds = eds;
+        this.mapper = mapper;
     }
 
     public UUID link( UUID linkedEntitySetId, Set<Map<UUID, UUID>> linkingProperties, Set<UUID> ownablePropertyTypes ) {
@@ -167,7 +176,7 @@ public class LinkingService {
         Iterable<Pair<UUID, Set<EntityKey>>> linkedEntityKeys = linkingGraph.getLinkedEntityKeys( linkedEntitySetId );
         for( Pair<UUID, Set<EntityKey>> linkedKey : linkedEntityKeys ){
             // compute merged entity
-            SetMultimap<UUID, Object> mergedEntityDetails = computeMergedEntity( linkedKey.getValue() );
+            SetMultimap<UUID, Object> mergedEntityDetails = computeMergedEntity( linkedKey.getValue(), authorizedPropertyTypesForEntitySets );
             String entityId = generateDefaultEntityId( mergedEntityDetails );
 
             // create merged entity, in particular get back the entity key id for the new entity
@@ -187,6 +196,25 @@ public class LinkingService {
         lm.getEdges( edgeSelection ).forEach( edge -> mergeEdge( linkedEntitySetId, syncId, edge ) );
     }
 
+    private SetMultimap<UUID, Object> computeMergedEntity( Set<EntityKey> entityKeys, 
+            Map<UUID, Map<UUID, PropertyType>> authorizedPropertyTypesForEntitySets ){
+        SetMultimap<UUID, Object> result = HashMultimap.create();
+        
+        entityKeys.stream()
+        .map( key -> Pair.of( key.getEntitySetId(),
+                eds.asyncLoadEntity( key.getEntitySetId(),
+                        key.getEntityId(),
+                        key.getSyncId(),
+                        authorizedPropertyTypesForEntitySets.get( key.getEntitySetId() ).keySet() ) ) )
+        .map( rsfPair -> Pair.of( rsfPair.getKey(), rsfPair.getValue().getUninterruptibly() ) )
+        .map( rsPair -> RowAdapters.entityIndexedById( rsPair.getValue(),
+                authorizedPropertyTypesForEntitySets.get( rsPair.getKey() ),
+                mapper ) )
+        .forEach( result::putAll );
+        
+        return result;
+    }
+    
     private LinkingEdge fromUnorderedPair( UUID graphId, UnorderedPair<Entity> p ) {
         List<LinkingEntityKey> keys = p.getBackingCollection().stream()
                 .map( e -> new LinkingEntityKey( graphId, e.getKey() ) ).collect( Collectors.toList() );

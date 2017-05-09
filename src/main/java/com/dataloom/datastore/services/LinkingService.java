@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -19,10 +20,14 @@ import com.dataloom.data.DataGraphManager;
 import com.dataloom.data.DatasourceManager;
 import com.dataloom.data.EntityDatastore;
 import com.dataloom.data.EntityKey;
+import com.dataloom.data.EntityKeyIdService;
 import com.dataloom.edm.type.PropertyType;
+import com.dataloom.graph.core.LoomGraphApi;
+import com.dataloom.graph.edge.LoomEdge;
 import com.dataloom.linking.Entity;
 import com.dataloom.linking.HazelcastLinkingGraphs;
 import com.dataloom.linking.HazelcastListingService;
+import com.dataloom.linking.HazelcastVertexMergingService;
 import com.dataloom.linking.LinkingEdge;
 import com.dataloom.linking.LinkingEntityKey;
 import com.dataloom.linking.LinkingVertexKey;
@@ -32,6 +37,7 @@ import com.dataloom.linking.components.Blocker;
 import com.dataloom.linking.components.Clusterer;
 import com.dataloom.linking.components.Matcher;
 import com.dataloom.linking.util.UnorderedPair;
+import com.datastax.driver.core.ResultSetFuture;
 import com.datastax.driver.core.Session;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.HashMultimap;
@@ -47,20 +53,23 @@ import com.kryptnostic.datastore.cassandra.RowAdapters;
 import com.kryptnostic.datastore.services.EdmManager;
 
 public class LinkingService {
-    private static final Logger           logger = LoggerFactory.getLogger( LinkingService.class );
+    private static final Logger                 logger = LoggerFactory.getLogger( LinkingService.class );
 
-    private final ObjectMapper mapper;
-    private final HazelcastLinkingGraphs   linkingGraph;
-    private final Blocker                  blocker;
-    private final Matcher                  matcher;
-    private final Clusterer                clusterer;
-    private final HazelcastListingService  listingService;
-    private final EdmManager               dms;
-    private final EntityDatastore eds;
-    private final DataGraphManager dgm;
-    private final DatasourceManager        dsm;
-    private final String                   keyspace;
-    private final Session                  session;
+    private final ObjectMapper                  mapper;
+    private final HazelcastLinkingGraphs        linkingGraph;
+    private final Blocker                       blocker;
+    private final Matcher                       matcher;
+    private final Clusterer                     clusterer;
+    private final HazelcastListingService       listingService;
+    private final EdmManager                    dms;
+    private final DataGraphManager              dgm;
+    private final EntityDatastore               eds;
+    private final LoomGraphApi                  lm;
+    private final DatasourceManager             dsm;
+    private final String                        keyspace;
+    private final Session                       session;
+    private final EntityKeyIdService            idService;
+    private final HazelcastVertexMergingService vms;
 
     public LinkingService(
             String keyspace,
@@ -76,6 +85,9 @@ public class LinkingService {
             DataGraphManager dgm,
             DatasourceManager dsm,
             EntityDatastore eds,
+            LoomGraphApi lm,
+            EntityKeyIdService idService,
+            HazelcastVertexMergingService vms,
             ObjectMapper mapper ) {
         this.linkingGraph = linkingGraph;
 
@@ -93,6 +105,9 @@ public class LinkingService {
         this.dgm = dgm;
         this.dsm = dsm;
         this.eds = eds;
+        this.lm = lm;
+        this.idService = idService;
+        this.vms = vms;
         this.mapper = mapper;
     }
 
@@ -102,7 +117,9 @@ public class LinkingService {
 
         // Warning: We assume that the restrictions on links are enforced/validated as specified in LinkingApi. In
         // particular, from now on we work on the assumption that only identical property types are linked on.
-        initializeComponents( dsm.getCurrentSyncId( linkIndexedByEntitySets.keySet() ), linkIndexedByPropertyTypes, linkIndexedByEntitySets );
+        initializeComponents( dsm.getCurrentSyncId( linkIndexedByEntitySets.keySet() ),
+                linkIndexedByPropertyTypes,
+                linkIndexedByEntitySets );
 
         UUID graphId = linkingGraph.getGraphIdFromEntitySetId( linkedEntitySetId );
 
@@ -149,7 +166,8 @@ public class LinkingService {
     private void mergeEntities( UUID linkedEntitySetId, Set<UUID> ownablePropertyTypes ) {
         Map<UUID, Map<UUID, PropertyType>> authorizedPropertyTypesForEntitySets = new HashMap<>();
 
-        // compute authorized property types for each of the linking entity sets, as well as the linked entity set itself
+        // compute authorized property types for each of the linking entity sets, as well as the linked entity set
+        // itself
         Set<UUID> linkingSets = listingService.getLinkedEntitySets( linkedEntitySetId );
         Iterable<UUID> involvedEntitySets = Iterables.concat( linkingSets, ImmutableSet.of( linkedEntitySetId ) );
         for ( UUID esId : involvedEntitySets ) {
@@ -161,64 +179,110 @@ public class LinkingService {
 
             authorizedPropertyTypesForEntitySets.put( esId, authorizedPropertyTypes );
         }
-        
+
         UUID syncId = dsm.getCurrentSyncId( linkedEntitySetId );
-        
+
         mergeVertices( linkedEntitySetId, syncId, authorizedPropertyTypesForEntitySets );
-        
+
         mergeEdges( linkedEntitySetId, linkingSets, syncId );
     }
 
-    private void mergeVertices( 
+    private void mergeVertices(
             UUID linkedEntitySetId,
             UUID syncId,
-            Map<UUID, Map<UUID, PropertyType>> authorizedPropertyTypesForEntitySets ){
-        Map<UUID, EdmPrimitiveTypeKind> authorizedPropertiesWithDataTypeForLinkedEntitySet = Maps.transformValues( authorizedPropertyTypesForEntitySets.get( linkedEntitySetId ), pt -> pt.getDatatype() );
-        // EntityType.getKey returns an unmodifiable view of the underlying linked hash set, so the order is still preserved, although 
+            Map<UUID, Map<UUID, PropertyType>> authorizedPropertyTypesForEntitySets ) {
+        Map<UUID, EdmPrimitiveTypeKind> authorizedPropertiesWithDataTypeForLinkedEntitySet = Maps.transformValues(
+                authorizedPropertyTypesForEntitySets.get( linkedEntitySetId ), pt -> pt.getDatatype() );
+        // EntityType.getKey returns an unmodifiable view of the underlying linked hash set, so the order is still
+        // preserved, although
         List<UUID> keyProperties = new LinkedList<>( dms.getEntityTypeByEntitySetId( linkedEntitySetId ).getKey() );
-        
+
         Iterable<Pair<UUID, Set<EntityKey>>> linkedEntityKeys = linkingGraph.getLinkedEntityKeys( linkedEntitySetId );
-        for( Pair<UUID, Set<EntityKey>> linkedKey : linkedEntityKeys ){
+        for ( Pair<UUID, Set<EntityKey>> linkedKey : linkedEntityKeys ) {
             // compute merged entity
-            SetMultimap<UUID, Object> mergedEntityDetails = computeMergedEntity( linkedKey.getValue(), authorizedPropertyTypesForEntitySets );
+            SetMultimap<UUID, Object> mergedEntityDetails = computeMergedEntity( linkedKey.getValue(),
+                    authorizedPropertyTypesForEntitySets );
             String entityId = LoomUtil.generateDefaultEntityId( keyProperties, mergedEntityDetails );
 
             // create merged entity, in particular get back the entity key id for the new entity
-            UUID mergedEntityKeyId = dgm.createEntity( linkedEntitySetId, syncId, entityId, mergedEntityDetails, authorizedPropertiesWithDataTypeForLinkedEntitySet );
-            
-            // write to a lookup table from old entity key id to new, merged entity key id
-            idService.getEntityKeyIds( linkedKey.getValue() ).values().forEach( oldId -> lsgsa.saveToLookup( linkedEntitySetId, syncId, oldId, nmergedEntityKeyId ) );
+            UUID mergedEntityKeyId;
+            try {
+                mergedEntityKeyId = dgm.createEntity( linkedEntitySetId,
+                        syncId,
+                        entityId,
+                        mergedEntityDetails,
+                        authorizedPropertiesWithDataTypeForLinkedEntitySet );
+
+                // write to a lookup table from old entity key id to new, merged entity key id
+                idService.getEntityKeyIds( linkedKey.getValue() ).values()
+                        .forEach( oldId -> vms.saveToLookup( linkedEntitySetId, oldId, mergedEntityKeyId ) );
+
+            } catch ( ExecutionException | InterruptedException e ) {
+                logger.error( "Failed to create linked entity for linkedKey {} ", linkedKey );
+            }
         }
     }
-    
-    private void mergeEdges( UUID linkedEntitySetId, Set<UUID> linkingSets, UUID syncId ){
+
+    private void mergeEdges( UUID linkedEntitySetId, Set<UUID> linkingSets, UUID syncId ) {
         Map<CommonColumns, Set<UUID>> edgeSelection = new HashMap<>();
         edgeSelection.put( CommonColumns.SRC_ENTITY_SET_ID, linkingSets );
         edgeSelection.put( CommonColumns.DST_ENTITY_SET_ID, linkingSets );
         edgeSelection.put( CommonColumns.EDGE_ENTITY_SET_ID, linkingSets );
-        
-        lm.getEdges( edgeSelection ).forEach( edge -> mergeEdge( linkedEntitySetId, syncId, edge ) );
+
+        lm.getEdges( edgeSelection ).flatMap( edge -> mergeEdgeAsync( linkedEntitySetId, syncId, edge ).stream() )
+                .forEach( ResultSetFuture::getUninterruptibly );
     }
 
-    private SetMultimap<UUID, Object> computeMergedEntity( Set<EntityKey> entityKeys, 
-            Map<UUID, Map<UUID, PropertyType>> authorizedPropertyTypesForEntitySets ){
+    private SetMultimap<UUID, Object> computeMergedEntity(
+            Set<EntityKey> entityKeys,
+            Map<UUID, Map<UUID, PropertyType>> authorizedPropertyTypesForEntitySets ) {
         SetMultimap<UUID, Object> result = HashMultimap.create();
-        
+
         entityKeys.stream()
-        .map( key -> Pair.of( key.getEntitySetId(),
-                eds.asyncLoadEntity( key.getEntitySetId(),
-                        key.getEntityId(),
-                        key.getSyncId(),
-                        authorizedPropertyTypesForEntitySets.get( key.getEntitySetId() ).keySet() ) ) )
-        .map( rsfPair -> Pair.of( rsfPair.getKey(), rsfPair.getValue().getUninterruptibly() ) )
-        .map( rsPair -> RowAdapters.entityIndexedById( rsPair.getValue(),
-                authorizedPropertyTypesForEntitySets.get( rsPair.getKey() ),
-                mapper ) )
-        .forEach( result::putAll );
-        
+                .map( key -> Pair.of( key.getEntitySetId(),
+                        eds.asyncLoadEntity( key.getEntitySetId(),
+                                key.getEntityId(),
+                                key.getSyncId(),
+                                authorizedPropertyTypesForEntitySets.get( key.getEntitySetId() ).keySet() ) ) )
+                .map( rsfPair -> Pair.of( rsfPair.getKey(), rsfPair.getValue().getUninterruptibly() ) )
+                .map( rsPair -> RowAdapters.entityIndexedById( rsPair.getValue(),
+                        authorizedPropertyTypesForEntitySets.get( rsPair.getKey() ),
+                        mapper ) )
+                .forEach( result::putAll );
+
         return result;
     }
-    
+
+    private List<ResultSetFuture> mergeEdgeAsync( UUID linkedEntitySetId, UUID syncId, LoomEdge edge ) {
+        UUID newSrcEntitySetId = edge.getSrcSetId();
+        UUID newDstEntitySetId = edge.getDstSetId();
+        UUID newEdgeEntitySetId = edge.getEdgeSetId();
+
+        UUID newSrcId = vms.getMergedId( linkedEntitySetId, edge.getKey().getSrcEntityKeyId() );
+        if ( newSrcId != null ) {
+            newSrcEntitySetId = linkedEntitySetId;
+        }
+        UUID newDstId = vms.getMergedId( linkedEntitySetId, edge.getKey().getDstEntityKeyId() );
+        if ( newDstId != null ) {
+            newDstEntitySetId = linkedEntitySetId;
+        }
+        UUID newEdgeId = vms.getMergedId( linkedEntitySetId, edge.getKey().getEdgeEntityKeyId() );
+        if ( newEdgeId != null ) {
+            newEdgeEntitySetId = linkedEntitySetId;
+        }
+
+        lm.deleteEdge( edge.getKey() );
+        return lm.addEdgeAsync( newSrcId,
+                dms.getEntitySet( newSrcEntitySetId ).getEntityTypeId(),
+                newSrcEntitySetId,
+                newDstId,
+                dms.getEntitySet( newDstEntitySetId ).getEntityTypeId(),
+                newDstEntitySetId,
+                newEdgeId,
+                dms.getEntitySet( newEdgeEntitySetId ).getEntityTypeId(),
+                newEdgeEntitySetId );
+    }
+
     private LinkingEdge fromUnorderedPair( UUID graphId, UnorderedPair<Entity> p ) {
         List<LinkingEntityKey> keys = p.getBackingCollection().stream()
                 .map( e -> new LinkingEntityKey( graphId, e.getKey() ) ).collect( Collectors.toList() );

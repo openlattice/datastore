@@ -1,6 +1,7 @@
 package com.dataloom.datastore.services;
 
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -13,6 +14,7 @@ import org.apache.olingo.commons.api.edm.EdmPrimitiveTypeKind;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.dataloom.LoomUtil;
 import com.dataloom.data.DataGraphManager;
 import com.dataloom.data.DatasourceManager;
 import com.dataloom.data.EntityDatastore;
@@ -172,12 +174,14 @@ public class LinkingService {
             UUID syncId,
             Map<UUID, Map<UUID, PropertyType>> authorizedPropertyTypesForEntitySets ){
         Map<UUID, EdmPrimitiveTypeKind> authorizedPropertiesWithDataTypeForLinkedEntitySet = Maps.transformValues( authorizedPropertyTypesForEntitySets.get( linkedEntitySetId ), pt -> pt.getDatatype() );
+        // EntityType.getKey returns an unmodifiable view of the underlying linked hash set, so the order is still preserved, although 
+        List<UUID> keyProperties = new LinkedList<>( dms.getEntityTypeByEntitySetId( linkedEntitySetId ).getKey() );
         
         Iterable<Pair<UUID, Set<EntityKey>>> linkedEntityKeys = linkingGraph.getLinkedEntityKeys( linkedEntitySetId );
         for( Pair<UUID, Set<EntityKey>> linkedKey : linkedEntityKeys ){
             // compute merged entity
             SetMultimap<UUID, Object> mergedEntityDetails = computeMergedEntity( linkedKey.getValue(), authorizedPropertyTypesForEntitySets );
-            String entityId = generateDefaultEntityId( mergedEntityDetails );
+            String entityId = LoomUtil.generateDefaultEntityId( keyProperties, mergedEntityDetails );
 
             // create merged entity, in particular get back the entity key id for the new entity
             UUID mergedEntityKeyId = dgm.createEntity( linkedEntitySetId, syncId, entityId, mergedEntityDetails, authorizedPropertiesWithDataTypeForLinkedEntitySet );

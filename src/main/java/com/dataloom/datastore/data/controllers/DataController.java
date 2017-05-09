@@ -19,11 +19,8 @@
 
 package com.dataloom.datastore.data.controllers;
 
-import java.util.Arrays;
 import java.util.EnumSet;
-import java.util.HashMap;
 import java.util.LinkedHashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -75,7 +72,6 @@ import com.dataloom.datastore.constants.CustomMediaType;
 import com.dataloom.datastore.services.SyncTicketService;
 import com.dataloom.edm.processors.EdmPrimitiveTypeKindGetter;
 import com.dataloom.edm.type.PropertyType;
-import com.dataloom.linking.HazelcastListingService;
 import com.google.common.base.Optional;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
@@ -111,9 +107,6 @@ public class DataController implements DataApi, AuthorizingComponent {
 
     @Inject
     private LoomAuth0AuthenticationProvider           authProvider;
-
-    @Inject
-    private HazelcastListingService                   listingService;
 
     @Inject
     private DatasourceManager                         datasourceManager;
@@ -210,11 +203,7 @@ public class DataController implements DataApi, AuthorizingComponent {
         if ( authz.checkIfHasPermissions( ImmutableList.of( entitySetId ),
                 Principals.getCurrentPrincipals(),
                 EnumSet.of( Permission.READ ) ) ) {
-            if ( listingService.isLinkedEntitySet( entitySetId ) ) {
-                return loadLinkedEntitySetData( entitySetId );
-            } else {
-                return loadNormalEntitySetData( entitySetId, syncId, selectedProperties );
-            }
+            return loadNormalEntitySetData( entitySetId, syncId, selectedProperties );
         } else {
             throw new ForbiddenException( "Insufficient permissions to read the entity set or it doesn't exist." );
         }
@@ -247,37 +236,6 @@ public class DataController implements DataApi, AuthorizingComponent {
         Map<UUID, PropertyType> authorizedPropertyTypes = authorizedProperties.stream()
                 .collect( Collectors.toMap( ptId -> ptId, ptId -> dms.getPropertyType( ptId ) ) );
         return dgm.getEntitySetData( entitySetId, id, orderedPropertyNames, authorizedPropertyTypes );
-    }
-
-    private EntitySetData<FullQualifiedName> loadLinkedEntitySetData(
-            UUID linkedEntitySetId ) {
-        LinkedHashSet<UUID> authorizedPropertiesOfEntityType = dms.getEntityTypeByEntitySetId( linkedEntitySetId ).getProperties()
-                .stream().filter(
-                        propertyId -> {
-                            List<UUID> aclKey = Arrays.asList( linkedEntitySetId, propertyId );
-                            return isAuthorized( Permission.READ ).test( aclKey );
-                        } )
-                .collect( Collectors.toCollection( () -> new LinkedHashSet<>() ) );
-
-        LinkedHashSet<String> orderedPropertyFqns = authorizedPropertiesOfEntityType
-                .stream().map( ptId -> dms.getPropertyType( ptId ).getType() )
-                .map( fqn -> fqn.toString() )
-                .collect( Collectors.toCollection( () -> new LinkedHashSet<>() ) );
-        
-        Map<UUID, Map<UUID, PropertyType>> authorizedPropertyTypesForEntitySets = new HashMap<>();
-
-        for ( UUID esId : listingService.getLinkedEntitySets( linkedEntitySetId ) ) {
-            Set<UUID> propertiesOfEntitySet = dms.getEntityTypeByEntitySetId( esId ).getProperties();
-            Set<UUID> authorizedProperties = Sets.intersection( authorizedPropertiesOfEntityType,
-                    propertiesOfEntitySet );
-
-            Map<UUID, PropertyType> authorizedPropertyTypes = authorizedProperties.stream()
-                    .collect( Collectors.toMap( ptId -> ptId, ptId -> dms.getPropertyType( ptId ) ) );
-
-            authorizedPropertyTypesForEntitySets.put( esId, authorizedPropertyTypes );
-        }
-
-        return dgm.getLinkedEntitySetData( linkedEntitySetId, orderedPropertyFqns, authorizedPropertyTypesForEntitySets );
     }
 
     @RequestMapping(

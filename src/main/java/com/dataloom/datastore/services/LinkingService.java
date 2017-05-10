@@ -41,6 +41,7 @@ import com.datastax.driver.core.ResultSetFuture;
 import com.datastax.driver.core.Session;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.HashMultimap;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
@@ -191,6 +192,8 @@ public class LinkingService {
             UUID linkedEntitySetId,
             UUID syncId,
             Map<UUID, Map<UUID, PropertyType>> authorizedPropertyTypesForEntitySets ) {
+        logger.debug( "Linking: Merging vertices..." );
+
         Map<UUID, EdmPrimitiveTypeKind> authorizedPropertiesWithDataTypeForLinkedEntitySet = Maps.transformValues(
                 authorizedPropertyTypesForEntitySets.get( linkedEntitySetId ), pt -> pt.getDatatype() );
         // EntityType.getKey returns an unmodifiable view of the underlying linked hash set, so the order is still
@@ -224,12 +227,15 @@ public class LinkingService {
     }
 
     private void mergeEdges( UUID linkedEntitySetId, Set<UUID> linkingSets, UUID syncId ) {
-        Map<CommonColumns, Set<UUID>> edgeSelection = new HashMap<>();
-        edgeSelection.put( CommonColumns.SRC_ENTITY_SET_ID, linkingSets );
-        edgeSelection.put( CommonColumns.DST_ENTITY_SET_ID, linkingSets );
-        edgeSelection.put( CommonColumns.EDGE_ENTITY_SET_ID, linkingSets );
+        logger.debug( "Linking: Merging edges..." );
+        Map<CommonColumns, Set<UUID>> edgeSelectionBySrcSet = ImmutableMap.of( CommonColumns.SRC_ENTITY_SET_ID, linkingSets );
+        Map<CommonColumns, Set<UUID>> edgeSelectionByDstSet = ImmutableMap.of( CommonColumns.DST_ENTITY_SET_ID, linkingSets );
+        Map<CommonColumns, Set<UUID>> edgeSelectionByEdgeSet = ImmutableMap.of( CommonColumns.EDGE_ENTITY_SET_ID, linkingSets );
 
-        lm.getEdges( edgeSelection ).flatMap( edge -> mergeEdgeAsync( linkedEntitySetId, syncId, edge ).stream() )
+        Stream.of( lm.getEdges( edgeSelectionBySrcSet ), lm.getEdges( edgeSelectionByDstSet ), lm.getEdges( edgeSelectionByEdgeSet ) )
+        .reduce( Stream::concat )
+        .orElseGet( Stream::empty )
+        .flatMap( edge -> mergeEdgeAsync( linkedEntitySetId, syncId, edge ).stream() )
                 .forEach( ResultSetFuture::getUninterruptibly );
     }
 
@@ -254,33 +260,40 @@ public class LinkingService {
     }
 
     private List<ResultSetFuture> mergeEdgeAsync( UUID linkedEntitySetId, UUID syncId, LoomEdge edge ) {
-        UUID newSrcEntitySetId = edge.getSrcSetId();
-        UUID newDstEntitySetId = edge.getDstSetId();
-        UUID newEdgeEntitySetId = edge.getEdgeSetId();
+        UUID srcEntitySetId = edge.getSrcSetId();
+        UUID dstEntitySetId = edge.getDstSetId();
+        UUID edgeEntitySetId = edge.getEdgeSetId();
 
-        UUID newSrcId = vms.getMergedId( linkedEntitySetId, edge.getKey().getSrcEntityKeyId() );
+        UUID srcId = edge.getKey().getSrcEntityKeyId();
+        UUID dstId = edge.getKey().getDstEntityKeyId();
+        UUID edgeId = edge.getKey().getEdgeEntityKeyId();
+        
+        UUID newSrcId = vms.getMergedId( linkedEntitySetId, srcId );
         if ( newSrcId != null ) {
-            newSrcEntitySetId = linkedEntitySetId;
-        }
-        UUID newDstId = vms.getMergedId( linkedEntitySetId, edge.getKey().getDstEntityKeyId() );
+            srcEntitySetId = linkedEntitySetId;
+            srcId = newSrcId;
+        } 
+        UUID newDstId = vms.getMergedId( linkedEntitySetId, dstId );
         if ( newDstId != null ) {
-            newDstEntitySetId = linkedEntitySetId;
+            dstEntitySetId = linkedEntitySetId;
+            dstId = newDstId;
         }
-        UUID newEdgeId = vms.getMergedId( linkedEntitySetId, edge.getKey().getEdgeEntityKeyId() );
+        UUID newEdgeId = vms.getMergedId( linkedEntitySetId, edgeId );
         if ( newEdgeId != null ) {
-            newEdgeEntitySetId = linkedEntitySetId;
+            edgeEntitySetId = linkedEntitySetId;
+            edgeId = newEdgeId;
         }
 
         lm.deleteEdge( edge.getKey() );
-        return lm.addEdgeAsync( newSrcId,
-                dms.getEntitySet( newSrcEntitySetId ).getEntityTypeId(),
-                newSrcEntitySetId,
-                newDstId,
-                dms.getEntitySet( newDstEntitySetId ).getEntityTypeId(),
-                newDstEntitySetId,
-                newEdgeId,
-                dms.getEntitySet( newEdgeEntitySetId ).getEntityTypeId(),
-                newEdgeEntitySetId );
+        return lm.addEdgeAsync( srcId,
+                dms.getEntitySet( srcEntitySetId ).getEntityTypeId(),
+                srcEntitySetId,
+                dstId,
+                dms.getEntitySet( dstEntitySetId ).getEntityTypeId(),
+                dstEntitySetId,
+                edgeId,
+                dms.getEntitySet( edgeEntitySetId ).getEntityTypeId(),
+                edgeEntitySetId );
     }
 
     private LinkingEdge fromUnorderedPair( UUID graphId, UnorderedPair<Entity> p ) {

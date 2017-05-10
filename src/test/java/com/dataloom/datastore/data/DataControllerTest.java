@@ -46,7 +46,6 @@ import com.google.common.collect.SetMultimap;
 public class DataControllerTest extends MultipleAuthenticatedUsersBase {
 
     private static final int    numberOfEntries = 10;
-    private static final UUID   syncId          = UUIDs.timeBased();
     private static final Random random          = new Random();
 
     @BeforeClass
@@ -58,7 +57,8 @@ public class DataControllerTest extends MultipleAuthenticatedUsersBase {
     public void testCreateAndLoadEntityData() {
         EntityType et = createEntityType();
         EntitySet es = createEntitySet( et );
-
+        UUID syncId = syncApi.getCurrentSyncId( es.getId() );
+        
         dataApi.createEntityData( es.getId(),
                 syncId,
                 TestDataFactory.randomStringEntityData( numberOfEntries, et.getProperties() ) );
@@ -71,7 +71,8 @@ public class DataControllerTest extends MultipleAuthenticatedUsersBase {
     public void testLoadSelectedEntityData() {
         EntityType et = createEntityType();
         EntitySet es = createEntitySet( et );
-
+        UUID syncId = syncApi.getCurrentSyncId( es.getId() );
+        
         Map<String, SetMultimap<UUID, Object>> entities = TestDataFactory.randomStringEntityData( numberOfEntries,
                 et.getProperties() );
         dataApi.createEntityData( es.getId(), syncId, entities );
@@ -111,7 +112,8 @@ public class DataControllerTest extends MultipleAuthenticatedUsersBase {
     public void testSyncTicketService() {
         EntityType et = createEntityType();
         EntitySet es = createEntitySet( et );
-
+        UUID syncId = syncApi.getCurrentSyncId( es.getId() );
+        
         UUID ticket = dataApi.acquireSyncTicket( es.getId(), syncId );
 
         dataApi.storeEntityData( ticket,

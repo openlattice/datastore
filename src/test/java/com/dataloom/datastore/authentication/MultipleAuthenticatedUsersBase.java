@@ -42,6 +42,7 @@ import com.dataloom.mapstores.TestDataFactory;
 import com.dataloom.organization.OrganizationsApi;
 import com.dataloom.requests.RequestsApi;
 import com.dataloom.search.SearchApi;
+import com.dataloom.sync.SyncApi;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableSet;
 
@@ -57,6 +58,7 @@ public class MultipleAuthenticatedUsersBase extends BootstrapDatastoreWithCassan
     protected static DataApi               dataApi;
     protected static SearchApi             searchApi;
     protected static OrganizationsApi      organizationsApi;
+    protected static SyncApi               syncApi;
 
     static {
         retrofitMap.put( "admin", retrofit );
@@ -82,6 +84,7 @@ public class MultipleAuthenticatedUsersBase extends BootstrapDatastoreWithCassan
         dataApi = currentRetrofit.create( DataApi.class );
         searchApi = currentRetrofit.create( SearchApi.class );
         organizationsApi = currentRetrofit.create( OrganizationsApi.class );
+        syncApi = currentRetrofit.create( SyncApi.class );
     }
 
     /**

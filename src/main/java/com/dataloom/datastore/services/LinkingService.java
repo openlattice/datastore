@@ -228,6 +228,7 @@ public class LinkingService {
 
     private void mergeEdges( UUID linkedEntitySetId, Set<UUID> linkingSets, UUID syncId ) {
         logger.debug( "Linking: Merging edges..." );
+        logger.debug( "Linking Sets: {}", linkingSets );
         Map<CommonColumns, Set<UUID>> edgeSelectionBySrcSet = ImmutableMap.of( CommonColumns.SRC_ENTITY_SET_ID, linkingSets );
         Map<CommonColumns, Set<UUID>> edgeSelectionByDstSet = ImmutableMap.of( CommonColumns.DST_ENTITY_SET_ID, linkingSets );
         Map<CommonColumns, Set<UUID>> edgeSelectionByEdgeSet = ImmutableMap.of( CommonColumns.EDGE_ENTITY_SET_ID, linkingSets );

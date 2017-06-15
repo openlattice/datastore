@@ -646,7 +646,7 @@ public class EdmController implements EdmApi, AuthorizingComponent {
 
     @Override
     @RequestMapping(
-        path =  PROPERTY_TYPE_PATH + "/" + NAMESPACE + NAMESPACE_PATH,
+        path = PROPERTY_TYPE_PATH + "/" + NAMESPACE + NAMESPACE_PATH,
         method = RequestMethod.GET,
         produces = MediaType.APPLICATION_JSON_VALUE )
     public Iterable<PropertyType> getPropertyTypesInNamespace( @PathVariable( NAMESPACE ) String namespace ) {
@@ -775,10 +775,19 @@ public class EdmController implements EdmApi, AuthorizingComponent {
 
     @Override
     @RequestMapping(
-            path = ASSOCIATION_TYPE_PATH + ID_PATH + DETAILED_PATH,
-            method = RequestMethod.GET,
-            produces = MediaType.APPLICATION_JSON_VALUE )
+        path = ASSOCIATION_TYPE_PATH + ID_PATH + DETAILED_PATH,
+        method = RequestMethod.GET,
+        produces = MediaType.APPLICATION_JSON_VALUE )
     public AssociationDetails getAssociationDetailsForType( @PathVariable( ID ) UUID associationTypeId ) {
         return modelService.getAssociationDetails( associationTypeId );
+    }
+
+    @Override
+    @RequestMapping(
+        path = ASSOCIATION_TYPE_PATH + ID_PATH + AVAILABLE_PATH,
+        method = RequestMethod.GET,
+        produces = MediaType.APPLICATION_JSON_VALUE )
+    public Iterable<EntityType> getAvailableAssociationTypesForEntityType( @PathVariable( ID ) UUID entityTypeId ) {
+        return modelService.getAvailableAssociationTypesForEntityType( entityTypeId );
     }
 }

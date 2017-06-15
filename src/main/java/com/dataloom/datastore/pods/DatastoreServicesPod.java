@@ -62,6 +62,7 @@ import com.dataloom.graph.core.LoomGraph;
 import com.dataloom.linking.CassandraLinkingGraphsQueryService;
 import com.dataloom.linking.HazelcastLinkingGraphs;
 import com.dataloom.linking.HazelcastListingService;
+import com.dataloom.linking.HazelcastVertexMergingService;
 import com.dataloom.linking.components.Blocker;
 import com.dataloom.linking.components.Clusterer;
 import com.dataloom.linking.components.Matcher;
@@ -193,7 +194,7 @@ public class DatastoreServicesPod {
 
     @Bean
     public HazelcastLinkingGraphs linkingGraph() {
-        return new HazelcastLinkingGraphs( hazelcastInstance );
+        return new HazelcastLinkingGraphs( hazelcastInstance, cgqs() );
     }
 
     @Bean
@@ -345,8 +346,13 @@ public class DatastoreServicesPod {
                 eventBus,
                 hazelcastListingService(),
                 dataModelService(),
+                dataGraphService(),
+                datasourceManager(),
                 cassandraDataManager(),
-                datasourceManager() );
+                loomGraph(),
+                idService(),
+                vms(),
+                defaultObjectMapper() );
     }
 
     @Bean
@@ -380,21 +386,26 @@ public class DatastoreServicesPod {
                 eventBus );
     }
 
+    @Bean
+    public HazelcastVertexMergingService vms() {
+        return new HazelcastVertexMergingService( hazelcastInstance );
+    }
+
     // Startup scripts
     @PostConstruct
     public void scripts() {
-        //Populate entity set contacts
-//        new EntitySetContactsPopulator(
-//                cassandraConfiguration.getKeyspace(),
-//                session,
-//                dataModelService(),
-//                userDirectoryService(),
-//                hazelcastInstance ).run();
+        // Populate entity set contacts
+        // new EntitySetContactsPopulator(
+        // cassandraConfiguration.getKeyspace(),
+        // session,
+        // dataModelService(),
+        // userDirectoryService(),
+        // hazelcastInstance ).run();
 
-        //Remove empty permissions
+        // Remove empty permissions
         new EmptyPermissionRemover( cassandraConfiguration.getKeyspace(), session ).run();
 
-        //Create default organization and roles
-        //new DefaultOrganizationCreator( organizationsManager(), rolesService() ).run();
+        // Create default organization and roles
+        // new DefaultOrganizationCreator( organizationsManager(), rolesService() ).run();
     }
 }

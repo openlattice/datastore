@@ -22,22 +22,16 @@ import com.kryptnostic.datastore.services.EdmManager;
 
 /**
  * The most basic version of Matcher. Use Jaro-Winkler to calculate scores.
- *
  */
 public class SimpleMatcher implements Matcher {
-    private static final Logger     logger          = LoggerFactory
+    private static final Logger          logger          = LoggerFactory
             .getLogger( SimpleMatcher.class );
-
-    private SetMultimap<UUID, UUID> linkIndexedByPropertyTypes;
-    private Set<UUID>               linkingProperties;
-
-    private Map<UUID, Double>       weights;
-
-    private static DoubleMetaphone  doubleMetaphone = new DoubleMetaphone();
-
-    private static final double     MAX_DISTANCE    = Double.POSITIVE_INFINITY;
-
-    private final EdmManager        dms;
+    private static final double          MAX_DISTANCE    = Double.POSITIVE_INFINITY;
+    private static       DoubleMetaphone doubleMetaphone = new DoubleMetaphone();
+    private final EdmManager              dms;
+    private       SetMultimap<UUID, UUID> linkIndexedByPropertyTypes;
+    private       Set<UUID>               linkingProperties;
+    private       Map<UUID, Double>       weights;
 
     public SimpleMatcher(
             EdmManager dms ) {
@@ -119,11 +113,15 @@ public class SimpleMatcher implements Matcher {
     private double getDefaultUnnormalizedWeight( UUID propertyTypeId ) {
         String propertyName = getPropertyName( propertyTypeId );
         if ( propertyName.contains( "year" ) || propertyName.contains( "date" ) || propertyName.contains( "dob" )
-                || propertyName.contains( "id" ) || propertyName.contains( "ssn" ) ) {
+                || propertyName.contains( "id" ) || propertyName.contains( "ssn" ) || propertyName
+                .contains( "PersonSex" ) ) {
             return 10;
         } else if ( propertyName.contains( "name" ) || propertyName.contains( "firstname" )
-                || propertyName.contains( "lastname" ) ) {
+                || propertyName.contains( "lastname" ) || propertyName.contains( "GivenName" ) || propertyName
+                .contains( "SurName" ) ) {
             return 7;
+        } else if ( propertyName.contains( "Race" ) ) {
+            return 4;
         }
         return 1;
     }
@@ -163,8 +161,7 @@ public class SimpleMatcher implements Matcher {
 
     /**
      * Use Jaro-Winkler for now.
-     * 
-     * @param link
+     *
      * @param val0
      * @param val1
      * @return
@@ -177,6 +174,8 @@ public class SimpleMatcher implements Matcher {
             case "name":
             case "firstname":
             case "lastname":
+            case "PersonGivenName":
+            case "PersonSurName":
                 String newVal0 = doubleMetaphone.encode( val0 );
                 String newVal1 = doubleMetaphone.encode( val1 );
                 if ( newVal0 == null || newVal1 == null ) {

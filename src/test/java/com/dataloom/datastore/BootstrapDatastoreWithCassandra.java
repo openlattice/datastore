@@ -38,8 +38,8 @@ import com.dataloom.data.storage.CassandraEntityDatastore;
 import com.kryptnostic.datastore.services.EdmManager;
 import com.kryptnostic.rhizome.pods.SparkPod;
 
-import digital.loom.rhizome.authentication.AuthenticationTest;
-import digital.loom.rhizome.authentication.AuthenticationTestRequestOptions;
+import com.openlattice.authentication.AuthenticationTest;
+import com.openlattice.authentication.AuthenticationTestRequestOptions;
 import retrofit2.Retrofit;
 
 public class BootstrapDatastoreWithCassandra extends CassandraBootstrap {

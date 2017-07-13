@@ -12,6 +12,7 @@ import org.slf4j.LoggerFactory;
 import com.dataloom.authorization.Permission;
 import com.dataloom.authorization.Principal;
 import com.dataloom.edm.EntitySet;
+import com.dataloom.edm.type.AssociationType;
 import com.dataloom.edm.type.EntityType;
 import com.dataloom.edm.type.PropertyType;
 import com.dataloom.linking.Entity;
@@ -325,6 +326,17 @@ public class DatastoreConductorElasticsearchApi implements ConductorElasticsearc
             return false;
         }
     }
+    
+    @Override
+    public boolean saveAssociationTypeToElasticsearch( AssociationType associationType ) {
+        try {
+            return executor.submit( ConductorElasticsearchCall
+                    .wrap( ElasticsearchLambdas.saveAssociationTypeToElasticsearch( associationType ) ) ).get();
+        } catch ( InterruptedException | ExecutionException e ) {
+            logger.debug( "unable to save association type to elasticsearch" );
+            return false;
+        }
+    }
 
     @Override
     public boolean savePropertyTypeToElasticsearch( PropertyType propertyType ) {
@@ -344,6 +356,17 @@ public class DatastoreConductorElasticsearchApi implements ConductorElasticsearc
                     .wrap( ElasticsearchLambdas.deleteEntityType( entityTypeId ) ) ).get();
         } catch ( InterruptedException | ExecutionException e ) {
             logger.debug( "unable to delete entity type from elasticsearch" );
+            return false;
+        }
+    }
+    
+    @Override
+    public boolean deleteAssociationType( UUID associationTypeId ) {
+        try {
+            return executor.submit( ConductorElasticsearchCall
+                    .wrap( ElasticsearchLambdas.deleteAssociationType( associationTypeId ) ) ).get();
+        } catch ( InterruptedException | ExecutionException e ) {
+            logger.debug( "unable to delete association type from elasticsearch" );
             return false;
         }
     }
@@ -371,6 +394,22 @@ public class DatastoreConductorElasticsearchApi implements ConductorElasticsearc
             return queryResults;
         } catch ( InterruptedException | ExecutionException e ) {
             logger.debug( "unable to execute entity type search" );
+            return new SearchResult( 0, Lists.newArrayList() );
+        }
+    }
+    
+    @Override
+    public SearchResult executeAssociationTypeSearch( String searchTerm, int start, int maxHits ) {
+        try {
+            SearchResult queryResults = executor.submit( ConductorElasticsearchCall.wrap(
+                    ElasticsearchLambdas.executeAssociationTypeSearch(
+                            searchTerm,
+                            start,
+                            maxHits ) ) )
+                    .get();
+            return queryResults;
+        } catch ( InterruptedException | ExecutionException e ) {
+            logger.debug( "unable to execute association type search" );
             return new SearchResult( 0, Lists.newArrayList() );
         }
     }

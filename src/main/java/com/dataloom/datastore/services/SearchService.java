@@ -49,6 +49,8 @@ import com.dataloom.data.events.EntityDataDeletedEvent;
 import com.dataloom.data.requests.NeighborEntityDetails;
 import com.dataloom.data.storage.CassandraEntityDatastore;
 import com.dataloom.edm.EntitySet;
+import com.dataloom.edm.events.AssociationTypeCreatedEvent;
+import com.dataloom.edm.events.AssociationTypeDeletedEvent;
 import com.dataloom.edm.events.EntitySetCreatedEvent;
 import com.dataloom.edm.events.EntitySetDeletedEvent;
 import com.dataloom.edm.events.EntitySetMetadataUpdatedEvent;
@@ -57,6 +59,7 @@ import com.dataloom.edm.events.EntityTypeDeletedEvent;
 import com.dataloom.edm.events.PropertyTypeCreatedEvent;
 import com.dataloom.edm.events.PropertyTypeDeletedEvent;
 import com.dataloom.edm.events.PropertyTypesInEntitySetUpdatedEvent;
+import com.dataloom.edm.type.AssociationType;
 import com.dataloom.edm.type.EntityType;
 import com.dataloom.edm.type.PropertyType;
 import com.dataloom.graph.core.LoomGraphApi;
@@ -322,6 +325,12 @@ public class SearchService {
         EntityType entityType = event.getEntityType();
         elasticsearchApi.saveEntityTypeToElasticsearch( entityType );
     }
+    
+    @Subscribe
+    public void createAssociationType( AssociationTypeCreatedEvent event ) {
+        AssociationType associationType = event.getAssociationType();
+        elasticsearchApi.saveAssociationTypeToElasticsearch( associationType );
+    }
 
     @Subscribe
     public void createPropertyType( PropertyTypeCreatedEvent event ) {
@@ -334,6 +343,12 @@ public class SearchService {
         UUID entityTypeId = event.getEntityTypeId();
         elasticsearchApi.deleteEntityType( entityTypeId );
     }
+    
+    @Subscribe
+    public void deleteAssociationType( AssociationTypeDeletedEvent event ) {
+        UUID associationTypeId = event.getAssociationTypeId();
+        elasticsearchApi.deleteAssociationType( associationTypeId );
+    }
 
     @Subscribe
     public void deletePropertyType( PropertyTypeDeletedEvent event ) {
@@ -343,6 +358,10 @@ public class SearchService {
 
     public SearchResult executeEntityTypeSearch( String searchTerm, int start, int maxHits ) {
         return elasticsearchApi.executeEntityTypeSearch( searchTerm, start, maxHits );
+    }
+    
+    public SearchResult executeAssociationTypeSearch( String searchTerm, int start, int maxHits ) {
+        return elasticsearchApi.executeAssociationTypeSearch( searchTerm, start, maxHits );
     }
 
     public SearchResult executePropertyTypeSearch( String searchTerm, int start, int maxHits ) {

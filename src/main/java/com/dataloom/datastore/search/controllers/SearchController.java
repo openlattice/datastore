@@ -51,6 +51,7 @@ import com.dataloom.search.requests.FQNSearchTerm;
 import com.dataloom.search.requests.Search;
 import com.dataloom.search.requests.SearchResult;
 import com.dataloom.search.requests.SearchTerm;
+import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.kryptnostic.datastore.services.EdmService;
@@ -112,6 +113,22 @@ public class SearchController implements SearchApi, AuthorizingComponent {
         }
 
         return entitySets;
+    }
+
+    @RequestMapping(
+        path = { HOME + START_PATH + NUM_RESULTS_PATH },
+        method = RequestMethod.GET,
+        produces = { MediaType.APPLICATION_JSON_VALUE } )
+    @Override
+    public SearchResult getHomePageEntitySets(
+            @PathVariable( START ) int start,
+            @PathVariable( NUM_RESULTS ) int maxHits ) {
+        return searchService
+                .executeEntitySetKeywordSearchQuery( Optional.of( "*" ),
+                        Optional.absent(),
+                        Optional.absent(),
+                        start,
+                        maxHits );
     }
 
     @Override
@@ -212,13 +229,13 @@ public class SearchController implements SearchApi, AuthorizingComponent {
     }
 
     @RequestMapping(
-            path = { ENTITY_SET_ID_PATH + ENTITY_ID_PATH },
-            method = RequestMethod.GET,
-            produces = { MediaType.APPLICATION_JSON_VALUE } )
+        path = { ENTITY_SET_ID_PATH + ENTITY_ID_PATH },
+        method = RequestMethod.GET,
+        produces = { MediaType.APPLICATION_JSON_VALUE } )
     @Override
     public List<NeighborEntityDetails> executeEntityNeighborSearch(
             @PathVariable( ENTITY_SET_ID ) UUID entitySetId,
-            @PathVariable( ENTITY_ID ) UUID entityId) {
+            @PathVariable( ENTITY_ID ) UUID entityId ) {
         if ( authorizations.checkIfHasPermissions( ImmutableList.of( entitySetId ),
                 Principals.getCurrentPrincipals(),
                 EnumSet.of( Permission.READ ) ) ) {

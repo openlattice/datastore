@@ -192,6 +192,17 @@ public class SearchController implements SearchApi, AuthorizingComponent {
                 searchTerm.getStart(),
                 searchTerm.getMaxHits() );
     }
+    
+    @RequestMapping(
+            path = { ASSOCIATION_TYPES },
+            method = RequestMethod.POST,
+            produces = { MediaType.APPLICATION_JSON_VALUE } )
+        @Override
+        public SearchResult executeAssociationTypeSearch( @RequestBody SearchTerm searchTerm ) {
+            return searchService.executeAssociationTypeSearch( searchTerm.getSearchTerm(),
+                    searchTerm.getStart(),
+                    searchTerm.getMaxHits() );
+        }
 
     @RequestMapping(
         path = { PROPERTY_TYPES },

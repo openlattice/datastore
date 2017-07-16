@@ -766,6 +766,54 @@ public class EdmController implements EdmApi, AuthorizingComponent {
 
     @Override
     @RequestMapping(
+        path = ASSOCIATION_TYPE_PATH + ASSOCIATION_TYPE_ID_PATH + SRC_PATH + ENTITY_TYPE_ID_PATH,
+        method = RequestMethod.PUT )
+    public Void addSrcEntityTypeToAssociationType(
+            @PathVariable( ASSOCIATION_TYPE_ID ) UUID associationTypeId,
+            @PathVariable( ENTITY_TYPE_ID ) UUID entityTypeId ) {
+        ensureAdminAccess();
+        modelService.addSrcEntityTypesToAssociationType( associationTypeId, ImmutableSet.of( entityTypeId ) );
+        return null;
+    }
+
+    @Override
+    @RequestMapping(
+            path = ASSOCIATION_TYPE_PATH + ASSOCIATION_TYPE_ID_PATH + DST_PATH + ENTITY_TYPE_ID_PATH,
+            method = RequestMethod.PUT )
+    public Void addDstEntityTypeToAssociationType(
+            @PathVariable( ASSOCIATION_TYPE_ID ) UUID associationTypeId,
+            @PathVariable( ENTITY_TYPE_ID ) UUID entityTypeId ) {
+        ensureAdminAccess();
+        modelService.addDstEntityTypesToAssociationType( associationTypeId, ImmutableSet.of( entityTypeId ) );
+        return null;
+    }
+
+    @Override
+    @RequestMapping(
+            path = ASSOCIATION_TYPE_PATH + ASSOCIATION_TYPE_ID_PATH + SRC_PATH + ENTITY_TYPE_ID_PATH,
+            method = RequestMethod.DELETE )
+    public Void removeSrcEntityTypeFromAssociationType(
+            @PathVariable( ASSOCIATION_TYPE_ID ) UUID associationTypeId,
+            @PathVariable( ENTITY_TYPE_ID ) UUID entityTypeId ) {
+        ensureAdminAccess();
+        modelService.removeSrcEntityTypesFromAssociationType( associationTypeId, ImmutableSet.of( entityTypeId ) );
+        return null;
+    }
+
+    @Override
+    @RequestMapping(
+            path = ASSOCIATION_TYPE_PATH + ASSOCIATION_TYPE_ID_PATH + DST_PATH + ENTITY_TYPE_ID_PATH,
+            method = RequestMethod.DELETE )
+    public Void removeDstEntityTypeFromAssociationType(
+            @PathVariable( ASSOCIATION_TYPE_ID ) UUID associationTypeId,
+            @PathVariable( ENTITY_TYPE_ID ) UUID entityTypeId ) {
+        ensureAdminAccess();
+        modelService.removeDstEntityTypesFromAssociationType( associationTypeId, ImmutableSet.of( entityTypeId ) );
+        return null;
+    }
+
+    @Override
+    @RequestMapping(
         path = ASSOCIATION_TYPE_PATH + ID_PATH,
         method = RequestMethod.GET,
         produces = MediaType.APPLICATION_JSON_VALUE )

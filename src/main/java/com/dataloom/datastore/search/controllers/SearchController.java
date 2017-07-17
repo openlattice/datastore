@@ -116,7 +116,7 @@ public class SearchController implements SearchApi, AuthorizingComponent {
     }
 
     @RequestMapping(
-        path = { HOME + ENTITY_SETS + NUM_RESULTS_PATH },
+        path = { ENTITY_SETS + START_PATH + NUM_RESULTS_PATH },
         method = RequestMethod.GET,
         produces = { MediaType.APPLICATION_JSON_VALUE } )
     @Override

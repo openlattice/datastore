@@ -116,11 +116,11 @@ public class SearchController implements SearchApi, AuthorizingComponent {
     }
 
     @RequestMapping(
-        path = { HOME + START_PATH + NUM_RESULTS_PATH },
+        path = { HOME + ENTITY_SETS + NUM_RESULTS_PATH },
         method = RequestMethod.GET,
         produces = { MediaType.APPLICATION_JSON_VALUE } )
     @Override
-    public SearchResult getHomePageEntitySets(
+    public SearchResult getEntitySets(
             @PathVariable( START ) int start,
             @PathVariable( NUM_RESULTS ) int maxHits ) {
         return searchService

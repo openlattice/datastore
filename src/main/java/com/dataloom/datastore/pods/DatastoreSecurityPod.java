@@ -19,6 +19,7 @@
 
 package com.dataloom.datastore.pods;
 
+import com.ryantenney.metrics.spring.config.annotation.EnableMetrics;
 import javax.inject.Inject;
 
 import org.springframework.context.annotation.Configuration;
@@ -42,6 +43,7 @@ import digital.loom.rhizome.authentication.ConfigurableAuth0AuthenticationProvid
     prePostEnabled = true )
 @EnableWebSecurity(
     debug = false )
+@EnableMetrics
 public class DatastoreSecurityPod extends Auth0SecurityPod {
 
     @Inject

@@ -22,6 +22,7 @@ package com.dataloom.datastore.edm.controllers;
 import java.util.Arrays;
 import java.util.EnumSet;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -593,6 +594,19 @@ public class EdmController implements EdmApi, AuthorizingComponent {
 
     @Override
     @RequestMapping(
+        path = ENTITY_TYPE_PATH + ENTITY_TYPE_ID_PATH + PROPERTY_TYPE_PATH,
+        method = RequestMethod.PATCH )
+    @ResponseStatus( HttpStatus.OK )
+    public Void reorderPropertyTypesInEntityType(
+            @PathVariable( ENTITY_TYPE_ID ) UUID entityTypeId,
+            @RequestBody LinkedHashSet<UUID> propertyTypeIds ) {
+        ensureAdminAccess();
+        modelService.reorderPropertyTypesInEntityType( entityTypeId, propertyTypeIds );
+        return null;
+    }
+
+    @Override
+    @RequestMapping(
         path = ENTITY_TYPE_PATH + ID_PATH,
         method = RequestMethod.DELETE )
     @ResponseStatus( HttpStatus.OK )
@@ -778,8 +792,8 @@ public class EdmController implements EdmApi, AuthorizingComponent {
 
     @Override
     @RequestMapping(
-            path = ASSOCIATION_TYPE_PATH + ASSOCIATION_TYPE_ID_PATH + DST_PATH + ENTITY_TYPE_ID_PATH,
-            method = RequestMethod.PUT )
+        path = ASSOCIATION_TYPE_PATH + ASSOCIATION_TYPE_ID_PATH + DST_PATH + ENTITY_TYPE_ID_PATH,
+        method = RequestMethod.PUT )
     public Void addDstEntityTypeToAssociationType(
             @PathVariable( ASSOCIATION_TYPE_ID ) UUID associationTypeId,
             @PathVariable( ENTITY_TYPE_ID ) UUID entityTypeId ) {
@@ -790,8 +804,8 @@ public class EdmController implements EdmApi, AuthorizingComponent {
 
     @Override
     @RequestMapping(
-            path = ASSOCIATION_TYPE_PATH + ASSOCIATION_TYPE_ID_PATH + SRC_PATH + ENTITY_TYPE_ID_PATH,
-            method = RequestMethod.DELETE )
+        path = ASSOCIATION_TYPE_PATH + ASSOCIATION_TYPE_ID_PATH + SRC_PATH + ENTITY_TYPE_ID_PATH,
+        method = RequestMethod.DELETE )
     public Void removeSrcEntityTypeFromAssociationType(
             @PathVariable( ASSOCIATION_TYPE_ID ) UUID associationTypeId,
             @PathVariable( ENTITY_TYPE_ID ) UUID entityTypeId ) {
@@ -802,8 +816,8 @@ public class EdmController implements EdmApi, AuthorizingComponent {
 
     @Override
     @RequestMapping(
-            path = ASSOCIATION_TYPE_PATH + ASSOCIATION_TYPE_ID_PATH + DST_PATH + ENTITY_TYPE_ID_PATH,
-            method = RequestMethod.DELETE )
+        path = ASSOCIATION_TYPE_PATH + ASSOCIATION_TYPE_ID_PATH + DST_PATH + ENTITY_TYPE_ID_PATH,
+        method = RequestMethod.DELETE )
     public Void removeDstEntityTypeFromAssociationType(
             @PathVariable( ASSOCIATION_TYPE_ID ) UUID associationTypeId,
             @PathVariable( ENTITY_TYPE_ID ) UUID entityTypeId ) {

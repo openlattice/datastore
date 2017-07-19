@@ -220,7 +220,7 @@ public class EdmControllerTests extends BootstrapDatastoreWithCassandra {
         String newTitle = RandomStringUtils.randomAlphanumeric( 5 );
         String newDescription = RandomStringUtils.randomAlphanumeric( 5 );
 
-        edm.updatePropertyTypeMetadata( pt.getId(), new MetadataUpdate( Optional.of( newTitle ), Optional.of( newDescription ), Optional.absent(), Optional.absent(), Optional.absent() ) );
+        edm.updatePropertyTypeMetadata( pt.getId(), new MetadataUpdate( Optional.of( newTitle ), Optional.of( newDescription ), Optional.absent(), Optional.absent(), Optional.absent(), Optional.absent() ) );
 
         PropertyType updatedPt = edm.getPropertyType( pt.getId() );
         Assert.assertEquals( newTitle, updatedPt.getTitle() );
@@ -233,7 +233,7 @@ public class EdmControllerTests extends BootstrapDatastoreWithCassandra {
 
         FullQualifiedName newPtFqn = TestDataFactory.fqn();
         
-        edm.updatePropertyTypeMetadata( pt.getId(), new MetadataUpdate( Optional.absent(), Optional.absent(), Optional.absent(), Optional.absent(), Optional.of( newPtFqn ) ) );
+        edm.updatePropertyTypeMetadata( pt.getId(), new MetadataUpdate( Optional.absent(), Optional.absent(), Optional.absent(), Optional.absent(), Optional.of( newPtFqn ), Optional.absent() ) );
 
         PropertyType updatedPt = edm.getPropertyType( pt.getId() );
         Assert.assertEquals( newPtFqn, updatedPt.getType() );
@@ -246,7 +246,7 @@ public class EdmControllerTests extends BootstrapDatastoreWithCassandra {
         String newTitle = RandomStringUtils.randomAlphanumeric( 5 );
         String newDescription = RandomStringUtils.randomAlphanumeric( 5 );
 
-        edm.updateEntityTypeMetadata( et.getId(), new MetadataUpdate( Optional.of( newTitle ), Optional.of( newDescription ), Optional.absent(), Optional.absent(), Optional.absent() ) );
+        edm.updateEntityTypeMetadata( et.getId(), new MetadataUpdate( Optional.of( newTitle ), Optional.of( newDescription ), Optional.absent(), Optional.absent(), Optional.absent(), Optional.absent() ) );
 
         EntityType updatedEt = edm.getEntityType( et.getId() );
         Assert.assertEquals( newTitle, updatedEt.getTitle() );
@@ -259,7 +259,7 @@ public class EdmControllerTests extends BootstrapDatastoreWithCassandra {
 
         FullQualifiedName newEtFqn = TestDataFactory.fqn();
         
-        edm.updateEntityTypeMetadata( et.getId(), new MetadataUpdate( Optional.absent(), Optional.absent(), Optional.absent(), Optional.absent(), Optional.of( newEtFqn ) ) );
+        edm.updateEntityTypeMetadata( et.getId(), new MetadataUpdate( Optional.absent(), Optional.absent(), Optional.absent(), Optional.absent(), Optional.of( newEtFqn ), Optional.absent() ) );
 
         EntityType updatedEt = edm.getEntityType( et.getId() );
         Assert.assertEquals( newEtFqn, updatedEt.getType() );
@@ -273,7 +273,7 @@ public class EdmControllerTests extends BootstrapDatastoreWithCassandra {
         String newDescription = RandomStringUtils.randomAlphanumeric( 5 );
         Set<String> newContacts = new HashSet<>(Arrays.asList( RandomStringUtils.randomAlphanumeric( 5 ), RandomStringUtils.randomAlphanumeric( 5 ) ));
         
-        edm.updateEntitySetMetadata( es.getId(), new MetadataUpdate( Optional.of( newTitle ), Optional.of( newDescription ), Optional.absent(), Optional.of( newContacts ), Optional.absent() ) );
+        edm.updateEntitySetMetadata( es.getId(), new MetadataUpdate( Optional.of( newTitle ), Optional.of( newDescription ), Optional.absent(), Optional.of( newContacts ), Optional.absent(), Optional.absent() ) );
 
         EntitySet updatedEs = edm.getEntitySet( es.getId() );
         Assert.assertEquals( newTitle, updatedEs.getTitle() );
@@ -287,7 +287,7 @@ public class EdmControllerTests extends BootstrapDatastoreWithCassandra {
 
         String newEsName = TestDataFactory.name();
         
-        edm.updateEntitySetMetadata( es.getId(), new MetadataUpdate( Optional.absent(), Optional.absent(), Optional.of( newEsName ), Optional.absent(), Optional.absent() ) );
+        edm.updateEntitySetMetadata( es.getId(), new MetadataUpdate( Optional.absent(), Optional.absent(), Optional.of( newEsName ), Optional.absent(), Optional.absent(), Optional.absent() ) );
 
         EntitySet updatedEs = edm.getEntitySet( es.getId() );
         Assert.assertEquals( newEsName, updatedEs.getName() );

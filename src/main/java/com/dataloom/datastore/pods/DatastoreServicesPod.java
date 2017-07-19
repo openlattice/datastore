@@ -210,6 +210,7 @@ public class DatastoreServicesPod {
     public CassandraEntityDatastore cassandraDataManager() {
         return new CassandraEntityDatastore(
                 session,
+                hazelcastInstance,
                 defaultObjectMapper(),
                 linkingGraph(),
                 loomGraph(),

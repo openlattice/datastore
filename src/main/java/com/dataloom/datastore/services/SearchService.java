@@ -19,20 +19,6 @@
 
 package com.dataloom.datastore.services;
 
-import java.util.EnumSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
-import java.util.stream.Collectors;
-
-import javax.annotation.PostConstruct;
-import javax.inject.Inject;
-
-import org.apache.olingo.commons.api.edm.FullQualifiedName;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.dataloom.authorization.AbstractSecurableObjectResolveTypeService;
 import com.dataloom.authorization.AuthorizationManager;
 import com.dataloom.authorization.EdmAuthorizationHelper;
@@ -85,39 +71,51 @@ import com.google.common.collect.Sets;
 import com.google.common.eventbus.EventBus;
 import com.google.common.eventbus.Subscribe;
 import com.kryptnostic.datastore.services.EdmManager;
+import java.util.EnumSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+import java.util.stream.Collectors;
+import javax.annotation.PostConstruct;
+import javax.inject.Inject;
+import org.apache.commons.lang3.tuple.Pair;
+import org.apache.olingo.commons.api.edm.FullQualifiedName;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class SearchService {
-    private static final Logger                       logger = LoggerFactory.getLogger( SearchService.class );
+    private static final Logger logger = LoggerFactory.getLogger( SearchService.class );
 
     @Inject
-    private EventBus                                  eventBus;
+    private EventBus eventBus;
 
     @Inject
-    private AuthorizationManager                      authorizations;
+    private AuthorizationManager authorizations;
 
     @Inject
     private AbstractSecurableObjectResolveTypeService securableObjectTypes;
 
     @Inject
-    private DatastoreConductorElasticsearchApi        elasticsearchApi;
+    private DatastoreConductorElasticsearchApi elasticsearchApi;
 
     @Inject
-    private DatasourceManager                         datasourceManager;
+    private DatasourceManager datasourceManager;
 
     @Inject
-    private EdmManager                                dataModelService;
+    private EdmManager dataModelService;
 
     @Inject
-    private LoomGraphApi                              graphApi;
+    private LoomGraphApi graphApi;
 
     @Inject
-    private CassandraEntityDatastore                  dataManager;
+    private CassandraEntityDatastore dataManager;
 
     @Inject
-    private EdmAuthorizationHelper                    authzHelper;
+    private EdmAuthorizationHelper authzHelper;
 
     @Inject
-    private EntityKeyIdService                        entityKeyService;
+    private EntityKeyIdService entityKeyService;
 
     @PostConstruct
     public void initializeBus() {
@@ -250,14 +248,28 @@ public class SearchService {
                 authorizedProperties );
         Map<UUID, PropertyType> authorizedPropertyTypes = Maps.newHashMap();
         authorizedProperties.forEach( id -> authorizedPropertyTypes.put( id, dataModelService.getPropertyType( id ) ) );
-        List<SetMultimap<Object, Object>> results = result.getHits().stream().map( hit -> {
-            String entityId = hit.get( "id" ).toString();
-            UUID vertexId = entityKeyService.getEntityKeyId( new EntityKey( entitySetId, entityId, syncId ) );
-            SetMultimap<Object, Object> fullRow = HashMultimap
-                    .create( dataManager.getEntity( entitySetId, syncId, entityId, authorizedPropertyTypes ) );
-            fullRow.put( "id", vertexId.toString() );
-            return fullRow;
-        } ).collect( Collectors.toList() );
+        List<SetMultimap<Object, Object>> results = result.getHits()
+                .parallelStream()
+                .map( hit -> hit.get( "id" ).toString() )
+                .map( entityId -> Pair.of( entityId,
+                        HashMultimap.<Object, Object>create( dataManager
+                                .getEntityPostFiltered( entitySetId, syncId, entityId, authorizedPropertyTypes ) ) ) )
+                .peek( p -> p.getValue().put( "id", entityKeyService
+                        .getEntityKeyId( new EntityKey( entitySetId, p.getKey(), syncId ) ) ) )
+                .map( Pair::getValue )
+                .collect( Collectors.toList() );
+//                .map( hit -> {
+//                    String entityId = hit.get( "id" ).toString();
+//                    UUID vertexId = entityKeyService
+//                            .getEntityKeyId( new EntityKey( entitySetId, entityId, syncId ) );
+//                    SetMultimap<Object, Object> fullRow = HashMultimap
+//                            .create( dataManager
+//                                    .getEntity( entitySetId, syncId, entityId, authorizedPropertyTypes ) );
+//                    fullRow.put( "id", vertexId.toString() );
+//                    return fullRow;
+//                } )
+//                .collect( Collectors.toList() );
+
         return new DataSearchResult( result.getNumHits(), results );
     }
 
@@ -325,7 +337,7 @@ public class SearchService {
         EntityType entityType = event.getEntityType();
         elasticsearchApi.saveEntityTypeToElasticsearch( entityType );
     }
-    
+
     @Subscribe
     public void createAssociationType( AssociationTypeCreatedEvent event ) {
         AssociationType associationType = event.getAssociationType();
@@ -343,7 +355,7 @@ public class SearchService {
         UUID entityTypeId = event.getEntityTypeId();
         elasticsearchApi.deleteEntityType( entityTypeId );
     }
-    
+
     @Subscribe
     public void deleteAssociationType( AssociationTypeDeletedEvent event ) {
         UUID associationTypeId = event.getAssociationTypeId();
@@ -359,7 +371,7 @@ public class SearchService {
     public SearchResult executeEntityTypeSearch( String searchTerm, int start, int maxHits ) {
         return elasticsearchApi.executeEntityTypeSearch( searchTerm, start, maxHits );
     }
-    
+
     public SearchResult executeAssociationTypeSearch( String searchTerm, int start, int maxHits ) {
         return elasticsearchApi.executeAssociationTypeSearch( searchTerm, start, maxHits );
     }
@@ -438,7 +450,7 @@ public class SearchService {
                     entitySetsIdsToAuthorizedProps,
                     entitySetsById,
                     vertexIsSrc );
-            if ( neighbor != null ) neighbors.add( neighbor );
+            if ( neighbor != null ) { neighbors.add( neighbor ); }
         } );
 
         return neighbors;

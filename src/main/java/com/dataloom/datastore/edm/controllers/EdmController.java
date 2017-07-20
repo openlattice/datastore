@@ -166,7 +166,6 @@ public class EdmController implements EdmApi, AuthorizingComponent {
     public void importEntityDataModel( @RequestBody EntityDataModel edm ) {
         ensureAdminAccess();
         modelService.importEntityDataModel( edm );
-        schemaManager.importEntityDataModel( edm.getSchemas() );
     }
 
     @Override

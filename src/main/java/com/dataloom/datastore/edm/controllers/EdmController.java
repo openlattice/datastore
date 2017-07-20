@@ -146,6 +146,28 @@ public class EdmController implements EdmApi, AuthorizingComponent {
                 associationTypes,
                 propertyTypes );
     }
+    
+    @Override
+    @RequestMapping(
+        path = DIFF_PATH,
+        method = RequestMethod.POST,
+        consumes = { MediaType.APPLICATION_JSON_VALUE, CustomMediaType.TEXT_YAML_VALUE } )
+    @ResponseStatus( HttpStatus.OK )
+    public EntityDataModel getEntityDataModelDiff( @RequestBody EntityDataModel edm ) {
+        ensureAdminAccess();
+        return modelService.getEntityDataModelDiff( edm );
+    }
+
+    @Override
+    @RequestMapping(
+        method = RequestMethod.PATCH,
+        consumes = { MediaType.APPLICATION_JSON_VALUE, CustomMediaType.TEXT_YAML_VALUE } )
+    @ResponseStatus( HttpStatus.OK )
+    public void importEntityDataModel( @RequestBody EntityDataModel edm ) {
+        ensureAdminAccess();
+        modelService.importEntityDataModel( edm );
+        schemaManager.importEntityDataModel( edm.getSchemas() );
+    }
 
     @Override
     @RequestMapping(

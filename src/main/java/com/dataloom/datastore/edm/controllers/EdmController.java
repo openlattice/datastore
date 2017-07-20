@@ -122,7 +122,7 @@ public class EdmController implements EdmApi, AuthorizingComponent {
     public EntityDataModel getEntityDataModel(
             @RequestParam(
                 value = FILE_TYPE,
-                required = true ) FileType fileType,
+                required = false ) FileType fileType,
             HttpServletResponse response ) {
         setContentDisposition( response, "EntityDataModel", fileType );
         setDownloadContentType( response, fileType );
@@ -146,15 +146,23 @@ public class EdmController implements EdmApi, AuthorizingComponent {
                 associationTypes,
                 propertyTypes );
     }
-    
-    @Override
+
     @RequestMapping(
         path = DIFF_PATH,
         method = RequestMethod.POST,
-        consumes = { MediaType.APPLICATION_JSON_VALUE, CustomMediaType.TEXT_YAML_VALUE } )
+        consumes = { MediaType.APPLICATION_JSON_VALUE, CustomMediaType.TEXT_YAML_VALUE },
+        produces = { MediaType.APPLICATION_JSON_VALUE, CustomMediaType.TEXT_YAML_VALUE } )
     @ResponseStatus( HttpStatus.OK )
-    public EntityDataModel getEntityDataModelDiff( @RequestBody EntityDataModel edm ) {
-        ensureAdminAccess();
+    public EntityDataModel getEntityDataModelDiff( @RequestParam(
+        value = FILE_TYPE,
+        required = false ) FileType fileType, @RequestBody EntityDataModel edm, HttpServletResponse response ) {
+        setContentDisposition( response, "EntityDataModel", fileType );
+        setDownloadContentType( response, fileType );
+        return getEntityDataModelDiff( edm );
+    }
+    
+    @Override
+    public EntityDataModel getEntityDataModelDiff( EntityDataModel edm ) {
         return modelService.getEntityDataModelDiff( edm );
     }
 

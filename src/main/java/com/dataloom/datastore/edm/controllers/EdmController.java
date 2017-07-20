@@ -70,8 +70,8 @@ import com.dataloom.edm.requests.EdmRequest;
 import com.dataloom.edm.requests.MetadataUpdate;
 import com.dataloom.edm.schemas.manager.HazelcastSchemaManager;
 import com.dataloom.edm.type.AssociationDetails;
-import com.dataloom.edm.type.ComplexType;
 import com.dataloom.edm.type.AssociationType;
+import com.dataloom.edm.type.ComplexType;
 import com.dataloom.edm.type.EntityType;
 import com.dataloom.edm.type.EnumType;
 import com.dataloom.edm.type.PropertyType;
@@ -115,30 +115,36 @@ public class EdmController implements EdmApi, AuthorizingComponent {
     @Inject
     private DatasourceManager                         datasourceManager;
 
-    @Override
     @RequestMapping(
         method = RequestMethod.GET,
-        produces = MediaType.APPLICATION_JSON_VALUE )
+        produces = { MediaType.APPLICATION_JSON_VALUE, CustomMediaType.TEXT_YAML_VALUE } )
     @ResponseStatus( HttpStatus.OK )
+    public EntityDataModel getEntityDataModel(
+            @RequestParam(
+                value = FILE_TYPE,
+                required = true ) FileType fileType,
+            HttpServletResponse response ) {
+        setContentDisposition( response, "EntityDataModel", fileType );
+        setDownloadContentType( response, fileType );
+        return getEntityDataModel();
+    }
+
+    @Override
     public EntityDataModel getEntityDataModel() {
         final Iterable<Schema> schemas = schemaManager.getAllSchemas();
-        final Iterable<EntityType> entityTypes = getEntityTypes();
+        final Iterable<EntityType> entityTypes = getEntityTypesStrict();
+        final Iterable<AssociationType> associationTypes = getAssociationTypes();
         final Iterable<PropertyType> propertyTypes = getPropertyTypes();
         final Set<String> namespaces = Sets.newHashSet();
         getEntityTypes().forEach( entityType -> namespaces.add( entityType.getType().getNamespace() ) );
         getPropertyTypes().forEach( propertyType -> namespaces.add( propertyType.getType().getNamespace() ) );
 
-        Iterable<EntitySet> authorizedEntitySets = getAccessibleObjects( SecurableObjectType.EntitySet,
-                EnumSet.of( Permission.READ ) )
-                        .map( AuthorizationUtils::getLastAclKeySafely )
-                        .map( modelService::getEntitySet )::iterator;
-
         return new EntityDataModel(
                 namespaces,
                 schemas,
                 entityTypes,
-                propertyTypes,
-                authorizedEntitySets::iterator );
+                associationTypes,
+                propertyTypes );
     }
 
     @Override
@@ -546,13 +552,26 @@ public class EdmController implements EdmApi, AuthorizingComponent {
         return modelService.getEntityTypes()::iterator;
     }
 
+    public Iterable<EntityType> getEntityTypesStrict() {
+        return modelService.getEntityTypesStrict()::iterator;
+    }
+
+    @Override
+    @RequestMapping(
+        path = ASSOCIATION_TYPE_PATH + ENTITY_TYPE_PATH,
+        method = RequestMethod.GET,
+        produces = MediaType.APPLICATION_JSON_VALUE )
+    public Iterable<EntityType> getAssociationEntityTypes() {
+        return modelService.getAssociationEntityTypes()::iterator;
+    }
+
     @Override
     @RequestMapping(
         path = ASSOCIATION_TYPE_PATH,
         method = RequestMethod.GET,
         produces = MediaType.APPLICATION_JSON_VALUE )
-    public Iterable<EntityType> getAssociationEntityTypes() {
-        return modelService.getAssociationEntityTypes()::iterator;
+    public Iterable<AssociationType> getAssociationTypes() {
+        return modelService.getAssociationTypes()::iterator;
     }
 
     @Override
@@ -778,8 +797,8 @@ public class EdmController implements EdmApi, AuthorizingComponent {
 
     @Override
     @RequestMapping(
-            path = ASSOCIATION_TYPE_PATH + ASSOCIATION_TYPE_ID_PATH + DST_PATH + ENTITY_TYPE_ID_PATH,
-            method = RequestMethod.PUT )
+        path = ASSOCIATION_TYPE_PATH + ASSOCIATION_TYPE_ID_PATH + DST_PATH + ENTITY_TYPE_ID_PATH,
+        method = RequestMethod.PUT )
     public Void addDstEntityTypeToAssociationType(
             @PathVariable( ASSOCIATION_TYPE_ID ) UUID associationTypeId,
             @PathVariable( ENTITY_TYPE_ID ) UUID entityTypeId ) {
@@ -790,8 +809,8 @@ public class EdmController implements EdmApi, AuthorizingComponent {
 
     @Override
     @RequestMapping(
-            path = ASSOCIATION_TYPE_PATH + ASSOCIATION_TYPE_ID_PATH + SRC_PATH + ENTITY_TYPE_ID_PATH,
-            method = RequestMethod.DELETE )
+        path = ASSOCIATION_TYPE_PATH + ASSOCIATION_TYPE_ID_PATH + SRC_PATH + ENTITY_TYPE_ID_PATH,
+        method = RequestMethod.DELETE )
     public Void removeSrcEntityTypeFromAssociationType(
             @PathVariable( ASSOCIATION_TYPE_ID ) UUID associationTypeId,
             @PathVariable( ENTITY_TYPE_ID ) UUID entityTypeId ) {
@@ -802,8 +821,8 @@ public class EdmController implements EdmApi, AuthorizingComponent {
 
     @Override
     @RequestMapping(
-            path = ASSOCIATION_TYPE_PATH + ASSOCIATION_TYPE_ID_PATH + DST_PATH + ENTITY_TYPE_ID_PATH,
-            method = RequestMethod.DELETE )
+        path = ASSOCIATION_TYPE_PATH + ASSOCIATION_TYPE_ID_PATH + DST_PATH + ENTITY_TYPE_ID_PATH,
+        method = RequestMethod.DELETE )
     public Void removeDstEntityTypeFromAssociationType(
             @PathVariable( ASSOCIATION_TYPE_ID ) UUID associationTypeId,
             @PathVariable( ENTITY_TYPE_ID ) UUID entityTypeId ) {

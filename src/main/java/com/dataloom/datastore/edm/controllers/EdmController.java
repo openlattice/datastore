@@ -22,6 +22,7 @@ package com.dataloom.datastore.edm.controllers;
 import java.util.Arrays;
 import java.util.EnumSet;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -636,6 +637,19 @@ public class EdmController implements EdmApi, AuthorizingComponent {
             @PathVariable( PROPERTY_TYPE_ID ) UUID propertyTypeId ) {
         ensureAdminAccess();
         modelService.removePropertyTypesFromEntityType( entityTypeId, ImmutableSet.of( propertyTypeId ) );
+        return null;
+    }
+
+    @Override
+    @RequestMapping(
+        path = ENTITY_TYPE_PATH + ENTITY_TYPE_ID_PATH + PROPERTY_TYPE_PATH,
+        method = RequestMethod.PATCH )
+    @ResponseStatus( HttpStatus.OK )
+    public Void reorderPropertyTypesInEntityType(
+            @PathVariable( ENTITY_TYPE_ID ) UUID entityTypeId,
+            @RequestBody LinkedHashSet<UUID> propertyTypeIds ) {
+        ensureAdminAccess();
+        modelService.reorderPropertyTypesInEntityType( entityTypeId, propertyTypeIds );
         return null;
     }
 

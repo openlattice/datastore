@@ -211,7 +211,9 @@ public class DatastoreServicesPod {
         return new CassandraEntityDatastore(
                 session,
                 hazelcastInstance,
+                executor,
                 defaultObjectMapper(),
+                idService(),
                 linkingGraph(),
                 loomGraph(),
                 datasourceManager() );

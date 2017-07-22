@@ -1,20 +1,5 @@
 package com.dataloom.datastore.services;
 
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.ExecutionException;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-
-import org.apache.commons.lang3.tuple.Pair;
-import org.apache.olingo.commons.api.edm.EdmPrimitiveTypeKind;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.dataloom.LoomUtil;
 import com.dataloom.data.DataGraphManager;
 import com.dataloom.data.DatasourceManager;
@@ -37,6 +22,7 @@ import com.dataloom.linking.components.Blocker;
 import com.dataloom.linking.components.Clusterer;
 import com.dataloom.linking.components.Matcher;
 import com.dataloom.linking.util.UnorderedPair;
+import com.dataloom.streams.StreamUtil;
 import com.datastax.driver.core.ResultSetFuture;
 import com.datastax.driver.core.Session;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -52,9 +38,22 @@ import com.hazelcast.core.HazelcastInstance;
 import com.kryptnostic.datastore.cassandra.CommonColumns;
 import com.kryptnostic.datastore.cassandra.RowAdapters;
 import com.kryptnostic.datastore.services.EdmManager;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.ExecutionException;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+import org.apache.commons.lang3.tuple.Pair;
+import org.apache.olingo.commons.api.edm.EdmPrimitiveTypeKind;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class LinkingService {
-    private static final Logger                 logger = LoggerFactory.getLogger( LinkingService.class );
+    private static final Logger logger = LoggerFactory.getLogger( LinkingService.class );
 
     private final ObjectMapper                  mapper;
     private final HazelcastLinkingGraphs        linkingGraph;
@@ -229,14 +228,19 @@ public class LinkingService {
     private void mergeEdges( UUID linkedEntitySetId, Set<UUID> linkingSets, UUID syncId ) {
         logger.debug( "Linking: Merging edges..." );
         logger.debug( "Linking Sets: {}", linkingSets );
-        Map<CommonColumns, Set<UUID>> edgeSelectionBySrcSet = ImmutableMap.of( CommonColumns.SRC_ENTITY_SET_ID, linkingSets );
-        Map<CommonColumns, Set<UUID>> edgeSelectionByDstSet = ImmutableMap.of( CommonColumns.DST_ENTITY_SET_ID, linkingSets );
-        Map<CommonColumns, Set<UUID>> edgeSelectionByEdgeSet = ImmutableMap.of( CommonColumns.EDGE_ENTITY_SET_ID, linkingSets );
+        Map<CommonColumns, Set<UUID>> edgeSelectionBySrcSet = ImmutableMap
+                .of( CommonColumns.SRC_ENTITY_SET_ID, linkingSets );
+        Map<CommonColumns, Set<UUID>> edgeSelectionByDstSet = ImmutableMap
+                .of( CommonColumns.DST_ENTITY_SET_ID, linkingSets );
+        Map<CommonColumns, Set<UUID>> edgeSelectionByEdgeSet = ImmutableMap
+                .of( CommonColumns.EDGE_ENTITY_SET_ID, linkingSets );
 
-        Stream.of( lm.getEdges( edgeSelectionBySrcSet ), lm.getEdges( edgeSelectionByDstSet ), lm.getEdges( edgeSelectionByEdgeSet ) )
-        .reduce( Stream::concat )
-        .orElseGet( Stream::empty )
-        .flatMap( edge -> mergeEdgeAsync( linkedEntitySetId, syncId, edge ).stream() )
+        Stream.of( lm.getEdges( edgeSelectionBySrcSet ),
+                lm.getEdges( edgeSelectionByDstSet ),
+                lm.getEdges( edgeSelectionByEdgeSet ) )
+                .reduce( Stream::concat )
+                .orElseGet( Stream::empty )
+                .flatMap( edge -> mergeEdgeAsync( linkedEntitySetId, syncId, edge ).stream() )
                 .forEach( ResultSetFuture::getUninterruptibly );
     }
 
@@ -251,7 +255,7 @@ public class LinkingService {
                                 key.getEntityId(),
                                 key.getSyncId(),
                                 authorizedPropertyTypesForEntitySets.get( key.getEntitySetId() ).keySet() ) ) )
-                .map( rsfPair -> Pair.of( rsfPair.getKey(), rsfPair.getValue().getUninterruptibly() ) )
+                .map( rsfPair -> Pair.of( rsfPair.getKey(), StreamUtil.safeGet( rsfPair.getValue() ) ) )
                 .map( rsPair -> RowAdapters.entityIndexedById( rsPair.getValue(),
                         authorizedPropertyTypesForEntitySets.get( rsPair.getKey() ),
                         mapper ) )
@@ -268,12 +272,12 @@ public class LinkingService {
         UUID srcId = edge.getKey().getSrcEntityKeyId();
         UUID dstId = edge.getKey().getDstEntityKeyId();
         UUID edgeId = edge.getKey().getEdgeEntityKeyId();
-        
+
         UUID newSrcId = vms.getMergedId( linkedEntitySetId, srcId );
         if ( newSrcId != null ) {
             srcEntitySetId = linkedEntitySetId;
             srcId = newSrcId;
-        } 
+        }
         UUID newDstId = vms.getMergedId( linkedEntitySetId, dstId );
         if ( newDstId != null ) {
             dstEntitySetId = linkedEntitySetId;

@@ -19,13 +19,6 @@
 
 package com.dataloom.datastore.pods;
 
-import javax.annotation.PostConstruct;
-import javax.inject.Inject;
-
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Import;
-
 import com.dataloom.auditing.AuditQueryService;
 import com.dataloom.auditing.HazelcastAuditLoggingService;
 import com.dataloom.authorization.AbstractSecurableObjectResolveTypeService;
@@ -40,7 +33,6 @@ import com.dataloom.clustering.ClusteringPartitioner;
 import com.dataloom.data.DataGraphManager;
 import com.dataloom.data.DataGraphService;
 import com.dataloom.data.DatasourceManager;
-import com.dataloom.data.EntityKeyIdService;
 import com.dataloom.data.ids.HazelcastEntityKeyIdService;
 import com.dataloom.data.serializers.FullQualifedNameJacksonDeserializer;
 import com.dataloom.data.serializers.FullQualifedNameJacksonSerializer;
@@ -90,9 +82,13 @@ import com.kryptnostic.datastore.services.EdmService;
 import com.kryptnostic.datastore.services.ODataStorageService;
 import com.kryptnostic.rhizome.configuration.cassandra.CassandraConfiguration;
 import com.kryptnostic.rhizome.pods.CassandraPod;
-
 import digital.loom.rhizome.authentication.Auth0Pod;
 import digital.loom.rhizome.configuration.auth0.Auth0Configuration;
+import javax.annotation.PostConstruct;
+import javax.inject.Inject;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Import;
 
 @Configuration
 @Import( {
@@ -103,25 +99,25 @@ import digital.loom.rhizome.configuration.auth0.Auth0Configuration;
 public class DatastoreServicesPod {
 
     @Inject
-    private CassandraConfiguration   cassandraConfiguration;
+    private CassandraConfiguration cassandraConfiguration;
 
     @Inject
-    private HazelcastInstance        hazelcastInstance;
+    private HazelcastInstance hazelcastInstance;
 
     @Inject
-    private Session                  session;
+    private Session session;
 
     @Inject
-    private Auth0Configuration       auth0Configuration;
+    private Auth0Configuration auth0Configuration;
 
     @Inject
     private ListeningExecutorService executor;
 
     @Inject
-    private EventBus                 eventBus;
+    private EventBus eventBus;
 
     @Inject
-    private Neuron                   neuron;
+    private Neuron neuron;
 
     @Bean
     public ObjectMapper defaultObjectMapper() {
@@ -211,7 +207,9 @@ public class DatastoreServicesPod {
         return new CassandraEntityDatastore(
                 session,
                 hazelcastInstance,
+                executor,
                 defaultObjectMapper(),
+                idService(),
                 linkingGraph(),
                 loomGraph(),
                 datasourceManager() );
@@ -368,11 +366,11 @@ public class DatastoreServicesPod {
 
     @Bean
     public LoomGraph loomGraph() {
-        return new LoomGraph( graphQueryService(), hazelcastInstance );
+        return new LoomGraph( executor, graphQueryService(), hazelcastInstance );
     }
 
     @Bean
-    public EntityKeyIdService idService() {
+    public HazelcastEntityKeyIdService idService() {
         return new HazelcastEntityKeyIdService( hazelcastInstance, executor );
     }
 

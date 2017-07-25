@@ -23,7 +23,6 @@ import com.dataloom.linking.components.Clusterer;
 import com.dataloom.linking.components.Matcher;
 import com.dataloom.linking.util.UnorderedPair;
 import com.dataloom.streams.StreamUtil;
-import com.datastax.driver.core.ResultSetFuture;
 import com.datastax.driver.core.Session;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.HashMultimap;
@@ -34,6 +33,7 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.SetMultimap;
 import com.google.common.collect.Sets;
 import com.google.common.eventbus.EventBus;
+import com.google.common.util.concurrent.ListenableFuture;
 import com.hazelcast.core.HazelcastInstance;
 import com.kryptnostic.datastore.cassandra.CommonColumns;
 import com.kryptnostic.datastore.cassandra.RowAdapters;
@@ -240,8 +240,8 @@ public class LinkingService {
                 lm.getEdges( edgeSelectionByEdgeSet ) )
                 .reduce( Stream::concat )
                 .orElseGet( Stream::empty )
-                .flatMap( edge -> mergeEdgeAsync( linkedEntitySetId, syncId, edge ).stream() )
-                .forEach( ResultSetFuture::getUninterruptibly );
+                .map( edge -> mergeEdgeAsync( linkedEntitySetId, syncId, edge ) )
+                .forEach( StreamUtil::getUninterruptibly );
     }
 
     private SetMultimap<UUID, Object> computeMergedEntity(
@@ -264,9 +264,11 @@ public class LinkingService {
         return result;
     }
 
-    private List<ResultSetFuture> mergeEdgeAsync( UUID linkedEntitySetId, UUID syncId, LoomEdge edge ) {
+    private ListenableFuture mergeEdgeAsync( UUID linkedEntitySetId, UUID syncId, LoomEdge edge ) {
         UUID srcEntitySetId = edge.getSrcSetId();
+        UUID srcSyncId = edge.getSrcSyncId();
         UUID dstEntitySetId = edge.getDstSetId();
+        UUID dstSyncId = edge.getDstSyncId();
         UUID edgeEntitySetId = edge.getEdgeSetId();
 
         UUID srcId = edge.getKey().getSrcEntityKeyId();
@@ -276,11 +278,13 @@ public class LinkingService {
         UUID newSrcId = vms.getMergedId( linkedEntitySetId, srcId );
         if ( newSrcId != null ) {
             srcEntitySetId = linkedEntitySetId;
+            srcSyncId = syncId;
             srcId = newSrcId;
         }
         UUID newDstId = vms.getMergedId( linkedEntitySetId, dstId );
         if ( newDstId != null ) {
             dstEntitySetId = linkedEntitySetId;
+            dstSyncId = syncId;
             dstId = newDstId;
         }
         UUID newEdgeId = vms.getMergedId( linkedEntitySetId, edgeId );
@@ -293,9 +297,11 @@ public class LinkingService {
         return lm.addEdgeAsync( srcId,
                 dms.getEntitySet( srcEntitySetId ).getEntityTypeId(),
                 srcEntitySetId,
+                srcSyncId,
                 dstId,
                 dms.getEntitySet( dstEntitySetId ).getEntityTypeId(),
                 dstEntitySetId,
+                dstSyncId,
                 edgeId,
                 dms.getEntitySet( edgeEntitySetId ).getEntityTypeId(),
                 edgeEntitySetId );

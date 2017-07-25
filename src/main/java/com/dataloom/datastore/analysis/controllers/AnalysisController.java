@@ -21,13 +21,19 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.dataloom.analysis.AnalysisApi;
 import com.dataloom.analysis.requests.TopUtilizerDetails;
+import com.dataloom.analysis.requests.TopUtilizersHistogramRequest;
+import com.dataloom.analysis.requests.TopUtilizersHistogramResult;
 import com.dataloom.authorization.EdmAuthorizationHelper;
 import com.dataloom.authorization.Permission;
 import com.dataloom.data.EntitySetData;
 import com.dataloom.data.requests.FileType;
+import com.dataloom.data.requests.NeighborEntityDetails;
 import com.dataloom.datastore.constants.CustomMediaType;
 import com.dataloom.datastore.services.AnalysisService;
+import com.dataloom.datastore.services.SearchService;
 import com.dataloom.edm.type.PropertyType;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import com.google.common.collect.SetMultimap;
 import com.kryptnostic.datastore.services.EdmService;
 
@@ -43,6 +49,9 @@ public class AnalysisController implements AnalysisApi {
 
     @Inject
     private EdmAuthorizationHelper authorizationsHelper;
+
+    @Inject
+    private SearchService          searchService;
 
     private static void setDownloadContentType( HttpServletResponse response, FileType fileType ) {
         if ( fileType == FileType.csv ) {
@@ -91,6 +100,32 @@ public class AnalysisController implements AnalysisApi {
         columnTitles.add( "count" );
         columnTitles.add( "id" );
         return new EntitySetData<Object>( columnTitles, utilizers );
+    }
+
+    @RequestMapping(
+        path = { ENTITY_SET_ID_PATH + NUM_RESULTS_PATH + HISTOGRAM_PATH },
+        method = RequestMethod.POST,
+        produces = { MediaType.APPLICATION_JSON_VALUE } )
+    @Override
+    public TopUtilizersHistogramResult getTopUtilizersHistogram(
+            @PathVariable( ENTITY_SET_ID ) UUID entitySetId,
+            @PathVariable( NUM_RESULTS ) int numResults,
+            @RequestBody TopUtilizersHistogramRequest histogramDetails ) {
+        EntitySetData<Object> topUtilizers = getTopUtilizers( entitySetId,
+                numResults,
+                histogramDetails.getTopUtilizerDetails(),
+                FileType.json );
+        List<SetMultimap<Object, Object>> utilizers = Lists.newArrayList( topUtilizers.getEntities() );
+        Map<UUID, List<NeighborEntityDetails>> neighborDetails = Maps.newHashMap();
+        utilizers.forEach( entity -> {
+            UUID entityId = UUID.fromString( (String) entity.get( "id" ).iterator().next() );
+            neighborDetails.put( entityId, searchService.executeEntityNeighborSearch( entityId ) );
+        } );
+        return analysisService.getTopUtilizersHistogram(
+                edm.getEntityTypeByEntitySetId( entitySetId ),
+                utilizers,
+                histogramDetails,
+                neighborDetails );
     }
 
 }

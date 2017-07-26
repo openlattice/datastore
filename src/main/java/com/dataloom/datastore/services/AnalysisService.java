@@ -13,7 +13,6 @@ import org.slf4j.LoggerFactory;
 import com.dataloom.analysis.requests.TopUtilizerDetails;
 import com.dataloom.data.DataGraphManager;
 import com.dataloom.data.DatasourceManager;
-import com.dataloom.data.EntitySetData;
 import com.dataloom.edm.type.PropertyType;
 import com.google.common.collect.SetMultimap;
 
@@ -40,5 +39,4 @@ public class AnalysisService {
             return null;
         }
     }
-
 }

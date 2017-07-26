@@ -21,6 +21,7 @@ package com.dataloom.datastore.search.controllers;
 
 import java.util.EnumSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -54,6 +55,7 @@ import com.dataloom.search.requests.SearchTerm;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import com.kryptnostic.datastore.services.EdmService;
 
 @RestController
@@ -192,17 +194,17 @@ public class SearchController implements SearchApi, AuthorizingComponent {
                 searchTerm.getStart(),
                 searchTerm.getMaxHits() );
     }
-    
+
     @RequestMapping(
-            path = { ASSOCIATION_TYPES },
-            method = RequestMethod.POST,
-            produces = { MediaType.APPLICATION_JSON_VALUE } )
-        @Override
-        public SearchResult executeAssociationTypeSearch( @RequestBody SearchTerm searchTerm ) {
-            return searchService.executeAssociationTypeSearch( searchTerm.getSearchTerm(),
-                    searchTerm.getStart(),
-                    searchTerm.getMaxHits() );
-        }
+        path = { ASSOCIATION_TYPES },
+        method = RequestMethod.POST,
+        produces = { MediaType.APPLICATION_JSON_VALUE } )
+    @Override
+    public SearchResult executeAssociationTypeSearch( @RequestBody SearchTerm searchTerm ) {
+        return searchService.executeAssociationTypeSearch( searchTerm.getSearchTerm(),
+                searchTerm.getStart(),
+                searchTerm.getMaxHits() );
+    }
 
     @RequestMapping(
         path = { PROPERTY_TYPES },
@@ -253,5 +255,23 @@ public class SearchController implements SearchApi, AuthorizingComponent {
             return searchService.executeEntityNeighborSearch( entityId );
         }
         return Lists.newArrayList();
+    }
+
+    @RequestMapping(
+        path = { ENTITY_SET_ID_PATH + NEIGHBORS },
+        method = RequestMethod.POST,
+        produces = { MediaType.APPLICATION_JSON_VALUE } )
+    @Override
+    public Map<UUID, List<NeighborEntityDetails>> executeEntityNeighborSearchBulk(
+            @PathVariable( ENTITY_SET_ID ) UUID entitySetId,
+            @RequestBody List<UUID> entityIds ) {
+        Map<UUID, List<NeighborEntityDetails>> result = Maps.newHashMap();
+        if ( authorizations.checkIfHasPermissions( ImmutableList.of( entitySetId ),
+                Principals.getCurrentPrincipals(),
+                EnumSet.of( Permission.READ ) ) ) {
+            entityIds.forEach(
+                    entityId -> result.put( entityId, searchService.executeEntityNeighborSearch( entityId ) ) );
+        }
+        return result;
     }
 }

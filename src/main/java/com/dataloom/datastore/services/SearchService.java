@@ -19,6 +19,7 @@
 
 package com.dataloom.datastore.services;
 
+import com.codahale.metrics.annotation.Timed;
 import com.dataloom.authorization.AbstractSecurableObjectResolveTypeService;
 import com.dataloom.authorization.AuthorizationManager;
 import com.dataloom.authorization.EdmAuthorizationHelper;
@@ -235,6 +236,7 @@ public class SearchService {
                 syncId -> elasticsearchApi.deleteEntityData( event.getEntitySetId(), syncId, event.getEntityId() ) );
     }
 
+    @Timed
     public DataSearchResult executeEntitySetDataSearch(
             UUID entitySetId,
             SearchTerm searchTerm,
@@ -284,6 +286,7 @@ public class SearchService {
                 event.getNewPropertyTypes() );
     }
 
+    @Timed
     public List<Entity> executeEntitySetDataSearchAcrossIndices(
             Map<UUID, UUID> entitySetAndSyncIds,
             Map<UUID, Set<String>> fieldSearches,
@@ -295,6 +298,7 @@ public class SearchService {
                 explain );
     }
 
+    @Timed
     public DataSearchResult executeAdvancedEntitySetDataSearch(
             UUID entitySetId,
             AdvancedSearch search,
@@ -388,6 +392,7 @@ public class SearchService {
         return elasticsearchApi.executeFQNPropertyTypeSearch( namespace, name, start, maxHits );
     }
 
+    @Timed
     public List<NeighborEntityDetails> executeEntityNeighborSearch( UUID entityId ) {
         List<LoomEdge> edges = graphApi.getEdgesAndNeighborsForVertex( entityId ).collect( Collectors.toList() );
         Map<UUID, EntityKey> entityKeyIdToEntityKey = Maps.newHashMap();

@@ -29,7 +29,6 @@ import java.util.stream.Collectors;
 import javax.annotation.PostConstruct;
 import javax.inject.Inject;
 
-import org.apache.commons.lang3.tuple.Pair;
 import org.apache.olingo.commons.api.edm.FullQualifiedName;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -253,27 +252,20 @@ public class SearchService {
                 authorizedProperties );
         Map<UUID, PropertyType> authorizedPropertyTypes = Maps.newHashMap();
         authorizedProperties.forEach( id -> authorizedPropertyTypes.put( id, dataModelService.getPropertyType( id ) ) );
-        List<SetMultimap<Object, Object>> results = result.getHits()
+        Set<EntityKey> entityKeys = result.getHits()
                 .parallelStream()
-                .map( hit -> hit.get( "id" ).toString() )
-                .map( entityId -> Pair.of( entityId,
-                        HashMultimap.<Object, Object> create( dataManager
-                                .getEntityPostFiltered( entitySetId, syncId, entityId, authorizedPropertyTypes ) ) ) )
-                .peek( p -> p.getValue().put( "id", entityKeyService
-                        .getEntityKeyId( new EntityKey( entitySetId, p.getKey(), syncId ) ) ) )
-                .map( Pair::getValue )
+                .map( hit -> new EntityKey( entitySetId, hit.get( "id" ).toString(), syncId ) )
+                .collect( Collectors.toSet() );
+        List<SetMultimap<Object, Object>> results = entityKeyService.getEntityKeyIds( entityKeys )
+                .values()
+                .parallelStream()
+                .map( entityKeyId -> {
+                    SetMultimap<Object, Object> fullRow = HashMultimap
+                            .create( dataManager.getEntityById( entityKeyId, authorizedPropertyTypes ) );
+                    fullRow.put( "id", entityKeyId.toString() );
+                    return fullRow;
+                } )
                 .collect( Collectors.toList() );
-        // .map( hit -> {
-        // String entityId = hit.get( "id" ).toString();
-        // UUID vertexId = entityKeyService
-        // .getEntityKeyId( new EntityKey( entitySetId, entityId, syncId ) );
-        // SetMultimap<Object, Object> fullRow = HashMultimap
-        // .create( dataManager
-        // .getEntity( entitySetId, syncId, entityId, authorizedPropertyTypes ) );
-        // fullRow.put( "id", vertexId.toString() );
-        // return fullRow;
-        // } )
-        // .collect( Collectors.toList() );
 
         return new DataSearchResult( result.getNumHits(), results );
     }
@@ -325,14 +317,20 @@ public class SearchService {
             Map<UUID, PropertyType> authorizedPropertyTypes = Maps.newHashMap();
             authorizedProperties
                     .forEach( id -> authorizedPropertyTypes.put( id, dataModelService.getPropertyType( id ) ) );
-            List<SetMultimap<Object, Object>> results = result.getHits().stream().map( hit -> {
-                String entityId = hit.get( "id" ).toString();
-                UUID vertexId = entityKeyService.getEntityKeyId( new EntityKey( entitySetId, entityId, syncId ) );
-                SetMultimap<Object, Object> fullRow = HashMultimap
-                        .create( dataManager.getEntity( entitySetId, syncId, entityId, authorizedPropertyTypes ) );
-                fullRow.put( "id", vertexId.toString() );
-                return fullRow;
-            } ).collect( Collectors.toList() );
+            Set<EntityKey> entityKeys = result.getHits()
+                    .parallelStream()
+                    .map( hit -> new EntityKey( entitySetId, hit.get( "id" ).toString(), syncId ) )
+                    .collect( Collectors.toSet() );
+            List<SetMultimap<Object, Object>> results = entityKeyService.getEntityKeyIds( entityKeys )
+                    .values()
+                    .parallelStream()
+                    .map( entityKeyId -> {
+                        SetMultimap<Object, Object> fullRow = HashMultimap
+                                .create( dataManager.getEntityById( entityKeyId, authorizedPropertyTypes ) );
+                        fullRow.put( "id", entityKeyId.toString() );
+                        return fullRow;
+                    } )
+                    .collect( Collectors.toList() );
             return new DataSearchResult( result.getNumHits(), results );
         }
 

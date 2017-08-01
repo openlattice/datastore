@@ -54,6 +54,7 @@ import com.dataloom.search.requests.SearchResult;
 import com.dataloom.search.requests.SearchTerm;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.kryptnostic.datastore.services.EdmService;
@@ -252,7 +253,7 @@ public class SearchController implements SearchApi, AuthorizingComponent {
         if ( authorizations.checkIfHasPermissions( ImmutableList.of( entitySetId ),
                 Principals.getCurrentPrincipals(),
                 EnumSet.of( Permission.READ ) ) ) {
-            return searchService.executeEntityNeighborSearch( entityId );
+            return searchService.executeEntityNeighborSearch( ImmutableSet.of( entityId ) ).get( entityId );
         }
         return Lists.newArrayList();
     }
@@ -264,13 +265,12 @@ public class SearchController implements SearchApi, AuthorizingComponent {
     @Override
     public Map<UUID, List<NeighborEntityDetails>> executeEntityNeighborSearchBulk(
             @PathVariable( ENTITY_SET_ID ) UUID entitySetId,
-            @RequestBody List<UUID> entityIds ) {
+            @RequestBody Set<UUID> entityIds ) {
         Map<UUID, List<NeighborEntityDetails>> result = Maps.newHashMap();
         if ( authorizations.checkIfHasPermissions( ImmutableList.of( entitySetId ),
                 Principals.getCurrentPrincipals(),
                 EnumSet.of( Permission.READ ) ) ) {
-            entityIds.forEach(
-                    entityId -> result.put( entityId, searchService.executeEntityNeighborSearch( entityId ) ) );
+            result = searchService.executeEntityNeighborSearch( entityIds );
         }
         return result;
     }

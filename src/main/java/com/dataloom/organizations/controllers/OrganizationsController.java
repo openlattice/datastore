@@ -105,7 +105,7 @@ public class OrganizationsController implements AuthorizingComponent, Organizati
     public Organization getOrganization( @PathVariable( ID ) UUID organizationId ) {
         ensureRead( organizationId );
         Organization org = organizations.getOrganization( organizationId );
-        Set<Principal> authorizedRoles = getAuthorizedRoles( organizationId, Permission.READ );
+        Set<OrganizationRole> authorizedRoles = getAuthorizedRoles( organizationId, Permission.READ );
         return new Organization(
                 Optional.of( org.getId() ),
                 org.getTitle(),
@@ -225,7 +225,7 @@ public class OrganizationsController implements AuthorizingComponent, Organizati
     public Set<Principal> getPrincipals( @PathVariable( ID ) UUID organizationId ) {
         ensureRead( organizationId );
         Set<Principal> members = organizations.getMembers( organizationId );
-        Set<Principal> roles = getAuthorizedRoles( organizationId, Permission.READ );
+        Set<Principal> roles = getAuthorizedPrincipals( organizationId, Permission.READ );
         return Sets.union( members, roles );
     }
 
@@ -301,15 +301,21 @@ public class OrganizationsController implements AuthorizingComponent, Organizati
     @GetMapping(
         value = ID_PATH + PRINCIPALS + ROLES,
         produces = MediaType.APPLICATION_JSON_VALUE )
-    public Set<Principal> getRoles( @PathVariable( ID ) UUID organizationId ) {
+    public Set<OrganizationRole> getRoles( @PathVariable( ID ) UUID organizationId ) {
         ensureRead( organizationId );
         return getAuthorizedRoles( organizationId, Permission.READ );
     }
 
-    private Set<Principal> getAuthorizedRoles( UUID organizationId, Permission permission ) {
+    private Set<Principal> getAuthorizedPrincipals( UUID organizationId, Permission permission ) {
         return StreamUtil.stream( organizations.getRolesInFull( organizationId ) )
                 .filter( role -> isAuthorized( permission ).test( role.getAclKey() ) )
                 .map( role -> RolesUtil.getPrincipal( role ) ).collect( Collectors.toSet() );
+    }
+
+    private Set<OrganizationRole> getAuthorizedRoles( UUID organizationId, Permission permission ) {
+        return StreamUtil.stream( organizations.getRolesInFull( organizationId ) )
+            .filter( role -> isAuthorized( permission ).test( role.getAclKey() ) )
+            .collect( Collectors.toSet() );
     }
 
     @Override

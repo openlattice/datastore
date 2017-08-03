@@ -83,9 +83,9 @@ public class RolesServiceTest extends OrganizationsTest {
 
         OrganizationRole newRole = createRole( organizationId );
 
-        Set<Principal> allRoles = ImmutableSet.copyOf( organizations.getRoles( organizationId ) );
+        Set<OrganizationRole> allRoles = ImmutableSet.copyOf( organizations.getRoles( organizationId ) );
 
-        Assert.assertTrue( allRoles.contains( RolesUtil.getPrincipal( newRole ) ) );
+        Assert.assertTrue( allRoles.contains( newRole ) );
         Assert.assertEquals( initialNumRoles + 1, allRoles.size() );
     }
 

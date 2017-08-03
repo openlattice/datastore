@@ -255,22 +255,22 @@ public class SearchService {
                 .map( hit -> hit.get( "id" ).toString() )
                 .map( entityId -> Pair.of( entityId,
                         HashMultimap.<Object, Object>create( dataManager
-                                .getEntityPostFiltered( entitySetId, syncId, entityId, authorizedPropertyTypes ) ) ) )
+                                .getEntity( entitySetId, syncId, entityId, authorizedPropertyTypes ) ) ) )
                 .peek( p -> p.getValue().put( "id", entityKeyService
                         .getEntityKeyId( new EntityKey( entitySetId, p.getKey(), syncId ) ) ) )
                 .map( Pair::getValue )
                 .collect( Collectors.toList() );
-//                .map( hit -> {
-//                    String entityId = hit.get( "id" ).toString();
-//                    UUID vertexId = entityKeyService
-//                            .getEntityKeyId( new EntityKey( entitySetId, entityId, syncId ) );
-//                    SetMultimap<Object, Object> fullRow = HashMultimap
-//                            .create( dataManager
-//                                    .getEntity( entitySetId, syncId, entityId, authorizedPropertyTypes ) );
-//                    fullRow.put( "id", vertexId.toString() );
-//                    return fullRow;
-//                } )
-//                .collect( Collectors.toList() );
+        //                .map( hit -> {
+        //                    String entityId = hit.get( "id" ).toString();
+        //                    UUID vertexId = entityKeyService
+        //                            .getEntityKeyId( new EntityKey( entitySetId, entityId, syncId ) );
+        //                    SetMultimap<Object, Object> fullRow = HashMultimap
+        //                            .create( dataManager
+        //                                    .getEntity( entitySetId, syncId, entityId, authorizedPropertyTypes ) );
+        //                    fullRow.put( "id", vertexId.toString() );
+        //                    return fullRow;
+        //                } )
+        //                .collect( Collectors.toList() );
 
         return new DataSearchResult( result.getNumHits(), results );
     }

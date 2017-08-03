@@ -5,6 +5,7 @@
 .settings/
 .idea/
 bin/
+logging/
 build/
 artifacts/
 src/main/webapp/auth/

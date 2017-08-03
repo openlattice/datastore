@@ -19,20 +19,6 @@
 
 package com.dataloom.datastore.services;
 
-import java.util.EnumSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
-import java.util.stream.Collectors;
-
-import javax.annotation.PostConstruct;
-import javax.inject.Inject;
-
-import org.apache.olingo.commons.api.edm.FullQualifiedName;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.codahale.metrics.annotation.Timed;
 import com.dataloom.authorization.AbstractSecurableObjectResolveTypeService;
 import com.dataloom.authorization.AuthorizationManager;
@@ -77,7 +63,6 @@ import com.dataloom.search.requests.SearchTerm;
 import com.dataloom.sync.events.CurrentSyncUpdatedEvent;
 import com.dataloom.sync.events.SyncIdCreatedEvent;
 import com.google.common.base.Optional;
-import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -86,39 +71,51 @@ import com.google.common.collect.Sets;
 import com.google.common.eventbus.EventBus;
 import com.google.common.eventbus.Subscribe;
 import com.kryptnostic.datastore.services.EdmManager;
+import java.util.Collection;
+import java.util.EnumSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+import java.util.stream.Collectors;
+import javax.annotation.PostConstruct;
+import javax.inject.Inject;
+import org.apache.olingo.commons.api.edm.FullQualifiedName;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class SearchService {
-    private static final Logger                       logger = LoggerFactory.getLogger( SearchService.class );
+    private static final Logger logger = LoggerFactory.getLogger( SearchService.class );
 
     @Inject
-    private EventBus                                  eventBus;
+    private EventBus eventBus;
 
     @Inject
-    private AuthorizationManager                      authorizations;
+    private AuthorizationManager authorizations;
 
     @Inject
     private AbstractSecurableObjectResolveTypeService securableObjectTypes;
 
     @Inject
-    private DatastoreConductorElasticsearchApi        elasticsearchApi;
+    private DatastoreConductorElasticsearchApi elasticsearchApi;
 
     @Inject
-    private DatasourceManager                         datasourceManager;
+    private DatasourceManager datasourceManager;
 
     @Inject
-    private EdmManager                                dataModelService;
+    private EdmManager dataModelService;
 
     @Inject
-    private LoomGraphApi                              graphApi;
+    private LoomGraphApi graphApi;
 
     @Inject
-    private CassandraEntityDatastore                  dataManager;
+    private CassandraEntityDatastore dataManager;
 
     @Inject
-    private EdmAuthorizationHelper                    authzHelper;
+    private EdmAuthorizationHelper authzHelper;
 
     @Inject
-    private EntityKeyIdService                        entityKeyService;
+    private EntityKeyIdService entityKeyService;
 
     @PostConstruct
     public void initializeBus() {
@@ -250,22 +247,10 @@ public class SearchService {
                 searchTerm.getStart(),
                 searchTerm.getMaxHits(),
                 authorizedProperties );
-        Map<UUID, PropertyType> authorizedPropertyTypes = Maps.newHashMap();
-        authorizedProperties.forEach( id -> authorizedPropertyTypes.put( id, dataModelService.getPropertyType( id ) ) );
-        Set<EntityKey> entityKeys = result.getHits()
-                .parallelStream()
-                .map( hit -> new EntityKey( entitySetId, hit.get( "id" ).toString(), syncId ) )
-                .collect( Collectors.toSet() );
-        List<SetMultimap<Object, Object>> results = entityKeyService.getEntityKeyIds( entityKeys )
-                .values()
-                .parallelStream()
-                .map( entityKeyId -> {
-                    SetMultimap<Object, Object> fullRow = HashMultimap
-                            .create( dataManager.getEntityById( entityKeyId, authorizedPropertyTypes ) );
-                    fullRow.put( "id", entityKeyId.toString() );
-                    return fullRow;
-                } )
-                .collect( Collectors.toList() );
+        Map<UUID, PropertyType> authorizedPropertyTypes = dataModelService
+                .getPropertyTypesAsMap( authorizedProperties );
+
+        List<SetMultimap<Object, Object>> results = getResults( entitySetId, syncId, result, authorizedPropertyTypes );
 
         return new DataSearchResult( result.getNumHits(), results );
     }
@@ -314,23 +299,13 @@ public class SearchService {
                     search.getMaxHits(),
                     authorizedProperties );
 
-            Map<UUID, PropertyType> authorizedPropertyTypes = Maps.newHashMap();
-            authorizedProperties
-                    .forEach( id -> authorizedPropertyTypes.put( id, dataModelService.getPropertyType( id ) ) );
-            Set<EntityKey> entityKeys = result.getHits()
-                    .parallelStream()
-                    .map( hit -> new EntityKey( entitySetId, hit.get( "id" ).toString(), syncId ) )
-                    .collect( Collectors.toSet() );
-            List<SetMultimap<Object, Object>> results = entityKeyService.getEntityKeyIds( entityKeys )
-                    .values()
-                    .parallelStream()
-                    .map( entityKeyId -> {
-                        SetMultimap<Object, Object> fullRow = HashMultimap
-                                .create( dataManager.getEntityById( entityKeyId, authorizedPropertyTypes ) );
-                        fullRow.put( "id", entityKeyId.toString() );
-                        return fullRow;
-                    } )
-                    .collect( Collectors.toList() );
+            Map<UUID, PropertyType> authorizedPropertyTypes = dataModelService
+                    .getPropertyTypesAsMap( authorizedProperties );
+
+            List<SetMultimap<Object, Object>> results = getResults( entitySetId,
+                    syncId,
+                    result,
+                    authorizedPropertyTypes );
             return new DataSearchResult( result.getNumHits(), results );
         }
 
@@ -455,7 +430,7 @@ public class SearchService {
         edges.parallelStream().forEach( edge -> {
             boolean vertexIsSrc = entityIds.contains( edge.getKey().getSrcEntityKeyId() );
             UUID entityId = ( vertexIsSrc ) ? edge.getKey().getSrcEntityKeyId() : edge.getKey().getDstEntityKeyId();
-            if ( !entityNeighbors.containsKey( entityId ) ) entityNeighbors.put( entityId, Lists.newArrayList() );
+            if ( !entityNeighbors.containsKey( entityId ) ) { entityNeighbors.put( entityId, Lists.newArrayList() ); }
             NeighborEntityDetails neighbor = getNeighborEntityDetails( edge,
                     authorizedEdgeESIdsToVertexESIds,
                     entitySetsIdsToAuthorizedProps,
@@ -491,12 +466,12 @@ public class SearchService {
         UUID neighborEntitySetId = ( vertexIsSrc ) ? edge.getDstSetId() : edge.getSrcSetId();
 
         if ( authorizedEdgeESIdsToVertexESIds.containsKey( edgeEntitySetId ) ) {
-            SetMultimap<FullQualifiedName, Object> edgeDetails = dataManager.getEntityById(
+            SetMultimap<FullQualifiedName, Object> edgeDetails = dataManager.getEntity(
                     edge.getEdgeEntityKeyId(),
                     entitySetsIdsToAuthorizedProps.get( edgeEntitySetId ) );
             if ( authorizedEdgeESIdsToVertexESIds.get( edgeEntitySetId )
                     .contains( neighborEntitySetId ) ) {
-                SetMultimap<FullQualifiedName, Object> neighborDetails = dataManager.getEntityById(
+                SetMultimap<FullQualifiedName, Object> neighborDetails = dataManager.getEntity(
                         neighborEntityKeyId,
                         entitySetsIdsToAuthorizedProps.get( neighborEntitySetId ) );
                 return new NeighborEntityDetails(
@@ -518,6 +493,18 @@ public class SearchService {
         }
 
         return null;
+    }
+
+    private List<SetMultimap<Object, Object>> getResults(
+            UUID entitySetId,
+            UUID syncId,
+            SearchResult result,
+            Map<UUID, PropertyType> authorizedPropertyTypes ) {
+        Collection<UUID> ids = entityKeyService.getEntityKeyIds( result.getHits().parallelStream()
+                .map( hit -> (String) hit.get( "id" ) )
+                .map( id -> new EntityKey( entitySetId, id, syncId ) )
+                .collect( Collectors.toSet() ) ).values();
+        return dataManager.getEntities( ids, authorizedPropertyTypes ).collect( Collectors.toList() );
     }
 
 }

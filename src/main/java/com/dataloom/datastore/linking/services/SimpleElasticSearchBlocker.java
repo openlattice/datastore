@@ -2,7 +2,6 @@ package com.dataloom.datastore.linking.services;
 
 import com.dataloom.data.EntityKey;
 import com.dataloom.data.storage.CassandraEntityDatastore;
-import com.dataloom.data.storage.EntityBytes;
 import com.dataloom.datastore.services.SearchService;
 import com.dataloom.edm.type.PropertyType;
 import com.dataloom.linking.Entity;
@@ -12,6 +11,7 @@ import com.dataloom.streams.StreamUtil;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.SetMultimap;
 import com.kryptnostic.datastore.services.EdmManager;
+import java.nio.ByteBuffer;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -20,7 +20,6 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.apache.commons.lang3.tuple.Pair;
-import org.apache.olingo.commons.api.edm.FullQualifiedName;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -73,15 +72,16 @@ public class SimpleElasticSearchBlocker implements Blocker {
         Map<UUID, PropertyType> propertiesMap = propertiesSet.stream()
                 .collect( Collectors.toMap( ptId -> ptId, ptId -> dms.getPropertyType( ptId ) ) );
 
-        Stream<Pair<EntityKey,SetMultimap<UUID,Object>>> entityKeys = dataManager
+        Stream<Pair<EntityKey, SetMultimap<UUID, Object>>> entityKeys = dataManager
                 .getEntityKeysForEntitySet( entitySetId, linkingEntitySetsWithSyncId.get( entitySetId ) )
-                .map( key -> dataManager.asyncLoadEntity( key.getEntitySetId(),
-                        key.getEntityId(),
-                        key.getSyncId(),
-                        propertiesSet ) )
-                .map( StreamUtil::safeGet )
-                .map( eb -> Pair.of( eb.getKey(), dataManager.rowToEntityIndexedById( eb, propertiesMap ) ) );
-
+                .map( key -> {
+                    SetMultimap<UUID, ByteBuffer> mm = StreamUtil
+                            .safeGet( dataManager.asyncLoadEntity( key.getEntitySetId(),
+                                    key.getEntityId(),
+                                    key.getSyncId(),
+                                    propertiesSet ) );
+                    return Pair.of( key, dataManager.rowToEntityIndexedById( key.getEntityId(), mm, propertiesMap ) );
+                } );
 
         return entityKeys.flatMap( entityKeyDataPair -> {
             Map<UUID, Set<String>> properties = propertiesSet.stream()

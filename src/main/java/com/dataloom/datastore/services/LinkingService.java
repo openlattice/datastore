@@ -256,7 +256,7 @@ public class LinkingService {
                                 key.getSyncId(),
                                 authorizedPropertyTypesForEntitySets.get( key.getEntitySetId() ).keySet() ) ) )
                 .map( rsfPair -> Pair.of( rsfPair.getKey(), StreamUtil.safeGet( rsfPair.getValue() ) ) )
-                .map( rsPair -> RowAdapters.entityIndexedById( rsPair.getValue(),
+                .map( rsPair -> RowAdapters.entityIndexedById( rsPair.getKey().toString(), rsPair.getValue(),
                         authorizedPropertyTypesForEntitySets.get( rsPair.getKey() ),
                         mapper ) )
                 .forEach( result::putAll );

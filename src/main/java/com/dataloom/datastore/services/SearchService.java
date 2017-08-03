@@ -29,7 +29,7 @@ import com.dataloom.authorization.Principals;
 import com.dataloom.authorization.events.AclUpdateEvent;
 import com.dataloom.authorization.securable.SecurableObjectType;
 import com.dataloom.data.DatasourceManager;
-import com.dataloom.data.EntityDatastore;
+import com.dataloom.data.EntityKey;
 import com.dataloom.data.EntityKeyIdService;
 import com.dataloom.data.events.EntityDataCreatedEvent;
 import com.dataloom.data.events.EntityDataDeletedEvent;
@@ -71,6 +71,7 @@ import com.google.common.collect.Sets;
 import com.google.common.eventbus.EventBus;
 import com.google.common.eventbus.Subscribe;
 import com.kryptnostic.datastore.services.EdmManager;
+import java.util.Collection;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
@@ -249,7 +250,7 @@ public class SearchService {
         Map<UUID, PropertyType> authorizedPropertyTypes = dataModelService
                 .getPropertyTypesAsMap( authorizedProperties );
 
-        List<SetMultimap<Object, Object>> results = getResults( dataManager, result, authorizedPropertyTypes );
+        List<SetMultimap<Object, Object>> results = getResults( entitySetId, syncId, result, authorizedPropertyTypes );
 
         return new DataSearchResult( result.getNumHits(), results );
     }
@@ -301,7 +302,10 @@ public class SearchService {
             Map<UUID, PropertyType> authorizedPropertyTypes = dataModelService
                     .getPropertyTypesAsMap( authorizedProperties );
 
-            List<SetMultimap<Object, Object>> results = getResults( dataManager, result, authorizedPropertyTypes );
+            List<SetMultimap<Object, Object>> results = getResults( entitySetId,
+                    syncId,
+                    result,
+                    authorizedPropertyTypes );
             return new DataSearchResult( result.getNumHits(), results );
         }
 
@@ -491,18 +495,15 @@ public class SearchService {
         return null;
     }
 
-    private static List<SetMultimap<Object, Object>> getResults(
-            EntityDatastore dataManager,
+    private List<SetMultimap<Object, Object>> getResults(
+            UUID entitySetId,
+            UUID syncId,
             SearchResult result,
             Map<UUID, PropertyType> authorizedPropertyTypes ) {
-        result.getHits().parallelStream()
+        Collection<UUID> ids = entityKeyService.getEntityKeyIds( result.getHits().parallelStream()
                 .map( hit -> (String) hit.get( "id" ) )
-                .map( UUID::fromString )
-                .collect( Collectors.toSet() );
-        Set<UUID> ids = result.getHits().parallelStream()
-                .map( hit -> (String) hit.get( "id" ) )
-                .map( UUID::fromString )
-                .collect( Collectors.toSet() );
+                .map( id -> new EntityKey( entitySetId, id, syncId ) )
+                .collect( Collectors.toSet() ) ).values();
         return dataManager.getEntities( ids, authorizedPropertyTypes ).collect( Collectors.toList() );
     }
 

@@ -19,6 +19,21 @@
 
 package com.dataloom.datastore.services;
 
+import java.util.Collection;
+import java.util.EnumSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+import java.util.stream.Collectors;
+
+import javax.annotation.PostConstruct;
+import javax.inject.Inject;
+
+import org.apache.olingo.commons.api.edm.FullQualifiedName;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.codahale.metrics.annotation.Timed;
 import com.dataloom.authorization.AbstractSecurableObjectResolveTypeService;
 import com.dataloom.authorization.AuthorizationManager;
@@ -71,51 +86,39 @@ import com.google.common.collect.Sets;
 import com.google.common.eventbus.EventBus;
 import com.google.common.eventbus.Subscribe;
 import com.kryptnostic.datastore.services.EdmManager;
-import java.util.Collection;
-import java.util.EnumSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
-import java.util.stream.Collectors;
-import javax.annotation.PostConstruct;
-import javax.inject.Inject;
-import org.apache.olingo.commons.api.edm.FullQualifiedName;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class SearchService {
-    private static final Logger logger = LoggerFactory.getLogger( SearchService.class );
+    private static final Logger                       logger = LoggerFactory.getLogger( SearchService.class );
 
     @Inject
-    private EventBus eventBus;
+    private EventBus                                  eventBus;
 
     @Inject
-    private AuthorizationManager authorizations;
+    private AuthorizationManager                      authorizations;
 
     @Inject
     private AbstractSecurableObjectResolveTypeService securableObjectTypes;
 
     @Inject
-    private DatastoreConductorElasticsearchApi elasticsearchApi;
+    private DatastoreConductorElasticsearchApi        elasticsearchApi;
 
     @Inject
-    private DatasourceManager datasourceManager;
+    private DatasourceManager                         datasourceManager;
 
     @Inject
-    private EdmManager dataModelService;
+    private EdmManager                                dataModelService;
 
     @Inject
-    private LoomGraphApi graphApi;
+    private LoomGraphApi                              graphApi;
 
     @Inject
-    private CassandraEntityDatastore dataManager;
+    private CassandraEntityDatastore                  dataManager;
 
     @Inject
-    private EdmAuthorizationHelper authzHelper;
+    private EdmAuthorizationHelper                    authzHelper;
 
     @Inject
-    private EntityKeyIdService entityKeyService;
+    private EntityKeyIdService                        entityKeyService;
 
     @PostConstruct
     public void initializeBus() {
@@ -368,26 +371,6 @@ public class SearchService {
         return elasticsearchApi.executeFQNPropertyTypeSearch( namespace, name, start, maxHits );
     }
 
-    private Map<UUID, Set<UUID>> getEdgeESIdsToVertexESIds(
-            List<LoomEdge> edges,
-            Set<UUID> entityIds ) {
-        Map<UUID, Set<UUID>> edgeESIdsToVertexESIds = Maps.newHashMap();
-
-        edges.forEach( edge -> {
-            UUID edgeEntitySetId = edge.getEdgeSetId();
-            UUID neighborEntitySetId = ( entityIds.contains( edge.getSrcEntityKeyId() ) ) ? edge.getDstSetId()
-                    : edge.getSrcSetId();
-            if ( edgeESIdsToVertexESIds.containsKey( edgeEntitySetId ) ) {
-                edgeESIdsToVertexESIds.get( edgeEntitySetId ).add( neighborEntitySetId );
-            } else {
-                edgeESIdsToVertexESIds.put( edgeEntitySetId,
-                        Sets.newHashSet( neighborEntitySetId ) );
-            }
-
-        } );
-        return edgeESIdsToVertexESIds;
-    }
-
     @Timed
     public Map<UUID, List<NeighborEntityDetails>> executeEntityNeighborSearch( Set<UUID> entityIds ) {
         List<LoomEdge> edges = graphApi.getEdgesAndNeighborsForVertices( entityIds ).collect( Collectors.toList() );
@@ -396,8 +379,26 @@ public class SearchService {
         Map<UUID, Map<UUID, PropertyType>> entitySetsIdsToAuthorizedProps = Maps.newHashMap();
         Map<UUID, EntitySet> entitySetsById = Maps.newHashMap();
 
-        Map<UUID, Set<UUID>> edgeESIdsToVertexESIds = getEdgeESIdsToVertexESIds( edges,
-                entityIds );
+        Map<UUID, Set<UUID>> edgeESIdsToVertexESIds = Maps.newHashMap();
+        Map<UUID, UUID> entityKeyIdToEntitySetId = Maps.newHashMap();
+
+        edges.forEach( edge -> {
+            UUID edgeEntityKeyId = edge.getEdgeEntityKeyId();
+            UUID neighborEntityKeyId = ( entityIds.contains( edge.getSrcEntityKeyId() ) ) ? edge.getDstEntityKeyId()
+                    : edge.getSrcEntityKeyId();
+            UUID edgeEntitySetId = edge.getEdgeSetId();
+            UUID neighborEntitySetId = ( entityIds.contains( edge.getSrcEntityKeyId() ) ) ? edge.getDstSetId()
+                    : edge.getSrcSetId();
+            entityKeyIdToEntitySetId.put( edgeEntityKeyId, edgeEntitySetId );
+            entityKeyIdToEntitySetId.put( neighborEntityKeyId, neighborEntitySetId );
+            if ( edgeESIdsToVertexESIds.containsKey( edgeEntitySetId ) ) {
+                edgeESIdsToVertexESIds.get( edgeEntitySetId ).add( neighborEntitySetId );
+            } else {
+                edgeESIdsToVertexESIds.put( edgeEntitySetId,
+                        Sets.newHashSet( neighborEntitySetId ) );
+            }
+
+        } );
 
         // filter to only authorized entity sets, and load entity set and property type info for authorized ones
         edgeESIdsToVertexESIds.entrySet().forEach( entry -> {
@@ -424,18 +425,24 @@ public class SearchService {
             }
         } );
 
+        Map<UUID, SetMultimap<FullQualifiedName, Object>> entities = dataManager
+                .getEntitiesAcrossEntitySets( entityKeyIdToEntitySetId, entitySetsIdsToAuthorizedProps );
+
         Map<UUID, List<NeighborEntityDetails>> entityNeighbors = Maps.newConcurrentMap();
 
         // create a NeighborEntityDetails object for each edge based on authorizations
         edges.parallelStream().forEach( edge -> {
             boolean vertexIsSrc = entityIds.contains( edge.getKey().getSrcEntityKeyId() );
             UUID entityId = ( vertexIsSrc ) ? edge.getKey().getSrcEntityKeyId() : edge.getKey().getDstEntityKeyId();
-            if ( !entityNeighbors.containsKey( entityId ) ) { entityNeighbors.put( entityId, Lists.newArrayList() ); }
+            if ( !entityNeighbors.containsKey( entityId ) ) {
+                entityNeighbors.put( entityId, Lists.newArrayList() );
+            }
             NeighborEntityDetails neighbor = getNeighborEntityDetails( edge,
                     authorizedEdgeESIdsToVertexESIds,
                     entitySetsIdsToAuthorizedProps,
                     entitySetsById,
-                    vertexIsSrc );
+                    vertexIsSrc,
+                    entities );
             if ( neighbor != null ) {
                 entityNeighbors.get( entityId ).add( neighbor );
             }
@@ -459,21 +466,18 @@ public class SearchService {
             Map<UUID, Set<UUID>> authorizedEdgeESIdsToVertexESIds,
             Map<UUID, Map<UUID, PropertyType>> entitySetsIdsToAuthorizedProps,
             Map<UUID, EntitySet> entitySetsById,
-            boolean vertexIsSrc ) {
+            boolean vertexIsSrc,
+            Map<UUID, SetMultimap<FullQualifiedName, Object>> entities ) {
 
         UUID edgeEntitySetId = edge.getEdgeSetId();
         UUID neighborEntityKeyId = ( vertexIsSrc ) ? edge.getDstEntityKeyId() : edge.getSrcEntityKeyId();
         UUID neighborEntitySetId = ( vertexIsSrc ) ? edge.getDstSetId() : edge.getSrcSetId();
 
         if ( authorizedEdgeESIdsToVertexESIds.containsKey( edgeEntitySetId ) ) {
-            SetMultimap<FullQualifiedName, Object> edgeDetails = dataManager.getEntity(
-                    edge.getEdgeEntityKeyId(),
-                    entitySetsIdsToAuthorizedProps.get( edgeEntitySetId ) );
+            SetMultimap<FullQualifiedName, Object> edgeDetails = entities.get( edge.getEdgeEntityKeyId() );
             if ( authorizedEdgeESIdsToVertexESIds.get( edgeEntitySetId )
                     .contains( neighborEntitySetId ) ) {
-                SetMultimap<FullQualifiedName, Object> neighborDetails = dataManager.getEntity(
-                        neighborEntityKeyId,
-                        entitySetsIdsToAuthorizedProps.get( neighborEntitySetId ) );
+                SetMultimap<FullQualifiedName, Object> neighborDetails = entities.get( neighborEntityKeyId );
                 return new NeighborEntityDetails(
                         entitySetsById.get( edgeEntitySetId ),
                         edgeDetails,

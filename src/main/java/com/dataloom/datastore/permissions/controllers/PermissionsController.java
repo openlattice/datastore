@@ -173,9 +173,6 @@ public class PermissionsController implements PermissionsApi, AuthorizingCompone
 
     /**
      * Compute the total permission of a user has from his aces, thus computing the Ace explanation
-     * 
-     * @param aces all the aces associated to one user
-     * @return
      */
     private AceExplanation computeAceExplanation( Entry<Principal, Collection<Ace>> entry ) {
         Set<Permission> totalPermissions = entry.getValue().stream().flatMap( ace -> ace.getPermissions().stream() )

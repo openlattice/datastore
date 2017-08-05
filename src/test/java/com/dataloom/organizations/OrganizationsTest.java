@@ -25,16 +25,14 @@ import java.util.UUID;
 import org.junit.Assert;
 import org.junit.Test;
 
-import com.dataloom.authorization.Principal;
-import com.dataloom.authorization.PrincipalType;
 import com.dataloom.datastore.BootstrapDatastoreWithCassandra;
 import com.dataloom.mapstores.TestDataFactory;
 import com.dataloom.organization.Organization;
 import com.dataloom.organization.OrganizationsApi;
-import com.dataloom.organizations.roles.RolesUtil;
 import com.google.common.collect.ImmutableSet;
 
 public class OrganizationsTest extends BootstrapDatastoreWithCassandra {
+
     protected static final OrganizationsApi organizations = getApiUser1( OrganizationsApi.class );
 
     private Organization createOrganization() {
@@ -67,21 +65,4 @@ public class OrganizationsTest extends BootstrapDatastoreWithCassandra {
         createOrganization();
     }
 
-    @Test
-    public void addPrincipal() {
-        Organization org = createOrganization();
-        Principal p = TestDataFactory.rolePrincipal();
-        Principal expectedP = new Principal(
-                PrincipalType.ROLE,
-                RolesUtil.getStringRepresentation( org.getId(), p.getId() ) );
-
-        Set<Principal> ps = organizations.getPrincipals( org.getId() );
-        Assert.assertNotNull( ps );
-        Assert.assertFalse( ps.contains( p ) );
-        organizations.addPrincipal( org.getId(), p.getType(), p.getId() );
-
-        ps = organizations.getPrincipals( org.getId() );
-        Assert.assertNotNull( ps );
-        Assert.assertTrue( ps.contains( expectedP ) );
-    }
 }

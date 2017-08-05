@@ -37,19 +37,19 @@ import com.dataloom.authorization.AclExplanation;
 import com.dataloom.authorization.Action;
 import com.dataloom.authorization.Permission;
 import com.dataloom.authorization.Principal;
+import com.dataloom.authorization.PrincipalType;
 import com.dataloom.datastore.authentication.MultipleAuthenticatedUsersBase;
 import com.dataloom.edm.EntitySet;
 import com.dataloom.mapstores.TestDataFactory;
-import com.dataloom.organization.roles.OrganizationRole;
-import com.dataloom.organizations.roles.RolesUtil;
+import com.dataloom.organization.roles.Role;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
 public class PermissionsControllerTest extends MultipleAuthenticatedUsersBase {
     protected static List<UUID> entitySetAclKey;
-    protected static Principal  role1;
-    protected static Principal  role2;
+    protected static Principal  rolePrincipal1;
+    protected static Principal  rolePrincipal2;
 
     @BeforeClass
     public static void init() {
@@ -59,21 +59,22 @@ public class PermissionsControllerTest extends MultipleAuthenticatedUsersBase {
 
         // create some roles
         UUID organizationId = organizationsApi.createOrganizationIfNotExists( TestDataFactory.organization() );
-        OrganizationRole r1 = new OrganizationRole(
+        Role r1 = new Role(
                 Optional.absent(),
                 organizationId,
                 RandomStringUtils.randomAlphanumeric( 5 ),
                 Optional.of( RandomStringUtils.randomAlphanumeric( 5 ) ) );
-        OrganizationRole r2 = new OrganizationRole(
+        Role r2 = new Role(
                 Optional.absent(),
                 organizationId,
                 RandomStringUtils.randomAlphanumeric( 5 ),
                 Optional.of( RandomStringUtils.randomAlphanumeric( 5 ) ) );
+
         organizationsApi.createRole( r1 );
         organizationsApi.createRole( r2 );
 
-        role1 = RolesUtil.getPrincipal( r1 );
-        role2 = RolesUtil.getPrincipal( r2 );
+        rolePrincipal1 = new Principal( PrincipalType.ROLE, r1.getId().toString() );
+        rolePrincipal2 = new Principal( PrincipalType.ROLE, r2.getId().toString() );
 
         // add roles to user1
         organizationsApi.addRoleToUser( organizationId, r1.getId(), user1.getId() );
@@ -169,24 +170,24 @@ public class PermissionsControllerTest extends MultipleAuthenticatedUsersBase {
         EntitySet es2 = createEntitySet();
         List<UUID> aclKey = ImmutableList.of( es2.getId() );
 
-        // add Permissions to user1: DISCOVER, to role1: READ, to role2:WRITE
+        // add Permissions to user1: DISCOVER, to rolePrincipal1: READ, to rolePrincipal2:WRITE
         EnumSet<Permission> userPermissions = EnumSet.of( Permission.DISCOVER );
         Acl acl0 = new Acl( aclKey, ImmutableSet.of( new Ace( user1, userPermissions ) ) );
         permissionsApi.updateAcl( new AclData( acl0, Action.ADD ) );
 
         EnumSet<Permission> role1Permissions = EnumSet.of( Permission.READ );
-        Acl acl1 = new Acl( aclKey, ImmutableSet.of( new Ace( role1, role1Permissions ) ) );
+        Acl acl1 = new Acl( aclKey, ImmutableSet.of( new Ace( rolePrincipal1, role1Permissions ) ) );
         permissionsApi.updateAcl( new AclData( acl1, Action.ADD ) );
 
         EnumSet<Permission> role2Permissions = EnumSet.of( Permission.WRITE );
-        Acl acl2 = new Acl( aclKey, ImmutableSet.of( new Ace( role2, role2Permissions ) ) );
+        Acl acl2 = new Acl( aclKey, ImmutableSet.of( new Ace( rolePrincipal2, role2Permissions ) ) );
         permissionsApi.updateAcl( new AclData( acl2, Action.ADD ) );
-        // sanity check: four aces associated to the entity set: admin, user1, role1, role2
+        // sanity check: four aces associated to the entity set: admin, user1, rolePrincipal1, rolePrincipal2
         Assert.assertEquals( 4, Iterables.size( permissionsApi.getAcl( aclKey ).getAces() ) );
 
         AclExplanation aclExp = permissionsApi.getAclExplanation( aclKey );
         System.err.println( "Explanation:" + aclExp );
-        // check: four aces associated to the entity set: admin, user1, role1, role2
+        // check: four aces associated to the entity set: admin, user1, rolePrincipal1, rolePrincipal2
         Assert.assertEquals( 4, Iterables.size( aclExp.getAces() ) );
         for ( AceExplanation aceExp : aclExp.getAces() ) {
             switch ( aceExp.getAce().getPrincipal().getType() ) {

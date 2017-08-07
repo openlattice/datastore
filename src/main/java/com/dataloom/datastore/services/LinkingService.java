@@ -156,11 +156,8 @@ public class LinkingService {
                         // The pair actually consists of two entities; we should add the edge to the graph if necessary.
                         final LinkingEdge edge = fromUnorderedPair( graphId, entityPair );
                         if ( buffer.tryAddEdge( edge ) ) {
-                            List<Entity> pairAsList = entityPair.getAsList();
-                            double weight = ( isMatchingPerson ) ? -1.0
-                                    * ( FeatureExtractor.getEntityDiffForWeights( pairAsList.get( 0 ).getProperties(),
-                                            pairAsList.get( 1 ).getProperties(),
-                                            personWeights ) )
+                            double weight = ( isMatchingPerson )
+                                    ? FeatureExtractor.getEntityDiffForWeights( entityPair, personWeights )
                                     : matcher.dist( entityPair );
                             buffer.setEdgeWeight( new WeightedLinkingEdge( weight, edge ) );
                         }

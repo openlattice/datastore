@@ -36,6 +36,8 @@ import com.dataloom.linking.WeightedLinkingEdge;
 import com.dataloom.linking.components.Blocker;
 import com.dataloom.linking.components.Clusterer;
 import com.dataloom.linking.components.Matcher;
+import com.dataloom.linking.configuration.PersonFeatureWeights;
+import com.dataloom.linking.util.FeatureExtractor;
 import com.dataloom.linking.util.UnorderedPair;
 import com.dataloom.streams.StreamUtil;
 import com.datastax.driver.core.Session;
@@ -53,6 +55,7 @@ import com.hazelcast.core.HazelcastInstance;
 import com.kryptnostic.datastore.cassandra.CommonColumns;
 import com.kryptnostic.datastore.cassandra.RowAdapters;
 import com.kryptnostic.datastore.services.EdmManager;
+import com.kryptnostic.rhizome.configuration.service.ConfigurationService;
 
 public class LinkingService {
     private static final Logger                 logger = LoggerFactory.getLogger( LinkingService.class );
@@ -141,6 +144,10 @@ public class LinkingService {
                 0 );
 
         logger.info( "Executing matching..." );
+        double[] personWeights = ConfigurationService.StaticLoader.loadConfiguration( PersonFeatureWeights.class )
+                .getWeights();
+        boolean isMatchingPerson = dms.getEntityTypeByEntitySetId( linkIndexedByEntitySets.keySet().iterator().next() )
+                .getType().toString().equals( "general.person" );
         // Matching: check if pair score is already calculated from HazelcastGraph Api. If not, stream
         // through matcher to get a score.
         pairs
@@ -149,7 +156,12 @@ public class LinkingService {
                         // The pair actually consists of two entities; we should add the edge to the graph if necessary.
                         final LinkingEdge edge = fromUnorderedPair( graphId, entityPair );
                         if ( buffer.tryAddEdge( edge ) ) {
-                            double weight = matcher.dist( entityPair );
+                            List<Entity> pairAsList = entityPair.getAsList();
+                            double weight = ( isMatchingPerson ) ? -1.0
+                                    * ( FeatureExtractor.getEntityDiffForWeights( pairAsList.get( 0 ).getProperties(),
+                                            pairAsList.get( 1 ).getProperties(),
+                                            personWeights ) )
+                                    : matcher.dist( entityPair );
                             buffer.setEdgeWeight( new WeightedLinkingEdge( weight, edge ) );
                         }
                     } else {

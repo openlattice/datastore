@@ -1,0 +1,29 @@
+##
+# Weights for features to be used for matching people
+##
+bias: 2.0
+firstNameString: -8.44
+firstNameMetaphone: -14.02
+firstNamePresence: 0.0
+middleNameString: 0.0
+middleNameMetaphone: 0.0
+middleNamePresence: 2.0
+lastNameString: -8.8
+lastNameMetaphone: -10.94
+lastNamePresence: 2.0
+sexString: -12.0
+sexPresence: 0.0
+raceString: -9.46
+racePresence: 0.0
+ethnicityString: -7.479999999999997
+ethnicityPresence: 2.0
+dobString: -17.88
+dobPresence: 2.0
+identificationString: -86.07999999999998
+identificationPresence: 2.0
+ssnString: -14.219999999999999
+ssnPresence: 0.0
+ageString: 0.0
+agePresence: 2.0
+xrefString: 0.0
+xrefPresence: 2.0

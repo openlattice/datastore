@@ -1,12 +1,10 @@
 package com.dataloom.organizations;
 
-import com.dataloom.authorization.Principal;
 import com.dataloom.client.RetrofitFactory;
 import com.dataloom.directory.pojo.Auth0UserBasic;
 import com.dataloom.mapstores.TestDataFactory;
 import com.dataloom.organization.OrganizationsApi;
-import com.dataloom.organization.roles.OrganizationRole;
-import com.dataloom.organizations.roles.RolesUtil;
+import com.dataloom.organization.roles.Role;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
@@ -59,15 +57,15 @@ public class RolesServiceTest extends OrganizationsTest {
         return r.create( OrganizationsApi.class );
     }
 
-    private OrganizationRole createRole( UUID organizationId ) {
-        OrganizationRole role = new OrganizationRole(
+    private Role createRole( UUID organizationId ) {
+        Role role = new Role(
                 Optional.absent(),
                 organizationId,
                 RandomStringUtils.randomAlphanumeric( 5 ),
                 Optional.of( RandomStringUtils.randomAlphanumeric( 5 ) ) );
         UUID roleId = organizations.createRole( role );
         Assert.assertNotNull( roleId );
-        OrganizationRole registered = organizations.getRole( organizationId, roleId );
+        Role registered = organizations.getRole( organizationId, roleId );
         Assert.assertNotNull( registered );
         return registered;
     }
@@ -81,9 +79,9 @@ public class RolesServiceTest extends OrganizationsTest {
     public void testGetRoles() {
         int initialNumRoles = Iterables.size( organizations.getRoles( organizationId ) );
 
-        OrganizationRole newRole = createRole( organizationId );
+        Role newRole = createRole( organizationId );
 
-        Set<OrganizationRole> allRoles = ImmutableSet.copyOf( organizations.getRoles( organizationId ) );
+        Set<Role> allRoles = ImmutableSet.copyOf( organizations.getRoles( organizationId ) );
 
         Assert.assertTrue( allRoles.contains( newRole ) );
         Assert.assertEquals( initialNumRoles + 1, allRoles.size() );
@@ -91,7 +89,7 @@ public class RolesServiceTest extends OrganizationsTest {
 
     @Test
     public void testUpdateRoleTitle() {
-        OrganizationRole newRole = createRole( organizationId );
+        Role newRole = createRole( organizationId );
 
         String newTitle = RandomStringUtils.randomAlphanumeric( 5 );
         organizations.updateRoleTitle( organizationId, newRole.getId(), newTitle );
@@ -101,7 +99,7 @@ public class RolesServiceTest extends OrganizationsTest {
 
     @Test
     public void testUpdateRoleDescription() {
-        OrganizationRole newRole = createRole( organizationId );
+        Role newRole = createRole( organizationId );
 
         String newDescription = RandomStringUtils.randomAlphanumeric( 5 );
         organizations.updateRoleDescription( organizationId, newRole.getId(), newDescription );
@@ -112,19 +110,18 @@ public class RolesServiceTest extends OrganizationsTest {
 
     @Test
     public void testDeleteRole() {
-        OrganizationRole newRole = createRole( organizationId );
+        Role newRole = createRole( organizationId );
 
         organizations.deleteRole( organizationId, newRole.getId() );
 
-        Assert.assertFalse( Iterables
-                .contains( organizations.getRoles( organizationId ), RolesUtil.getPrincipal( newRole ) ) );
+        Assert.assertFalse( Iterables.contains( organizations.getRoles( organizationId ), newRole ) );
     }
 
     //TODO: Re-enable after adding the ability to get management token for the current configuration.
     @Test
     @Ignore
     public void testAddRemoveRoleToUser() {
-        OrganizationRole newRole = createRole( organizationId );
+        Role newRole = createRole( organizationId );
 
         organizations.addRoleToUser( organizationId, newRole.getId(), user2.getId() );
 
@@ -149,7 +146,7 @@ public class RolesServiceTest extends OrganizationsTest {
     @Ignore
     public void testRefreshToken() {
         // add role to user2
-        OrganizationRole newRole = createRole( organizationId );
+        Role newRole = createRole( organizationId );
         organizations.addRoleToUser( organizationId, newRole.getId(), user2.getId() );
 
         Iterable<String> usersOfRoleAfterAdding = Iterables.transform(

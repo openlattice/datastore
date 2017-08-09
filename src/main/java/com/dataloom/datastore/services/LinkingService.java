@@ -12,6 +12,7 @@ import java.util.stream.Stream;
 
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.olingo.commons.api.edm.EdmPrimitiveTypeKind;
+import org.apache.olingo.commons.api.edm.FullQualifiedName;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -123,6 +124,10 @@ public class LinkingService {
             Set<UUID> propertyTypesToPopulate ) {
         SetMultimap<UUID, UUID> linkIndexedByPropertyTypes = getLinkIndexedByPropertyTypes( linkingProperties );
         SetMultimap<UUID, UUID> linkIndexedByEntitySets = getLinkIndexedByEntitySets( linkingProperties );
+        Map<FullQualifiedName, String> propertyTypeIdIndexedByFqn = getPropertyTypeIdIndexedByFqn( linkingProperties );
+
+        boolean isMatchingPerson = dms.getEntityTypeByEntitySetId( linkIndexedByEntitySets.keySet().iterator().next() )
+                .getType().toString().equals( "general.person" );
 
         // Warning: We assume that the restrictions on links are enforced/validated as specified in LinkingApi. In
         // particular, from now on we work on the assumption that only identical property types are linked on.
@@ -146,8 +151,6 @@ public class LinkingService {
         logger.info( "Executing matching..." );
         double[] personWeights = ConfigurationService.StaticLoader.loadConfiguration( PersonFeatureWeights.class )
                 .getWeights();
-        boolean isMatchingPerson = dms.getEntityTypeByEntitySetId( linkIndexedByEntitySets.keySet().iterator().next() )
-                .getType().toString().equals( "general.person" );
         // Matching: check if pair score is already calculated from HazelcastGraph Api. If not, stream
         // through matcher to get a score.
         pairs
@@ -157,7 +160,9 @@ public class LinkingService {
                         final LinkingEdge edge = fromUnorderedPair( graphId, entityPair );
                         if ( buffer.tryAddEdge( edge ) ) {
                             double weight = ( isMatchingPerson )
-                                    ? FeatureExtractor.getEntityDiffForWeights( entityPair, personWeights )
+                                    ? FeatureExtractor.getEntityDiffForWeights( entityPair,
+                                            personWeights,
+                                            propertyTypeIdIndexedByFqn )
                                     : matcher.dist( entityPair );
                             buffer.setEdgeWeight( new WeightedLinkingEdge( weight, edge ) );
                         }
@@ -372,6 +377,16 @@ public class LinkingService {
 
         linkingProperties.stream().flatMap( m -> m.entrySet().stream() )
                 .forEach( entry -> result.put( entry.getKey(), entry.getValue() ) );
+
+        return result;
+    }
+
+    public Map<FullQualifiedName, String> getPropertyTypeIdIndexedByFqn( Set<Map<UUID, UUID>> linkingProperties ) {
+        Map<FullQualifiedName, String> result = Maps.newHashMap();
+
+        linkingProperties.stream().flatMap( m -> m.entrySet().stream() )
+                .forEach( entry -> result.put( dms.getPropertyType( entry.getValue() ).getType(),
+                        entry.getValue().toString() ) );
 
         return result;
     }

@@ -1,5 +1,20 @@
 package com.dataloom.datastore.services;
 
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.ExecutionException;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+import org.apache.commons.lang3.tuple.Pair;
+import org.apache.olingo.commons.api.edm.EdmPrimitiveTypeKind;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.dataloom.LoomUtil;
 import com.dataloom.data.DataGraphManager;
 import com.dataloom.data.DatasourceManager;
@@ -38,22 +53,9 @@ import com.hazelcast.core.HazelcastInstance;
 import com.kryptnostic.datastore.cassandra.CommonColumns;
 import com.kryptnostic.datastore.cassandra.RowAdapters;
 import com.kryptnostic.datastore.services.EdmManager;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.ExecutionException;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-import org.apache.commons.lang3.tuple.Pair;
-import org.apache.olingo.commons.api.edm.EdmPrimitiveTypeKind;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class LinkingService {
-    private static final Logger logger = LoggerFactory.getLogger( LinkingService.class );
+    private static final Logger                 logger = LoggerFactory.getLogger( LinkingService.class );
 
     private final ObjectMapper                  mapper;
     private final HazelcastLinkingGraphs        linkingGraph;
@@ -111,7 +113,11 @@ public class LinkingService {
         this.mapper = mapper;
     }
 
-    public UUID link( UUID linkedEntitySetId, Set<Map<UUID, UUID>> linkingProperties, Set<UUID> ownablePropertyTypes ) {
+    public UUID link(
+            UUID linkedEntitySetId,
+            Set<Map<UUID, UUID>> linkingProperties,
+            Set<UUID> ownablePropertyTypes,
+            Set<UUID> propertyTypesToPopulate ) {
         SetMultimap<UUID, UUID> linkIndexedByPropertyTypes = getLinkIndexedByPropertyTypes( linkingProperties );
         SetMultimap<UUID, UUID> linkIndexedByEntitySets = getLinkIndexedByEntitySets( linkingProperties );
 
@@ -157,13 +163,16 @@ public class LinkingService {
         logger.info( "Executing clustering..." );
         clusterer.cluster( graphId );
 
-        mergeEntities( linkedEntitySetId, ownablePropertyTypes );
+        mergeEntities( linkedEntitySetId, ownablePropertyTypes, propertyTypesToPopulate );
 
         logger.info( "Linking job finished." );
         return linkedEntitySetId;
     }
 
-    private void mergeEntities( UUID linkedEntitySetId, Set<UUID> ownablePropertyTypes ) {
+    private void mergeEntities(
+            UUID linkedEntitySetId,
+            Set<UUID> ownablePropertyTypes,
+            Set<UUID> propertyTypesToPopulate ) {
         Map<UUID, Map<UUID, PropertyType>> authorizedPropertyTypesForEntitySets = new HashMap<>();
 
         // compute authorized property types for each of the linking entity sets, as well as the linked entity set
@@ -182,7 +191,7 @@ public class LinkingService {
 
         UUID syncId = dsm.getCurrentSyncId( linkedEntitySetId );
 
-        mergeVertices( linkedEntitySetId, syncId, authorizedPropertyTypesForEntitySets );
+        mergeVertices( linkedEntitySetId, syncId, authorizedPropertyTypesForEntitySets, propertyTypesToPopulate );
 
         mergeEdges( linkedEntitySetId, linkingSets, syncId );
     }
@@ -190,7 +199,8 @@ public class LinkingService {
     private void mergeVertices(
             UUID linkedEntitySetId,
             UUID syncId,
-            Map<UUID, Map<UUID, PropertyType>> authorizedPropertyTypesForEntitySets ) {
+            Map<UUID, Map<UUID, PropertyType>> authorizedPropertyTypesForEntitySets,
+            Set<UUID> propertyTypesToPopulate ) {
         logger.debug( "Linking: Merging vertices..." );
 
         Map<UUID, EdmPrimitiveTypeKind> authorizedPropertiesWithDataTypeForLinkedEntitySet = Maps.transformValues(
@@ -203,7 +213,8 @@ public class LinkingService {
         for ( Pair<UUID, Set<EntityKey>> linkedKey : linkedEntityKeys ) {
             // compute merged entity
             SetMultimap<UUID, Object> mergedEntityDetails = computeMergedEntity( linkedKey.getValue(),
-                    authorizedPropertyTypesForEntitySets );
+                    authorizedPropertyTypesForEntitySets,
+                    propertyTypesToPopulate );
             String entityId = LoomUtil.generateDefaultEntityId( keyProperties, mergedEntityDetails );
 
             // create merged entity, in particular get back the entity key id for the new entity
@@ -246,7 +257,8 @@ public class LinkingService {
 
     private SetMultimap<UUID, Object> computeMergedEntity(
             Set<EntityKey> entityKeys,
-            Map<UUID, Map<UUID, PropertyType>> authorizedPropertyTypesForEntitySets ) {
+            Map<UUID, Map<UUID, PropertyType>> authorizedPropertyTypesForEntitySets,
+            Set<UUID> propertyTypesToPopulate ) {
         SetMultimap<UUID, Object> result = HashMultimap.create();
 
         entityKeys.stream()
@@ -256,11 +268,12 @@ public class LinkingService {
                                 key.getSyncId(),
                                 authorizedPropertyTypesForEntitySets.get( key.getEntitySetId() ).keySet() ) ) )
                 .map( rsfPair -> Pair.of( rsfPair.getKey(), StreamUtil.safeGet( rsfPair.getValue() ) ) )
-                .map( rsPair -> RowAdapters.entityIndexedById( rsPair.getKey().toString(), rsPair.getValue(),
+                .map( rsPair -> RowAdapters.entityIndexedById( rsPair.getKey().toString(),
+                        rsPair.getValue(),
                         authorizedPropertyTypesForEntitySets.get( rsPair.getKey() ),
+                        propertyTypesToPopulate,
                         mapper ) )
                 .forEach( result::putAll );
-
         return result;
     }
 

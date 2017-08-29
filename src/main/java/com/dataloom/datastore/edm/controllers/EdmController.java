@@ -780,8 +780,11 @@ public class EdmController implements EdmApi, AuthorizingComponent {
         method = RequestMethod.PATCH,
         consumes = MediaType.APPLICATION_JSON_VALUE )
     public Void updateEntitySetMetadata( @PathVariable( ID ) UUID entitySetId, @RequestBody MetadataUpdate update ) {
-        ensureAdminAccess();
-        modelService.updateEntitySetMetadata( entitySetId, update );
+        if ( authorizations.checkIfHasPermissions( ImmutableList.of( entitySetId ),
+                Principals.getCurrentPrincipals(),
+                EnumSet.of( Permission.OWNER ) ) ) {
+            modelService.updateEntitySetMetadata( entitySetId, update );
+        }
         return null;
     }
 

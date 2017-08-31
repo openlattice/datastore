@@ -118,6 +118,15 @@ public class EdmController implements EdmApi, AuthorizingComponent {
     private DatasourceManager                         datasourceManager;
 
     @RequestMapping(
+        path = CLEAR_PATH,
+        method = RequestMethod.DELETE )
+    @ResponseStatus( HttpStatus.OK )
+    public void clearAllData() {
+        ensureAdminAccess();
+        modelService.clearTables();
+    }
+
+    @RequestMapping(
         method = RequestMethod.GET,
         produces = { MediaType.APPLICATION_JSON_VALUE, CustomMediaType.TEXT_YAML_VALUE } )
     @ResponseStatus( HttpStatus.OK )
@@ -163,7 +172,7 @@ public class EdmController implements EdmApi, AuthorizingComponent {
         setDownloadContentType( response, fileType );
         return getEntityDataModelDiff( edm );
     }
-    
+
     @Override
     public EntityDataModelDiff getEntityDataModelDiff( EntityDataModel edm ) {
         return modelService.getEntityDataModelDiff( edm );
@@ -178,7 +187,7 @@ public class EdmController implements EdmApi, AuthorizingComponent {
         ensureAdminAccess();
         modelService.setEntityDataModel( edm );
     }
-    
+
     @Override
     @RequestMapping(
         path = VERSION_PATH,
@@ -189,7 +198,7 @@ public class EdmController implements EdmApi, AuthorizingComponent {
         ensureAdminAccess();
         return modelService.getCurrentEntityDataModelVersion();
     }
-    
+
     @Override
     @RequestMapping(
         path = VERSION_PATH + NEW_PATH,

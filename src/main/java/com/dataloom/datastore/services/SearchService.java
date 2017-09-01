@@ -372,57 +372,47 @@ public class SearchService {
     }
 
     @Timed
-    public Map<UUID, List<NeighborEntityDetails>> executeEntityNeighborSearch( Set<UUID> entityIds ) {
-        List<LoomEdge> edges = graphApi.getEdgesAndNeighborsForVertices( entityIds ).collect( Collectors.toList() );
+    public Map<UUID, List<NeighborEntityDetails>> executeEntityNeighborSearch( Set<UUID> entityKeyIds ) {
+        List<LoomEdge> edges = Lists.newArrayList();
 
         Map<UUID, Set<UUID>> authorizedEdgeESIdsToVertexESIds = Maps.newHashMap();
         Map<UUID, Map<UUID, PropertyType>> entitySetsIdsToAuthorizedProps = Maps.newHashMap();
         Map<UUID, EntitySet> entitySetsById = Maps.newHashMap();
 
-        Map<UUID, Set<UUID>> edgeESIdsToVertexESIds = Maps.newHashMap();
+        // Map<UUID, Set<UUID>> edgeESIdsToVertexESIds = Maps.newHashMap();
         Map<UUID, UUID> entityKeyIdToEntitySetId = Maps.newHashMap();
+        Map<UUID, Boolean> entitySetIsAuthorized = Maps.newHashMap();
 
-        edges.forEach( edge -> {
+        graphApi.getEdgesAndNeighborsForVertices( entityKeyIds ).forEach( edge -> {
             UUID edgeEntityKeyId = edge.getEdgeEntityKeyId();
-            UUID neighborEntityKeyId = ( entityIds.contains( edge.getSrcEntityKeyId() ) ) ? edge.getDstEntityKeyId()
+            UUID neighborEntityKeyId = ( entityKeyIds.contains( edge.getSrcEntityKeyId() ) ) ? edge.getDstEntityKeyId()
                     : edge.getSrcEntityKeyId();
             UUID edgeEntitySetId = edge.getEdgeSetId();
-            UUID neighborEntitySetId = ( entityIds.contains( edge.getSrcEntityKeyId() ) ) ? edge.getDstSetId()
+            UUID neighborEntitySetId = ( entityKeyIds.contains( edge.getSrcEntityKeyId() ) ) ? edge.getDstSetId()
                     : edge.getSrcSetId();
             entityKeyIdToEntitySetId.put( edgeEntityKeyId, edgeEntitySetId );
             entityKeyIdToEntitySetId.put( neighborEntityKeyId, neighborEntitySetId );
-            if ( edgeESIdsToVertexESIds.containsKey( edgeEntitySetId ) ) {
-                edgeESIdsToVertexESIds.get( edgeEntitySetId ).add( neighborEntitySetId );
-            } else {
-                edgeESIdsToVertexESIds.put( edgeEntitySetId,
-                        Sets.newHashSet( neighborEntitySetId ) );
-            }
 
-        } );
+            if ( !entitySetIsAuthorized.containsKey( edgeEntitySetId ) )
+                entitySetIsAuthorized.put( edgeEntitySetId, getAuthorization( edgeEntitySetId ) );
+            if ( !entitySetIsAuthorized.containsKey( neighborEntitySetId ) )
+                entitySetIsAuthorized.put( neighborEntitySetId, getAuthorization( neighborEntitySetId ) );
 
-        // filter to only authorized entity sets, and load entity set and property type info for authorized ones
-        edgeESIdsToVertexESIds.entrySet().forEach( entry -> {
-            if ( authorizations.checkIfHasPermissions( ImmutableList.of( entry.getKey() ),
-                    Principals.getCurrentPrincipals(),
-                    EnumSet.of( Permission.READ ) ) ) {
-                if ( !authorizedEdgeESIdsToVertexESIds.containsKey( entry.getKey() ) ) {
-                    authorizedEdgeESIdsToVertexESIds.put( entry.getKey(), Sets.newHashSet() );
-                    entitySetsById.put( entry.getKey(), dataModelService.getEntitySet( entry.getKey() ) );
-                    entitySetsIdsToAuthorizedProps.put( entry.getKey(), getAuthorizedProperties( entry.getKey() ) );
+            if ( entitySetIsAuthorized.get( edgeEntitySetId ) ) {
+                edges.add( edge );
+                if ( !entitySetsById.containsKey( edgeEntitySetId ) ) {
+                    authorizedEdgeESIdsToVertexESIds.put( edgeEntitySetId, Sets.newHashSet() );
+                    entitySetsById.put( edgeEntitySetId, dataModelService.getEntitySet( edgeEntitySetId ) );
+                    entitySetsIdsToAuthorizedProps.put( edgeEntitySetId, getAuthorizedProperties( edgeEntitySetId ) );
                 }
-
-                entry.getValue().forEach( vertexTypeId -> {
-                    if ( authorizations.checkIfHasPermissions( ImmutableList.of( vertexTypeId ),
-                            Principals.getCurrentPrincipals(),
-                            EnumSet.of( Permission.READ ) ) ) {
-                        authorizedEdgeESIdsToVertexESIds.get( entry.getKey() ).add( vertexTypeId );
-                        if ( !entitySetsById.containsKey( vertexTypeId ) ) {
-                            entitySetsById.put( vertexTypeId, dataModelService.getEntitySet( vertexTypeId ) );
-                            entitySetsIdsToAuthorizedProps.put( vertexTypeId, getAuthorizedProperties( vertexTypeId ) );
-                        }
-                    }
-                } );
             }
+            if ( entitySetIsAuthorized.get( neighborEntitySetId )
+                    && !entitySetsById.containsKey( neighborEntitySetId ) ) {
+                entitySetsById.put( neighborEntitySetId, dataModelService.getEntitySet( neighborEntitySetId ) );
+                entitySetsIdsToAuthorizedProps.put( neighborEntitySetId,
+                        getAuthorizedProperties( neighborEntitySetId ) );
+            }
+
         } );
 
         Map<UUID, SetMultimap<FullQualifiedName, Object>> entities = dataManager
@@ -432,7 +422,7 @@ public class SearchService {
 
         // create a NeighborEntityDetails object for each edge based on authorizations
         edges.parallelStream().forEach( edge -> {
-            boolean vertexIsSrc = entityIds.contains( edge.getKey().getSrcEntityKeyId() );
+            boolean vertexIsSrc = entityKeyIds.contains( edge.getKey().getSrcEntityKeyId() );
             UUID entityId = ( vertexIsSrc ) ? edge.getKey().getSrcEntityKeyId() : edge.getKey().getDstEntityKeyId();
             if ( !entityNeighbors.containsKey( entityId ) ) {
                 entityNeighbors.put( entityId, Lists.newArrayList() );
@@ -450,6 +440,12 @@ public class SearchService {
 
         return entityNeighbors;
 
+    }
+
+    private boolean getAuthorization( UUID entitySetId ) {
+        return authorizations.checkIfHasPermissions( ImmutableList.of( entitySetId ),
+                Principals.getCurrentPrincipals(),
+                EnumSet.of( Permission.READ ) );
     }
 
     private Map<UUID, PropertyType> getAuthorizedProperties( UUID entitySetId ) {
@@ -473,30 +469,26 @@ public class SearchService {
         UUID neighborEntityKeyId = ( vertexIsSrc ) ? edge.getDstEntityKeyId() : edge.getSrcEntityKeyId();
         UUID neighborEntitySetId = ( vertexIsSrc ) ? edge.getDstSetId() : edge.getSrcSetId();
 
-        if ( authorizedEdgeESIdsToVertexESIds.containsKey( edgeEntitySetId ) ) {
-            SetMultimap<FullQualifiedName, Object> edgeDetails = entities.get( edge.getEdgeEntityKeyId() );
-            if ( authorizedEdgeESIdsToVertexESIds.get( edgeEntitySetId )
-                    .contains( neighborEntitySetId ) ) {
-                SetMultimap<FullQualifiedName, Object> neighborDetails = entities.get( neighborEntityKeyId );
-                return new NeighborEntityDetails(
-                        entitySetsById.get( edgeEntitySetId ),
-                        edgeDetails,
-                        entitySetsIdsToAuthorizedProps.get( edgeEntitySetId ).values(),
-                        entitySetsById.get( neighborEntitySetId ),
-                        neighborEntityKeyId,
-                        neighborDetails,
-                        entitySetsIdsToAuthorizedProps.get( neighborEntitySetId ).values(),
-                        vertexIsSrc );
-            } else {
-                return new NeighborEntityDetails(
-                        entitySetsById.get( edgeEntitySetId ),
-                        edgeDetails,
-                        entitySetsIdsToAuthorizedProps.get( edgeEntitySetId ).values(),
-                        vertexIsSrc );
-            }
+        SetMultimap<FullQualifiedName, Object> edgeDetails = entities.get( edge.getEdgeEntityKeyId() );
+        if ( authorizedEdgeESIdsToVertexESIds.get( edgeEntitySetId )
+                .contains( neighborEntitySetId ) ) {
+            SetMultimap<FullQualifiedName, Object> neighborDetails = entities.get( neighborEntityKeyId );
+            return new NeighborEntityDetails(
+                    entitySetsById.get( edgeEntitySetId ),
+                    edgeDetails,
+                    entitySetsIdsToAuthorizedProps.get( edgeEntitySetId ).values(),
+                    entitySetsById.get( neighborEntitySetId ),
+                    neighborEntityKeyId,
+                    neighborDetails,
+                    entitySetsIdsToAuthorizedProps.get( neighborEntitySetId ).values(),
+                    vertexIsSrc );
+        } else {
+            return new NeighborEntityDetails(
+                    entitySetsById.get( edgeEntitySetId ),
+                    edgeDetails,
+                    entitySetsIdsToAuthorizedProps.get( edgeEntitySetId ).values(),
+                    vertexIsSrc );
         }
-
-        return null;
     }
 
     private List<SetMultimap<Object, Object>> getResults(

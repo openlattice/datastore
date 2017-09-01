@@ -19,8 +19,6 @@
 
 package com.dataloom.datastore.pods;
 
-import com.dataloom.auditing.AuditQueryService;
-import com.dataloom.auditing.HazelcastAuditLoggingService;
 import com.dataloom.authorization.AbstractSecurableObjectResolveTypeService;
 import com.dataloom.authorization.AuthorizationManager;
 import com.dataloom.authorization.AuthorizationQueryService;
@@ -300,16 +298,6 @@ public class DatastoreServicesPod {
     @Bean
     public HazelcastRequestsManager hazelcastRequestsManager() {
         return new HazelcastRequestsManager( hazelcastInstance, rqs(), neuron );
-    }
-
-    @Bean
-    public AuditQueryService auditQuerySerivce() {
-        return new AuditQueryService( cassandraConfiguration.getKeyspace(), session );
-    }
-
-    @Bean
-    public HazelcastAuditLoggingService auditLoggingService() {
-        return new HazelcastAuditLoggingService( hazelcastInstance, auditQuerySerivce(), eventBus );
     }
 
     @Bean

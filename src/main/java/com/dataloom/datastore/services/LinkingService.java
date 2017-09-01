@@ -1,20 +1,5 @@
 package com.dataloom.datastore.services;
 
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.ExecutionException;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-
-import org.apache.commons.lang3.tuple.Pair;
-import org.apache.olingo.commons.api.edm.EdmPrimitiveTypeKind;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.dataloom.LoomUtil;
 import com.dataloom.data.DataGraphManager;
 import com.dataloom.data.DatasourceManager;
@@ -24,6 +9,7 @@ import com.dataloom.data.EntityKeyIdService;
 import com.dataloom.edm.type.PropertyType;
 import com.dataloom.graph.core.LoomGraphApi;
 import com.dataloom.graph.edge.LoomEdge;
+import com.dataloom.linking.CassandraLinkingGraphsQueryService;
 import com.dataloom.linking.Entity;
 import com.dataloom.linking.HazelcastLinkingGraphs;
 import com.dataloom.linking.HazelcastListingService;
@@ -36,10 +22,13 @@ import com.dataloom.linking.WeightedLinkingEdge;
 import com.dataloom.linking.components.Blocker;
 import com.dataloom.linking.components.Clusterer;
 import com.dataloom.linking.components.Matcher;
+import com.dataloom.linking.configuration.PersonFeatureWeights;
+import com.dataloom.linking.util.FeatureExtractor;
 import com.dataloom.linking.util.UnorderedPair;
 import com.dataloom.streams.StreamUtil;
 import com.datastax.driver.core.Session;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -53,25 +42,43 @@ import com.hazelcast.core.HazelcastInstance;
 import com.kryptnostic.datastore.cassandra.CommonColumns;
 import com.kryptnostic.datastore.cassandra.RowAdapters;
 import com.kryptnostic.datastore.services.EdmManager;
+import com.kryptnostic.rhizome.configuration.service.ConfigurationService;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.PriorityQueue;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.ExecutionException;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+import org.apache.commons.lang3.tuple.Pair;
+import org.apache.olingo.commons.api.edm.EdmPrimitiveTypeKind;
+import org.apache.olingo.commons.api.edm.FullQualifiedName;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class LinkingService {
-    private static final Logger                 logger = LoggerFactory.getLogger( LinkingService.class );
+    private static final Logger logger = LoggerFactory.getLogger( LinkingService.class );
 
-    private final ObjectMapper                  mapper;
-    private final HazelcastLinkingGraphs        linkingGraph;
-    private final Blocker                       blocker;
-    private final Matcher                       matcher;
-    private final Clusterer                     clusterer;
-    private final HazelcastListingService       listingService;
-    private final EdmManager                    dms;
-    private final DataGraphManager              dgm;
-    private final EntityDatastore               eds;
-    private final LoomGraphApi                  lm;
-    private final DatasourceManager             dsm;
-    private final String                        keyspace;
-    private final Session                       session;
-    private final EntityKeyIdService            idService;
-    private final HazelcastVertexMergingService vms;
+    private final ObjectMapper                       mapper;
+    private final HazelcastLinkingGraphs             linkingGraph;
+    private final Blocker                            blocker;
+    private final Matcher                            matcher;
+    private final Clusterer                          clusterer;
+    private final HazelcastListingService            listingService;
+    private final EdmManager                         dms;
+    private final DataGraphManager                   dgm;
+    private final EntityDatastore                    eds;
+    private final LoomGraphApi                       lm;
+    private final DatasourceManager                  dsm;
+    private final String                             keyspace;
+    private final Session                            session;
+    private final EntityKeyIdService                 idService;
+    private final HazelcastVertexMergingService      vms;
+    private final CassandraLinkingGraphsQueryService clgqs;
 
     public LinkingService(
             String keyspace,
@@ -90,6 +97,7 @@ public class LinkingService {
             LoomGraphApi lm,
             EntityKeyIdService idService,
             HazelcastVertexMergingService vms,
+            CassandraLinkingGraphsQueryService clgqs,
             ObjectMapper mapper ) {
         this.linkingGraph = linkingGraph;
 
@@ -111,6 +119,11 @@ public class LinkingService {
         this.idService = idService;
         this.vms = vms;
         this.mapper = mapper;
+        this.clgqs = clgqs;
+    }
+
+    public void link( Set<UUID> entitySetIds ) {
+
     }
 
     public UUID link(
@@ -120,6 +133,10 @@ public class LinkingService {
             Set<UUID> propertyTypesToPopulate ) {
         SetMultimap<UUID, UUID> linkIndexedByPropertyTypes = getLinkIndexedByPropertyTypes( linkingProperties );
         SetMultimap<UUID, UUID> linkIndexedByEntitySets = getLinkIndexedByEntitySets( linkingProperties );
+        Map<FullQualifiedName, String> propertyTypeIdIndexedByFqn = getPropertyTypeIdIndexedByFqn( linkingProperties );
+
+        boolean isMatchingPerson = dms.getEntityTypeByEntitySetId( linkIndexedByEntitySets.keySet().iterator().next() )
+                .getType().toString().equals( "general.person" );
 
         // Warning: We assume that the restrictions on links are enforced/validated as specified in LinkingApi. In
         // particular, from now on we work on the assumption that only identical property types are linked on.
@@ -139,8 +156,11 @@ public class LinkingService {
                 0.0,
                 0,
                 0 );
+        final PriorityQueue<WeightedLinkingEdge> pq = new PriorityQueue<>( 3, Comparator.reverseOrder() );
 
         logger.info( "Executing matching..." );
+        double[] personWeights = ConfigurationService.StaticLoader.loadConfiguration( PersonFeatureWeights.class )
+                .getWeights();
         // Matching: check if pair score is already calculated from HazelcastGraph Api. If not, stream
         // through matcher to get a score.
         pairs
@@ -148,9 +168,16 @@ public class LinkingService {
                     if ( entityPair.getBackingCollection().size() == 2 ) {
                         // The pair actually consists of two entities; we should add the edge to the graph if necessary.
                         final LinkingEdge edge = fromUnorderedPair( graphId, entityPair );
-                        if ( buffer.tryAddEdge( edge ) ) {
-                            double weight = matcher.dist( entityPair );
-                            buffer.setEdgeWeight( new WeightedLinkingEdge( weight, edge ) );
+                        //                        if ( buffer.tryAddEdge( edge ) ) {
+                        double weight = ( isMatchingPerson )
+                                ? FeatureExtractor.getEntityDiffForWeights( entityPair,
+                                personWeights,
+                                propertyTypeIdIndexedByFqn )
+                                : matcher.dist( entityPair );
+                        //                            buffer.setEdgeWeight(
+                        pq.add( new WeightedLinkingEdge( weight, edge ) );
+                        if ( pq.size() > 2 ) {
+                            pq.poll();
                         }
                     } else {
                         // The pair consists of one entity; we should add a vertex to the graph if necessary.
@@ -158,10 +185,12 @@ public class LinkingService {
                         linkingGraph.getOrCreateVertex( graphId, ek );
                     }
                 } );
-
+        Preconditions.checkState( pq.size() > 0, "Must have at least one edge" );
+        WeightedLinkingEdge top = pq.poll();
+        WeightedLinkingEdge bottom = pq.poll();
         // Feed the scores (i.e. the edge set) into HazelcastGraph Api
         logger.info( "Executing clustering..." );
-        clusterer.cluster( graphId );
+        clusterer.cluster( graphId, bottom , top  );
 
         mergeEntities( linkedEntitySetId, ownablePropertyTypes, propertyTypesToPopulate );
 
@@ -209,7 +238,7 @@ public class LinkingService {
         // preserved, although
         List<UUID> keyProperties = new LinkedList<>( dms.getEntityTypeByEntitySetId( linkedEntitySetId ).getKey() );
 
-        Iterable<Pair<UUID, Set<EntityKey>>> linkedEntityKeys = linkingGraph.getLinkedEntityKeys( linkedEntitySetId );
+        Iterable<Pair<UUID, Set<EntityKey>>> linkedEntityKeys = clgqs.getLinkedEntityKeys( linkedEntitySetId );
         for ( Pair<UUID, Set<EntityKey>> linkedKey : linkedEntityKeys ) {
             // compute merged entity
             SetMultimap<UUID, Object> mergedEntityDetails = computeMergedEntity( linkedKey.getValue(),
@@ -343,6 +372,16 @@ public class LinkingService {
             SetMultimap<UUID, UUID> linkIndexedByEntitySets ) {
         blocker.setLinking( linkingEntitySetsWithSyncIds, linkIndexedByPropertyTypes, linkIndexedByEntitySets );
         matcher.setLinking( linkingEntitySetsWithSyncIds, linkIndexedByPropertyTypes, linkIndexedByEntitySets );
+    }
+
+    public Map<FullQualifiedName, String> getPropertyTypeIdIndexedByFqn( Set<Map<UUID, UUID>> linkingProperties ) {
+        Map<FullQualifiedName, String> result = Maps.newHashMap();
+
+        linkingProperties.stream().flatMap( m -> m.entrySet().stream() )
+                .forEach( entry -> result.put( dms.getPropertyType( entry.getValue() ).getType(),
+                        entry.getValue().toString() ) );
+
+        return result;
     }
 
     /**

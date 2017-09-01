@@ -19,8 +19,6 @@
 
 package com.dataloom.datastore.pods;
 
-import com.dataloom.auditing.AuditQueryService;
-import com.dataloom.auditing.HazelcastAuditLoggingService;
 import com.dataloom.authorization.AbstractSecurableObjectResolveTypeService;
 import com.dataloom.authorization.AuthorizationManager;
 import com.dataloom.authorization.AuthorizationQueryService;
@@ -30,6 +28,7 @@ import com.dataloom.authorization.HazelcastAclKeyReservationService;
 import com.dataloom.authorization.HazelcastAuthorizationService;
 import com.dataloom.authorization.Principals;
 import com.dataloom.clustering.ClusteringPartitioner;
+import com.dataloom.clustering.DistributedClusterer;
 import com.dataloom.data.DataGraphManager;
 import com.dataloom.data.DataGraphService;
 import com.dataloom.data.DatasourceManager;
@@ -190,7 +189,7 @@ public class DatastoreServicesPod {
 
     @Bean
     public HazelcastLinkingGraphs linkingGraph() {
-        return new HazelcastLinkingGraphs( hazelcastInstance, cgqs() );
+        return new HazelcastLinkingGraphs( hazelcastInstance );
     }
 
     @Bean
@@ -303,16 +302,6 @@ public class DatastoreServicesPod {
     }
 
     @Bean
-    public AuditQueryService auditQuerySerivce() {
-        return new AuditQueryService( cassandraConfiguration.getKeyspace(), session );
-    }
-
-    @Bean
-    public HazelcastAuditLoggingService auditLoggingService() {
-        return new HazelcastAuditLoggingService( hazelcastInstance, auditQuerySerivce(), eventBus );
-    }
-
-    @Bean
     public Blocker simpleElasticSearchBlocker() {
         return new SimpleElasticSearchBlocker( dataModelService(), cassandraDataManager(), searchService() );
     }
@@ -329,7 +318,7 @@ public class DatastoreServicesPod {
 
     @Bean
     public Clusterer clusterer() {
-        return new ClusteringPartitioner( cassandraConfiguration.getKeyspace(), session, cgqs(), linkingGraph() );
+        return new DistributedClusterer( hazelcastInstance );
     }
 
     @Bean
@@ -351,6 +340,7 @@ public class DatastoreServicesPod {
                 loomGraph(),
                 idService(),
                 vms(),
+                cgqs(),
                 defaultObjectMapper() );
     }
 

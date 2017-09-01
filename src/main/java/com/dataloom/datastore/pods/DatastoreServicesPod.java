@@ -28,6 +28,7 @@ import com.dataloom.authorization.HazelcastAclKeyReservationService;
 import com.dataloom.authorization.HazelcastAuthorizationService;
 import com.dataloom.authorization.Principals;
 import com.dataloom.clustering.ClusteringPartitioner;
+import com.dataloom.clustering.DistributedClusterer;
 import com.dataloom.data.DataGraphManager;
 import com.dataloom.data.DataGraphService;
 import com.dataloom.data.DatasourceManager;
@@ -317,7 +318,7 @@ public class DatastoreServicesPod {
 
     @Bean
     public Clusterer clusterer() {
-        return new ClusteringPartitioner( cassandraConfiguration.getKeyspace(), session, cgqs(), linkingGraph() );
+        return new DistributedClusterer( hazelcastInstance );
     }
 
     @Bean

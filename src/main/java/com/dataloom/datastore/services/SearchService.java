@@ -398,11 +398,13 @@ public class SearchService {
             if ( !entitySetIsAuthorized.containsKey( neighborEntitySetId ) )
                 entitySetIsAuthorized.put( neighborEntitySetId, getAuthorization( neighborEntitySetId ) );
 
-            if ( entitySetIsAuthorized.get( edgeEntitySetId ) && !entitySetsById.containsKey( edgeEntitySetId ) ) {
-                authorizedEdgeESIdsToVertexESIds.put( edgeEntitySetId, Sets.newHashSet() );
-                entitySetsById.put( edgeEntitySetId, dataModelService.getEntitySet( edgeEntitySetId ) );
-                entitySetsIdsToAuthorizedProps.put( edgeEntitySetId, getAuthorizedProperties( edgeEntitySetId ) );
+            if ( entitySetIsAuthorized.get( edgeEntitySetId ) ) {
                 edges.add( edge );
+                if ( !entitySetsById.containsKey( edgeEntitySetId ) ) {
+                    authorizedEdgeESIdsToVertexESIds.put( edgeEntitySetId, Sets.newHashSet() );
+                    entitySetsById.put( edgeEntitySetId, dataModelService.getEntitySet( edgeEntitySetId ) );
+                    entitySetsIdsToAuthorizedProps.put( edgeEntitySetId, getAuthorizedProperties( edgeEntitySetId ) );
+                }
             }
             if ( entitySetIsAuthorized.get( neighborEntitySetId )
                     && !entitySetsById.containsKey( neighborEntitySetId ) ) {

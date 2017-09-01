@@ -64,6 +64,7 @@ import com.dataloom.datastore.constants.CustomMediaType;
 import com.dataloom.edm.EdmApi;
 import com.dataloom.edm.EdmDetails;
 import com.dataloom.edm.EntityDataModel;
+import com.dataloom.edm.EntityDataModelDiff;
 import com.dataloom.edm.EntitySet;
 import com.dataloom.edm.Schema;
 import com.dataloom.edm.requests.EdmDetailsSelector;
@@ -117,6 +118,15 @@ public class EdmController implements EdmApi, AuthorizingComponent {
     private DatasourceManager                         datasourceManager;
 
     @RequestMapping(
+        path = CLEAR_PATH,
+        method = RequestMethod.DELETE )
+    @ResponseStatus( HttpStatus.OK )
+    public void clearAllData() {
+        ensureAdminAccess();
+        modelService.clearTables();
+    }
+
+    @RequestMapping(
         method = RequestMethod.GET,
         produces = { MediaType.APPLICATION_JSON_VALUE, CustomMediaType.TEXT_YAML_VALUE } )
     @ResponseStatus( HttpStatus.OK )
@@ -141,6 +151,7 @@ public class EdmController implements EdmApi, AuthorizingComponent {
         getPropertyTypes().forEach( propertyType -> namespaces.add( propertyType.getType().getNamespace() ) );
 
         return new EntityDataModel(
+                getEntityDataModelVersion(),
                 namespaces,
                 schemas,
                 entityTypes,
@@ -154,16 +165,16 @@ public class EdmController implements EdmApi, AuthorizingComponent {
         consumes = { MediaType.APPLICATION_JSON_VALUE, CustomMediaType.TEXT_YAML_VALUE },
         produces = { MediaType.APPLICATION_JSON_VALUE, CustomMediaType.TEXT_YAML_VALUE } )
     @ResponseStatus( HttpStatus.OK )
-    public EntityDataModel getEntityDataModelDiff( @RequestParam(
+    public EntityDataModelDiff getEntityDataModelDiff( @RequestParam(
         value = FILE_TYPE,
         required = false ) FileType fileType, @RequestBody EntityDataModel edm, HttpServletResponse response ) {
         setContentDisposition( response, "EntityDataModel", fileType );
         setDownloadContentType( response, fileType );
         return getEntityDataModelDiff( edm );
     }
-    
+
     @Override
-    public EntityDataModel getEntityDataModelDiff( EntityDataModel edm ) {
+    public EntityDataModelDiff getEntityDataModelDiff( EntityDataModel edm ) {
         return modelService.getEntityDataModelDiff( edm );
     }
 
@@ -172,9 +183,31 @@ public class EdmController implements EdmApi, AuthorizingComponent {
         method = RequestMethod.PATCH,
         consumes = { MediaType.APPLICATION_JSON_VALUE, CustomMediaType.TEXT_YAML_VALUE } )
     @ResponseStatus( HttpStatus.OK )
-    public void setEntityDataModel( @RequestBody EntityDataModel edm ) {
+    public void updateEntityDataModel( @RequestBody EntityDataModel edm ) {
         ensureAdminAccess();
         modelService.setEntityDataModel( edm );
+    }
+
+    @Override
+    @RequestMapping(
+        path = VERSION_PATH,
+        method = RequestMethod.GET,
+        consumes = { MediaType.APPLICATION_JSON_VALUE, CustomMediaType.TEXT_YAML_VALUE } )
+    @ResponseStatus( HttpStatus.OK )
+    public UUID getEntityDataModelVersion() {
+        ensureAdminAccess();
+        return modelService.getCurrentEntityDataModelVersion();
+    }
+
+    @Override
+    @RequestMapping(
+        path = VERSION_PATH + NEW_PATH,
+        method = RequestMethod.GET,
+        consumes = { MediaType.APPLICATION_JSON_VALUE, CustomMediaType.TEXT_YAML_VALUE } )
+    @ResponseStatus( HttpStatus.OK )
+    public UUID generateNewEntityDataModelVersion() {
+        ensureAdminAccess();
+        return modelService.generateNewEntityDataModelVersion();
     }
 
     @Override

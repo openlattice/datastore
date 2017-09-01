@@ -53,6 +53,7 @@ import com.dataloom.data.storage.CassandraEntityDatastore;
 import com.dataloom.edm.EntitySet;
 import com.dataloom.edm.events.AssociationTypeCreatedEvent;
 import com.dataloom.edm.events.AssociationTypeDeletedEvent;
+import com.dataloom.edm.events.ClearAllDataEvent;
 import com.dataloom.edm.events.EntitySetCreatedEvent;
 import com.dataloom.edm.events.EntitySetDeletedEvent;
 import com.dataloom.edm.events.EntitySetMetadataUpdatedEvent;
@@ -491,6 +492,7 @@ public class SearchService {
         }
     }
 
+   
     private List<SetMultimap<Object, Object>> getResults(
             UUID entitySetId,
             UUID syncId,
@@ -501,6 +503,11 @@ public class SearchService {
                 .map( id -> new EntityKey( entitySetId, id, syncId ) )
                 .collect( Collectors.toSet() ) ).values();
         return dataManager.getEntities( ids, authorizedPropertyTypes ).collect( Collectors.toList() );
+    }
+    
+    @Subscribe
+    public void clearAllData( ClearAllDataEvent event ) {
+        elasticsearchApi.clearAllData();
     }
 
 }

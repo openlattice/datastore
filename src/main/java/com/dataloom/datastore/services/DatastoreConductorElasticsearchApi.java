@@ -33,7 +33,7 @@ import com.kryptnostic.conductor.rpc.SearchEntitySetDataLambda;
 
 public class DatastoreConductorElasticsearchApi implements ConductorElasticsearchApi {
 
-    private static final Logger logger = LoggerFactory.getLogger( DatastoreConductorElasticsearchApi.class );
+    private static final Logger          logger = LoggerFactory.getLogger( DatastoreConductorElasticsearchApi.class );
 
     private final DurableExecutorService executor;
 
@@ -58,7 +58,7 @@ public class DatastoreConductorElasticsearchApi implements ConductorElasticsearc
             return false;
         }
     }
-    
+
     @Override
     public boolean createSecurableObjectIndex( UUID entitySetId, UUID syncId, List<PropertyType> propertyTypes ) {
         try {
@@ -84,7 +84,7 @@ public class DatastoreConductorElasticsearchApi implements ConductorElasticsearc
             return false;
         }
     }
-    
+
     @Override
     public boolean deleteEntitySetForSyncId( UUID entitySetId, UUID syncId ) {
         try {
@@ -228,7 +228,11 @@ public class DatastoreConductorElasticsearchApi implements ConductorElasticsearc
     }
 
     @Override
-    public boolean createEntityData( UUID entitySetId, UUID syncId, String entityId, Map<UUID, Object> propertyValues ) {
+    public boolean createEntityData(
+            UUID entitySetId,
+            UUID syncId,
+            String entityId,
+            Map<UUID, Object> propertyValues ) {
         try {
             return executor.submit( ConductorElasticsearchCall.wrap(
                     new EntityDataLambdas( entitySetId, syncId, entityId, propertyValues ) ) ).get();
@@ -237,11 +241,12 @@ public class DatastoreConductorElasticsearchApi implements ConductorElasticsearc
             return false;
         }
     }
-    
+
     @Override
     public boolean deleteEntityData( UUID entitySetId, UUID syncId, String entityId ) {
         try {
-            return executor.submit( ConductorElasticsearchCall.wrap( ElasticsearchLambdas.deleteEntityData( entitySetId, syncId, entityId ) ) ).get();
+            return executor.submit( ConductorElasticsearchCall
+                    .wrap( ElasticsearchLambdas.deleteEntityData( entitySetId, syncId, entityId ) ) ).get();
         } catch ( InterruptedException | ExecutionException e ) {
             logger.debug( "unable to delete entity data from elasticsearch" );
             return false;
@@ -282,7 +287,8 @@ public class DatastoreConductorElasticsearchApi implements ConductorElasticsearc
             boolean explain ) {
         try {
             List<Entity> queryResults = executor.submit( ConductorElasticsearchCall.wrap(
-                    new SearchEntitySetDataAcrossIndicesLambda( entitySetAndSyncIds, fieldSearches, size, explain ) ) ).get();
+                    new SearchEntitySetDataAcrossIndicesLambda( entitySetAndSyncIds, fieldSearches, size, explain ) ) )
+                    .get();
             return queryResults;
 
         } catch ( InterruptedException | ExecutionException e ) {
@@ -326,7 +332,7 @@ public class DatastoreConductorElasticsearchApi implements ConductorElasticsearc
             return false;
         }
     }
-    
+
     @Override
     public boolean saveAssociationTypeToElasticsearch( AssociationType associationType ) {
         try {
@@ -359,7 +365,7 @@ public class DatastoreConductorElasticsearchApi implements ConductorElasticsearc
             return false;
         }
     }
-    
+
     @Override
     public boolean deleteAssociationType( UUID associationTypeId ) {
         try {
@@ -397,7 +403,7 @@ public class DatastoreConductorElasticsearchApi implements ConductorElasticsearc
             return new SearchResult( 0, Lists.newArrayList() );
         }
     }
-    
+
     @Override
     public SearchResult executeAssociationTypeSearch( String searchTerm, int start, int maxHits ) {
         try {
@@ -429,7 +435,7 @@ public class DatastoreConductorElasticsearchApi implements ConductorElasticsearc
             return new SearchResult( 0, Lists.newArrayList() );
         }
     }
-    
+
     @Override
     public SearchResult executeFQNEntityTypeSearch( String namespace, String name, int start, int maxHits ) {
         try {
@@ -461,6 +467,17 @@ public class DatastoreConductorElasticsearchApi implements ConductorElasticsearc
         } catch ( InterruptedException | ExecutionException e ) {
             logger.debug( "unable to execute property type search" );
             return new SearchResult( 0, Lists.newArrayList() );
+        }
+    }
+
+    @Override
+    public boolean clearAllData() {
+        try {
+            return executor.submit( ConductorElasticsearchCall.wrap(
+                    ElasticsearchLambdas.clearAllData() ) ).get();
+        } catch ( InterruptedException | ExecutionException e ) {
+            logger.debug( "unable to delete all data" );
+            return false;
         }
     }
 

@@ -71,6 +71,7 @@ import com.dataloom.edm.requests.EdmDetailsSelector;
 import com.dataloom.edm.requests.EdmRequest;
 import com.dataloom.edm.requests.MetadataUpdate;
 import com.dataloom.edm.schemas.manager.HazelcastSchemaManager;
+import com.dataloom.edm.set.EntitySetPropertyMetadata;
 import com.dataloom.edm.type.AssociationDetails;
 import com.dataloom.edm.type.AssociationType;
 import com.dataloom.edm.type.ComplexType;
@@ -935,5 +936,50 @@ public class EdmController implements EdmApi, AuthorizingComponent {
         produces = MediaType.APPLICATION_JSON_VALUE )
     public Iterable<EntityType> getAvailableAssociationTypesForEntityType( @PathVariable( ID ) UUID entityTypeId ) {
         return modelService.getAvailableAssociationTypesForEntityType( entityTypeId );
+    }
+
+    @Override
+    @RequestMapping(
+        path = ENTITY_SETS_PATH + ID_PATH + PROPERTY_TYPE_PATH,
+        method = RequestMethod.GET,
+        produces = MediaType.APPLICATION_JSON_VALUE )
+    public Map<UUID, EntitySetPropertyMetadata> getAllEntitySetPropertyMetadata( @PathVariable( ID ) UUID entitySetId ) {
+        if ( isAuthorized( Permission.READ ).test( ImmutableList.of( entitySetId ) ) ) {
+            return modelService.getAllEntitySetPropertyMetadata( entitySetId );
+        } else {
+            throw new ForbiddenException( "Unable to find entity set: " + entitySetId );
+        }
+    }
+
+    @Override
+    @RequestMapping(
+        path = ENTITY_SETS_PATH + ID_PATH + PROPERTY_TYPE_PATH + PROPERTY_TYPE_ID_PATH,
+        method = RequestMethod.GET,
+        produces = MediaType.APPLICATION_JSON_VALUE )
+    public EntitySetPropertyMetadata getEntitySetPropertyMetadata(
+            @PathVariable( ID ) UUID entitySetId,
+            @PathVariable( PROPERTY_TYPE_ID ) UUID propertyTypeId ) {
+        if ( isAuthorized( Permission.READ ).test( ImmutableList.of( entitySetId ) ) ) {
+            return modelService.getEntitySetPropertyMetadata( entitySetId, propertyTypeId );
+        } else {
+            throw new ForbiddenException( "Unable to find entity set: " + entitySetId );
+        }
+    }
+
+    @Override
+    @RequestMapping(
+        path = ENTITY_SETS_PATH + ID_PATH + PROPERTY_TYPE_PATH + PROPERTY_TYPE_ID_PATH,
+        method = RequestMethod.POST,
+        produces = MediaType.APPLICATION_JSON_VALUE )
+    public Void updateEntitySetPropertyMetadata(
+            @PathVariable( ID ) UUID entitySetId,
+            @PathVariable( PROPERTY_TYPE_ID ) UUID propertyTypeId,
+            @RequestBody MetadataUpdate update ) {
+        if ( authorizations.checkIfHasPermissions( ImmutableList.of( entitySetId ),
+                Principals.getCurrentPrincipals(),
+                EnumSet.of( Permission.OWNER ) ) ) {
+            modelService.updateEntitySetPropertyMetadata( entitySetId, propertyTypeId, update );
+        }
+        return null;
     }
 }

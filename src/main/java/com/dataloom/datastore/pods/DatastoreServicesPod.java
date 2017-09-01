@@ -190,7 +190,7 @@ public class DatastoreServicesPod {
 
     @Bean
     public HazelcastLinkingGraphs linkingGraph() {
-        return new HazelcastLinkingGraphs( hazelcastInstance, cgqs() );
+        return new HazelcastLinkingGraphs( hazelcastInstance );
     }
 
     @Bean
@@ -351,6 +351,7 @@ public class DatastoreServicesPod {
                 loomGraph(),
                 idService(),
                 vms(),
+                cgqs(),
                 defaultObjectMapper() );
     }
 

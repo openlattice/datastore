@@ -673,6 +673,19 @@ public class EdmController implements EdmApi, AuthorizingComponent {
         modelService.removePropertyTypesFromEntityType( entityTypeId, ImmutableSet.of( propertyTypeId ) );
         return null;
     }
+    
+    @Override
+    @RequestMapping(
+        path = ENTITY_TYPE_PATH + ENTITY_TYPE_ID_PATH + PROPERTY_TYPE_ID_PATH + FORCE_PATH,
+        method = RequestMethod.DELETE )
+    @ResponseStatus( HttpStatus.OK )
+    public Void forceRemovePropertyTypeFromEntityType(
+            @PathVariable( ENTITY_TYPE_ID ) UUID entityTypeId,
+            @PathVariable( PROPERTY_TYPE_ID ) UUID propertyTypeId ) {
+        ensureAdminAccess();
+        modelService.forceRemovePropertyTypesFromEntityType( entityTypeId, ImmutableSet.of( propertyTypeId ) );
+        return null;
+    }
 
     @Override
     @RequestMapping(
@@ -728,6 +741,18 @@ public class EdmController implements EdmApi, AuthorizingComponent {
             @PathVariable( ID ) UUID propertyTypeId ) {
         ensureAdminAccess();
         modelService.deletePropertyType( propertyTypeId );
+        return null;
+    }
+    
+    @Override
+    @RequestMapping(
+        path = PROPERTY_TYPE_PATH + ID_PATH + FORCE_PATH,
+        method = RequestMethod.DELETE )
+    @ResponseStatus( HttpStatus.OK )
+    public Void forceDeletePropertyType(
+            @PathVariable( ID ) UUID propertyTypeId ) {
+        ensureAdminAccess();
+        modelService.forceDeletePropertyType( propertyTypeId );
         return null;
     }
 

@@ -150,14 +150,6 @@ public class LinkingService {
         logger.info( "Executing blocking..." );
         // Blocking: For each row in the entity sets, fire off query to elasticsearch
         Stream<UnorderedPair<Entity>> pairs = blocker.block();
-        final SortedCassandraLinkingEdgeBuffer buffer = new SortedCassandraLinkingEdgeBuffer(
-                keyspace,
-                session,
-                graphId,
-                0.0,
-                0,
-                0 );
-        final PriorityQueue<WeightedLinkingEdge> pq = new PriorityQueue<>( 3, Comparator.reverseOrder() );
 
         logger.info( "Executing matching..." );
         double[] personWeights = ConfigurationService.StaticLoader.loadConfiguration( PersonFeatureWeights.class )
@@ -186,9 +178,6 @@ public class LinkingService {
                 } )
                 .forEach( StreamUtil::getUninterruptibly );
 
-        Preconditions.checkState( pq.size() > 0, "Must have at least one edge" );
-        WeightedLinkingEdge top = pq.poll();
-        WeightedLinkingEdge bottom = pq.poll();
         // Feed the scores (i.e. the edge set) into HazelcastGraph Api
         logger.info( "Executing clustering..." );
         clusterer.cluster( graphId, minimax[ 0 ] );

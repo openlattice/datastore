@@ -37,6 +37,7 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.SetMultimap;
 import com.google.common.collect.Sets;
 import com.google.common.eventbus.EventBus;
+import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.hazelcast.core.HazelcastInstance;
 import com.kryptnostic.datastore.cassandra.CommonColumns;
@@ -163,34 +164,34 @@ public class LinkingService {
                 .getWeights();
         // Matching: check if pair score is already calculated from HazelcastGraph Api. If not, stream
         // through matcher to get a score.
+        final double[] minimax = new double[ 1 ];
         pairs
-                .forEach( entityPair -> {
+                .map( entityPair -> {
                     if ( entityPair.getBackingCollection().size() == 2 ) {
                         // The pair actually consists of two entities; we should add the edge to the graph if necessary.
                         final LinkingEdge edge = fromUnorderedPair( graphId, entityPair );
-                        //                        if ( buffer.tryAddEdge( edge ) ) {
                         double weight = ( isMatchingPerson )
                                 ? FeatureExtractor.getEntityDiffForWeights( entityPair,
                                 personWeights,
                                 propertyTypeIdIndexedByFqn )
                                 : matcher.dist( entityPair );
-                        //                            buffer.setEdgeWeight(
-                        pq.add( new WeightedLinkingEdge( weight, edge ) );
-                        if ( pq.size() > 2 ) {
-                            pq.poll();
-                        }
+                        minimax[ 0 ] = Math.min( minimax[ 0 ], weight );
+                        return linkingGraph.setEdgeWeightAsync( edge, weight );
                     } else {
                         // The pair consists of one entity; we should add a vertex to the graph if necessary.
                         final EntityKey ek = getEntityKeyFromSingletonPair( entityPair );
                         linkingGraph.getOrCreateVertex( graphId, ek );
+                        return Futures.immediateFuture( null );
                     }
-                } );
+                } )
+                .forEach( StreamUtil::getUninterruptibly );
+
         Preconditions.checkState( pq.size() > 0, "Must have at least one edge" );
         WeightedLinkingEdge top = pq.poll();
         WeightedLinkingEdge bottom = pq.poll();
         // Feed the scores (i.e. the edge set) into HazelcastGraph Api
         logger.info( "Executing clustering..." );
-        clusterer.cluster( graphId, bottom , top  );
+        clusterer.cluster( graphId, minimax[ 0 ] );
 
         mergeEntities( linkedEntitySetId, ownablePropertyTypes, propertyTypesToPopulate );
 

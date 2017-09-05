@@ -1,6 +1,20 @@
 package com.dataloom.datastore.services;
 
-import com.dataloom.LoomUtil;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.ExecutionException;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+import org.apache.olingo.commons.api.edm.EdmPrimitiveTypeKind;
+import org.apache.olingo.commons.api.edm.FullQualifiedName;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.dataloom.data.DataGraphManager;
 import com.dataloom.data.DatasourceManager;
 import com.dataloom.data.EntityDatastore;
@@ -17,8 +31,6 @@ import com.dataloom.linking.HazelcastVertexMergingService;
 import com.dataloom.linking.LinkingEdge;
 import com.dataloom.linking.LinkingEntityKey;
 import com.dataloom.linking.LinkingVertexKey;
-import com.dataloom.linking.SortedCassandraLinkingEdgeBuffer;
-import com.dataloom.linking.WeightedLinkingEdge;
 import com.dataloom.linking.components.Blocker;
 import com.dataloom.linking.components.Clusterer;
 import com.dataloom.linking.components.Matcher;
@@ -28,7 +40,6 @@ import com.dataloom.linking.util.UnorderedPair;
 import com.dataloom.streams.StreamUtil;
 import com.datastax.driver.core.Session;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -41,28 +52,11 @@ import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.hazelcast.core.HazelcastInstance;
 import com.kryptnostic.datastore.cassandra.CommonColumns;
-import com.kryptnostic.datastore.cassandra.RowAdapters;
 import com.kryptnostic.datastore.services.EdmManager;
 import com.kryptnostic.rhizome.configuration.service.ConfigurationService;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.PriorityQueue;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.ExecutionException;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-import org.apache.commons.lang3.tuple.Pair;
-import org.apache.olingo.commons.api.edm.EdmPrimitiveTypeKind;
-import org.apache.olingo.commons.api.edm.FullQualifiedName;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class LinkingService {
-    private static final Logger logger = LoggerFactory.getLogger( LinkingService.class );
+    private static final Logger                      logger = LoggerFactory.getLogger( LinkingService.class );
 
     private final ObjectMapper                       mapper;
     private final HazelcastLinkingGraphs             linkingGraph;
@@ -164,9 +158,10 @@ public class LinkingService {
                         final LinkingEdge edge = fromUnorderedPair( graphId, entityPair );
                         double weight = ( isMatchingPerson )
                                 ? FeatureExtractor.getEntityDiffForWeights( entityPair,
-                                personWeights,
-                                propertyTypeIdIndexedByFqn )
+                                        personWeights,
+                                        propertyTypeIdIndexedByFqn )
                                 : matcher.dist( entityPair );
+
                         minimax[ 0 ] = Math.min( minimax[ 0 ], weight );
                         return linkingGraph.setEdgeWeightAsync( edge, weight );
                     } else {
@@ -209,9 +204,7 @@ public class LinkingService {
         }
 
         UUID syncId = dsm.getCurrentSyncId( linkedEntitySetId );
-
         mergeVertices( linkedEntitySetId, syncId, authorizedPropertyTypesForEntitySets, propertyTypesToPopulate );
-
         mergeEdges( linkedEntitySetId, linkingSets, syncId );
     }
 
@@ -228,13 +221,22 @@ public class LinkingService {
         // preserved, although
         List<UUID> keyProperties = new LinkedList<>( dms.getEntityTypeByEntitySetId( linkedEntitySetId ).getKey() );
 
-        Iterable<Pair<UUID, Set<EntityKey>>> linkedEntityKeys = clgqs.getLinkedEntityKeys( linkedEntitySetId );
-        for ( Pair<UUID, Set<EntityKey>> linkedKey : linkedEntityKeys ) {
+        Map<UUID, Set<UUID>> propertyTypeIdsByEntitySet = Maps.newHashMap();
+        Map<UUID, PropertyType> propertyTypesById = Maps.newHashMap();
+
+        authorizedPropertyTypesForEntitySets.entrySet().forEach( entry -> {
+            propertyTypeIdsByEntitySet.put( entry.getKey(), entry.getValue().keySet() );
+            propertyTypesById.putAll( entry.getValue() );
+        } );
+
+        StreamUtil.parallelStream( clgqs.getLinkedEntityKeys( linkedEntitySetId ) ).forEach( linkedKey -> {
+
             // compute merged entity
             SetMultimap<UUID, Object> mergedEntityDetails = computeMergedEntity( linkedKey.getValue(),
-                    authorizedPropertyTypesForEntitySets,
+                    propertyTypeIdsByEntitySet,
+                    propertyTypesById,
                     propertyTypesToPopulate );
-            String entityId = LoomUtil.generateDefaultEntityId( keyProperties, mergedEntityDetails );
+            String entityId = UUID.randomUUID().toString();
 
             // create merged entity, in particular get back the entity key id for the new entity
             UUID mergedEntityKeyId;
@@ -252,7 +254,7 @@ public class LinkingService {
             } catch ( ExecutionException | InterruptedException e ) {
                 logger.error( "Failed to create linked entity for linkedKey {} ", linkedKey );
             }
-        }
+        } );
     }
 
     private void mergeEdges( UUID linkedEntitySetId, Set<UUID> linkingSets, UUID syncId ) {
@@ -276,24 +278,17 @@ public class LinkingService {
 
     private SetMultimap<UUID, Object> computeMergedEntity(
             Set<EntityKey> entityKeys,
-            Map<UUID, Map<UUID, PropertyType>> authorizedPropertyTypesForEntitySets,
+            Map<UUID, Set<UUID>> propertyTypeIdsByEntitySet,
+            Map<UUID, PropertyType> propertyTypesById,
             Set<UUID> propertyTypesToPopulate ) {
-        SetMultimap<UUID, Object> result = HashMultimap.create();
+        Map<UUID, Set<UUID>> authorizedPropertyTypesForEntity = idService.getEntityKeyIds( entityKeys ).entrySet()
+                .stream()
+                .collect( Collectors.toMap( entry -> entry.getValue(),
+                        entry -> propertyTypeIdsByEntitySet.get( entry.getKey().getEntitySetId() ) ) );
+        return eds.loadEntities( authorizedPropertyTypesForEntity,
+                propertyTypesById,
+                propertyTypesToPopulate );
 
-        entityKeys.stream()
-                .map( key -> Pair.of( key.getEntitySetId(),
-                        eds.asyncLoadEntity( key.getEntitySetId(),
-                                key.getEntityId(),
-                                key.getSyncId(),
-                                authorizedPropertyTypesForEntitySets.get( key.getEntitySetId() ).keySet() ) ) )
-                .map( rsfPair -> Pair.of( rsfPair.getKey(), StreamUtil.safeGet( rsfPair.getValue() ) ) )
-                .map( rsPair -> RowAdapters.entityIndexedById( rsPair.getKey().toString(),
-                        rsPair.getValue(),
-                        authorizedPropertyTypesForEntitySets.get( rsPair.getKey() ),
-                        propertyTypesToPopulate,
-                        mapper ) )
-                .forEach( result::putAll );
-        return result;
     }
 
     private ListenableFuture mergeEdgeAsync( UUID linkedEntitySetId, UUID syncId, LoomEdge edge ) {

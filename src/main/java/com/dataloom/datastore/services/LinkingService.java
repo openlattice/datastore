@@ -83,6 +83,7 @@ public class LinkingService {
     private final HazelcastVertexMergingService      vms;
     private final CassandraLinkingGraphsQueryService clgqs;
     private final MultiLayerNetwork                  net;
+    private final ThreadLocal                        modelThread;
 
     public LinkingService(
             String keyspace,
@@ -133,6 +134,7 @@ public class LinkingService {
             logger.error( "Unable to load neural net", e );
         }
         this.net = network;
+        modelThread = ThreadLocal.withInitial( () -> net.clone() );
     }
 
     public void link( Set<UUID> entitySetIds ) {
@@ -181,7 +183,7 @@ public class LinkingService {
                                 propertyTypeIdIndexedByFqn );
                         double[][] features = new double[ 1 ][ 0 ];
                         features[ 0 ] = dist;
-                        double weight = net.output( Nd4j.create( features ) ).getDouble( 1 );
+                        double weight = ( (MultiLayerNetwork) ( modelThread.get() ) ).output( Nd4j.create( features ) ).getDouble( 1 ) + 0.4;
                         minimax[ 0 ] = Math.min( minimax[ 0 ], weight );
                         return linkingGraph.setEdgeWeightAsync( edge, weight );
                     } else {
@@ -340,7 +342,6 @@ public class LinkingService {
             edgeId = newEdgeId;
         }
 
-        lm.deleteEdge( edge.getKey() );
         return lm.addEdgeAsync( srcId,
                 dms.getEntitySet( srcEntitySetId ).getEntityTypeId(),
                 srcEntitySetId,

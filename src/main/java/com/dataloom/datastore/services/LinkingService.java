@@ -123,7 +123,7 @@ public class LinkingService {
         MultiLayerNetwork network;
         try {
             network = ModelSerializer
-                    .restoreMultiLayerNetwork( this.getClass().getResourceAsStream( "model.bin" ) );
+                    .restoreMultiLayerNetwork( Thread.currentThread().getContextClassLoader().getResourceAsStream( "model.bin" ) );
         } catch ( IOException e ) {
             network = null;
             logger.error( "Unable to load neural net", e );

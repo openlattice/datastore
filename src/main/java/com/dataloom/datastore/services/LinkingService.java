@@ -1,5 +1,7 @@
 package com.dataloom.datastore.services;
 
+import java.io.File;
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -12,6 +14,11 @@ import java.util.stream.Stream;
 
 import org.apache.olingo.commons.api.edm.EdmPrimitiveTypeKind;
 import org.apache.olingo.commons.api.edm.FullQualifiedName;
+import org.deeplearning4j.nn.graph.ComputationGraph;
+import org.deeplearning4j.nn.multilayer.MultiLayerNetwork;
+import org.deeplearning4j.util.ModelSerializer;
+import org.nd4j.linalg.api.ndarray.INDArray;
+import org.nd4j.linalg.factory.Nd4j;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -36,6 +43,7 @@ import com.dataloom.linking.components.Clusterer;
 import com.dataloom.linking.components.Matcher;
 import com.dataloom.linking.configuration.PersonFeatureWeights;
 import com.dataloom.linking.util.FeatureExtractor;
+import com.dataloom.linking.util.PersonMetric;
 import com.dataloom.linking.util.UnorderedPair;
 import com.dataloom.streams.StreamUtil;
 import com.datastax.driver.core.Session;
@@ -74,6 +82,8 @@ public class LinkingService {
     private final EntityKeyIdService                 idService;
     private final HazelcastVertexMergingService      vms;
     private final CassandraLinkingGraphsQueryService clgqs;
+    private final MultiLayerNetwork                  net;
+    private final ThreadLocal                        modelThread;
 
     public LinkingService(
             String keyspace,
@@ -115,6 +125,16 @@ public class LinkingService {
         this.vms = vms;
         this.mapper = mapper;
         this.clgqs = clgqs;
+        MultiLayerNetwork network;
+        try {
+            network = ModelSerializer
+                    .restoreMultiLayerNetwork( new File( "src/main/resources/model.bin" ).getAbsolutePath() );
+        } catch ( IOException e ) {
+            network = null;
+            logger.error( "Unable to load neural net", e );
+        }
+        this.net = network;
+        modelThread = ThreadLocal.withInitial( () -> net.clone() );
     }
 
     public void link( Set<UUID> entitySetIds ) {
@@ -132,6 +152,8 @@ public class LinkingService {
 
         boolean isMatchingPerson = dms.getEntityTypeByEntitySetId( linkIndexedByEntitySets.keySet().iterator().next() )
                 .getType().toString().equals( "general.person" );
+        if ( !isMatchingPerson ) throw new IllegalArgumentException(
+                "Data matching can only be performed on datasets of type general.person" );
 
         // Warning: We assume that the restrictions on links are enforced/validated as specified in LinkingApi. In
         // particular, from now on we work on the assumption that only identical property types are linked on.
@@ -146,22 +168,22 @@ public class LinkingService {
         Stream<UnorderedPair<Entity>> pairs = blocker.block();
 
         logger.info( "Executing matching..." );
-        double[] personWeights = ConfigurationService.StaticLoader.loadConfiguration( PersonFeatureWeights.class )
-                .getWeights();
         // Matching: check if pair score is already calculated from HazelcastGraph Api. If not, stream
         // through matcher to get a score.
         final double[] minimax = new double[ 1 ];
-        pairs
+        minimax[ 0 ] = Double.MAX_VALUE;
+        pairs.parallel()
                 .map( entityPair -> {
                     if ( entityPair.getBackingCollection().size() == 2 ) {
                         // The pair actually consists of two entities; we should add the edge to the graph if necessary.
                         final LinkingEdge edge = fromUnorderedPair( graphId, entityPair );
-                        double weight = ( isMatchingPerson )
-                                ? FeatureExtractor.getEntityDiffForWeights( entityPair,
-                                        personWeights,
-                                        propertyTypeIdIndexedByFqn )
-                                : matcher.dist( entityPair );
-
+                        List<Entity> pairAsList = entityPair.getAsList();
+                        double[] dist = PersonMetric.pDistance( pairAsList.get( 0 ),
+                                pairAsList.get( 1 ),
+                                propertyTypeIdIndexedByFqn );
+                        double[][] features = new double[ 1 ][ 0 ];
+                        features[ 0 ] = dist;
+                        double weight = ( (MultiLayerNetwork) ( modelThread.get() ) ).output( Nd4j.create( features ) ).getDouble( 1 ) + 0.4;
                         minimax[ 0 ] = Math.min( minimax[ 0 ], weight );
                         return linkingGraph.setEdgeWeightAsync( edge, weight );
                     } else {
@@ -320,7 +342,6 @@ public class LinkingService {
             edgeId = newEdgeId;
         }
 
-        lm.deleteEdge( edge.getKey() );
         return lm.addEdgeAsync( srcId,
                 dms.getEntitySet( srcEntitySetId ).getEntityTypeId(),
                 srcEntitySetId,

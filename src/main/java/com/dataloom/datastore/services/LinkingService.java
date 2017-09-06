@@ -14,10 +14,8 @@ import java.util.stream.Stream;
 
 import org.apache.olingo.commons.api.edm.EdmPrimitiveTypeKind;
 import org.apache.olingo.commons.api.edm.FullQualifiedName;
-import org.deeplearning4j.nn.graph.ComputationGraph;
 import org.deeplearning4j.nn.multilayer.MultiLayerNetwork;
 import org.deeplearning4j.util.ModelSerializer;
-import org.nd4j.linalg.api.ndarray.INDArray;
 import org.nd4j.linalg.factory.Nd4j;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -41,8 +39,6 @@ import com.dataloom.linking.LinkingVertexKey;
 import com.dataloom.linking.components.Blocker;
 import com.dataloom.linking.components.Clusterer;
 import com.dataloom.linking.components.Matcher;
-import com.dataloom.linking.configuration.PersonFeatureWeights;
-import com.dataloom.linking.util.FeatureExtractor;
 import com.dataloom.linking.util.PersonMetric;
 import com.dataloom.linking.util.UnorderedPair;
 import com.dataloom.streams.StreamUtil;
@@ -61,7 +57,6 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.hazelcast.core.HazelcastInstance;
 import com.kryptnostic.datastore.cassandra.CommonColumns;
 import com.kryptnostic.datastore.services.EdmManager;
-import com.kryptnostic.rhizome.configuration.service.ConfigurationService;
 
 public class LinkingService {
     private static final Logger                      logger = LoggerFactory.getLogger( LinkingService.class );
@@ -128,7 +123,7 @@ public class LinkingService {
         MultiLayerNetwork network;
         try {
             network = ModelSerializer
-                    .restoreMultiLayerNetwork( new File( "src/main/resources/model.bin" ).getAbsolutePath() );
+                    .restoreMultiLayerNetwork( this.getClass().getResourceAsStream( "model.bin" ) );
         } catch ( IOException e ) {
             network = null;
             logger.error( "Unable to load neural net", e );
@@ -310,7 +305,6 @@ public class LinkingService {
         return eds.loadEntities( authorizedPropertyTypesForEntity,
                 propertyTypesById,
                 propertyTypesToPopulate );
-
     }
 
     private ListenableFuture mergeEdgeAsync( UUID linkedEntitySetId, UUID syncId, LoomEdge edge ) {

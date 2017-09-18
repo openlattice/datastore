@@ -481,4 +481,15 @@ public class DatastoreConductorElasticsearchApi implements ConductorElasticsearc
         }
     }
 
+    @Override
+    public double getModelScore( double[][] features ) {
+        try {
+            return executor.submit( ConductorElasticsearchCall.wrap(
+                    ElasticsearchLambdas.getModelScore( features ) ) ).get();
+        } catch ( InterruptedException | ExecutionException e ) {
+            logger.debug( "unable to get model score" );
+            return Double.MAX_VALUE;
+        }
+    }
+
 }

@@ -1,6 +1,5 @@
 package com.dataloom.datastore.services;
 
-import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -9,6 +8,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -16,7 +16,6 @@ import org.apache.olingo.commons.api.edm.EdmPrimitiveTypeKind;
 import org.apache.olingo.commons.api.edm.FullQualifiedName;
 import org.deeplearning4j.nn.multilayer.MultiLayerNetwork;
 import org.deeplearning4j.util.ModelSerializer;
-import org.nd4j.linalg.factory.Nd4j;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -28,6 +27,7 @@ import com.dataloom.data.EntityKeyIdService;
 import com.dataloom.edm.type.PropertyType;
 import com.dataloom.graph.core.LoomGraphApi;
 import com.dataloom.graph.edge.LoomEdge;
+import com.dataloom.hazelcast.HazelcastMap;
 import com.dataloom.linking.CassandraLinkingGraphsQueryService;
 import com.dataloom.linking.Entity;
 import com.dataloom.linking.HazelcastLinkingGraphs;
@@ -38,9 +38,8 @@ import com.dataloom.linking.LinkingEntityKey;
 import com.dataloom.linking.LinkingVertexKey;
 import com.dataloom.linking.components.Blocker;
 import com.dataloom.linking.components.Clusterer;
-import com.dataloom.linking.components.Matcher;
-import com.dataloom.linking.util.PersonMetric;
 import com.dataloom.linking.util.UnorderedPair;
+import com.dataloom.matching.DistributedMatcher;
 import com.dataloom.streams.StreamUtil;
 import com.datastax.driver.core.Session;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -52,11 +51,13 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.SetMultimap;
 import com.google.common.collect.Sets;
 import com.google.common.eventbus.EventBus;
-import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.hazelcast.core.HazelcastInstance;
+import com.hazelcast.core.IMap;
 import com.kryptnostic.datastore.cassandra.CommonColumns;
 import com.kryptnostic.datastore.services.EdmManager;
+
+import jersey.repackaged.com.google.common.base.Stopwatch;
 
 public class LinkingService {
     private static final Logger                      logger = LoggerFactory.getLogger( LinkingService.class );
@@ -64,7 +65,7 @@ public class LinkingService {
     private final ObjectMapper                       mapper;
     private final HazelcastLinkingGraphs             linkingGraph;
     private final Blocker                            blocker;
-    private final Matcher                            matcher;
+    private final DistributedMatcher                 matcher;
     private final Clusterer                          clusterer;
     private final HazelcastListingService            listingService;
     private final EdmManager                         dms;
@@ -85,7 +86,7 @@ public class LinkingService {
             Session session,
             HazelcastLinkingGraphs linkingGraph,
             Blocker blocker,
-            Matcher matcher,
+            DistributedMatcher matcher,
             Clusterer clusterer,
             HazelcastInstance hazelcast,
             EventBus eventBus,
@@ -123,7 +124,8 @@ public class LinkingService {
         MultiLayerNetwork network;
         try {
             network = ModelSerializer
-                    .restoreMultiLayerNetwork( Thread.currentThread().getContextClassLoader().getResourceAsStream( "model.bin" ) );
+                    .restoreMultiLayerNetwork(
+                            Thread.currentThread().getContextClassLoader().getResourceAsStream( "model.bin" ) );
         } catch ( IOException e ) {
             network = null;
             logger.error( "Unable to load neural net", e );
@@ -158,45 +160,25 @@ public class LinkingService {
 
         UUID graphId = linkingGraph.getGraphIdFromEntitySetId( linkedEntitySetId );
 
-        logger.info( "Executing blocking..." );
-        // Blocking: For each row in the entity sets, fire off query to elasticsearch
-        Stream<UnorderedPair<Entity>> pairs = blocker.block();
-
+        Stopwatch stopwatch = Stopwatch.createStarted();
+        Stopwatch stopwatchAll = Stopwatch.createStarted();
         logger.info( "Executing matching..." );
         // Matching: check if pair score is already calculated from HazelcastGraph Api. If not, stream
         // through matcher to get a score.
-        final double[] minimax = new double[ 1 ];
-        minimax[ 0 ] = Double.MAX_VALUE;
-        pairs.parallel()
-                .map( entityPair -> {
-                    if ( entityPair.getBackingCollection().size() == 2 ) {
-                        // The pair actually consists of two entities; we should add the edge to the graph if necessary.
-                        final LinkingEdge edge = fromUnorderedPair( graphId, entityPair );
-                        List<Entity> pairAsList = entityPair.getAsList();
-                        double[] dist = PersonMetric.pDistance( pairAsList.get( 0 ),
-                                pairAsList.get( 1 ),
-                                propertyTypeIdIndexedByFqn );
-                        double[][] features = new double[ 1 ][ 0 ];
-                        features[ 0 ] = dist;
-                        double weight = ( (MultiLayerNetwork) ( modelThread.get() ) ).output( Nd4j.create( features ) ).getDouble( 1 ) + 0.4;
-                        minimax[ 0 ] = Math.min( minimax[ 0 ], weight );
-                        return linkingGraph.setEdgeWeightAsync( edge, weight );
-                    } else {
-                        // The pair consists of one entity; we should add a vertex to the graph if necessary.
-                        final EntityKey ek = getEntityKeyFromSingletonPair( entityPair );
-                        linkingGraph.getOrCreateVertex( graphId, ek );
-                        return Futures.immediateFuture( null );
-                    }
-                } )
-                .forEach( StreamUtil::getUninterruptibly );
+        double minWeight = matcher.match( graphId );
+        logger.info( "MATCHING IS DONE" );
+        logger.info( "Lightest: {}", minWeight );
 
         // Feed the scores (i.e. the edge set) into HazelcastGraph Api
         logger.info( "Executing clustering..." );
-        clusterer.cluster( graphId, minimax[ 0 ] );
+        clusterer.cluster( graphId, minWeight );
+        logger.info( "Clustering finished, took: {}", stopwatch.elapsed( TimeUnit.SECONDS ) );
+        stopwatch = Stopwatch.createStarted();
 
         mergeEntities( linkedEntitySetId, ownablePropertyTypes, propertyTypesToPopulate );
+        logger.info( "Merging finished, took: {}", stopwatch.elapsed( TimeUnit.SECONDS ) );
 
-        logger.info( "Linking job finished." );
+        logger.info( "Linking job finished, took: {}", stopwatchAll.elapsed( TimeUnit.SECONDS ) );
         return linkedEntitySetId;
     }
 

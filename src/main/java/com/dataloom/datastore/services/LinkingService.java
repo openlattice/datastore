@@ -1,6 +1,5 @@
 package com.dataloom.datastore.services;
 
-import java.io.IOException;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -14,8 +13,6 @@ import java.util.stream.Stream;
 
 import org.apache.olingo.commons.api.edm.EdmPrimitiveTypeKind;
 import org.apache.olingo.commons.api.edm.FullQualifiedName;
-import org.deeplearning4j.nn.multilayer.MultiLayerNetwork;
-import org.deeplearning4j.util.ModelSerializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -27,7 +24,6 @@ import com.dataloom.data.EntityKeyIdService;
 import com.dataloom.edm.type.PropertyType;
 import com.dataloom.graph.core.LoomGraphApi;
 import com.dataloom.graph.edge.LoomEdge;
-import com.dataloom.hazelcast.HazelcastMap;
 import com.dataloom.linking.CassandraLinkingGraphsQueryService;
 import com.dataloom.linking.Entity;
 import com.dataloom.linking.HazelcastLinkingGraphs;
@@ -53,7 +49,6 @@ import com.google.common.collect.Sets;
 import com.google.common.eventbus.EventBus;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.hazelcast.core.HazelcastInstance;
-import com.hazelcast.core.IMap;
 import com.kryptnostic.datastore.cassandra.CommonColumns;
 import com.kryptnostic.datastore.services.EdmManager;
 
@@ -78,8 +73,6 @@ public class LinkingService {
     private final EntityKeyIdService                 idService;
     private final HazelcastVertexMergingService      vms;
     private final CassandraLinkingGraphsQueryService clgqs;
-    private final MultiLayerNetwork                  net;
-    private final ThreadLocal                        modelThread;
 
     public LinkingService(
             String keyspace,
@@ -121,17 +114,6 @@ public class LinkingService {
         this.vms = vms;
         this.mapper = mapper;
         this.clgqs = clgqs;
-        MultiLayerNetwork network;
-        try {
-            network = ModelSerializer
-                    .restoreMultiLayerNetwork(
-                            Thread.currentThread().getContextClassLoader().getResourceAsStream( "model.bin" ) );
-        } catch ( IOException e ) {
-            network = null;
-            logger.error( "Unable to load neural net", e );
-        }
-        this.net = network;
-        modelThread = ThreadLocal.withInitial( () -> net.clone() );
     }
 
     public void link( Set<UUID> entitySetIds ) {

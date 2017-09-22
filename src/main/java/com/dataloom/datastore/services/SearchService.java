@@ -30,6 +30,7 @@ import java.util.stream.Collectors;
 import javax.annotation.PostConstruct;
 import javax.inject.Inject;
 
+import com.kryptnostic.rhizome.hazelcast.objects.DelegatedStringSet;
 import org.apache.olingo.commons.api.edm.FullQualifiedName;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -271,9 +272,9 @@ public class SearchService {
     }
 
     @Timed
-    public List<Entity> executeEntitySetDataSearchAcrossIndices(
+    public List<EntityKey> executeEntitySetDataSearchAcrossIndices(
             Map<UUID, UUID> entitySetAndSyncIds,
-            Map<UUID, Set<String>> fieldSearches,
+            Map<UUID, DelegatedStringSet> fieldSearches,
             int size,
             boolean explain ) {
         return elasticsearchApi.executeEntitySetDataSearchAcrossIndices( entitySetAndSyncIds,

@@ -11,6 +11,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import com.google.common.base.Stopwatch;
 import org.apache.olingo.commons.api.edm.EdmPrimitiveTypeKind;
 import org.apache.olingo.commons.api.edm.FullQualifiedName;
 import org.slf4j.Logger;
@@ -51,8 +52,6 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.hazelcast.core.HazelcastInstance;
 import com.kryptnostic.datastore.cassandra.CommonColumns;
 import com.kryptnostic.datastore.services.EdmManager;
-
-import jersey.repackaged.com.google.common.base.Stopwatch;
 
 public class LinkingService {
     private static final Logger                      logger = LoggerFactory.getLogger( LinkingService.class );
@@ -148,14 +147,17 @@ public class LinkingService {
         // Matching: check if pair score is already calculated from HazelcastGraph Api. If not, stream
         // through matcher to get a score.
         double minWeight = matcher.match( graphId );
-        logger.info( "MATCHING IS DONE" );
+        logger.info( "Matching finished, took: {}", stopwatch.elapsed( TimeUnit.SECONDS ) );
         logger.info( "Lightest: {}", minWeight );
+        stopwatch.reset();
+        stopwatch.start();
 
         // Feed the scores (i.e. the edge set) into HazelcastGraph Api
         logger.info( "Executing clustering..." );
         clusterer.cluster( graphId, minWeight );
         logger.info( "Clustering finished, took: {}", stopwatch.elapsed( TimeUnit.SECONDS ) );
-        stopwatch = Stopwatch.createStarted();
+        stopwatch.reset();
+        stopwatch.start();
 
         mergeEntities( linkedEntitySetId, ownablePropertyTypes, propertyTypesToPopulate );
         logger.info( "Merging finished, took: {}", stopwatch.elapsed( TimeUnit.SECONDS ) );

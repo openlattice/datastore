@@ -19,6 +19,13 @@
 
 package com.dataloom.datastore.pods;
 
+import javax.annotation.PostConstruct;
+import javax.inject.Inject;
+
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Import;
+
 import com.dataloom.authorization.AbstractSecurableObjectResolveTypeService;
 import com.dataloom.authorization.AuthorizationManager;
 import com.dataloom.authorization.AuthorizationQueryService;
@@ -27,7 +34,6 @@ import com.dataloom.authorization.HazelcastAbstractSecurableObjectResolveTypeSer
 import com.dataloom.authorization.HazelcastAclKeyReservationService;
 import com.dataloom.authorization.HazelcastAuthorizationService;
 import com.dataloom.authorization.Principals;
-import com.dataloom.clustering.ClusteringPartitioner;
 import com.dataloom.clustering.DistributedClusterer;
 import com.dataloom.data.DataGraphManager;
 import com.dataloom.data.DataGraphService;
@@ -58,6 +64,7 @@ import com.dataloom.linking.components.Blocker;
 import com.dataloom.linking.components.Clusterer;
 import com.dataloom.linking.components.Matcher;
 import com.dataloom.mappers.ObjectMappers;
+import com.dataloom.matching.DistributedMatcher;
 import com.dataloom.neuron.Neuron;
 import com.dataloom.neuron.pods.NeuronPod;
 import com.dataloom.organizations.HazelcastOrganizationService;
@@ -81,13 +88,9 @@ import com.kryptnostic.datastore.services.EdmService;
 import com.kryptnostic.datastore.services.ODataStorageService;
 import com.kryptnostic.rhizome.configuration.cassandra.CassandraConfiguration;
 import com.kryptnostic.rhizome.pods.CassandraPod;
+
 import digital.loom.rhizome.authentication.Auth0Pod;
 import digital.loom.rhizome.configuration.auth0.Auth0Configuration;
-import javax.annotation.PostConstruct;
-import javax.inject.Inject;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Import;
 
 @Configuration
 @Import( {
@@ -98,25 +101,25 @@ import org.springframework.context.annotation.Import;
 public class DatastoreServicesPod {
 
     @Inject
-    private CassandraConfiguration cassandraConfiguration;
+    private CassandraConfiguration   cassandraConfiguration;
 
     @Inject
-    private HazelcastInstance hazelcastInstance;
+    private HazelcastInstance        hazelcastInstance;
 
     @Inject
-    private Session session;
+    private Session                  session;
 
     @Inject
-    private Auth0Configuration auth0Configuration;
+    private Auth0Configuration       auth0Configuration;
 
     @Inject
     private ListeningExecutorService executor;
 
     @Inject
-    private EventBus eventBus;
+    private EventBus                 eventBus;
 
     @Inject
-    private Neuron neuron;
+    private Neuron                   neuron;
 
     @Bean
     public ObjectMapper defaultObjectMapper() {
@@ -322,13 +325,18 @@ public class DatastoreServicesPod {
     }
 
     @Bean
+    public DistributedMatcher matcher() {
+        return new DistributedMatcher( hazelcastInstance, dataModelService() );
+    }
+
+    @Bean
     public LinkingService linkingService() {
         return new LinkingService(
                 cassandraConfiguration.getKeyspace(),
                 session,
                 linkingGraph(),
                 simpleElasticSearchBlocker(),
-                simpleMatcher(),
+                matcher(),
                 clusterer(),
                 hazelcastInstance,
                 eventBus,

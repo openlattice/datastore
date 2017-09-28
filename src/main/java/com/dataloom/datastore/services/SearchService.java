@@ -407,12 +407,13 @@ public class SearchService {
                     entitySetsById.put( edgeEntitySetId, dataModelService.getEntitySet( edgeEntitySetId ) );
                     entitySetsIdsToAuthorizedProps.put( edgeEntitySetId, getAuthorizedProperties( edgeEntitySetId ) );
                 }
-                
-                if ( entitySetIsAuthorized.get( neighborEntitySetId )
-                        && !entitySetsById.containsKey( neighborEntitySetId ) ) {
-                    entitySetsById.put( neighborEntitySetId, dataModelService.getEntitySet( neighborEntitySetId ) );
-                    entitySetsIdsToAuthorizedProps.put( neighborEntitySetId,
-                            getAuthorizedProperties( neighborEntitySetId ) );
+
+                if ( entitySetIsAuthorized.get( neighborEntitySetId ) ) {
+                    if ( !entitySetsById.containsKey( neighborEntitySetId ) ) {
+                        entitySetsById.put( neighborEntitySetId, dataModelService.getEntitySet( neighborEntitySetId ) );
+                        entitySetsIdsToAuthorizedProps.put( neighborEntitySetId,
+                                getAuthorizedProperties( neighborEntitySetId ) );
+                    }
                     authorizedEdgeESIdsToVertexESIds.get( edgeEntitySetId ).add( neighborEntitySetId );
                 }
             }

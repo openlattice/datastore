@@ -80,22 +80,6 @@ configurations {
 ext.odata_version='4.2.0'
 dependencies {
 
-    compile("org.deeplearning4j:deeplearning4j-core:0.9.1") {
-            exclude module: 'guava'
-    }
-    
-    compile("org.nd4j:nd4j-native-platform:0.9.1") {
-            exclude module: 'guava'
-    }
-    
-    compile("org.deeplearning4j:dl4j-spark_2.11:0.9.1_spark_2") {
-            exclude module: 'guava'
-    }
-    
-    compile("org.deeplearning4j:deeplearning4j-ui_2.11:0.9.1") {
-            exclude module: 'guava'       
-    }
-
     if( project.hasProperty('developmentMode') && project.developmentMode ) {
         logger.quiet(project.name + " using project dependencies.")
         compile project(":rhizome")

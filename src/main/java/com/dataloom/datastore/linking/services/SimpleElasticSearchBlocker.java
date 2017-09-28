@@ -9,6 +9,7 @@ import com.dataloom.linking.components.Blocker;
 import com.dataloom.linking.util.UnorderedPair;
 import com.dataloom.streams.StreamUtil;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Lists;
 import com.google.common.collect.SetMultimap;
 import com.kryptnostic.datastore.services.EdmManager;
 import java.nio.ByteBuffer;
@@ -95,11 +96,7 @@ public class SimpleElasticSearchBlocker implements Blocker {
                     Collectors.toMap( entry -> entry.getKey().toString(), entry -> entry.getValue() ) );
 
             // Blocking step: fire off query to elasticsearch.
-            List<Entity> queryResults = searchService
-                    .executeEntitySetDataSearchAcrossIndices( linkingEntitySetsWithSyncId,
-                            properties,
-                            blockSize,
-                            explain );
+            List<Entity> queryResults = Lists.newArrayList();
 
             // return pairs of entities.
             Entity currentEntity = new Entity( entityKeyDataPair.getKey(), propertiesIndexedByString );

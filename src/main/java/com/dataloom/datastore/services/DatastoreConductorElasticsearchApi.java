@@ -1,21 +1,12 @@
 package com.dataloom.datastore.services;
 
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.ExecutionException;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.dataloom.authorization.Permission;
 import com.dataloom.authorization.Principal;
+import com.dataloom.data.EntityKey;
 import com.dataloom.edm.EntitySet;
 import com.dataloom.edm.type.AssociationType;
 import com.dataloom.edm.type.EntityType;
 import com.dataloom.edm.type.PropertyType;
-import com.dataloom.linking.Entity;
 import com.dataloom.organization.Organization;
 import com.dataloom.search.requests.SearchDetails;
 import com.dataloom.search.requests.SearchResult;
@@ -23,17 +14,20 @@ import com.google.common.base.Optional;
 import com.google.common.collect.Lists;
 import com.hazelcast.core.HazelcastInstance;
 import com.hazelcast.durableexecutor.DurableExecutorService;
-import com.kryptnostic.conductor.rpc.AdvancedSearchEntitySetDataLambda;
-import com.kryptnostic.conductor.rpc.ConductorElasticsearchApi;
-import com.kryptnostic.conductor.rpc.ConductorElasticsearchCall;
-import com.kryptnostic.conductor.rpc.ElasticsearchLambdas;
-import com.kryptnostic.conductor.rpc.EntityDataLambdas;
-import com.kryptnostic.conductor.rpc.SearchEntitySetDataAcrossIndicesLambda;
-import com.kryptnostic.conductor.rpc.SearchEntitySetDataLambda;
+import com.kryptnostic.conductor.rpc.*;
+import com.kryptnostic.rhizome.hazelcast.objects.DelegatedStringSet;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.ExecutionException;
 
 public class DatastoreConductorElasticsearchApi implements ConductorElasticsearchApi {
 
-    private static final Logger          logger = LoggerFactory.getLogger( DatastoreConductorElasticsearchApi.class );
+    private static final Logger logger = LoggerFactory.getLogger( DatastoreConductorElasticsearchApi.class );
 
     private final DurableExecutorService executor;
 
@@ -280,13 +274,13 @@ public class DatastoreConductorElasticsearchApi implements ConductorElasticsearc
     }
 
     @Override
-    public List<Entity> executeEntitySetDataSearchAcrossIndices(
+    public List<EntityKey> executeEntitySetDataSearchAcrossIndices(
             Map<UUID, UUID> entitySetAndSyncIds,
-            Map<UUID, Set<String>> fieldSearches,
+            Map<UUID, DelegatedStringSet> fieldSearches,
             int size,
             boolean explain ) {
         try {
-            List<Entity> queryResults = executor.submit( ConductorElasticsearchCall.wrap(
+            List<EntityKey> queryResults = executor.submit( ConductorElasticsearchCall.wrap(
                     new SearchEntitySetDataAcrossIndicesLambda( entitySetAndSyncIds, fieldSearches, size, explain ) ) )
                     .get();
             return queryResults;
@@ -478,6 +472,17 @@ public class DatastoreConductorElasticsearchApi implements ConductorElasticsearc
         } catch ( InterruptedException | ExecutionException e ) {
             logger.debug( "unable to delete all data" );
             return false;
+        }
+    }
+
+    @Override
+    public double getModelScore( double[][] features ) {
+        try {
+            return executor.submit( ConductorElasticsearchCall.wrap(
+                    ElasticsearchLambdas.getModelScore( features ) ) ).get();
+        } catch ( InterruptedException | ExecutionException e ) {
+            logger.debug( "unable to get model score" );
+            return Double.MAX_VALUE;
         }
     }
 

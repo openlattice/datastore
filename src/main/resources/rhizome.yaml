@@ -21,4 +21,11 @@ hazelcast:
     password: "kryptodoge4life"
     seed-nodes: 
         - "localhost"
-        
+
+hikari:
+    jdbcUrl: "jdbc:postgresql://localhost/openlattice"
+    dataSourceClassName: "org.postgresql.ds.PGSimpleDataSource"
+    username: "mtamayo"
+    dataSource.user: "mtamayo"
+    dataSource.databaseName: "openlattice"
+    maximumPoolSize: 1

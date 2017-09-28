@@ -37,6 +37,7 @@ import com.kryptnostic.rhizome.hazelcast.serializers.RhizomeUtils.Pods;
 import com.kryptnostic.rhizome.pods.CassandraPod;
 import com.kryptnostic.rhizome.pods.hazelcast.RegistryBasedHazelcastInstanceConfigurationPod;
 
+import com.openlattice.jdbc.JdbcPod;
 import digital.loom.rhizome.authentication.Auth0Pod;
 
 public class Datastore extends BaseRhizomeServer {
@@ -52,9 +53,11 @@ public class Datastore extends BaseRhizomeServer {
             DatastoreServicesPod.class,
             TypeCodecsPod.class,
             SharedStreamSerializersPod.class,
+            //TODO: Why is this here?
             MapstoresPod.class,
             CassandraTablesPod.class,
-            SparkDependencyPod.class
+            SparkDependencyPod.class,
+            JdbcPod.class
     };
 
     static {

@@ -1,5 +1,6 @@
 package com.dataloom.datastore.services;
 
+import com.codahale.metrics.annotation.Timed;
 import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
@@ -136,6 +137,7 @@ public class LinkingService {
 
     }
 
+    @Timed
     public UUID link(
             UUID linkedEntitySetId,
             Set<Map<UUID, UUID>> linkingProperties,

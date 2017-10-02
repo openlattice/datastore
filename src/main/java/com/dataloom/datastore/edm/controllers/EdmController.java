@@ -19,17 +19,13 @@
 
 package com.dataloom.datastore.edm.controllers;
 
-import java.util.Arrays;
-import java.util.EnumSet;
-import java.util.HashSet;
-import java.util.LinkedHashSet;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
+import java.util.concurrent.ConcurrentSkipListSet;
 
 import javax.inject.Inject;
 import javax.servlet.http.HttpServletResponse;
 
+import com.google.common.collect.*;
 import org.apache.olingo.commons.api.edm.FullQualifiedName;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -81,10 +77,6 @@ import com.dataloom.edm.type.PropertyType;
 import com.dataloom.exceptions.ErrorsDTO;
 import com.dataloom.exceptions.LoomExceptions;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
 import com.kryptnostic.datastore.exceptions.BadRequestException;
 import com.kryptnostic.datastore.exceptions.BatchException;
 import com.kryptnostic.datastore.services.CassandraEntitySetManager;
@@ -143,13 +135,18 @@ public class EdmController implements EdmApi, AuthorizingComponent {
 
     @Override
     public EntityDataModel getEntityDataModel() {
-        final Iterable<Schema> schemas = schemaManager.getAllSchemas();
-        final Iterable<EntityType> entityTypes = getEntityTypesStrict();
-        final Iterable<AssociationType> associationTypes = getAssociationTypes();
-        final Iterable<PropertyType> propertyTypes = getPropertyTypes();
-        final Set<String> namespaces = Sets.newHashSet();
+        final List<Schema> schemas = Lists.newArrayList( schemaManager.getAllSchemas() );
+        final List<EntityType> entityTypes = Lists.newArrayList( getEntityTypesStrict() );
+        final List<AssociationType> associationTypes = Lists.newArrayList( getAssociationTypes() );
+        final List<PropertyType> propertyTypes = Lists.newArrayList( getPropertyTypes() );
+        final ConcurrentSkipListSet<String> namespaces = new ConcurrentSkipListSet<>();
         getEntityTypes().forEach( entityType -> namespaces.add( entityType.getType().getNamespace() ) );
         getPropertyTypes().forEach( propertyType -> namespaces.add( propertyType.getType().getNamespace() ) );
+
+        schemas.sort( Comparator.comparing( schema -> schema.getFqn().toString() ) );
+        entityTypes.sort( Comparator.comparing( entityType -> entityType.getType().toString() ) );
+        associationTypes.sort( Comparator.comparing( associationType -> associationType.getAssociationEntityType().getType().toString() ) );
+        propertyTypes.sort( Comparator.comparing( propertyType -> propertyType.getType().toString() ) );
 
         return new EntityDataModel(
                 getEntityDataModelVersion(),

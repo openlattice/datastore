@@ -4,53 +4,37 @@ import com.codahale.metrics.annotation.Timed;
 import com.dataloom.data.DataGraphManager;
 import com.dataloom.data.DatasourceManager;
 import com.dataloom.data.EntityDatastore;
-import com.dataloom.data.EntityKey;
 import com.dataloom.data.EntityKeyIdService;
 import com.dataloom.edm.type.PropertyType;
 import com.dataloom.graph.core.LoomGraphApi;
 import com.dataloom.graph.edge.LoomEdge;
 import com.dataloom.linking.CassandraLinkingGraphsQueryService;
-import com.dataloom.linking.Entity;
 import com.dataloom.linking.HazelcastLinkingGraphs;
 import com.dataloom.linking.HazelcastListingService;
 import com.dataloom.linking.HazelcastVertexMergingService;
-import com.dataloom.linking.LinkingEdge;
-import com.dataloom.linking.LinkingEntityKey;
-import com.dataloom.linking.LinkingVertexKey;
 import com.dataloom.linking.components.Blocker;
 import com.dataloom.linking.components.Clusterer;
-import com.dataloom.linking.util.UnorderedPair;
 import com.dataloom.matching.DistributedMatcher;
 import com.dataloom.streams.StreamUtil;
 import com.datastax.driver.core.Session;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Stopwatch;
-import com.google.common.collect.HashMultimap;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Maps;
-import com.google.common.collect.SetMultimap;
-import com.google.common.collect.Sets;
+import com.google.common.collect.*;
 import com.google.common.eventbus.EventBus;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.hazelcast.core.HazelcastInstance;
 import com.kryptnostic.datastore.cassandra.CommonColumns;
 import com.kryptnostic.datastore.services.EdmManager;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 import org.apache.olingo.commons.api.edm.EdmPrimitiveTypeKind;
 import org.apache.olingo.commons.api.edm.FullQualifiedName;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.*;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class LinkingService {
     private static final Logger logger = LoggerFactory.getLogger( LinkingService.class );
@@ -233,7 +217,7 @@ public class LinkingService {
                         authorizedPropertiesWithDataTypeForLinkedEntitySet );
 
                 // write to a lookup table from old entity key id to new, merged entity key id
-                idService.getEntityKeyIds( linkedKey.getValue() ).values()
+                linkedKey.getValue()
                         .forEach( oldId -> vms.saveToLookup( linkedEntitySetId, oldId, mergedEntityKeyId ) );
 
             } catch ( ExecutionException | InterruptedException e ) {
@@ -262,14 +246,14 @@ public class LinkingService {
     }
 
     private SetMultimap<UUID, Object> computeMergedEntity(
-            Set<EntityKey> entityKeys,
+            Set<UUID> entityKeyIds,
             Map<UUID, Set<UUID>> propertyTypeIdsByEntitySet,
             Map<UUID, PropertyType> propertyTypesById,
             Set<UUID> propertyTypesToPopulate ) {
-        Map<UUID, Set<UUID>> authorizedPropertyTypesForEntity = idService.getEntityKeyIds( entityKeys ).entrySet()
+        Map<UUID, Set<UUID>> authorizedPropertyTypesForEntity = idService.getEntityKeys( entityKeyIds ).entrySet()
                 .stream()
-                .collect( Collectors.toMap( entry -> entry.getValue(),
-                        entry -> propertyTypeIdsByEntitySet.get( entry.getKey().getEntitySetId() ) ) );
+                .collect( Collectors.toMap( entry -> entry.getKey(),
+                        entry -> propertyTypeIdsByEntitySet.get( entry.getValue().getEntitySetId() ) ) );
         return eds.loadEntities( authorizedPropertyTypesForEntity,
                 propertyTypesById,
                 propertyTypesToPopulate );
@@ -315,23 +299,6 @@ public class LinkingService {
                 edgeId,
                 dms.getEntitySet( edgeEntitySetId ).getEntityTypeId(),
                 edgeEntitySetId );
-    }
-
-    private LinkingEdge fromUnorderedPair( UUID graphId, UnorderedPair<Entity> p ) {
-        List<LinkingEntityKey> keys = p.getBackingCollection().stream()
-                .map( e -> new LinkingEntityKey( graphId, e.getKey() ) ).collect( Collectors.toList() );
-        LinkingVertexKey u = linkingGraph.getOrCreateVertex( keys.get( 0 ) );
-        LinkingVertexKey v = linkingGraph.getOrCreateVertex( keys.get( 1 ) );
-        return new LinkingEdge( u, v );
-    }
-
-    private EntityKey getEntityKeyFromSingletonPair( UnorderedPair<Entity> p ) {
-        Entity e = p.getBackingCollection().iterator().next();
-        if ( e == null ) {
-            logger.error( "Unexpected null singleton entity pair during blocking." );
-            throw new IllegalStateException( "Unexpected error during blocking." );
-        }
-        return e.getKey();
     }
 
     private void initializeComponents(

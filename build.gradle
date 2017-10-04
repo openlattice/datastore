@@ -60,7 +60,7 @@ if (DS_ARGS == 'null' || DS_ARGS == null || DS_ARGS == "") {
 
 
 if( PARALLEL == 'null' || PARALLEL == null || PARALLEL == "" ) {
-    DS_ARGS = "-Djava.util.concurrent.ForkJoinPool.common.parallelism=" + Runtime.runtime.availableProcessors()
+    PARALLEL = "-Djava.util.concurrent.ForkJoinPool.common.parallelism=" + Runtime.runtime.availableProcessors()
 }
 
 if (GC == 'null' || GC == null || GC == "") {

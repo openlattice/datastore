@@ -18,6 +18,7 @@ import com.dataloom.linking.HazelcastVertexMergingService;
 import com.dataloom.linking.components.Blocker;
 import com.dataloom.linking.components.Clusterer;
 import com.dataloom.matching.DistributedMatcher;
+import com.dataloom.merging.DistributedMerger;
 import com.dataloom.streams.StreamUtil;
 import com.datastax.driver.core.Session;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -56,6 +57,7 @@ public class LinkingService {
     private final Blocker                            blocker;
     private final DistributedMatcher                 matcher;
     private final Clusterer                          clusterer;
+    private final DistributedMerger                  merger;
     private final HazelcastListingService            listingService;
     private final EdmManager                         dms;
     private final DataGraphManager                   dgm;
@@ -75,6 +77,7 @@ public class LinkingService {
             Blocker blocker,
             DistributedMatcher matcher,
             Clusterer clusterer,
+            DistributedMerger merger,
             HazelcastInstance hazelcast,
             EventBus eventBus,
             HazelcastListingService listingService,
@@ -92,6 +95,7 @@ public class LinkingService {
         this.blocker = blocker;
         this.matcher = matcher;
         this.clusterer = clusterer;
+        this.merger = merger;
 
         this.session = session;
         this.keyspace = keyspace;
@@ -122,7 +126,6 @@ public class LinkingService {
             Set<UUID> propertyTypesToPopulate ) {
         SetMultimap<UUID, UUID> linkIndexedByPropertyTypes = getLinkIndexedByPropertyTypes( linkingProperties );
         SetMultimap<UUID, UUID> linkIndexedByEntitySets = getLinkIndexedByEntitySets( linkingProperties );
-        Map<FullQualifiedName, String> propertyTypeIdIndexedByFqn = getPropertyTypeIdIndexedByFqn( linkingProperties );
 
         boolean isMatchingPerson = dms.getEntityTypeByEntitySetId( linkIndexedByEntitySets.keySet().iterator().next() )
                 .getType().toString().equals( "general.person" );
@@ -156,113 +159,13 @@ public class LinkingService {
         logger.info( "Clustering finished, took: {}", stopwatch.elapsed( TimeUnit.SECONDS ) );
         stopwatch.reset();
         stopwatch.start();
-
-        mergeEntities( linkedEntitySetId, ownablePropertyTypes, propertyTypesToPopulate );
+        merger.merge( graphId, ownablePropertyTypes, propertyTypesToPopulate );
+        //mergeEntities( linkedEntitySetId, ownablePropertyTypes, propertyTypesToPopulate );
         logger.info( "Merging finished, took: {}", stopwatch.elapsed( TimeUnit.SECONDS ) );
 
         logger.info( "Linking job finished, took: {}", stopwatchAll.elapsed( TimeUnit.SECONDS ) );
         return linkedEntitySetId;
     }
-
-    private void mergeEntities(
-            UUID linkedEntitySetId,
-            Set<UUID> ownablePropertyTypes,
-            Set<UUID> propertyTypesToPopulate ) {
-        Map<UUID, Map<UUID, PropertyType>> authorizedPropertyTypesForEntitySets = new HashMap<>();
-
-        // compute authorized property types for each of the linking entity sets, as well as the linked entity set
-        // itself
-        Set<UUID> linkingSets = listingService.getLinkedEntitySets( linkedEntitySetId );
-        Iterable<UUID> involvedEntitySets = Iterables.concat( linkingSets, ImmutableSet.of( linkedEntitySetId ) );
-        for ( UUID esId : involvedEntitySets ) {
-            Set<UUID> propertiesOfEntitySet = dms.getEntityTypeByEntitySetId( esId ).getProperties();
-            Set<UUID> authorizedProperties = Sets.intersection( ownablePropertyTypes, propertiesOfEntitySet );
-
-            Map<UUID, PropertyType> authorizedPropertyTypes = authorizedProperties.stream()
-                    .collect( Collectors.toMap( ptId -> ptId, ptId -> dms.getPropertyType( ptId ) ) );
-
-            authorizedPropertyTypesForEntitySets.put( esId, authorizedPropertyTypes );
-        }
-
-        UUID syncId = dsm.getCurrentSyncId( linkedEntitySetId );
-        mergeVertices( linkedEntitySetId, syncId, authorizedPropertyTypesForEntitySets, propertyTypesToPopulate );
-        mergeEdges( linkedEntitySetId, linkingSets, syncId );
-    }
-
-    private void mergeVertices(
-            UUID linkedEntitySetId,
-            UUID syncId,
-            Map<UUID, Map<UUID, PropertyType>> authorizedPropertyTypesForEntitySets,
-            Set<UUID> propertyTypesToPopulate ) {
-        logger.debug( "Linking: Merging vertices..." );
-
-        Map<UUID, EdmPrimitiveTypeKind> authorizedPropertiesWithDataTypeForLinkedEntitySet = Maps.transformValues(
-                authorizedPropertyTypesForEntitySets.get( linkedEntitySetId ), pt -> pt.getDatatype() );
-        // EntityType.getKey returns an unmodifiable view of the underlying linked hash set, so the order is still
-        // preserved, although
-        List<UUID> keyProperties = new LinkedList<>( dms.getEntityTypeByEntitySetId( linkedEntitySetId ).getKey() );
-
-        Map<UUID, Set<UUID>> propertyTypeIdsByEntitySet = Maps.newHashMap();
-        Map<UUID, PropertyType> propertyTypesById = Maps.newHashMap();
-
-        authorizedPropertyTypesForEntitySets.entrySet().forEach( entry -> {
-            propertyTypeIdsByEntitySet.put( entry.getKey(), entry.getValue().keySet() );
-            propertyTypesById.putAll( entry.getValue() );
-        } );
-
-        StreamUtil.parallelStream( clgqs.getLinkedEntityKeys( linkedEntitySetId ) ).forEach( linkedKey -> {
-
-            // compute merged entity
-            SetMultimap<UUID, Object> mergedEntityDetails = computeMergedEntity( linkedKey.getValue(),
-                    propertyTypeIdsByEntitySet,
-                    propertyTypesById,
-                    propertyTypesToPopulate );
-            String entityId = UUID.randomUUID().toString();
-
-            // create merged entity, in particular get back the entity key id for the new entity
-            UUID mergedEntityKeyId;
-            try {
-                mergedEntityKeyId = dgm.createEntity( linkedEntitySetId,
-                        syncId,
-                        entityId,
-                        mergedEntityDetails,
-                        authorizedPropertiesWithDataTypeForLinkedEntitySet );
-
-                // write to a lookup table from old entity key id to new, merged entity key id
-                linkedKey.getValue()
-                        .forEach( oldId -> vms.saveToLookup( linkedEntitySetId, oldId, mergedEntityKeyId ) );
-
-            } catch ( ExecutionException | InterruptedException e ) {
-                logger.error( "Failed to create linked entity for linkedKey {} ", linkedKey );
-            }
-        } );
-    }
-
-    private void mergeEdges( UUID linkedEntitySetId, Set<UUID> linkingSets, UUID syncId ) {
-        logger.debug( "Linking: Merging edges..." );
-        logger.debug( "Linking Sets: {}", linkingSets );
-        UUID[] ids = linkingSets.toArray( new UUID[ 0 ] );
-
-        Aggregator<Entry<EdgeKey, LoomEdge>, Void> agg = new MergeEdgeAggregator( linkedEntitySetId, syncId );
-        lm.submitAggregator( agg, Predicates.or( Predicates.in( PostgresEdgeMapstore.SRC_SET_ID, ids ),
-                Predicates.in( PostgresEdgeMapstore.DST_SET_ID, ids ),
-                Predicates.in( PostgresEdgeMapstore.EDGE_SET_ID, ids ) ) );
-    }
-
-    private SetMultimap<UUID, Object> computeMergedEntity(
-            Set<UUID> entityKeyIds,
-            Map<UUID, Set<UUID>> propertyTypeIdsByEntitySet,
-            Map<UUID, PropertyType> propertyTypesById,
-            Set<UUID> propertyTypesToPopulate ) {
-        Map<UUID, Set<UUID>> authorizedPropertyTypesForEntity = idService.getEntityKeys( entityKeyIds ).entrySet()
-                .stream()
-                .collect( Collectors.toMap( entry -> entry.getKey(),
-                        entry -> propertyTypeIdsByEntitySet.get( entry.getValue().getEntitySetId() ) ) );
-        return eds.loadEntities( authorizedPropertyTypesForEntity,
-                propertyTypesById,
-                propertyTypesToPopulate );
-    }
-
 
     private void initializeComponents(
             Map<UUID, UUID> linkingEntitySetsWithSyncIds,

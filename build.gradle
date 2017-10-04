@@ -18,11 +18,11 @@
  */
 
 plugins {
-  id 'application'
-  id 'java'
-  id 'eclipse'
-  id 'idea'
-  id 'jacoco'
+    id 'application'
+    id 'java'
+    id 'eclipse'
+    id 'idea'
+    id 'jacoco'
 }
 
 description = "Kryptnostic Datastore"
@@ -33,7 +33,7 @@ ext.connectionUrl = 'scm:git:https://github.com/dataloom/datastore.git'
 ext.developerConnectionUrl = 'scm:git:https://github.com/dataloom/datastore.git'
 
 distTar {
-  archiveName "$baseName" + ".tgz"
+    archiveName "$baseName" + ".tgz"
 }
 
 apply from: "https://raw.githubusercontent.com/kryptnostic/gradles/master/kryptnostic.gradle"
@@ -43,29 +43,37 @@ mainClassName = "com.dataloom.datastore.Datastore"
 def DS_XMS = "$System.env.DATASTORE_XMS"
 def DS_XMX = "$System.env.DATASTORE_XMX"
 def DS_ARGS = "$System.env.DATASTORE_ARGS"
+def PARALLEL = "$System.env.PARALLELISM"
+def GC = "$System.env.GC"
 
-if( DS_XMS == 'null' || DS_XMS == null || DS_XMS == "" ) {
+if (DS_XMS == 'null' || DS_XMS == null || DS_XMS == "") {
     DS_XMS = '-Xms1g'
 }
 
-if( DS_XMX == 'null' || DS_XMX == null || DS_XMX == "" ) {
+if (DS_XMX == 'null' || DS_XMX == null || DS_XMX == "") {
     DS_XMX = '-Xms4g'
 }
 
-if( DS_ARGS == 'null' || DS_ARGS == null || DS_ARGS == "" ) {
+if (DS_ARGS == 'null' || DS_ARGS == null || DS_ARGS == "") {
     DS_ARGS = 'local cassandra'
 }
 
+if (GC == 'null' || GC == null || GC == "") {
+    GC = "-XX:+UseG1GC"
+}
+
+
+
 println "Using java args for running ${projectName}: Xms=" + DS_XMS + ",Xmx=" + DS_XMX + " -server"
 
-applicationDefaultJvmArgs = [DS_XMS, DS_XMX, "-server"]
-sourceCompatibility=JavaVersion.VERSION_1_8
-targetCompatibility=JavaVersion.VERSION_1_8
+applicationDefaultJvmArgs = [DS_XMS, DS_XMX, "-server", GC, PARALLEL]
+sourceCompatibility = JavaVersion.VERSION_1_8
+targetCompatibility = JavaVersion.VERSION_1_8
 
 run {
-    if( DS_ARGS != null ) {
+    if (DS_ARGS != null) {
         args DS_ARGS.split();
-    } else if(System.getProperty("exec.args") != null) {
+    } else if (System.getProperty("exec.args") != null) {
         args System.getProperty("exec.args").split()
     }
 }
@@ -74,25 +82,25 @@ println "Enabled profiles: " + Arrays.toString(run.args)
 
 configurations {
     tests
-      published.extendsFrom tests, archives
+    published.extendsFrom tests, archives
 }
 
-ext.odata_version='4.2.0'
+ext.odata_version = '4.2.0'
 dependencies {
 
-    if( project.hasProperty('developmentMode') && project.developmentMode ) {
+    if (project.hasProperty('developmentMode') && project.developmentMode) {
         logger.quiet(project.name + " using project dependencies.")
         compile project(":rhizome")
         compile project(":conductor-client")
         compile project(":loom-api")
-        testCompile( project(path: ":loom-api", configuration: "tests"))
-        testCompile( project(path: ":rhizome", configuration: "tests"))
-        testCompile( project(path: ":rhizome-client", configuration: "tests"))
+        testCompile(project(path: ":loom-api", configuration: "tests"))
+        testCompile(project(path: ":rhizome", configuration: "tests"))
+        testCompile(project(path: ":rhizome-client", configuration: "tests"))
     } else {
         logger.quiet(project.name + " using jar dependencies.")
         compile "com.kryptnostic:rhizome:${rhizome_version}"
         compile "com.kryptnostic:conductor-client:${conductor_client_version}"
-        compile ("com.kryptnostic:loom-api:${loom_api_version}")
+        compile("com.kryptnostic:loom-api:${loom_api_version}")
         testCompile "com.kryptnostic:loom-api:${loom_api_version}:tests"
         testCompile "com.kryptnostic:rhizome:${rhizome_version}:tests"
         testCompile "com.kryptnostic:rhizome-client:${rhizome_client_version}:tests"
@@ -109,9 +117,9 @@ dependencies {
      */
     testCompile "junit:junit:${junit_version}"
     testCompile "org.cassandraunit:cassandra-unit:3.1.3.2"
-    testCompile( "org.mockito:mockito-all:${mockito_version}" ) {
-        exclude module : 'hamcrest'
-        exclude module : 'hamcrest-core'
+    testCompile("org.mockito:mockito-all:${mockito_version}") {
+        exclude module: 'hamcrest'
+        exclude module: 'hamcrest-core'
     }
 }
 
@@ -119,6 +127,6 @@ eclipse {
     ext.downloadSources = true
     ext.downloadJavadoc = true
 
-    ext.sourceCompatibility=JavaVersion.VERSION_1_8
-    ext.targetCompatibility=JavaVersion.VERSION_1_8
+    ext.sourceCompatibility = JavaVersion.VERSION_1_8
+    ext.targetCompatibility = JavaVersion.VERSION_1_8
 }

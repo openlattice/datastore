@@ -5,9 +5,12 @@ import com.dataloom.data.DataGraphManager;
 import com.dataloom.data.DatasourceManager;
 import com.dataloom.data.EntityDatastore;
 import com.dataloom.data.EntityKeyIdService;
+import com.dataloom.linking.aggregators.MergeEdgeAggregator;
 import com.dataloom.edm.type.PropertyType;
 import com.dataloom.graph.core.LoomGraphApi;
+import com.dataloom.graph.edge.EdgeKey;
 import com.dataloom.graph.edge.LoomEdge;
+import com.dataloom.graph.mapstores.PostgresEdgeMapstore;
 import com.dataloom.linking.CassandraLinkingGraphsQueryService;
 import com.dataloom.linking.HazelcastLinkingGraphs;
 import com.dataloom.linking.HazelcastListingService;
@@ -19,22 +22,31 @@ import com.dataloom.streams.StreamUtil;
 import com.datastax.driver.core.Session;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Stopwatch;
-import com.google.common.collect.*;
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Maps;
+import com.google.common.collect.SetMultimap;
+import com.google.common.collect.Sets;
 import com.google.common.eventbus.EventBus;
-import com.google.common.util.concurrent.ListenableFuture;
+import com.hazelcast.aggregation.Aggregator;
 import com.hazelcast.core.HazelcastInstance;
-import com.kryptnostic.datastore.cassandra.CommonColumns;
+import com.hazelcast.query.Predicates;
 import com.kryptnostic.datastore.services.EdmManager;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 import org.apache.olingo.commons.api.edm.EdmPrimitiveTypeKind;
 import org.apache.olingo.commons.api.edm.FullQualifiedName;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.*;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 public class LinkingService {
     private static final Logger logger = LoggerFactory.getLogger( LinkingService.class );
@@ -229,20 +241,12 @@ public class LinkingService {
     private void mergeEdges( UUID linkedEntitySetId, Set<UUID> linkingSets, UUID syncId ) {
         logger.debug( "Linking: Merging edges..." );
         logger.debug( "Linking Sets: {}", linkingSets );
-        Map<CommonColumns, Set<UUID>> edgeSelectionBySrcSet = ImmutableMap
-                .of( CommonColumns.SRC_ENTITY_SET_ID, linkingSets );
-        Map<CommonColumns, Set<UUID>> edgeSelectionByDstSet = ImmutableMap
-                .of( CommonColumns.DST_ENTITY_SET_ID, linkingSets );
-        Map<CommonColumns, Set<UUID>> edgeSelectionByEdgeSet = ImmutableMap
-                .of( CommonColumns.EDGE_ENTITY_SET_ID, linkingSets );
+        UUID[] ids = linkingSets.toArray( new UUID[ 0 ] );
 
-        Stream.of( lm.getEdges( edgeSelectionBySrcSet ),
-                lm.getEdges( edgeSelectionByDstSet ),
-                lm.getEdges( edgeSelectionByEdgeSet ) )
-                .reduce( Stream::concat )
-                .orElseGet( Stream::empty )
-                .map( edge -> mergeEdgeAsync( linkedEntitySetId, syncId, edge ) )
-                .forEach( StreamUtil::getUninterruptibly );
+        Aggregator<Entry<EdgeKey, LoomEdge>, Void> agg = new MergeEdgeAggregator( linkedEntitySetId, syncId );
+        lm.submitAggregator( agg, Predicates.or( Predicates.in( PostgresEdgeMapstore.SRC_SET_ID, ids ),
+                Predicates.in( PostgresEdgeMapstore.DST_SET_ID, ids ),
+                Predicates.in( PostgresEdgeMapstore.EDGE_SET_ID, ids ) ) );
     }
 
     private SetMultimap<UUID, Object> computeMergedEntity(
@@ -259,47 +263,6 @@ public class LinkingService {
                 propertyTypesToPopulate );
     }
 
-    private ListenableFuture mergeEdgeAsync( UUID linkedEntitySetId, UUID syncId, LoomEdge edge ) {
-        UUID srcEntitySetId = edge.getSrcSetId();
-        UUID srcSyncId = edge.getSrcSyncId();
-        UUID dstEntitySetId = edge.getDstSetId();
-        UUID dstSyncId = edge.getDstSyncId();
-        UUID edgeEntitySetId = edge.getEdgeSetId();
-
-        UUID srcId = edge.getKey().getSrcEntityKeyId();
-        UUID dstId = edge.getKey().getDstEntityKeyId();
-        UUID edgeId = edge.getKey().getEdgeEntityKeyId();
-
-        UUID newSrcId = vms.getMergedId( linkedEntitySetId, srcId );
-        if ( newSrcId != null ) {
-            srcEntitySetId = linkedEntitySetId;
-            srcSyncId = syncId;
-            srcId = newSrcId;
-        }
-        UUID newDstId = vms.getMergedId( linkedEntitySetId, dstId );
-        if ( newDstId != null ) {
-            dstEntitySetId = linkedEntitySetId;
-            dstSyncId = syncId;
-            dstId = newDstId;
-        }
-        UUID newEdgeId = vms.getMergedId( linkedEntitySetId, edgeId );
-        if ( newEdgeId != null ) {
-            edgeEntitySetId = linkedEntitySetId;
-            edgeId = newEdgeId;
-        }
-
-        return lm.addEdgeAsync( srcId,
-                dms.getEntitySet( srcEntitySetId ).getEntityTypeId(),
-                srcEntitySetId,
-                srcSyncId,
-                dstId,
-                dms.getEntitySet( dstEntitySetId ).getEntityTypeId(),
-                dstEntitySetId,
-                dstSyncId,
-                edgeId,
-                dms.getEntitySet( edgeEntitySetId ).getEntityTypeId(),
-                edgeEntitySetId );
-    }
 
     private void initializeComponents(
             Map<UUID, UUID> linkingEntitySetsWithSyncIds,

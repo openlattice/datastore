@@ -58,11 +58,14 @@ if (DS_ARGS == 'null' || DS_ARGS == null || DS_ARGS == "") {
     DS_ARGS = 'local cassandra'
 }
 
+
+if( PARALLEL == 'null' || PARALLEL == null || PARALLEL == "" ) {
+    DS_ARGS = "-Djava.util.concurrent.ForkJoinPool.common.parallelism=" + Runtime.runtime.availableProcessors()
+}
+
 if (GC == 'null' || GC == null || GC == "") {
     GC = "-XX:+UseG1GC"
 }
-
-
 
 println "Using java args for running ${projectName}: Xms=" + DS_XMS + ",Xmx=" + DS_XMX + " -server"
 

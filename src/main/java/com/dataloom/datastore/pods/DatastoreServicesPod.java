@@ -22,6 +22,7 @@ package com.dataloom.datastore.pods;
 import javax.annotation.PostConstruct;
 import javax.inject.Inject;
 
+import com.dataloom.merging.DistributedMerger;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
@@ -330,6 +331,11 @@ public class DatastoreServicesPod {
     }
 
     @Bean
+    public DistributedMerger merger() {
+        return new DistributedMerger( hazelcastInstance, hazelcastListingService(), dataModelService(), datasourceManager() );
+    }
+
+    @Bean
     public LinkingService linkingService() {
         return new LinkingService(
                 cassandraConfiguration.getKeyspace(),
@@ -338,6 +344,7 @@ public class DatastoreServicesPod {
                 simpleElasticSearchBlocker(),
                 matcher(),
                 clusterer(),
+                merger(),
                 hazelcastInstance,
                 eventBus,
                 hazelcastListingService(),

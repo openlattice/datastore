@@ -486,4 +486,37 @@ public class DatastoreConductorElasticsearchApi implements ConductorElasticsearc
         }
     }
 
+    @Override
+    public boolean triggerPropertyTypeIndex( List<PropertyType> propertyTypes ) {
+        try {
+            return executor.submit( ConductorElasticsearchCall.wrap(
+                    ElasticsearchLambdas.triggerPropertyTypeIndex( propertyTypes ) ) ).get();
+        } catch ( InterruptedException | ExecutionException e ) {
+            logger.debug( "Unable to trigger property type re-index" );
+            return false;
+        }
+    }
+
+    @Override
+    public boolean triggerEntityTypeIndex( List<EntityType> entityTypes ) {
+        try {
+            return executor.submit( ConductorElasticsearchCall.wrap(
+                    ElasticsearchLambdas.triggerEntityTypeIndex( entityTypes ) ) ).get();
+        } catch ( InterruptedException | ExecutionException e ) {
+            logger.debug( "Unable to trigger entity type re-index" );
+            return false;
+        }
+    }
+
+    @Override
+    public boolean triggerAssociationTypeIndex( List<AssociationType> associationTypes ) {
+        try {
+            return executor.submit( ConductorElasticsearchCall.wrap(
+                    ElasticsearchLambdas.triggerAssociationTypeIndex( associationTypes ) ) ).get();
+        } catch ( InterruptedException | ExecutionException e ) {
+            logger.debug( "Unable to trigger association type re-index" );
+            return false;
+        }
+    }
+
 }

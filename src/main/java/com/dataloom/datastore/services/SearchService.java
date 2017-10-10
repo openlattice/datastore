@@ -514,4 +514,16 @@ public class SearchService {
         elasticsearchApi.clearAllData();
     }
 
+    public void triggerPropertyTypeIndex( List<PropertyType> propertyTypes ) {
+        elasticsearchApi.triggerPropertyTypeIndex( propertyTypes );
+    }
+
+    public void triggerEntityTypeIndex( List<EntityType> entityTypes ) {
+        elasticsearchApi.triggerEntityTypeIndex( entityTypes );
+    }
+
+    public void triggerAssociationTypeIndex( List<AssociationType> associationTypes ) {
+        elasticsearchApi.triggerAssociationTypeIndex( associationTypes );
+    }
+
 }

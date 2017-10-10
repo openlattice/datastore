@@ -27,6 +27,7 @@ import com.dataloom.authorization.Principals;
 import com.dataloom.data.requests.NeighborEntityDetails;
 import com.dataloom.datastore.services.SearchService;
 import com.dataloom.edm.EntitySet;
+import com.dataloom.edm.type.PropertyType;
 import com.dataloom.search.SearchApi;
 import com.dataloom.search.requests.AdvancedSearch;
 import com.dataloom.search.requests.DataSearchResult;
@@ -52,6 +53,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
+import retrofit2.http.GET;
 
 @RestController
 @RequestMapping( SearchApi.CONTROLLER )
@@ -255,5 +257,17 @@ public class SearchController implements SearchApi, AuthorizingComponent {
             result = searchService.executeEntityNeighborSearch( entityIds );
         }
         return result;
+    }
+
+    @RequestMapping(
+            path = { EDM + INDEX },
+            method = RequestMethod.GET )
+    @Override
+    public Void triggerEdmIndex() {
+        ensureAdminAccess();
+        searchService.triggerPropertyTypeIndex( Lists.newArrayList( edm.getPropertyTypes() ) );
+        searchService.triggerEntityTypeIndex( Lists.newArrayList( edm.getEntityTypes() ) );
+        searchService.triggerAssociationTypeIndex( Lists.newArrayList( edm.getAssociationTypes() ) );
+        return null;
     }
 }

@@ -5,6 +5,7 @@ import com.dataloom.data.DataGraphManager;
 import com.dataloom.data.DatasourceManager;
 import com.dataloom.data.EntityDatastore;
 import com.dataloom.data.EntityKeyIdService;
+import com.dataloom.edm.type.EntityType;
 import com.dataloom.linking.aggregators.MergeEdgeAggregator;
 import com.dataloom.edm.type.PropertyType;
 import com.dataloom.graph.core.LoomGraphApi;
@@ -50,6 +51,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class LinkingService {
+    private static final FullQualifiedName BASE_PERSON_TYPE = new FullQualifiedName( "general.person" );
     private static final Logger logger = LoggerFactory.getLogger( LinkingService.class );
 
     private final ObjectMapper                       mapper;
@@ -114,8 +116,17 @@ public class LinkingService {
         this.clgqs = clgqs;
     }
 
-    public void link( Set<UUID> entitySetIds ) {
-
+    private void validateMatchingTypes( Set<UUID> entitySetIds ) {
+        entitySetIds.forEach( entitySetId -> {
+            EntityType et = dms.getEntityTypeByEntitySetId( entitySetId );
+            while ( !et.getType().equals( BASE_PERSON_TYPE ) ) {
+                if ( !et.getBaseType().isPresent() ) {
+                    throw new IllegalArgumentException(
+                            "Data matching can only be performed on datasets of type general.person" );
+                }
+                et = dms.getEntityType( et.getBaseType().get() );
+            }
+        } );
     }
 
     @Timed
@@ -127,12 +138,7 @@ public class LinkingService {
         SetMultimap<UUID, UUID> linkIndexedByPropertyTypes = getLinkIndexedByPropertyTypes( linkingProperties );
         SetMultimap<UUID, UUID> linkIndexedByEntitySets = getLinkIndexedByEntitySets( linkingProperties );
 
-        boolean isMatchingPerson = dms.getEntityTypeByEntitySetId( linkIndexedByEntitySets.keySet().iterator().next() )
-                .getType().toString().equals( "general.person" );
-        if ( !isMatchingPerson ) {
-            throw new IllegalArgumentException(
-                    "Data matching can only be performed on datasets of type general.person" );
-        }
+        validateMatchingTypes( linkIndexedByEntitySets.keySet() );
 
         // Warning: We assume that the restrictions on links are enforced/validated as specified in LinkingApi. In
         // particular, from now on we work on the assumption that only identical property types are linked on.

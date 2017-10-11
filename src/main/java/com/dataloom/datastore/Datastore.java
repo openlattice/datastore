@@ -38,6 +38,7 @@ import com.kryptnostic.rhizome.pods.CassandraPod;
 import com.kryptnostic.rhizome.pods.hazelcast.RegistryBasedHazelcastInstanceConfigurationPod;
 
 import com.openlattice.jdbc.JdbcPod;
+import com.openlattice.postgres.PostgresPod;
 import digital.loom.rhizome.authentication.Auth0Pod;
 
 public class Datastore extends BaseRhizomeServer {
@@ -57,7 +58,8 @@ public class Datastore extends BaseRhizomeServer {
             MapstoresPod.class,
             CassandraTablesPod.class,
             SparkDependencyPod.class,
-            JdbcPod.class
+            JdbcPod.class,
+            PostgresPod.class
     };
 
     static {

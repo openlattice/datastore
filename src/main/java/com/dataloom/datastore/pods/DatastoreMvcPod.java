@@ -19,21 +19,6 @@
 
 package com.dataloom.datastore.pods;
 
-import java.util.List;
-
-import javax.inject.Inject;
-
-import org.springframework.context.annotation.ComponentScan;
-import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.FilterType;
-import org.springframework.http.MediaType;
-import org.springframework.http.converter.HttpMessageConverter;
-import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
-import org.springframework.scheduling.annotation.EnableAsync;
-import org.springframework.web.servlet.config.annotation.ContentNegotiationConfigurer;
-import org.springframework.web.servlet.config.annotation.CorsRegistry;
-import org.springframework.web.servlet.config.annotation.WebMvcConfigurationSupport;
-
 import com.dataloom.data.DataApi;
 import com.dataloom.datastore.analysis.controllers.AnalysisController;
 import com.dataloom.datastore.authorization.controllers.AuthorizationsController;
@@ -45,28 +30,40 @@ import com.dataloom.datastore.directory.controllers.PrincipalDirectoryController
 import com.dataloom.datastore.edm.controllers.EdmController;
 import com.dataloom.datastore.linking.controllers.LinkingController;
 import com.dataloom.datastore.permissions.controllers.PermissionsController;
-import com.dataloom.datastore.requests.controllers.PermissionsRequestsController;
 import com.dataloom.datastore.search.controllers.SearchController;
 import com.dataloom.datastore.util.DataStoreExceptionHandler;
 import com.dataloom.organizations.controllers.OrganizationsController;
 import com.dataloom.sync.SyncController;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ryantenney.metrics.spring.config.annotation.EnableMetrics;
+import java.util.List;
+import javax.inject.Inject;
+import org.springframework.context.annotation.ComponentScan;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.FilterType;
+import org.springframework.http.MediaType;
+import org.springframework.http.converter.HttpMessageConverter;
+import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
+import org.springframework.scheduling.annotation.EnableAsync;
+import org.springframework.web.servlet.config.annotation.ContentNegotiationConfigurer;
+import org.springframework.web.servlet.config.annotation.CorsRegistry;
+import org.springframework.web.servlet.config.annotation.WebMvcConfigurationSupport;
 
 @Configuration
 @ComponentScan(
-    basePackageClasses = { DataController.class, SearchController.class,
-            PermissionsController.class, PermissionsRequestsController.class, AuthorizationsController.class,
-            PrincipalDirectoryController.class,
-            EdmController.class, OrganizationsController.class,
-            DataStoreExceptionHandler.class, LinkingController.class, AnalysisController.class, SyncController.class },
-    includeFilters = @ComponentScan.Filter(
-        value = { org.springframework.stereotype.Controller.class,
-                org.springframework.web.bind.annotation.RestControllerAdvice.class },
-        type = FilterType.ANNOTATION ) )
+        basePackageClasses = { DataController.class, SearchController.class,
+                PermissionsController.class, AuthorizationsController.class,
+                PrincipalDirectoryController.class,
+                EdmController.class, OrganizationsController.class,
+                DataStoreExceptionHandler.class, LinkingController.class, AnalysisController.class,
+                SyncController.class },
+        includeFilters = @ComponentScan.Filter(
+                value = { org.springframework.stereotype.Controller.class,
+                        org.springframework.web.bind.annotation.RestControllerAdvice.class },
+                type = FilterType.ANNOTATION ) )
 @EnableAsync
 @EnableMetrics(
-    proxyTargetClass = true )
+        proxyTargetClass = true )
 public class DatastoreMvcPod extends WebMvcConfigurationSupport {
 
     @Inject

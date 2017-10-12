@@ -19,14 +19,6 @@
 
 package com.dataloom.datastore.pods;
 
-import javax.annotation.PostConstruct;
-import javax.inject.Inject;
-
-import com.dataloom.merging.DistributedMerger;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Import;
-
 import com.dataloom.authorization.AbstractSecurableObjectResolveTypeService;
 import com.dataloom.authorization.AuthorizationManager;
 import com.dataloom.authorization.AuthorizationQueryService;
@@ -66,6 +58,7 @@ import com.dataloom.linking.components.Clusterer;
 import com.dataloom.linking.components.Matcher;
 import com.dataloom.mappers.ObjectMappers;
 import com.dataloom.matching.DistributedMatcher;
+import com.dataloom.merging.DistributedMerger;
 import com.dataloom.neuron.Neuron;
 import com.dataloom.neuron.pods.NeuronPod;
 import com.dataloom.organizations.HazelcastOrganizationService;
@@ -74,8 +67,6 @@ import com.dataloom.organizations.roles.RolesManager;
 import com.dataloom.organizations.roles.RolesQueryService;
 import com.dataloom.organizations.roles.TokenExpirationTracker;
 import com.dataloom.requests.HazelcastRequestsManager;
-import com.dataloom.requests.PermissionsRequestsManager;
-import com.dataloom.requests.PermissionsRequestsQueryService;
 import com.dataloom.requests.RequestQueryService;
 import com.datastax.driver.core.Session;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -88,9 +79,13 @@ import com.kryptnostic.datastore.services.EdmService;
 import com.kryptnostic.datastore.services.ODataStorageService;
 import com.kryptnostic.rhizome.configuration.cassandra.CassandraConfiguration;
 import com.kryptnostic.rhizome.pods.CassandraPod;
-
 import digital.loom.rhizome.authentication.Auth0Pod;
 import digital.loom.rhizome.configuration.auth0.Auth0Configuration;
+import javax.annotation.PostConstruct;
+import javax.inject.Inject;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Import;
 
 @Configuration
 @Import( {
@@ -274,11 +269,6 @@ public class DatastoreServicesPod {
     @Bean
     public EdmAuthorizationHelper edmAuthorizationHelper() {
         return new EdmAuthorizationHelper( dataModelService(), authorizationManager() );
-    }
-
-    @Bean
-    public PermissionsRequestsQueryService permissionsRequestsQueryService() {
-        return new PermissionsRequestsQueryService( session );
     }
 
     @Bean

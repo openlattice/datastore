@@ -73,7 +73,6 @@ import com.dataloom.organizations.roles.HazelcastRolesService;
 import com.dataloom.organizations.roles.RolesManager;
 import com.dataloom.organizations.roles.RolesQueryService;
 import com.dataloom.organizations.roles.TokenExpirationTracker;
-import com.dataloom.requests.HazelcastPermissionsRequestsService;
 import com.dataloom.requests.HazelcastRequestsManager;
 import com.dataloom.requests.PermissionsRequestsManager;
 import com.dataloom.requests.PermissionsRequestsQueryService;
@@ -280,14 +279,6 @@ public class DatastoreServicesPod {
     @Bean
     public PermissionsRequestsQueryService permissionsRequestsQueryService() {
         return new PermissionsRequestsQueryService( session );
-    }
-
-    @Bean
-    public PermissionsRequestsManager permissionsRequestsManager() {
-        return new HazelcastPermissionsRequestsService(
-                hazelcastInstance,
-                permissionsRequestsQueryService(),
-                authorizationManager() );
     }
 
     @Bean

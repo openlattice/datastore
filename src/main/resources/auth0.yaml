@@ -5,5 +5,5 @@ clientSecret: "tjAwhBit0deVUor3lcd7YRlHRc_4FJwv_fcLp_ozO2-D2Lh38066IUoGPL4zx1vP"
 securedRoute: "NOT_USED"
 authorityStrategy: "ROLES"
 signingAlgorithm: "HS256"
-base64EncodedSecret: true
+base64EncodedSecret: false
 token: "lol"

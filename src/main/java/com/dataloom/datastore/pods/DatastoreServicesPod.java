@@ -19,14 +19,7 @@
 
 package com.dataloom.datastore.pods;
 
-import com.dataloom.authorization.AbstractSecurableObjectResolveTypeService;
-import com.dataloom.authorization.AuthorizationManager;
-import com.dataloom.authorization.AuthorizationQueryService;
-import com.dataloom.authorization.EdmAuthorizationHelper;
-import com.dataloom.authorization.HazelcastAbstractSecurableObjectResolveTypeService;
-import com.dataloom.authorization.HazelcastAclKeyReservationService;
-import com.dataloom.authorization.HazelcastAuthorizationService;
-import com.dataloom.authorization.Principals;
+import com.dataloom.authorization.*;
 import com.dataloom.clustering.DistributedClusterer;
 import com.dataloom.data.DataGraphManager;
 import com.dataloom.data.DataGraphService;
@@ -43,7 +36,7 @@ import com.dataloom.datastore.services.LinkingService;
 import com.dataloom.datastore.services.SearchService;
 import com.dataloom.datastore.services.SyncTicketService;
 import com.dataloom.directory.UserDirectoryService;
-import com.dataloom.edm.properties.CassandraTypeManager;
+import com.dataloom.edm.properties.PostgresTypeManager;
 import com.dataloom.edm.schemas.SchemaQueryService;
 import com.dataloom.edm.schemas.cassandra.CassandraSchemaQueryService;
 import com.dataloom.edm.schemas.manager.HazelcastSchemaManager;
@@ -73,19 +66,21 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.eventbus.EventBus;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.hazelcast.core.HazelcastInstance;
-import com.kryptnostic.datastore.services.CassandraEntitySetManager;
 import com.kryptnostic.datastore.services.EdmManager;
 import com.kryptnostic.datastore.services.EdmService;
 import com.kryptnostic.datastore.services.ODataStorageService;
+import com.kryptnostic.datastore.services.PostgresEntitySetManager;
 import com.kryptnostic.rhizome.configuration.cassandra.CassandraConfiguration;
 import com.kryptnostic.rhizome.pods.CassandraPod;
+import com.zaxxer.hikari.HikariDataSource;
 import digital.loom.rhizome.authentication.Auth0Pod;
 import digital.loom.rhizome.configuration.auth0.Auth0Configuration;
-import javax.annotation.PostConstruct;
-import javax.inject.Inject;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
+
+import javax.annotation.PostConstruct;
+import javax.inject.Inject;
 
 @Configuration
 @Import( {
@@ -96,25 +91,28 @@ import org.springframework.context.annotation.Import;
 public class DatastoreServicesPod {
 
     @Inject
-    private CassandraConfiguration   cassandraConfiguration;
+    private CassandraConfiguration cassandraConfiguration;
 
     @Inject
-    private HazelcastInstance        hazelcastInstance;
+    private HazelcastInstance hazelcastInstance;
 
     @Inject
-    private Session                  session;
+    private Session session;
 
     @Inject
-    private Auth0Configuration       auth0Configuration;
+    private Auth0Configuration auth0Configuration;
 
     @Inject
     private ListeningExecutorService executor;
 
     @Inject
-    private EventBus                 eventBus;
+    private EventBus eventBus;
 
     @Inject
-    private Neuron                   neuron;
+    private Neuron neuron;
+
+    @Inject
+    private HikariDataSource hikariDataSource;
 
     @Bean
     public ObjectMapper defaultObjectMapper() {
@@ -145,8 +143,8 @@ public class DatastoreServicesPod {
     }
 
     @Bean
-    public CassandraEntitySetManager entitySetManager() {
-        return new CassandraEntitySetManager( cassandraConfiguration.getKeyspace(), session, authorizationManager() );
+    public PostgresEntitySetManager entitySetManager() {
+        return new PostgresEntitySetManager( hikariDataSource );
     }
 
     @Bean
@@ -158,8 +156,8 @@ public class DatastoreServicesPod {
     }
 
     @Bean
-    public CassandraTypeManager entityTypeManager() {
-        return new CassandraTypeManager( cassandraConfiguration.getKeyspace(), session );
+    public PostgresTypeManager entityTypeManager() {
+        return new PostgresTypeManager( hikariDataSource );
     }
 
     @Bean
@@ -313,7 +311,10 @@ public class DatastoreServicesPod {
 
     @Bean
     public DistributedMerger merger() {
-        return new DistributedMerger( hazelcastInstance, hazelcastListingService(), dataModelService(), datasourceManager() );
+        return new DistributedMerger( hazelcastInstance,
+                hazelcastListingService(),
+                dataModelService(),
+                datasourceManager() );
     }
 
     @Bean

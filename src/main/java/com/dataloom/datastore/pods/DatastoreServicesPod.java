@@ -97,6 +97,9 @@ public class DatastoreServicesPod {
     private HazelcastInstance hazelcastInstance;
 
     @Inject
+    private HikariDataSource hikariDataSource;
+
+    @Inject
     private Session session;
 
     @Inject
@@ -110,9 +113,6 @@ public class DatastoreServicesPod {
 
     @Inject
     private Neuron neuron;
-
-    @Inject
-    private HikariDataSource hikariDataSource;
 
     @Bean
     public ObjectMapper defaultObjectMapper() {
@@ -251,7 +251,7 @@ public class DatastoreServicesPod {
 
     @Bean
     public DatasourceManager datasourceManager() {
-        return new DatasourceManager( session, hazelcastInstance );
+        return new DatasourceManager( hikariDataSource, hazelcastInstance );
     }
 
     @Bean

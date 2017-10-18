@@ -276,7 +276,7 @@ public class DatastoreServicesPod {
 
     @Bean
     public RequestQueryService rqs() {
-        return new RequestQueryService( cassandraConfiguration.getKeyspace(), session );
+        return new RequestQueryService( hikariDataSource );
     }
 
     @Bean

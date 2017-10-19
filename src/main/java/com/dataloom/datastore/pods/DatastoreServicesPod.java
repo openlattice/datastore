@@ -189,10 +189,8 @@ public class DatastoreServicesPod {
     @Bean
     public ODataStorageService odataStorageService() {
         return new ODataStorageService(
-                cassandraConfiguration.getKeyspace(),
                 hazelcastInstance,
-                dataModelService(),
-                session );
+                dataModelService() );
     }
 
     @Bean

@@ -41,7 +41,6 @@ import com.dataloom.edm.schemas.SchemaQueryService;
 import com.dataloom.edm.schemas.manager.HazelcastSchemaManager;
 import com.dataloom.edm.schemas.postgres.PostgresSchemaQueryService;
 import com.dataloom.graph.core.LoomGraph;
-import com.dataloom.linking.CassandraLinkingGraphsQueryService;
 import com.dataloom.linking.HazelcastLinkingGraphs;
 import com.dataloom.linking.HazelcastListingService;
 import com.dataloom.linking.HazelcastVertexMergingService;
@@ -286,11 +285,6 @@ public class DatastoreServicesPod {
     @Bean
     public Matcher simpleMatcher() {
         return new SimpleMatcher( dataModelService() );
-    }
-
-    @Bean
-    public CassandraLinkingGraphsQueryService cgqs() {
-        return new CassandraLinkingGraphsQueryService( cassandraConfiguration.getKeyspace(), session );
     }
 
     @Bean

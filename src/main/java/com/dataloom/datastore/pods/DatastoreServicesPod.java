@@ -318,25 +318,13 @@ public class DatastoreServicesPod {
     @Bean
     public LinkingService linkingService() {
         return new LinkingService(
-                cassandraConfiguration.getKeyspace(),
-                session,
                 linkingGraph(),
-                simpleElasticSearchBlocker(),
                 matcher(),
                 clusterer(),
                 merger(),
-                hazelcastInstance,
                 eventBus,
-                hazelcastListingService(),
                 dataModelService(),
-                dataGraphService(),
-                datasourceManager(),
-                cassandraDataManager(),
-                loomGraph(),
-                idService(),
-                vms(),
-                cgqs(),
-                defaultObjectMapper() );
+                datasourceManager() );
     }
 
     @Bean

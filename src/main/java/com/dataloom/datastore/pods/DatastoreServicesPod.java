@@ -55,7 +55,6 @@ import com.dataloom.organizations.roles.RolesQueryService;
 import com.dataloom.organizations.roles.TokenExpirationTracker;
 import com.dataloom.requests.HazelcastRequestsManager;
 import com.dataloom.requests.RequestQueryService;
-import com.datastax.driver.core.Session;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.eventbus.EventBus;
 import com.google.common.util.concurrent.ListeningExecutorService;
@@ -64,7 +63,6 @@ import com.kryptnostic.datastore.services.EdmManager;
 import com.kryptnostic.datastore.services.EdmService;
 import com.kryptnostic.datastore.services.ODataStorageService;
 import com.kryptnostic.datastore.services.PostgresEntitySetManager;
-import com.kryptnostic.rhizome.configuration.cassandra.CassandraConfiguration;
 import com.kryptnostic.rhizome.pods.CassandraPod;
 import com.zaxxer.hikari.HikariDataSource;
 import digital.loom.rhizome.authentication.Auth0Pod;
@@ -85,16 +83,10 @@ import javax.inject.Inject;
 public class DatastoreServicesPod {
 
     @Inject
-    private CassandraConfiguration cassandraConfiguration;
-
-    @Inject
     private HazelcastInstance hazelcastInstance;
 
     @Inject
     private HikariDataSource hikariDataSource;
-
-    @Inject
-    private Session session;
 
     @Inject
     private Auth0Configuration auth0Configuration;
@@ -190,13 +182,10 @@ public class DatastoreServicesPod {
     @Bean
     public CassandraEntityDatastore cassandraDataManager() {
         return new CassandraEntityDatastore(
-                session,
                 hazelcastInstance,
                 executor,
                 defaultObjectMapper(),
                 idService(),
-                linkingGraph(),
-                loomGraph(),
                 datasourceManager() );
     }
 

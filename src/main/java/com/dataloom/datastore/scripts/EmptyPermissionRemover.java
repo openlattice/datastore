@@ -21,7 +21,7 @@ public class EmptyPermissionRemover {
 
     public EmptyPermissionRemover( HikariDataSource hds ) {
         this.hds = hds;
-        
+
         // Tables
         String PERMISSIONS = PostgresTable.PERMISSIONS.getName();
 
@@ -53,6 +53,7 @@ public class EmptyPermissionRemover {
                     ps.execute();
                 }
             }
+            connection.close();
         } catch ( SQLException e ) {}
     }
 }

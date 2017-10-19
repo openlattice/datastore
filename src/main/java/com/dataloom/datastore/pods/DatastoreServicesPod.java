@@ -156,8 +156,7 @@ public class DatastoreServicesPod {
     @Bean
     public EdmManager dataModelService() {
         return new EdmService(
-                cassandraConfiguration.getKeyspace(),
-                session,
+                hikariDataSource,
                 hazelcastInstance,
                 aclKeyReservationService(),
                 authorizationManager(),

@@ -212,7 +212,7 @@ public class DatastoreServicesPod {
 
     @Bean
     public RolesQueryService rolesQueryService() {
-        return new RolesQueryService( session );
+        return new RolesQueryService( hikariDataSource );
     }
 
     @Bean

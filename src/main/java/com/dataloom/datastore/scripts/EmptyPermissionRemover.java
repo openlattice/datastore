@@ -1,56 +1,58 @@
 package com.dataloom.datastore.scripts;
 
+import com.dataloom.authorization.Permission;
+import com.dataloom.authorization.Principal;
+import com.google.common.collect.ImmutableList;
+import com.openlattice.postgres.*;
+import com.zaxxer.hikari.HikariDataSource;
+
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.UUID;
 
-import com.dataloom.authorization.Permission;
-import com.dataloom.authorization.Principal;
-import com.dataloom.authorization.PrincipalType;
-import com.dataloom.authorization.util.AuthorizationUtils;
-import com.datastax.driver.core.PreparedStatement;
-import com.datastax.driver.core.ResultSet;
-import com.datastax.driver.core.Row;
-import com.datastax.driver.core.Session;
-import com.datastax.driver.core.querybuilder.QueryBuilder;
-import com.kryptnostic.conductor.rpc.odata.Table;
-import com.kryptnostic.datastore.cassandra.CommonColumns;
-
 public class EmptyPermissionRemover {
-    private String                  keyspace;
-    private Session                 session;
-    private final PreparedStatement deleteRowQuery;
+    private       HikariDataSource hds;
+    private final String           allPermissionsSql;
+    private final String           deleteRowSql;
 
-    public EmptyPermissionRemover(
-            String keyspace,
-            Session session ) {
-        this.keyspace = keyspace;
-        this.session = session;
-        this.deleteRowQuery = session
-                .prepare( QueryBuilder.delete().from( keyspace, Table.PERMISSIONS.getName() ).where(
-                        QueryBuilder.eq( CommonColumns.ACL_KEYS.cql(), CommonColumns.ACL_KEYS.bindMarker() ) )
-                        .and( QueryBuilder.eq( CommonColumns.PRINCIPAL_TYPE.cql(),
-                                CommonColumns.PRINCIPAL_TYPE.bindMarker() ) )
-                        .and( QueryBuilder.eq( CommonColumns.PRINCIPAL_ID.cql(),
-                                CommonColumns.PRINCIPAL_ID.bindMarker() ) ) );
+    public EmptyPermissionRemover( HikariDataSource hds ) {
+        this.hds = hds;
+        
+        // Tables
+        String PERMISSIONS = PostgresTable.PERMISSIONS.getName();
+
+        // Columns
+        String ACL_KEY = PostgresColumn.ACL_KEY.getName();
+        String PRINCIPAL_TYPE = PostgresColumn.PRINCIPAL_TYPE.getName();
+        String PRINCIPAL_ID = PostgresColumn.PRINCIPAL_ID.getName();
+
+        this.allPermissionsSql = PostgresQuery.selectFrom( PERMISSIONS ).concat( PostgresQuery.END );
+
+        this.deleteRowSql = PostgresQuery.deleteFrom( PERMISSIONS )
+                .concat( PostgresQuery.whereEq( ImmutableList.of( ACL_KEY, PRINCIPAL_TYPE, PRINCIPAL_ID ), true ) );
 
     }
 
     public void run() {
-        ResultSet rs = session.execute( QueryBuilder.select().all().from( keyspace, Table.PERMISSIONS.getName() ) );
-
-        for ( Row row : rs ) {
-            EnumSet<Permission> permissions = AuthorizationUtils.permissions( row );
-            if ( permissions.isEmpty() ) {
-                List<UUID> aclKeys = AuthorizationUtils.aclKey( row );
-                Principal principal = AuthorizationUtils.getPrincipalFromRow( row );
-                session.execute( deleteRowQuery.bind()
-                        .setList( CommonColumns.ACL_KEYS.cql(),
-                                aclKeys,
-                                UUID.class )
-                        .set( CommonColumns.PRINCIPAL_TYPE.cql(), principal.getType(), PrincipalType.class )
-                        .setString( CommonColumns.PRINCIPAL_ID.cql(), principal.getId() ) );
+        try {
+            Connection connection = hds.getConnection();
+            ResultSet rs = connection.prepareStatement( allPermissionsSql ).executeQuery();
+            while ( rs.next() ) {
+                EnumSet<Permission> permissions = ResultSetAdapters.permissions( rs );
+                if ( permissions == null || permissions.isEmpty() ) {
+                    List<UUID> aclKey = ResultSetAdapters.aclKey( rs );
+                    Principal principal = ResultSetAdapters.principal( rs );
+                    PreparedStatement ps = connection.prepareStatement( deleteRowSql );
+                    ps.setArray( 1, PostgresArrays.createUuidArray( connection, aclKey.stream() ) );
+                    ps.setString( 2, principal.getType().name() );
+                    ps.setString( 3, principal.getId() );
+                    ps.execute();
+                }
             }
-        }
+        } catch ( SQLException e ) {}
     }
 }

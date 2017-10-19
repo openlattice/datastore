@@ -389,7 +389,7 @@ public class DatastoreServicesPod {
         // hazelcastInstance ).run();
 
         // Remove empty permissions
-        new EmptyPermissionRemover( cassandraConfiguration.getKeyspace(), session ).run();
+        new EmptyPermissionRemover( hikariDataSource ).run();
 
         // Create default organization and roles
         // new DefaultOrganizationCreator( organizationsManager(), rolesService() ).run();

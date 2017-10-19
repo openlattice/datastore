@@ -28,7 +28,6 @@ import com.dataloom.data.ids.HazelcastEntityKeyIdService;
 import com.dataloom.data.serializers.FullQualifedNameJacksonDeserializer;
 import com.dataloom.data.serializers.FullQualifedNameJacksonSerializer;
 import com.dataloom.data.storage.CassandraEntityDatastore;
-import com.dataloom.datastore.linking.services.SimpleElasticSearchBlocker;
 import com.dataloom.datastore.linking.services.SimpleMatcher;
 import com.dataloom.datastore.scripts.EmptyPermissionRemover;
 import com.dataloom.datastore.services.AnalysisService;
@@ -44,7 +43,6 @@ import com.dataloom.graph.core.LoomGraph;
 import com.dataloom.linking.HazelcastLinkingGraphs;
 import com.dataloom.linking.HazelcastListingService;
 import com.dataloom.linking.HazelcastVertexMergingService;
-import com.dataloom.linking.components.Blocker;
 import com.dataloom.linking.components.Clusterer;
 import com.dataloom.linking.components.Matcher;
 import com.dataloom.mappers.ObjectMappers;
@@ -275,11 +273,6 @@ public class DatastoreServicesPod {
     @Bean
     public HazelcastRequestsManager hazelcastRequestsManager() {
         return new HazelcastRequestsManager( hazelcastInstance, rqs(), neuron );
-    }
-
-    @Bean
-    public Blocker simpleElasticSearchBlocker() {
-        return new SimpleElasticSearchBlocker( dataModelService(), cassandraDataManager(), searchService() );
     }
 
     @Bean

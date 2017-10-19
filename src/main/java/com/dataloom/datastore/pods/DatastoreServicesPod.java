@@ -124,7 +124,7 @@ public class DatastoreServicesPod {
 
     @Bean
     public AuthorizationQueryService authorizationQueryService() {
-        return new AuthorizationQueryService( cassandraConfiguration.getKeyspace(), session, hazelcastInstance );
+        return new AuthorizationQueryService( hikariDataSource, hazelcastInstance );
     }
 
     @Bean

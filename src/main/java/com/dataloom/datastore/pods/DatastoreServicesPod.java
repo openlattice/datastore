@@ -240,8 +240,6 @@ public class DatastoreServicesPod {
     @Bean
     public HazelcastOrganizationService organizationsManager() {
         return new HazelcastOrganizationService(
-                cassandraConfiguration.getKeyspace(),
-                session,
                 hazelcastInstance,
                 aclKeyReservationService(),
                 authorizationManager(),

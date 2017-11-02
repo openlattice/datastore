@@ -193,7 +193,6 @@ public class EdmController implements EdmApi, AuthorizingComponent {
         consumes = { MediaType.APPLICATION_JSON_VALUE, CustomMediaType.TEXT_YAML_VALUE } )
     @ResponseStatus( HttpStatus.OK )
     public UUID getEntityDataModelVersion() {
-        ensureAdminAccess();
         return modelService.getCurrentEntityDataModelVersion();
     }
 

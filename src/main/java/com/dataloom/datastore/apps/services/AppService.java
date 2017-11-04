@@ -103,8 +103,8 @@ public class AppService {
                     organizationId,
                     title,
                     Optional.of( description ) );
-            UUID roleId = rolesService.createRoleIfNotExists( user, role );
-            result.put( permission, roleId );
+            rolesService.createRoleIfNotExists( user, role );
+            result.put( permission, role.getId() );
         } );
         return result;
     }

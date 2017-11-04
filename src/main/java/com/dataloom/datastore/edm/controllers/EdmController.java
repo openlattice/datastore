@@ -19,68 +19,41 @@
 
 package com.dataloom.datastore.edm.controllers;
 
-import java.util.*;
-import java.util.concurrent.ConcurrentSkipListSet;
-
-import javax.inject.Inject;
-import javax.servlet.http.HttpServletResponse;
-
-import com.google.common.collect.*;
-import org.apache.olingo.commons.api.edm.FullQualifiedName;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.ResponseStatus;
-import org.springframework.web.bind.annotation.RestController;
-
 import com.auth0.jwt.internal.org.apache.commons.lang3.StringUtils;
 import com.auth0.spring.security.api.Auth0JWTToken;
 import com.dataloom.authentication.LoomAuth0AuthenticationProvider;
-import com.dataloom.authorization.AbstractSecurableObjectResolveTypeService;
-import com.dataloom.authorization.AuthorizationManager;
-import com.dataloom.authorization.AuthorizingComponent;
-import com.dataloom.authorization.ForbiddenException;
-import com.dataloom.authorization.Permission;
-import com.dataloom.authorization.Principals;
+import com.dataloom.authorization.*;
 import com.dataloom.authorization.securable.SecurableObjectType;
 import com.dataloom.authorization.util.AuthorizationUtils;
-import com.dataloom.data.DatasourceManager;
 import com.dataloom.data.requests.FileType;
 import com.dataloom.data.storage.CassandraEntityDatastore;
 import com.dataloom.datastore.constants.CustomMediaType;
-import com.dataloom.edm.EdmApi;
-import com.dataloom.edm.EdmDetails;
-import com.dataloom.edm.EntityDataModel;
-import com.dataloom.edm.EntityDataModelDiff;
-import com.dataloom.edm.EntitySet;
-import com.dataloom.edm.Schema;
+import com.dataloom.edm.*;
 import com.dataloom.edm.requests.EdmDetailsSelector;
 import com.dataloom.edm.requests.EdmRequest;
 import com.dataloom.edm.requests.MetadataUpdate;
 import com.dataloom.edm.schemas.manager.HazelcastSchemaManager;
 import com.dataloom.edm.set.EntitySetPropertyMetadata;
-import com.dataloom.edm.type.AssociationDetails;
-import com.dataloom.edm.type.AssociationType;
-import com.dataloom.edm.type.ComplexType;
-import com.dataloom.edm.type.EntityType;
-import com.dataloom.edm.type.EnumType;
-import com.dataloom.edm.type.PropertyType;
+import com.dataloom.edm.type.*;
 import com.dataloom.exceptions.ErrorsDTO;
 import com.dataloom.exceptions.LoomExceptions;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.*;
 import com.kryptnostic.datastore.exceptions.BadRequestException;
 import com.kryptnostic.datastore.exceptions.BatchException;
 import com.kryptnostic.datastore.services.CassandraEntitySetManager;
 import com.kryptnostic.datastore.services.EdmManager;
+import org.apache.olingo.commons.api.edm.FullQualifiedName;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.web.bind.annotation.*;
+
+import javax.inject.Inject;
+import javax.servlet.http.HttpServletResponse;
+import java.util.*;
+import java.util.concurrent.ConcurrentSkipListSet;
 
 @RestController
 @RequestMapping( EdmApi.CONTROLLER )
@@ -106,9 +79,6 @@ public class EdmController implements EdmApi, AuthorizingComponent {
 
     @Inject
     private CassandraEntityDatastore                  dataManager;
-
-    @Inject
-    private DatasourceManager                         datasourceManager;
 
     @RequestMapping(
         path = CLEAR_PATH,
@@ -415,8 +385,6 @@ public class EdmController implements EdmApi, AuthorizingComponent {
                 createdEntitySets.put( entitySet.getName(), entitySet.getId() );
                 securableObjectTypes.createSecurableObjectType( ImmutableList.of( entitySet.getId() ),
                         SecurableObjectType.EntitySet );
-                datasourceManager.setCurrentSyncId( entitySet.getId(),
-                        datasourceManager.createNewSyncIdForEntitySet( entitySet.getId() ) );
             } catch ( Exception e ) {
                 dto.addError( LoomExceptions.OTHER_EXCEPTION, entitySet.getName() + ": " + e.getMessage() );
             }

@@ -19,14 +19,7 @@
 
 package com.dataloom.datastore.pods;
 
-import com.dataloom.authorization.AbstractSecurableObjectResolveTypeService;
-import com.dataloom.authorization.AuthorizationManager;
-import com.dataloom.authorization.AuthorizationQueryService;
-import com.dataloom.authorization.EdmAuthorizationHelper;
-import com.dataloom.authorization.HazelcastAbstractSecurableObjectResolveTypeService;
-import com.dataloom.authorization.HazelcastAclKeyReservationService;
-import com.dataloom.authorization.HazelcastAuthorizationService;
-import com.dataloom.authorization.Principals;
+import com.dataloom.authorization.*;
 import com.dataloom.clustering.DistributedClusterer;
 import com.dataloom.data.DataGraphManager;
 import com.dataloom.data.DataGraphService;
@@ -35,6 +28,7 @@ import com.dataloom.data.ids.HazelcastEntityKeyIdService;
 import com.dataloom.data.serializers.FullQualifedNameJacksonDeserializer;
 import com.dataloom.data.serializers.FullQualifedNameJacksonSerializer;
 import com.dataloom.data.storage.CassandraEntityDatastore;
+import com.dataloom.datastore.apps.services.AppService;
 import com.dataloom.datastore.linking.services.SimpleElasticSearchBlocker;
 import com.dataloom.datastore.linking.services.SimpleMatcher;
 import com.dataloom.datastore.scripts.EmptyPermissionRemover;
@@ -81,11 +75,12 @@ import com.kryptnostic.rhizome.configuration.cassandra.CassandraConfiguration;
 import com.kryptnostic.rhizome.pods.CassandraPod;
 import digital.loom.rhizome.authentication.Auth0Pod;
 import digital.loom.rhizome.configuration.auth0.Auth0Configuration;
-import javax.annotation.PostConstruct;
-import javax.inject.Inject;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
+
+import javax.annotation.PostConstruct;
+import javax.inject.Inject;
 
 @Configuration
 @Import( {
@@ -96,25 +91,25 @@ import org.springframework.context.annotation.Import;
 public class DatastoreServicesPod {
 
     @Inject
-    private CassandraConfiguration   cassandraConfiguration;
+    private CassandraConfiguration cassandraConfiguration;
 
     @Inject
-    private HazelcastInstance        hazelcastInstance;
+    private HazelcastInstance hazelcastInstance;
 
     @Inject
-    private Session                  session;
+    private Session session;
 
     @Inject
-    private Auth0Configuration       auth0Configuration;
+    private Auth0Configuration auth0Configuration;
 
     @Inject
     private ListeningExecutorService executor;
 
     @Inject
-    private EventBus                 eventBus;
+    private EventBus eventBus;
 
     @Inject
-    private Neuron                   neuron;
+    private Neuron neuron;
 
     @Bean
     public ObjectMapper defaultObjectMapper() {
@@ -172,7 +167,8 @@ public class DatastoreServicesPod {
                 authorizationManager(),
                 entitySetManager(),
                 entityTypeManager(),
-                schemaManager() );
+                schemaManager(),
+                datasourceManager() );
     }
 
     @Bean
@@ -313,7 +309,10 @@ public class DatastoreServicesPod {
 
     @Bean
     public DistributedMerger merger() {
-        return new DistributedMerger( hazelcastInstance, hazelcastListingService(), dataModelService(), datasourceManager() );
+        return new DistributedMerger( hazelcastInstance,
+                hazelcastListingService(),
+                dataModelService(),
+                datasourceManager() );
     }
 
     @Bean
@@ -374,6 +373,17 @@ public class DatastoreServicesPod {
     @Bean
     public HazelcastVertexMergingService vms() {
         return new HazelcastVertexMergingService( hazelcastInstance );
+    }
+
+    @Bean
+    public AppService appService() {
+        return new AppService( hazelcastInstance,
+                dataModelService(),
+                organizationsManager(),
+                authorizationQueryService(),
+                authorizationManager(),
+                rolesService(),
+                aclKeyReservationService() );
     }
 
     // Startup scripts

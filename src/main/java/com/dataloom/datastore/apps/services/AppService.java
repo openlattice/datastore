@@ -16,7 +16,10 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.*;
 import com.hazelcast.core.HazelcastInstance;
 import com.hazelcast.core.IMap;
+import com.kryptnostic.datastore.exceptions.BadRequestException;
 import com.kryptnostic.datastore.services.EdmManager;
+import com.kryptnostic.datastore.util.Util;
+import org.apache.olingo.commons.api.edm.FullQualifiedName;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -25,6 +28,7 @@ public class AppService {
     private final IMap<UUID, App>          apps;
     private final IMap<UUID, AppType>      appTypes;
     private final IMap<AppConfigKey, UUID> appConfigs;
+    private final IMap<String, UUID>       aclKeys;
 
     private final EdmManager                        edmService;
     private final HazelcastOrganizationService      organizationService;
@@ -45,6 +49,7 @@ public class AppService {
         this.apps = hazelcast.getMap( HazelcastMap.APPS.name() );
         this.appTypes = hazelcast.getMap( HazelcastMap.APP_TYPES.name() );
         this.appConfigs = hazelcast.getMap( HazelcastMap.APP_CONFIGS.name() );
+        this.aclKeys = hazelcast.getMap( HazelcastMap.ACL_KEYS.name() );
         this.edmService = edmService;
         this.organizationService = organizationService;
         this.authorizations = authorizations;
@@ -58,19 +63,23 @@ public class AppService {
     }
 
     public UUID createApp( App app ) {
-        UUID appId = app.getId();
-        while ( apps.putIfAbsent( appId, app ) != null ) {
-            appId = UUID.randomUUID();
-        }
-        return appId;
+        reservations.reserveIdAndValidateType( app, app::getName );
+        apps.putIfAbsent( app.getId(), app );
+        return app.getId();
     }
 
     public void deleteApp( UUID appId ) {
         apps.delete( appId );
+        reservations.release( appId );
     }
 
     public App getApp( UUID appId ) {
         return apps.get( appId );
+    }
+
+    public App getApp( String name ) {
+        UUID id = Util.getSafely( aclKeys, name );
+        return getApp( id );
     }
 
     private UUID generateEntitySet( UUID appTypeId, String prefix, Principal principal ) {
@@ -103,8 +112,12 @@ public class AppService {
                     organizationId,
                     title,
                     Optional.of( description ) );
-            rolesService.createRoleIfNotExists( user, role );
-            result.put( permission, role.getId() );
+            try {
+                rolesService.createRoleIfNotExists( user, role );
+                result.put( permission, role.getId() );
+            } catch ( Exception e ) {
+                throw new BadRequestException( "The requested app has already been installed for this organization" );
+            }
         } );
         return result;
     }
@@ -143,19 +156,23 @@ public class AppService {
     }
 
     public UUID createAppType( AppType appType ) {
-        UUID appTypeId = appType.getId();
-        while ( appTypes.putIfAbsent( appTypeId, appType ) != null ) {
-            appTypeId = UUID.randomUUID();
-        }
-        return appTypeId;
+        reservations.reserveIdAndValidateType( appType );
+        appTypes.putIfAbsent( appType.getId(), appType );
+        return appType.getId();
     }
 
     public void deleteAppType( UUID id ) {
         appTypes.delete( id );
+        reservations.release( id );
     }
 
     public AppType getAppType( UUID id ) {
         return appTypes.get( id );
+    }
+
+    public AppType getAppType( FullQualifiedName fqn ) {
+        UUID id = Util.getSafely( aclKeys, Util.fqnToString( fqn ) );
+        return getAppType( id );
     }
 
     public Map<UUID, AppType> getAppTypes( Set<UUID> appTypeIds ) {

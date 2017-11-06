@@ -15,6 +15,7 @@ import com.dataloom.organization.Organization;
 import com.dataloom.organizations.HazelcastOrganizationService;
 import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
+import org.apache.olingo.commons.api.edm.FullQualifiedName;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
@@ -79,12 +80,32 @@ public class AppController implements AppApi, AuthorizingComponent {
 
     @Override
     @RequestMapping(
+            path = LOOKUP_PATH + NAME_PATH,
+            method = RequestMethod.GET,
+            produces = MediaType.APPLICATION_JSON_VALUE )
+    @ResponseStatus( HttpStatus.OK )
+    public App getApp( @PathVariable( NAME ) String name ) {
+        return appService.getApp( name );
+    }
+
+    @Override
+    @RequestMapping(
             path = TYPE_PATH + ID_PATH,
             method = RequestMethod.GET,
             produces = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
     public AppType getAppType( @PathVariable( ID ) UUID id ) {
         return appService.getAppType( id );
+    }
+
+    @Override
+    @RequestMapping(
+            path = TYPE_PATH + LOOKUP_PATH + NAMESPACE_PATH + NAME_PATH,
+            method = RequestMethod.GET,
+            produces = MediaType.APPLICATION_JSON_VALUE )
+    @ResponseStatus( HttpStatus.OK )
+    public AppType getAppType( @PathVariable( NAMESPACE ) String namespace, @PathVariable( NAME ) String name ) {
+        return appService.getAppType( new FullQualifiedName( namespace, name ) );
     }
 
     @Override

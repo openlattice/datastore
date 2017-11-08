@@ -391,8 +391,6 @@ public class SearchService {
             UUID edgeEntitySetId = edge.getEdgeSetId();
             UUID neighborEntitySetId = ( entityKeyIds.contains( edge.getSrcEntityKeyId() ) ) ? edge.getDstSetId()
                     : edge.getSrcSetId();
-            entityKeyIdToEntitySetId.put( edgeEntityKeyId, edgeEntitySetId );
-            entityKeyIdToEntitySetId.put( neighborEntityKeyId, neighborEntitySetId );
 
             if ( !entitySetIsAuthorized.containsKey( edgeEntitySetId ) )
                 entitySetIsAuthorized.put( edgeEntitySetId, getAuthorization( edgeEntitySetId ) );
@@ -401,6 +399,7 @@ public class SearchService {
 
             if ( entitySetIsAuthorized.get( edgeEntitySetId ) ) {
                 edges.add( edge );
+                entityKeyIdToEntitySetId.put( edgeEntityKeyId, edgeEntitySetId );
                 if ( !entitySetsById.containsKey( edgeEntitySetId ) ) {
                     authorizedEdgeESIdsToVertexESIds.put( edgeEntitySetId, Sets.newHashSet() );
                     entitySetsById.put( edgeEntitySetId, dataModelService.getEntitySet( edgeEntitySetId ) );
@@ -414,6 +413,7 @@ public class SearchService {
                                 getAuthorizedProperties( neighborEntitySetId ) );
                     }
                     authorizedEdgeESIdsToVertexESIds.get( edgeEntitySetId ).add( neighborEntitySetId );
+                    entityKeyIdToEntitySetId.put( neighborEntityKeyId, neighborEntitySetId );
                 }
             }
 

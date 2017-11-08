@@ -30,6 +30,7 @@ import com.dataloom.datastore.directory.controllers.PrincipalDirectoryController
 import com.dataloom.datastore.edm.controllers.EdmController;
 import com.dataloom.datastore.linking.controllers.LinkingController;
 import com.dataloom.datastore.permissions.controllers.PermissionsController;
+import com.dataloom.datastore.requests.controllers.RequestsController;
 import com.dataloom.datastore.search.controllers.SearchController;
 import com.dataloom.datastore.util.DataStoreExceptionHandler;
 import com.dataloom.organizations.controllers.OrganizationsController;
@@ -56,7 +57,7 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurationSupp
                 PrincipalDirectoryController.class,
                 EdmController.class, OrganizationsController.class,
                 DataStoreExceptionHandler.class, LinkingController.class, AnalysisController.class,
-                SyncController.class },
+                SyncController.class, RequestsController.class },
         includeFilters = @ComponentScan.Filter(
                 value = { org.springframework.stereotype.Controller.class,
                         org.springframework.web.bind.annotation.RestControllerAdvice.class },

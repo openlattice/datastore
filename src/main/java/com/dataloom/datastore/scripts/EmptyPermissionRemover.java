@@ -38,8 +38,7 @@ public class EmptyPermissionRemover {
     }
 
     public void run() {
-        try {
-            Connection connection = hds.getConnection();
+        try ( Connection connection = hds.getConnection() ) {
             ResultSet rs = connection.prepareStatement( allPermissionsSql ).executeQuery();
             while ( rs.next() ) {
                 EnumSet<Permission> permissions = ResultSetAdapters.permissions( rs );

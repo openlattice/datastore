@@ -151,6 +151,12 @@ public class AppService {
                 Principal rolePrincipal = new Principal( PrincipalType.ROLE, entry.getValue().toString() );
                 authorizationService
                         .addPermission( ImmutableList.of( entitySetId ), rolePrincipal, EnumSet.of( permission ) );
+                edmService.getEntityType( appTypes.get( appTypeId ).getEntityTypeId() ).getProperties()
+                        .forEach( propertyTypeId -> {
+                            authorizationService.addPermission( ImmutableList.of( entitySetId, propertyTypeId ),
+                                    rolePrincipal,
+                                    EnumSet.of( permission ) );
+                        } );
             } );
         } );
     }

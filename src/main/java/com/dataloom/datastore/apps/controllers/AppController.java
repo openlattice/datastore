@@ -15,6 +15,7 @@ import com.dataloom.organization.Organization;
 import com.dataloom.organizations.HazelcastOrganizationService;
 import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import org.apache.olingo.commons.api.edm.FullQualifiedName;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -169,7 +170,48 @@ public class AppController implements AppApi, AuthorizingComponent {
         return appService.getAvailableConfigs( appId, Principals.getCurrentPrincipals(), orgs );
     }
 
+    @Override
+    @RequestMapping(
+            path = UPDATE_PATH + ID_PATH + APP_TYPE_ID_PATH,
+            method = RequestMethod.GET )
+    public void addAppTypeToApp( @PathVariable( ID ) UUID appId, @PathVariable( APP_TYPE_ID ) UUID appTypeId ) {
+        appService.addAppTypesToApp( appId, ImmutableSet.of( appTypeId ) );
+    }
+
+    @Override
+    @RequestMapping(
+            path = UPDATE_PATH + ID_PATH + APP_TYPE_ID_PATH,
+            method = RequestMethod.DELETE )
+    public void removeAppTypeFromApp( @PathVariable( ID ) UUID appId, @PathVariable( APP_TYPE_ID ) UUID appTypeId ) {
+        appService.removeAppTypesFromApp( appId, ImmutableSet.of( appTypeId ) );
+    }
+
+    @Override
+    @RequestMapping(
+            path = UPDATE_PATH + ID_PATH + APP_ID_PATH + APP_TYPE_ID_PATH + ENTITY_SET_ID_PATH,
+            method = RequestMethod.GET )
+    public void updateAppEntitySetConfig(
+            @PathVariable( ID ) UUID organizationId,
+            @PathVariable( APP_ID ) UUID appId,
+            @PathVariable( APP_TYPE_ID ) UUID appTypeId,
+            @PathVariable( ENTITY_SET_ID ) UUID entitySetId ) {
+        appService.updateAppConfigEntitySetId( organizationId, appId, appTypeId, entitySetId );
+    }
+
+    @Override
+    @RequestMapping(
+            path = UPDATE_PATH + ID_PATH + APP_ID_PATH + APP_TYPE_ID_PATH,
+            method = RequestMethod.POST )
+    public void updateAppEntitySetPermissionsConfig(
+            @PathVariable( ID ) UUID organizationId,
+            @PathVariable( APP_ID ) UUID appId,
+            @PathVariable( APP_TYPE_ID ) UUID appTypeId,
+            @RequestBody Set<Permission> permissions ) {
+        appService.updateAppConfigPermissions( organizationId, appId, appTypeId, EnumSet.copyOf( permissions ) );
+    }
+
     @Override public AuthorizationManager getAuthorizationManager() {
         return authorizations;
     }
+
 }

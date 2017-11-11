@@ -1,12 +1,10 @@
 package com.dataloom.datastore.apps.services;
 
 import com.dataloom.apps.*;
-import com.dataloom.apps.processors.AddAppTypesToAppProcessor;
-import com.dataloom.apps.processors.RemoveAppTypesFromAppProcessor;
-import com.dataloom.apps.processors.UpdateAppConfigEntitySetProcessor;
-import com.dataloom.apps.processors.UpdateAppConfigPermissionsProcessor;
+import com.dataloom.apps.processors.*;
 import com.dataloom.authorization.*;
 import com.dataloom.edm.EntitySet;
+import com.dataloom.edm.requests.MetadataUpdate;
 import com.dataloom.hazelcast.HazelcastMap;
 import com.dataloom.organization.Organization;
 import com.dataloom.organization.roles.Role;
@@ -118,7 +116,7 @@ public class AppService {
                     title,
                     Optional.of( description ) );
             try {
-                rolesService.createRoleIfNotExists( user, role );
+                rolesService.createSecurablePrincipalIfNotExists( user, role );
                 result.put( permission, role.getId() );
             } catch ( Exception e ) {
                 throw new BadRequestException( "The requested app has already been installed for this organization" );
@@ -259,6 +257,14 @@ public class AppService {
     public void updateAppConfigPermissions( UUID organizationId, UUID appId, UUID appTypeId, EnumSet<Permission> permissions ) {
         AppConfigKey key = new AppConfigKey( organizationId, appId, appTypeId );
         appConfigs.executeOnKey( key, new UpdateAppConfigPermissionsProcessor( permissions ) );
+    }
+
+    public void updateAppMetadata( UUID appId, MetadataUpdate metadataUpdate ) {
+        apps.executeOnKey( appId, new UpdateAppMetadataProcessor( metadataUpdate ) );
+    }
+
+    public void updateAppTypeMetadata( UUID appTypeId, MetadataUpdate metadataUpdate ) {
+        appTypes.executeOnKey( appTypeId, new UpdateAppTypeMetadataProcessor( metadataUpdate ) );
     }
 
 }

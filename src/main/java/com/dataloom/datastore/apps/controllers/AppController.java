@@ -11,6 +11,7 @@ import com.dataloom.authorization.Principals;
 import com.dataloom.authorization.securable.SecurableObjectType;
 import com.dataloom.authorization.util.AuthorizationUtils;
 import com.dataloom.datastore.apps.services.AppService;
+import com.dataloom.edm.requests.MetadataUpdate;
 import com.dataloom.organization.Organization;
 import com.dataloom.organizations.HazelcastOrganizationService;
 import com.google.common.base.Predicates;
@@ -175,6 +176,7 @@ public class AppController implements AppApi, AuthorizingComponent {
             path = UPDATE_PATH + ID_PATH + APP_TYPE_ID_PATH,
             method = RequestMethod.GET )
     public void addAppTypeToApp( @PathVariable( ID ) UUID appId, @PathVariable( APP_TYPE_ID ) UUID appTypeId ) {
+        ensureAdminAccess();
         appService.addAppTypesToApp( appId, ImmutableSet.of( appTypeId ) );
     }
 
@@ -183,6 +185,7 @@ public class AppController implements AppApi, AuthorizingComponent {
             path = UPDATE_PATH + ID_PATH + APP_TYPE_ID_PATH,
             method = RequestMethod.DELETE )
     public void removeAppTypeFromApp( @PathVariable( ID ) UUID appId, @PathVariable( APP_TYPE_ID ) UUID appTypeId ) {
+        ensureAdminAccess();
         appService.removeAppTypesFromApp( appId, ImmutableSet.of( appTypeId ) );
     }
 
@@ -195,19 +198,46 @@ public class AppController implements AppApi, AuthorizingComponent {
             @PathVariable( APP_ID ) UUID appId,
             @PathVariable( APP_TYPE_ID ) UUID appTypeId,
             @PathVariable( ENTITY_SET_ID ) UUID entitySetId ) {
+        ensureOwnerAccess( ImmutableList.of( organizationId ) );
         appService.updateAppConfigEntitySetId( organizationId, appId, appTypeId, entitySetId );
     }
 
     @Override
     @RequestMapping(
             path = UPDATE_PATH + ID_PATH + APP_ID_PATH + APP_TYPE_ID_PATH,
-            method = RequestMethod.POST )
+            method = RequestMethod.POST,
+            consumes = MediaType.APPLICATION_JSON_VALUE )
     public void updateAppEntitySetPermissionsConfig(
             @PathVariable( ID ) UUID organizationId,
             @PathVariable( APP_ID ) UUID appId,
             @PathVariable( APP_TYPE_ID ) UUID appTypeId,
             @RequestBody Set<Permission> permissions ) {
+        ensureOwnerAccess( ImmutableList.of( organizationId ) );
         appService.updateAppConfigPermissions( organizationId, appId, appTypeId, EnumSet.copyOf( permissions ) );
+    }
+
+    @Override
+    @RequestMapping(
+            path = UPDATE_PATH + ID_PATH,
+            method = RequestMethod.POST,
+            consumes = MediaType.APPLICATION_JSON_VALUE )
+    public void updateAppMetadata(
+            @PathVariable( ID ) UUID appId,
+            @RequestBody MetadataUpdate metadataUpdate ) {
+        ensureAdminAccess();
+        appService.updateAppMetadata( appId, metadataUpdate );
+    }
+
+    @Override
+    @RequestMapping(
+            path = UPDATE_PATH + TYPE_PATH + ID_PATH,
+            method = RequestMethod.POST,
+            consumes = MediaType.APPLICATION_JSON_VALUE )
+    public void updateAppTypeMetadata(
+            @PathVariable( ID ) UUID appTypeId,
+            @RequestBody MetadataUpdate metadataUpdate ) {
+        ensureAdminAccess();
+        appService.updateAppTypeMetadata( appTypeId, metadataUpdate );
     }
 
     @Override public AuthorizationManager getAuthorizationManager() {

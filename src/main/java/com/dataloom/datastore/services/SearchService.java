@@ -68,7 +68,6 @@ import com.dataloom.edm.type.EntityType;
 import com.dataloom.edm.type.PropertyType;
 import com.dataloom.graph.core.LoomGraphApi;
 import com.dataloom.graph.edge.LoomEdge;
-import com.dataloom.linking.Entity;
 import com.dataloom.organizations.events.OrganizationCreatedEvent;
 import com.dataloom.organizations.events.OrganizationDeletedEvent;
 import com.dataloom.organizations.events.OrganizationUpdatedEvent;

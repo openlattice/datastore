@@ -91,7 +91,7 @@ public class AuthorizationsController implements AuthorizationsApi, AuthorizingC
                     value = PAGING_TOKEN,
                     required = false ) String pagingToken
             ){
-        return authorizations.getAuthorizedObjectsOfType( Principals.getCurrentPrincipals(), objectType, permission, AuthorizedObjectsPagingFactory.decode( pagingToken ), DEFAULT_PAGE_SIZE );
+        return authorizations.getAuthorizedObjectsOfType( Principals.getCurrentPrincipals(), objectType, permission, pagingToken, DEFAULT_PAGE_SIZE );
     }    
 
 }

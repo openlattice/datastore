@@ -30,6 +30,7 @@ import java.util.stream.Collectors;
 import javax.annotation.PostConstruct;
 import javax.inject.Inject;
 
+import com.hazelcast.core.HazelcastInstance;
 import com.kryptnostic.rhizome.hazelcast.objects.DelegatedStringSet;
 import org.apache.olingo.commons.api.edm.FullQualifiedName;
 import org.slf4j.Logger;
@@ -68,7 +69,6 @@ import com.dataloom.edm.type.EntityType;
 import com.dataloom.edm.type.PropertyType;
 import com.dataloom.graph.core.LoomGraphApi;
 import com.dataloom.graph.edge.LoomEdge;
-import com.dataloom.linking.Entity;
 import com.dataloom.organizations.events.OrganizationCreatedEvent;
 import com.dataloom.organizations.events.OrganizationDeletedEvent;
 import com.dataloom.organizations.events.OrganizationUpdatedEvent;
@@ -121,6 +121,7 @@ public class SearchService {
 
     @Inject
     private EntityKeyIdService                        entityKeyService;
+
 
     @PostConstruct
     public void initializeBus() {

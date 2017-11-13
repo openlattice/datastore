@@ -19,6 +19,7 @@
 
 package com.dataloom.datastore.edm;
 
+import com.google.common.collect.Sets;
 import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -39,7 +40,6 @@ import java.util.stream.Collectors;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.olingo.commons.api.edm.EdmPrimitiveTypeKind;
 import org.apache.olingo.commons.api.edm.FullQualifiedName;
-import org.spark_project.guava.collect.Sets;
 
 import com.dataloom.authorization.Principal;
 import com.dataloom.authorization.PrincipalType;
@@ -98,9 +98,6 @@ public class CustomCSVPopulation {
      * 
      * WARNING: THIS TEST IS DISABLED FOR NOW.
      * 
-     * @param name Name of property type to be used in generating datastore PropertyType
-     * @param dataType DataType of property type to be used in generating datastore PropertyType
-     * @param typeInURL Keywords defined in http://www.convertcsv.com/generate-test-data.htm#keywords
      * @author Ho Chung Siu
      *
      */
@@ -308,7 +305,6 @@ public class CustomCSVPopulation {
     }
 
     /**
-     * @param list List of CustomPropertyType
      * @param n Create n Entity Types, each with all the existing property types.
      * @param m Create m Entity Sets for each Entity Type Default setting: * Entity Type has 10-character names * Each
      *            Entity Type has

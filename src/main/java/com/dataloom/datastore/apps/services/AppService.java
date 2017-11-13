@@ -100,24 +100,25 @@ public class AppService {
         return edmService.getEntitySet( name ).getId();
     }
 
-    private Map<Permission, UUID> createRolesForAppPermission(
+    private Map<Permission, Principal> createRolesForAppPermission(
             App app,
             UUID organizationId,
             EnumSet<Permission> permissions,
             Principal user ) {
-        Map<Permission, UUID> result = Maps.newHashMap();
+        Map<Permission, Principal> result = Maps.newHashMap();
         permissions.forEach( permission -> {
             String title = app.getTitle().concat( " - " ).concat( permission.name() );
+            Principal principal = new Principal( PrincipalType.ROLE, organizationId.toString().concat( "|" ).concat( title ) );
             String description = permission.name().concat( " permission for the " ).concat( app.getTitle() )
                     .concat( " app" );
             Role role = new Role( Optional.absent(),
                     organizationId,
-                    new Principal( PrincipalType.ROLE, organizationId.toString().concat( "|" ).concat( title ) ),
+                    principal,
                     title,
                     Optional.of( description ) );
             try {
                 rolesService.createSecurablePrincipalIfNotExists( user, role );
-                result.put( permission, role.getId() );
+                result.put( permission, principal );
             } catch ( Exception e ) {
                 throw new BadRequestException( "The requested app has already been installed for this organization" );
             }
@@ -132,7 +133,7 @@ public class AppService {
         EnumSet<Permission> defaultPermissions = EnumSet
                 .of( Permission.DISCOVER, Permission.LINK, Permission.READ, Permission.WRITE, Permission.OWNER );
 
-        Map<Permission, UUID> appRoles = createRolesForAppPermission( app,
+        Map<Permission, Principal> appRoles = createRolesForAppPermission( app,
                 organizationId,
                 EnumSet.of( Permission.READ, Permission.WRITE, Permission.OWNER ),
                 principal );
@@ -148,8 +149,7 @@ public class AppService {
 
             appRoles.entrySet().forEach( entry -> {
                 Permission permission = entry.getKey();
-                // TODO: check if principal id should be role uuid or orgId|roleName
-                Principal rolePrincipal = new Principal( PrincipalType.ROLE, entry.getValue().toString() );
+                Principal rolePrincipal = entry.getValue();
                 authorizationService
                         .addPermission( ImmutableList.of( entitySetId ), rolePrincipal, EnumSet.of( permission ) );
                 edmService.getEntityType( appTypes.get( appTypeId ).getEntityTypeId() ).getProperties()

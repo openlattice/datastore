@@ -62,7 +62,7 @@ import com.dataloom.merging.DistributedMerger;
 import com.dataloom.neuron.Neuron;
 import com.dataloom.neuron.pods.NeuronPod;
 import com.dataloom.organizations.HazelcastOrganizationService;
-import com.dataloom.organizations.roles.HazelcastRolesService;
+import com.dataloom.organizations.roles.HazelcastPrincipalService;
 import com.dataloom.organizations.roles.RolesManager;
 import com.dataloom.organizations.roles.RolesQueryService;
 import com.dataloom.organizations.roles.TokenExpirationTracker;
@@ -96,25 +96,25 @@ import org.springframework.context.annotation.Import;
 public class DatastoreServicesPod {
 
     @Inject
-    private CassandraConfiguration   cassandraConfiguration;
+    private CassandraConfiguration cassandraConfiguration;
 
     @Inject
-    private HazelcastInstance        hazelcastInstance;
+    private HazelcastInstance hazelcastInstance;
 
     @Inject
-    private Session                  session;
+    private Session session;
 
     @Inject
-    private Auth0Configuration       auth0Configuration;
+    private Auth0Configuration auth0Configuration;
 
     @Inject
     private ListeningExecutorService executor;
 
     @Inject
-    private EventBus                 eventBus;
+    private EventBus eventBus;
 
     @Inject
-    private Neuron                   neuron;
+    private Neuron neuron;
 
     @Bean
     public ObjectMapper defaultObjectMapper() {
@@ -229,13 +229,10 @@ public class DatastoreServicesPod {
 
     @Bean
     public RolesManager rolesService() {
-        return new HazelcastRolesService(
+        return new HazelcastPrincipalService(
                 hazelcastInstance,
-                rolesQueryService(),
                 aclKeyReservationService(),
-                tokenTracker(),
                 userDirectoryService(),
-                securableObjectTypes(),
                 authorizationManager() );
     }
 
@@ -313,7 +310,10 @@ public class DatastoreServicesPod {
 
     @Bean
     public DistributedMerger merger() {
-        return new DistributedMerger( hazelcastInstance, hazelcastListingService(), dataModelService(), datasourceManager() );
+        return new DistributedMerger( hazelcastInstance,
+                hazelcastListingService(),
+                dataModelService(),
+                datasourceManager() );
     }
 
     @Bean

@@ -56,7 +56,7 @@ import com.dataloom.merging.DistributedMerger;
 import com.dataloom.neuron.Neuron;
 import com.dataloom.neuron.pods.NeuronPod;
 import com.dataloom.organizations.HazelcastOrganizationService;
-import com.dataloom.organizations.roles.HazelcastRolesService;
+import com.dataloom.organizations.roles.HazelcastPrincipalService;
 import com.dataloom.organizations.roles.RolesManager;
 import com.dataloom.organizations.roles.RolesQueryService;
 import com.dataloom.organizations.roles.TokenExpirationTracker;
@@ -225,13 +225,10 @@ public class DatastoreServicesPod {
 
     @Bean
     public RolesManager rolesService() {
-        return new HazelcastRolesService(
+        return new HazelcastPrincipalService(
                 hazelcastInstance,
-                rolesQueryService(),
                 aclKeyReservationService(),
-                tokenTracker(),
                 userDirectoryService(),
-                securableObjectTypes(),
                 authorizationManager() );
     }
 

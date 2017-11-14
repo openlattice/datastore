@@ -325,8 +325,7 @@ public class OrganizationsController implements AuthorizingComponent, Organizati
     public Iterable<Auth0UserBasic> getAllUsersOfRole(
             @PathVariable( ID ) UUID organizationId,
             @PathVariable( ROLE_ID ) UUID roleId ) {
-        Role role = principalService.getRole( organizationId, roleId );
-        return organizations.getAllUserProfilesOfRole( role.getPrincipal() );
+        return principalService.getAllUserProfilesWithPrincipal( new AclKey( organizationId, roleId ) );
     }
 
     @Override

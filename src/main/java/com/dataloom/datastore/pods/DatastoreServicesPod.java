@@ -195,10 +195,9 @@ public class DatastoreServicesPod {
     }
 
     @Bean
-    public HazelcastPrincipalService principalService() {
+    public SecurePrincipalsManager principalService() {
         return new HazelcastPrincipalService( hazelcastInstance,
                 aclKeyReservationService(),
-                userDirectoryService(),
                 authorizationManager() );
     }
 
@@ -213,22 +212,13 @@ public class DatastoreServicesPod {
     }
 
     @Bean
-    public SecurePrincipalsManager rolesService() {
-        return new HazelcastPrincipalService(
-                hazelcastInstance,
-                aclKeyReservationService(),
-                userDirectoryService(),
-                authorizationManager() );
-    }
-
-    @Bean
     public HazelcastOrganizationService organizationsManager() {
         return new HazelcastOrganizationService(
                 hazelcastInstance,
                 aclKeyReservationService(),
                 authorizationManager(),
                 userDirectoryService(),
-                rolesService() );
+                principalService() );
     }
 
     @Bean

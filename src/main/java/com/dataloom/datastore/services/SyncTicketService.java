@@ -35,7 +35,7 @@ import com.dataloom.hazelcast.HazelcastMap;
 import com.hazelcast.core.HazelcastInstance;
 import com.hazelcast.core.IMap;
 import com.kryptnostic.datastore.util.Util;
-import com.kryptnostic.rhizome.hazelcast.objects.DelegatedUUIDSet;;
+import com.openlattice.rhizome.hazelcast.DelegatedUUIDSet;;
 
 public class SyncTicketService {
     private final IMap<TicketKey, UUID>             authorizedEntitySets;

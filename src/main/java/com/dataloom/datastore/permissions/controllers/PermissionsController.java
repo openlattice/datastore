@@ -50,8 +50,7 @@ import com.dataloom.authorization.PermissionsApi;
 import com.dataloom.authorization.Principal;
 import com.dataloom.authorization.PrincipalType;
 import com.dataloom.authorization.events.AclUpdateEvent;
-import com.dataloom.organization.roles.RoleKey;
-import com.dataloom.organizations.roles.RolesManager;
+import com.dataloom.organizations.roles.SecurePrincipalsManager;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.SetMultimap;
 import com.google.common.collect.Sets;
@@ -69,7 +68,7 @@ public class PermissionsController implements PermissionsApi, AuthorizingCompone
     private AuthorizationManager authorizations;
 
     @Inject
-    private RolesManager         rolesManager;
+    private SecurePrincipalsManager securePrincipalsManager;
 
     @Inject
     private EventBus             eventBus;
@@ -153,7 +152,7 @@ public class PermissionsController implements PermissionsApi, AuthorizingCompone
 
                 if ( principal.getType() == PrincipalType.ROLE ) {
                     // add inherited permissions of users from the role
-                    Iterable<Principal> users = rolesManager.getAllUsersWithPrincipal( principal );
+                    Iterable<Principal> users = securePrincipalsManager.getAllUsersWithPrincipal( principal );
 
                     for ( Principal user : users ) {
                         resultMap.put( user, ace );

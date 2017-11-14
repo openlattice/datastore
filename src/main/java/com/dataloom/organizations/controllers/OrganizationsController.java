@@ -34,11 +34,12 @@ import com.dataloom.organization.Organization;
 import com.dataloom.organization.OrganizationsApi;
 import com.dataloom.organization.roles.Role;
 import com.dataloom.organizations.HazelcastOrganizationService;
-import com.dataloom.organizations.roles.RolesManager;
+import com.dataloom.organizations.roles.SecurePrincipalsManager;
 import com.dataloom.streams.StreamUtil;
 import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.openlattice.authorization.AclKey;
 import java.util.Arrays;
 import java.util.EnumSet;
 import java.util.List;
@@ -72,7 +73,7 @@ public class OrganizationsController implements AuthorizingComponent, Organizati
     private AbstractSecurableObjectResolveTypeService securableObjectTypes;
 
     @Inject
-    private RolesManager principalService;
+    private SecurePrincipalsManager principalService;
 
     @Override
     @GetMapping(
@@ -105,7 +106,7 @@ public class OrganizationsController implements AuthorizingComponent, Organizati
         Organization org = organizations.getOrganization( organizationId );
         Set<Role> authorizedRoles = getAuthorizedRoles( organizationId, Permission.READ );
         return new Organization(
-                org.getPrincipal(),
+                org.getSecurablePrincipal(),
                 org.getAutoApprovedEmails(),
                 org.getMembers(),
                 authorizedRoles );
@@ -117,7 +118,7 @@ public class OrganizationsController implements AuthorizingComponent, Organizati
             produces = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
     public Void destroyOrganization( @PathVariable( ID ) UUID organizationId ) {
-        List<UUID> aclKey = ensureOwner( organizationId );
+        AclKey aclKey = ensureOwner( organizationId );
 
         organizations.destroyOrganization( organizationId );
         authorizations.deletePermissions( aclKey );
@@ -273,7 +274,7 @@ public class OrganizationsController implements AuthorizingComponent, Organizati
             value = ID_PATH + PRINCIPALS + ROLES + ROLE_ID_PATH,
             produces = MediaType.APPLICATION_JSON_VALUE )
     public Role getRole( @PathVariable( ID ) UUID organizationId, @PathVariable( ROLE_ID ) UUID roleId ) {
-        List<UUID> aclKey = Arrays.asList( organizationId, roleId );
+        AclKey aclKey = new AclKey( organizationId, roleId );
         if ( isAuthorized( Permission.READ ).test( aclKey ) ) {
             return principalService.getRole( organizationId, roleId );
         } else {
@@ -291,8 +292,7 @@ public class OrganizationsController implements AuthorizingComponent, Organizati
             @RequestBody String title ) {
         ensureRoleAdminAccess( organizationId, roleId );
         //TODO: Do this in a less crappy way
-        Role role = principalService.getRole( organizationId, roleId );
-        organizations.updateRoleTitle( role.getPrincipal(), title );
+        principalService.updateTitle( new AclKey( organizationId, roleId ), title );
         return null;
     }
 
@@ -305,8 +305,7 @@ public class OrganizationsController implements AuthorizingComponent, Organizati
             @PathVariable( ROLE_ID ) UUID roleId,
             @RequestBody String description ) {
         ensureRoleAdminAccess( organizationId, roleId );
-        Role role = principalService.getRole( organizationId, roleId );
-        organizations.updateRoleDescription( role.getPrincipal(), description );
+        principalService.updateDescription( new AclKey( organizationId, roleId ), description );
         return null;
     }
 
@@ -315,8 +314,7 @@ public class OrganizationsController implements AuthorizingComponent, Organizati
             value = ID_PATH + PRINCIPALS + ROLES + ROLE_ID_PATH )
     public Void deleteRole( @PathVariable( ID ) UUID organizationId, @PathVariable( ROLE_ID ) UUID roleId ) {
         ensureRoleAdminAccess( organizationId, roleId );
-        Role role = principalService.getRole( organizationId, roleId );
-        organizations.deleteRole( role.getPrincipal() );
+        principalService.deletePrincipal( new AclKey( organizationId, roleId ) );
         return null;
     }
 
@@ -327,8 +325,7 @@ public class OrganizationsController implements AuthorizingComponent, Organizati
     public Iterable<Auth0UserBasic> getAllUsersOfRole(
             @PathVariable( ID ) UUID organizationId,
             @PathVariable( ROLE_ID ) UUID roleId ) {
-        Role role = principalService.getRole( organizationId, roleId );
-        return organizations.getAllUserProfilesOfRole( role.getPrincipal() );
+        return principalService.getAllUserProfilesWithPrincipal( new AclKey( organizationId, roleId ) );
     }
 
     @Override
@@ -338,9 +335,8 @@ public class OrganizationsController implements AuthorizingComponent, Organizati
             @PathVariable( ID ) UUID organizationId,
             @PathVariable( ROLE_ID ) UUID roleId,
             @PathVariable( USER_ID ) String userId ) {
-        Role role = principalService.getRole( organizationId, roleId );
-        organizations.addRoleToUser( role.getPrincipal(),
-                new Principal( PrincipalType.USER, userId ) );
+        principalService.addPrincipalToPrincipal( new AclKey( organizationId, roleId ),
+                principalService.lookup( new Principal( PrincipalType.USER, userId ) ) );
         return null;
     }
 
@@ -351,15 +347,15 @@ public class OrganizationsController implements AuthorizingComponent, Organizati
             @PathVariable( ID ) UUID organizationId,
             @PathVariable( ROLE_ID ) UUID roleId,
             @PathVariable( USER_ID ) String userId ) {
-        Role role = principalService.getRole( organizationId, roleId );
-        organizations.removeRoleFromUser( role.getPrincipal(), new Principal( PrincipalType.USER, userId ) );
+        organizations.removeRoleFromUser( new AclKey( organizationId, roleId ),
+                new Principal( PrincipalType.USER, userId ) );
         return null;
     }
 
     private void ensureRoleAdminAccess( UUID organizationId, UUID roleId ) {
         ensureOwner( organizationId );
 
-        List<UUID> aclKey = ImmutableList.of( organizationId, roleId );
+        AclKey aclKey = new AclKey( organizationId, roleId );
         accessCheck( aclKey, EnumSet.of( Permission.OWNER ) );
     }
 
@@ -368,14 +364,14 @@ public class OrganizationsController implements AuthorizingComponent, Organizati
         return authorizations;
     }
 
-    private List<UUID> ensureOwner( UUID organizationId ) {
-        List<UUID> aclKey = ImmutableList.of( organizationId );
+    private AclKey ensureOwner( UUID organizationId ) {
+        AclKey aclKey = new AclKey( organizationId );
         accessCheck( aclKey, EnumSet.of( Permission.OWNER ) );
         return aclKey;
     }
 
-    private List<UUID> ensureRead( UUID organizationId ) {
-        List<UUID> aclKey = ImmutableList.of( organizationId );
+    private AclKey ensureRead( UUID organizationId ) {
+        AclKey aclKey = new AclKey( organizationId );
         accessCheck( aclKey, EnumSet.of( Permission.READ ) );
         return aclKey;
     }

@@ -29,6 +29,7 @@ import java.util.stream.Collectors;
 
 import javax.inject.Inject;
 
+import com.openlattice.authorization.AclKey;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -204,7 +205,7 @@ public class LinkingController implements LinkingApi, AuthorizingComponent {
                     "There should be only one linking map that involves property id " + propertyId );
 
             for ( UUID esId : link.keySet() ) {
-                List<UUID> aclKey = Arrays.asList( esId, propertyId );
+                AclKey aclKey = new AclKey( esId, propertyId );
                 ensureLinkAccess( aclKey );
                 linkingES.add( esId );
                 linkIndexedByPropertyTypes.put( propertyId, esId );
@@ -212,7 +213,7 @@ public class LinkingController implements LinkingApi, AuthorizingComponent {
         } );
 
         // Sanity check: authorized to link the entity set itself.
-        linkingES.stream().forEach( entitySetId -> ensureLinkAccess( Arrays.asList( entitySetId ) ) );
+        linkingES.stream().forEach( entitySetId -> ensureLinkAccess( new AclKey( entitySetId ) ) );
 
         // Compute the ownable property types after merging. A property type is ownable if calling user has both READ
         // and LINK permissions for that property type in all the entity sets involved.
@@ -229,7 +230,7 @@ public class LinkingController implements LinkingApi, AuthorizingComponent {
         Set<UUID> ownablePropertyTypes = new HashSet<>();
         for ( UUID propertyId : linkedPropertyTypes ) {
             boolean ownable = propertyIdESMap.get( propertyId ).stream()
-                    .map( esId -> Arrays.asList( esId, propertyId ) )
+                    .map( esId -> new AclKey( esId, propertyId ) )
                     .allMatch( isAuthorized( Permission.LINK, Permission.READ ) );
 
             if ( ownable ) {

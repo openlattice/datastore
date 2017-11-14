@@ -29,6 +29,8 @@ import java.util.stream.Collectors;
 
 import javax.inject.Inject;
 
+import com.openlattice.authorization.AclKey;
+import com.openlattice.authorization.SecurablePrincipal;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.MediaType;
@@ -50,41 +52,54 @@ import com.dataloom.authorization.PermissionsApi;
 import com.dataloom.authorization.Principal;
 import com.dataloom.authorization.PrincipalType;
 import com.dataloom.authorization.events.AclUpdateEvent;
-import com.dataloom.organization.roles.RoleKey;
-import com.dataloom.organizations.roles.RolesManager;
+import com.dataloom.organizations.roles.SecurePrincipalsManager;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.SetMultimap;
 import com.google.common.collect.Sets;
 import com.google.common.eventbus.EventBus;
 import com.kryptnostic.datastore.exceptions.BadRequestException;
-
+import java.util.Collection;
+import java.util.EnumSet;
+import java.util.List;
+import java.util.Map.Entry;
+import java.util.Set;
+import java.util.UUID;
+import java.util.stream.Collectors;
+import javax.inject.Inject;
 import jersey.repackaged.com.google.common.collect.Iterables;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.http.MediaType;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping( PermissionsApi.CONTROLLER )
 public class PermissionsController implements PermissionsApi, AuthorizingComponent {
-    private static final Logger  logger = LoggerFactory.getLogger( PermissionsController.class );
+    private static final Logger logger = LoggerFactory.getLogger( PermissionsController.class );
 
     @Inject
     private AuthorizationManager authorizations;
 
     @Inject
-    private RolesManager         rolesManager;
+    private SecurePrincipalsManager securePrincipalsManager;
 
     @Inject
-    private EventBus             eventBus;
+    private EventBus eventBus;
 
     @Override
     @RequestMapping(
-        path = { "", "/" },
-        method = RequestMethod.PATCH,
-        consumes = MediaType.APPLICATION_JSON_VALUE )
+            path = { "", "/" },
+            method = RequestMethod.PATCH,
+            consumes = MediaType.APPLICATION_JSON_VALUE )
     public Void updateAcl( @RequestBody AclData req ) {
         /*
          * Ensure that the user has alter permissions on Acl permissions being modified
          */
         final Acl acl = req.getAcl();
-        final List<UUID> aclKeys = acl.getAclKey();
+        final AclKey aclKeys = new AclKey( acl.getAclKey() );
         if ( isAuthorized( Permission.OWNER ).test( aclKeys ) ) {
             switch ( req.getAction() ) {
                 case ADD:
@@ -124,11 +139,11 @@ public class PermissionsController implements PermissionsApi, AuthorizingCompone
 
     @Override
     @RequestMapping(
-        path = { "", "/" },
-        method = RequestMethod.POST,
-        consumes = MediaType.APPLICATION_JSON_VALUE,
-        produces = MediaType.APPLICATION_JSON_VALUE )
-    public Acl getAcl( @RequestBody List<UUID> aclKeys ) {
+            path = { "", "/" },
+            method = RequestMethod.POST,
+            consumes = MediaType.APPLICATION_JSON_VALUE,
+            produces = MediaType.APPLICATION_JSON_VALUE )
+    public Acl getAcl( @RequestBody AclKey aclKeys ) {
         if ( isAuthorized( Permission.OWNER ).test( aclKeys ) ) {
             return authorizations.getAllSecurableObjectPermissions( aclKeys );
         } else {
@@ -138,11 +153,11 @@ public class PermissionsController implements PermissionsApi, AuthorizingCompone
 
     @Override
     @RequestMapping(
-        path = { EXPLAIN },
-        method = RequestMethod.POST,
-        consumes = MediaType.APPLICATION_JSON_VALUE,
-        produces = MediaType.APPLICATION_JSON_VALUE )
-    public AclExplanation getAclExplanation( @RequestBody List<UUID> aclKey ) {
+            path = { EXPLAIN },
+            method = RequestMethod.POST,
+            consumes = MediaType.APPLICATION_JSON_VALUE,
+            produces = MediaType.APPLICATION_JSON_VALUE )
+    public AclExplanation getAclExplanation( @RequestBody AclKey aclKey ) {
         if ( isAuthorized( Permission.OWNER ).test( aclKey ) ) {
             SetMultimap<Principal, Ace> resultMap = HashMultimap.create();
 
@@ -150,13 +165,13 @@ public class PermissionsController implements PermissionsApi, AuthorizingCompone
             for ( Ace ace : aces ) {
                 Principal principal = ace.getPrincipal();
                 resultMap.put( principal, ace );
-
                 if ( principal.getType() == PrincipalType.ROLE ) {
                     // add inherited permissions of users from the role
-                    Iterable<Principal> users = rolesManager.getAllUsersWithPrincipal( principal );
+                    Iterable<SecurablePrincipal> users = securePrincipalsManager
+                            .getAllUsersWithPrincipal( securePrincipalsManager.lookup( principal ) );
 
-                    for ( Principal user : users ) {
-                        resultMap.put( user, ace );
+                    for ( SecurablePrincipal user : users ) {
+                        resultMap.put( user.getPrincipal(), ace );
                     }
                 }
             }

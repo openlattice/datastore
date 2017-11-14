@@ -47,6 +47,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import javax.inject.Inject;
+
+import com.openlattice.authorization.AclKey;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -139,7 +141,7 @@ public class SearchController implements SearchApi, AuthorizingComponent {
     public DataSearchResult executeEntitySetDataQuery(
             @PathVariable( ENTITY_SET_ID ) UUID entitySetId,
             @RequestBody SearchTerm searchTerm ) {
-        if ( authorizations.checkIfHasPermissions( ImmutableList.of( entitySetId ),
+        if ( authorizations.checkIfHasPermissions( new AclKey( entitySetId ),
                 Principals.getCurrentPrincipals(),
                 EnumSet.of( Permission.READ ) ) ) {
             Set<UUID> authorizedProperties = authorizationsHelper.getAuthorizedPropertiesOnEntitySet( entitySetId,
@@ -159,7 +161,7 @@ public class SearchController implements SearchApi, AuthorizingComponent {
     public DataSearchResult executeAdvancedEntitySetDataQuery(
             @PathVariable( ENTITY_SET_ID ) UUID entitySetId,
             @RequestBody AdvancedSearch search ) {
-        if ( authorizations.checkIfHasPermissions( ImmutableList.of( entitySetId ),
+        if ( authorizations.checkIfHasPermissions( new AclKey( entitySetId ),
                 Principals.getCurrentPrincipals(),
                 EnumSet.of( Permission.READ ) ) ) {
             Set<UUID> authorizedProperties = authorizationsHelper.getAuthorizedPropertiesOnEntitySet( entitySetId,
@@ -234,7 +236,7 @@ public class SearchController implements SearchApi, AuthorizingComponent {
     public List<NeighborEntityDetails> executeEntityNeighborSearch(
             @PathVariable( ENTITY_SET_ID ) UUID entitySetId,
             @PathVariable( ENTITY_ID ) UUID entityId ) {
-        if ( authorizations.checkIfHasPermissions( ImmutableList.of( entitySetId ),
+        if ( authorizations.checkIfHasPermissions( new AclKey( entitySetId ),
                 Principals.getCurrentPrincipals(),
                 EnumSet.of( Permission.READ ) ) ) {
             return searchService.executeEntityNeighborSearch( ImmutableSet.of( entityId ) ).get( entityId );
@@ -251,7 +253,7 @@ public class SearchController implements SearchApi, AuthorizingComponent {
             @PathVariable( ENTITY_SET_ID ) UUID entitySetId,
             @RequestBody Set<UUID> entityIds ) {
         Map<UUID, List<NeighborEntityDetails>> result = Maps.newHashMap();
-        if ( authorizations.checkIfHasPermissions( ImmutableList.of( entitySetId ),
+        if ( authorizations.checkIfHasPermissions( new AclKey( entitySetId ),
                 Principals.getCurrentPrincipals(),
                 EnumSet.of( Permission.READ ) ) ) {
             result = searchService.executeEntityNeighborSearch( entityIds );

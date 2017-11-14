@@ -9,7 +9,7 @@ import com.dataloom.hazelcast.HazelcastMap;
 import com.dataloom.organization.Organization;
 import com.dataloom.organization.roles.Role;
 import com.dataloom.organizations.HazelcastOrganizationService;
-import com.dataloom.organizations.roles.RolesManager;
+import com.dataloom.organizations.roles.SecurePrincipalsManager;
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
@@ -21,6 +21,7 @@ import com.hazelcast.core.IMap;
 import com.kryptnostic.datastore.exceptions.BadRequestException;
 import com.kryptnostic.datastore.services.EdmManager;
 import com.kryptnostic.datastore.util.Util;
+import com.openlattice.authorization.AclKey;
 import org.apache.olingo.commons.api.edm.FullQualifiedName;
 
 import java.util.*;
@@ -36,7 +37,7 @@ public class AppService {
     private final HazelcastOrganizationService      organizationService;
     private final AuthorizationQueryService         authorizations;
     private final AuthorizationManager              authorizationService;
-    private final RolesManager                      rolesService;
+    private final SecurePrincipalsManager           principalsService;
     private final HazelcastAclKeyReservationService reservations;
 
     public AppService(
@@ -45,7 +46,7 @@ public class AppService {
             HazelcastOrganizationService organizationService,
             AuthorizationQueryService authorizations,
             AuthorizationManager authorizationService,
-            RolesManager rolesService,
+            SecurePrincipalsManager principalsService,
             HazelcastAclKeyReservationService reservations
     ) {
         this.apps = hazelcast.getMap( HazelcastMap.APPS.name() );
@@ -56,7 +57,7 @@ public class AppService {
         this.organizationService = organizationService;
         this.authorizations = authorizations;
         this.authorizationService = authorizationService;
-        this.rolesService = rolesService;
+        this.principalsService = principalsService;
         this.reservations = reservations;
     }
 
@@ -108,7 +109,8 @@ public class AppService {
         Map<Permission, Principal> result = Maps.newHashMap();
         permissions.forEach( permission -> {
             String title = app.getTitle().concat( " - " ).concat( permission.name() );
-            Principal principal = new Principal( PrincipalType.ROLE, organizationId.toString().concat( "|" ).concat( title ) );
+            Principal principal = new Principal( PrincipalType.ROLE,
+                    organizationId.toString().concat( "|" ).concat( title ) );
             String description = permission.name().concat( " permission for the " ).concat( app.getTitle() )
                     .concat( " app" );
             Role role = new Role( Optional.absent(),
@@ -117,7 +119,7 @@ public class AppService {
                     title,
                     Optional.of( description ) );
             try {
-                rolesService.createSecurablePrincipalIfNotExists( user, role );
+                principalsService.createSecurablePrincipalIfNotExists( user, role );
                 result.put( permission, principal );
             } catch ( Exception e ) {
                 throw new BadRequestException( "The requested app has already been installed for this organization" );
@@ -145,16 +147,16 @@ public class AppService {
             UUID entitySetId = generateEntitySet( appTypeId, prefix, principal );
             appConfigs.put( new AppConfigKey( appId, organizationId, appTypeId ),
                     new AppTypeSetting( entitySetId, defaultPermissions ) );
-            authorizationService.addPermission( ImmutableList.of( entitySetId ), appPrincipal, defaultPermissions );
+            authorizationService.addPermission( new AclKey( entitySetId ), appPrincipal, defaultPermissions );
 
             appRoles.entrySet().forEach( entry -> {
                 Permission permission = entry.getKey();
                 Principal rolePrincipal = entry.getValue();
                 authorizationService
-                        .addPermission( ImmutableList.of( entitySetId ), rolePrincipal, EnumSet.of( permission ) );
+                        .addPermission( new AclKey( entitySetId ), rolePrincipal, EnumSet.of( permission ) );
                 edmService.getEntityType( appTypes.get( appTypeId ).getEntityTypeId() ).getProperties()
                         .forEach( propertyTypeId -> {
-                            List<UUID> aclKeys = ImmutableList.of( entitySetId, propertyTypeId );
+                            AclKey aclKeys = new AclKey( entitySetId, propertyTypeId );
                             authorizationService.addPermission( aclKeys, appPrincipal, defaultPermissions );
                             authorizationService.addPermission( aclKeys, rolePrincipal, EnumSet.of( permission ) );
                         } );
@@ -193,7 +195,7 @@ public class AppService {
             Set<Principal> userPrincipals ) {
         boolean authorized = true;
         for ( AppTypeSetting setting : requiredSettings ) {
-            List<UUID> aclKey = ImmutableList.of( setting.getEntitySetId() );
+            AclKey aclKey = new AclKey( setting.getEntitySetId() );
             boolean appIsAuthorized = authorizationService
                     .checkIfHasPermissions( aclKey, ImmutableSet.of( appPrincipal ), setting.getPermissions() );
             boolean userIsAuthorized = authorizationService
@@ -254,7 +256,11 @@ public class AppService {
         appConfigs.executeOnKey( key, new UpdateAppConfigEntitySetProcessor( entitySetId ) );
     }
 
-    public void updateAppConfigPermissions( UUID organizationId, UUID appId, UUID appTypeId, EnumSet<Permission> permissions ) {
+    public void updateAppConfigPermissions(
+            UUID organizationId,
+            UUID appId,
+            UUID appTypeId,
+            EnumSet<Permission> permissions ) {
         AppConfigKey key = new AppConfigKey( organizationId, appId, appTypeId );
         appConfigs.executeOnKey( key, new UpdateAppConfigPermissionsProcessor( permissions ) );
     }

@@ -17,6 +17,7 @@ import com.dataloom.organizations.HazelcastOrganizationService;
 import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.openlattice.authorization.AclKey;
 import org.apache.olingo.commons.api.edm.FullQualifiedName;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -150,7 +151,7 @@ public class AppController implements AppApi, AuthorizingComponent {
             @PathVariable( ID ) UUID appId,
             @PathVariable( ORGANIZATION_ID ) UUID organizationId,
             @PathVariable( PREFIX ) String prefix ) {
-        ensureOwnerAccess( ImmutableList.of( organizationId ) );
+        ensureOwnerAccess( new AclKey( organizationId ) );
         appService.installApp( appId, organizationId, prefix, Principals.getCurrentUser() );
     }
 
@@ -198,7 +199,7 @@ public class AppController implements AppApi, AuthorizingComponent {
             @PathVariable( APP_ID ) UUID appId,
             @PathVariable( APP_TYPE_ID ) UUID appTypeId,
             @PathVariable( ENTITY_SET_ID ) UUID entitySetId ) {
-        ensureOwnerAccess( ImmutableList.of( organizationId ) );
+        ensureOwnerAccess( new AclKey( organizationId ) );
         appService.updateAppConfigEntitySetId( organizationId, appId, appTypeId, entitySetId );
     }
 
@@ -212,7 +213,7 @@ public class AppController implements AppApi, AuthorizingComponent {
             @PathVariable( APP_ID ) UUID appId,
             @PathVariable( APP_TYPE_ID ) UUID appTypeId,
             @RequestBody Set<Permission> permissions ) {
-        ensureOwnerAccess( ImmutableList.of( organizationId ) );
+        ensureOwnerAccess( new AclKey( organizationId ) );
         appService.updateAppConfigPermissions( organizationId, appId, appTypeId, EnumSet.copyOf( permissions ) );
     }
 

@@ -24,6 +24,7 @@ import java.util.Set;
 
 import javax.inject.Inject;
 
+import com.openlattice.authorization.AclKey;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.MediaType;
@@ -70,7 +71,7 @@ public class AuthorizationsController implements AuthorizationsApi, AuthorizingC
     }
 
     private Authorization getAuth( AccessCheck query ) {
-        Set<Permission> currentPermissions = authorizations.getSecurableObjectPermissions( query.getAclKey(),
+        Set<Permission> currentPermissions = authorizations.getSecurableObjectPermissions( new AclKey( query.getAclKey() ),
                 Principals.getCurrentPrincipals() );
         Map<Permission, Boolean> permissionsMap = Maps.asMap( query.getPermissions(), currentPermissions::contains );
         return new Authorization( query.getAclKey(), permissionsMap );

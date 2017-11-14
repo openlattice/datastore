@@ -51,7 +51,7 @@ import com.dataloom.neuron.Neuron;
 import com.dataloom.neuron.pods.NeuronPod;
 import com.dataloom.organizations.HazelcastOrganizationService;
 import com.dataloom.organizations.roles.HazelcastPrincipalService;
-import com.dataloom.organizations.roles.RolesManager;
+import com.dataloom.organizations.roles.SecurePrincipalsManager;
 import com.dataloom.organizations.roles.TokenExpirationTracker;
 import com.dataloom.requests.HazelcastRequestsManager;
 import com.dataloom.requests.RequestQueryService;
@@ -209,7 +209,7 @@ public class DatastoreServicesPod {
     }
 
     @Bean
-    public RolesManager rolesService() {
+    public SecurePrincipalsManager rolesService() {
         return new HazelcastPrincipalService(
                 hazelcastInstance,
                 aclKeyReservationService(),

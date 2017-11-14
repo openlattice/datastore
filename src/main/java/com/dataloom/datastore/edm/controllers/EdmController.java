@@ -44,6 +44,7 @@ import com.kryptnostic.datastore.exceptions.BadRequestException;
 import com.kryptnostic.datastore.exceptions.BatchException;
 import com.kryptnostic.datastore.services.EdmManager;
 import com.kryptnostic.datastore.services.PostgresEntitySetManager;
+import com.openlattice.authorization.AclKey;
 import org.apache.olingo.commons.api.edm.FullQualifiedName;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -420,7 +421,7 @@ public class EdmController implements EdmApi, AuthorizingComponent {
             path = ENTITY_SETS_PATH + ID_PATH,
             method = RequestMethod.GET )
     public EntitySet getEntitySet( @PathVariable( ID ) UUID entitySetId ) {
-        if ( isAuthorized( Permission.READ ).test( ImmutableList.of( entitySetId ) ) ) {
+        if ( isAuthorized( Permission.READ ).test( new AclKey( entitySetId ) ) ) {
             return modelService.getEntitySet( entitySetId );
         } else {
             throw new ForbiddenException( "Unable to find entity set: " + entitySetId );
@@ -433,7 +434,7 @@ public class EdmController implements EdmApi, AuthorizingComponent {
             method = RequestMethod.DELETE )
     @ResponseStatus( HttpStatus.OK )
     public Void deleteEntitySet( @PathVariable( ID ) UUID entitySetId ) {
-        ensureOwnerAccess( Arrays.asList( entitySetId ) );
+        ensureOwnerAccess( new AclKey( entitySetId ) );
         modelService.deleteEntitySet( entitySetId );
         securableObjectTypes.deleteSecurableObjectType( ImmutableList.of( entitySetId ) );
 
@@ -809,7 +810,7 @@ public class EdmController implements EdmApi, AuthorizingComponent {
             method = RequestMethod.PATCH,
             consumes = MediaType.APPLICATION_JSON_VALUE )
     public Void updateEntitySetMetadata( @PathVariable( ID ) UUID entitySetId, @RequestBody MetadataUpdate update ) {
-        if ( authorizations.checkIfHasPermissions( ImmutableList.of( entitySetId ),
+        if ( authorizations.checkIfHasPermissions( new AclKey( entitySetId ),
                 Principals.getCurrentPrincipals(),
                 EnumSet.of( Permission.OWNER ) ) ) {
             modelService.updateEntitySetMetadata( entitySetId, update );
@@ -940,7 +941,7 @@ public class EdmController implements EdmApi, AuthorizingComponent {
             produces = MediaType.APPLICATION_JSON_VALUE )
     public Map<UUID, EntitySetPropertyMetadata> getAllEntitySetPropertyMetadata(
             @PathVariable( ID ) UUID entitySetId ) {
-        if ( isAuthorized( Permission.READ ).test( ImmutableList.of( entitySetId ) ) ) {
+        if ( isAuthorized( Permission.READ ).test( new AclKey( entitySetId ) ) ) {
             return modelService.getAllEntitySetPropertyMetadata( entitySetId );
         } else {
             throw new ForbiddenException( "Unable to find entity set: " + entitySetId );
@@ -955,7 +956,7 @@ public class EdmController implements EdmApi, AuthorizingComponent {
     public EntitySetPropertyMetadata getEntitySetPropertyMetadata(
             @PathVariable( ID ) UUID entitySetId,
             @PathVariable( PROPERTY_TYPE_ID ) UUID propertyTypeId ) {
-        if ( isAuthorized( Permission.READ ).test( ImmutableList.of( entitySetId ) ) ) {
+        if ( isAuthorized( Permission.READ ).test( new AclKey( entitySetId ) ) ) {
             return modelService.getEntitySetPropertyMetadata( entitySetId, propertyTypeId );
         } else {
             throw new ForbiddenException( "Unable to find entity set: " + entitySetId );
@@ -971,7 +972,7 @@ public class EdmController implements EdmApi, AuthorizingComponent {
             @PathVariable( ID ) UUID entitySetId,
             @PathVariable( PROPERTY_TYPE_ID ) UUID propertyTypeId,
             @RequestBody MetadataUpdate update ) {
-        if ( authorizations.checkIfHasPermissions( ImmutableList.of( entitySetId ),
+        if ( authorizations.checkIfHasPermissions( new AclKey( entitySetId ),
                 Principals.getCurrentPrincipals(),
                 EnumSet.of( Permission.OWNER ) ) ) {
             modelService.updateEntitySetPropertyMetadata( entitySetId, propertyTypeId, update );

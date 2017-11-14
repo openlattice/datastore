@@ -31,7 +31,8 @@ import javax.annotation.PostConstruct;
 import javax.inject.Inject;
 
 import com.hazelcast.core.HazelcastInstance;
-import com.kryptnostic.rhizome.hazelcast.objects.DelegatedStringSet;
+import com.openlattice.authorization.AclKey;
+import com.openlattice.rhizome.hazelcast.DelegatedStringSet;
 import org.apache.olingo.commons.api.edm.FullQualifiedName;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -449,7 +450,7 @@ public class SearchService {
     }
 
     private boolean getAuthorization( UUID entitySetId ) {
-        return authorizations.checkIfHasPermissions( ImmutableList.of( entitySetId ),
+        return authorizations.checkIfHasPermissions( new AclKey( entitySetId ),
                 Principals.getCurrentPrincipals(),
                 EnumSet.of( Permission.READ ) );
     }

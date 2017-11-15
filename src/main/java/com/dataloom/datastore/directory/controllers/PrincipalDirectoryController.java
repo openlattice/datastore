@@ -35,6 +35,7 @@ import com.dataloom.organization.roles.Role;
 import com.dataloom.organizations.roles.SecurePrincipalsManager;
 import com.google.common.base.Optional;
 import com.openlattice.authorization.AclKey;
+import com.openlattice.authorization.DbCredentialService;
 import com.openlattice.authorization.SecurablePrincipal;
 import java.util.EnumSet;
 import java.util.Map;
@@ -53,6 +54,9 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping( PrincipalApi.CONTROLLER )
 public class PrincipalDirectoryController implements PrincipalApi, AuthorizingComponent {
+
+    @Inject
+    private DbCredentialService dbCredService;
 
     @Inject
     private UserDirectoryService userDirectoryService;
@@ -99,9 +103,9 @@ public class PrincipalDirectoryController implements PrincipalApi, AuthorizingCo
     @Override
     @RequestMapping(
             path = USERS + USER_ID_PATH,
-            method = RequestMethod.GET )
+            method = RequestMethod.PUT )
     @ResponseStatus( HttpStatus.OK )
-    public Void activateUser( String userId ) {
+    public Void activateUser( @PathVariable( USER_ID ) String userId ) {
         Auth0UserBasic user = spm.getUser( userId );
         if ( user != null ) {
             checkState( user.getUserId().equals( userId ), "Retrieved user id must match submitted user id" );
@@ -111,6 +115,15 @@ public class PrincipalDirectoryController implements PrincipalApi, AuthorizingCo
                     new SecurablePrincipal( Optional.absent(), principal, user.getNickname(), Optional.absent() ) );
         }
         return null;
+    }
+
+    @Override
+    @RequestMapping(
+            path = DB + USER_ID_PATH,
+            method = RequestMethod.GET,
+            produces = MediaType.APPLICATION_JSON_VALUE )
+    public String getDbAccessCredential( @PathVariable( USER_ID ) String userId ) {
+        return dbCredService.getDbCredential( userId );
     }
 
     @Override

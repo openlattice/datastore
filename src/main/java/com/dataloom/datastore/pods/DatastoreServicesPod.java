@@ -190,13 +190,12 @@ public class DatastoreServicesPod {
                 datasourceManager() );
     }
 
-//    @Bean
-//    public HazelcastPrincipalService principalService() {
-//        return new HazelcastPrincipalService( hazelcastInstance,
-//                aclKeyReservationService(),
-//                userDirectoryService(),
-//                authorizationManager() );
-//    }
+    @Bean
+    public SecurePrincipalsManager principalService() {
+        return new HazelcastPrincipalService( hazelcastInstance,
+                aclKeyReservationService(),
+                authorizationManager() );
+    }
 
     @Bean
     public TokenExpirationTracker tokenTracker() {
@@ -209,22 +208,13 @@ public class DatastoreServicesPod {
     }
 
     @Bean
-    public SecurePrincipalsManager rolesService() {
-        return new HazelcastPrincipalService(
-                hazelcastInstance,
-                aclKeyReservationService(),
-                userDirectoryService(),
-                authorizationManager() );
-    }
-
-    @Bean
     public HazelcastOrganizationService organizationsManager() {
         return new HazelcastOrganizationService(
                 hazelcastInstance,
                 aclKeyReservationService(),
                 authorizationManager(),
                 userDirectoryService(),
-                rolesService() );
+                principalService() );
     }
 
     @Bean
@@ -330,7 +320,7 @@ public class DatastoreServicesPod {
                 organizationsManager(),
                 authorizationQueryService(),
                 authorizationManager(),
-                rolesService(),
+                principalService(),
                 aclKeyReservationService() );
     }
 

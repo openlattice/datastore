@@ -36,7 +36,6 @@ import com.geekbeast.rhizome.tests.bootstrap.CassandraBootstrap;
 import com.google.common.collect.Sets;
 import com.dataloom.data.storage.CassandraEntityDatastore;
 import com.kryptnostic.datastore.services.EdmManager;
-import com.kryptnostic.rhizome.pods.SparkPod;
 
 import com.openlattice.authentication.AuthenticationTest;
 import com.openlattice.authentication.AuthenticationTestRequestOptions;
@@ -44,7 +43,7 @@ import retrofit2.Retrofit;
 
 public class BootstrapDatastoreWithCassandra extends CassandraBootstrap {
     protected static final Datastore                 ds       = new Datastore();
-    protected static final Set<Class<?>>             PODS     = Sets.newHashSet( SparkPod.class );
+    protected static final Set<Class<?>>             PODS     = Sets.newHashSet(  );
     protected static final Set<String>               PROFILES = Sets.newHashSet( "local", "cassandra" );
     protected static final Principal                 admin;
     protected static final Principal                 user1;

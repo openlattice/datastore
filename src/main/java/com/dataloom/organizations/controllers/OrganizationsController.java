@@ -31,6 +31,7 @@ import com.dataloom.authorization.securable.SecurableObjectType;
 import com.dataloom.authorization.util.AuthorizationUtils;
 import com.dataloom.directory.pojo.Auth0UserBasic;
 import com.dataloom.organization.Organization;
+import com.dataloom.organization.OrganizationMember;
 import com.dataloom.organization.OrganizationsApi;
 import com.dataloom.organization.roles.Role;
 import com.dataloom.organizations.HazelcastOrganizationService;
@@ -40,7 +41,9 @@ import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.openlattice.authorization.AclKey;
+import com.openlattice.authorization.SecurablePrincipal;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
@@ -219,9 +222,16 @@ public class OrganizationsController implements AuthorizingComponent, Organizati
     @Override
     @GetMapping(
             value = ID_PATH + PRINCIPALS + MEMBERS )
-    public Set<Principal> getMembers( @PathVariable( ID ) UUID organizationId ) {
+    public Iterable<OrganizationMember> getMembers( @PathVariable( ID ) UUID organizationId ) {
         ensureRead( organizationId );
-        return organizations.getMembers( organizationId );
+        Set<Principal> members = organizations.getMembers( organizationId );
+        Collection<SecurablePrincipal> securablePrincipals = principalService.getSecurablePrincipals( members );
+        return securablePrincipals
+                .stream()
+                .map( sp -> new OrganizationMember( sp,
+                        principalService.getUser( sp.getName() ),
+                        principalService.getAllPrincipals( sp ) ) )::iterator;
+
     }
 
     @Override

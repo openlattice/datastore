@@ -107,9 +107,10 @@ public class PrincipalDirectoryController implements PrincipalApi, AuthorizingCo
     @ResponseStatus( HttpStatus.OK )
     public Void activateUser( @PathVariable( USER_ID ) String userId ) {
         Auth0UserBasic user = spm.getUser( userId );
-        if ( user != null ) {
+        Principal principal = new Principal( PrincipalType.USER, userId );
+        if ( user != null && !spm.principalExists( principal ) ) {
             checkState( user.getUserId().equals( userId ), "Retrieved user id must match submitted user id" );
-            Principal principal = new Principal( PrincipalType.USER, userId );
+            dbCredService.createUser( userId );
             //TODO: Store more useful information in Auth0 about the user
             spm.createSecurablePrincipalIfNotExists( principal,
                     new SecurablePrincipal( Optional.absent(), principal, user.getNickname(), Optional.absent() ) );

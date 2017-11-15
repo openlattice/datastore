@@ -70,6 +70,7 @@ import com.kryptnostic.datastore.services.EdmService;
 import com.kryptnostic.datastore.services.ODataStorageService;
 import com.kryptnostic.datastore.services.PostgresEntitySetManager;
 import com.kryptnostic.rhizome.pods.CassandraPod;
+import com.openlattice.authorization.DbCredentialService;
 import com.zaxxer.hikari.HikariDataSource;
 import digital.loom.rhizome.authentication.Auth0Pod;
 import digital.loom.rhizome.configuration.auth0.Auth0Configuration;
@@ -310,6 +311,11 @@ public class DatastoreServicesPod {
                 idService(),
                 executor,
                 eventBus );
+    }
+
+    @Bean
+    public DbCredentialService dcs() {
+        return new DbCredentialService( hazelcastInstance );
     }
 
     @Bean

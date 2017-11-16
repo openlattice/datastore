@@ -24,6 +24,7 @@ import java.util.EnumSet;
 import java.util.List;
 import java.util.UUID;
 
+import com.openlattice.authorization.AclKey;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.Assert;
 import org.junit.BeforeClass;
@@ -140,7 +141,7 @@ public class PermissionsControllerTest extends MultipleAuthenticatedUsersBase {
     public void testGetAcl() {
         loginAs( "admin" );
         EntitySet es = createEntitySet();
-        List<UUID> aclKey = ImmutableList.of( es.getId() );
+        AclKey aclKey = new AclKey( es.getId() );
 
         // sanity check: only admin has permissions
         Assert.assertEquals( 1, Iterables.size( permissionsApi.getAcl( aclKey ).getAces() ) );
@@ -160,7 +161,7 @@ public class PermissionsControllerTest extends MultipleAuthenticatedUsersBase {
     public void testGetAclExplanation() {
         loginAs( "admin" );
         EntitySet es2 = createEntitySet();
-        List<UUID> aclKey = ImmutableList.of( es2.getId() );
+        AclKey aclKey = new AclKey( es2.getId() );
 
         // add Permissions to user1: DISCOVER, to rolePrincipal1: READ, to rolePrincipal2:WRITE
         EnumSet<Permission> userPermissions = EnumSet.of( Permission.DISCOVER );

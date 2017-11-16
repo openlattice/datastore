@@ -966,7 +966,6 @@ public class EdmController implements EdmApi, AuthorizingComponent {
             @PathVariable( PROPERTY_TYPE_ID ) UUID propertyTypeId ) {
         ensureReadAccess( new AclKey( entitySetId, propertyTypeId ) );
         return modelService.getEntitySetPropertyMetadata( entitySetId, propertyTypeId );
-
     }
 
     @Override

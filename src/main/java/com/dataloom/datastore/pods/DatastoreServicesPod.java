@@ -20,6 +20,16 @@
 package com.dataloom.datastore.pods;
 
 import com.dataloom.authorization.*;
+import static com.google.common.base.Preconditions.checkState;
+
+import com.dataloom.authorization.AbstractSecurableObjectResolveTypeService;
+import com.dataloom.authorization.AuthorizationManager;
+import com.dataloom.authorization.AuthorizationQueryService;
+import com.dataloom.authorization.EdmAuthorizationHelper;
+import com.dataloom.authorization.HazelcastAbstractSecurableObjectResolveTypeService;
+import com.dataloom.authorization.HazelcastAclKeyReservationService;
+import com.dataloom.authorization.HazelcastAuthorizationService;
+import com.dataloom.authorization.Principals;
 import com.dataloom.clustering.DistributedClusterer;
 import com.dataloom.data.DataGraphManager;
 import com.dataloom.data.DataGraphService;
@@ -65,6 +75,9 @@ import com.kryptnostic.datastore.services.ODataStorageService;
 import com.kryptnostic.datastore.services.PostgresEntitySetManager;
 import com.kryptnostic.rhizome.pods.CassandraPod;
 import com.openlattice.authorization.DbCredentialService;
+import com.openlattice.bootstrap.AuthorizationBootstrap;
+import com.openlattice.bootstrap.OrganizationBootstrap;
+import com.openlattice.bootstrap.UserBootstrap;
 import com.zaxxer.hikari.HikariDataSource;
 import digital.loom.rhizome.authentication.Auth0Pod;
 import digital.loom.rhizome.configuration.auth0.Auth0Configuration;
@@ -328,6 +341,24 @@ public class DatastoreServicesPod {
                 authorizationManager(),
                 principalService(),
                 aclKeyReservationService() );
+    }
+
+    @Bean
+    public AuthorizationBootstrap authzBoot() {
+        return new AuthorizationBootstrap( hazelcastInstance, principalService() );
+    }
+
+    @Bean
+    public OrganizationBootstrap orgBoot() {
+        checkState( authzBoot().isInitialized(), "Roles must be initialized." );
+        return new OrganizationBootstrap( organizationsManager() );
+    }
+
+    @Bean
+    public UserBootstrap userBoot() {
+        checkState( orgBoot().isInitialized(), "Organizations must be initialized." );
+        checkState( authzBoot().isInitialized(), "Roles must be initialized." );
+        return new UserBootstrap( hazelcastInstance, principalService(), dcs() );
     }
 
     // Startup scripts

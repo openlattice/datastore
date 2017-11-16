@@ -146,7 +146,7 @@ public class AppService {
         app.getAppTypeIds().stream().forEach( appTypeId -> {
             UUID entitySetId = generateEntitySet( appTypeId, prefix, principal );
             appConfigs.put( new AppConfigKey( appId, organizationId, appTypeId ),
-                    new AppTypeSetting( entitySetId, defaultPermissions ) );
+                    new AppTypeSetting( entitySetId, EnumSet.of( Permission.READ, Permission.WRITE ) ) );
             authorizationService.addPermission( new AclKey( entitySetId ), appPrincipal, defaultPermissions );
 
             appRoles.entrySet().forEach( entry -> {

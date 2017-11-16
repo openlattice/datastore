@@ -167,11 +167,11 @@ public class PermissionsController implements PermissionsApi, AuthorizingCompone
                 resultMap.put( principal, ace );
                 if ( principal.getType() == PrincipalType.ROLE ) {
                     // add inherited permissions of users from the role
-                    Iterable<SecurablePrincipal> users = securePrincipalsManager
+                    Iterable<Principal> users = securePrincipalsManager
                             .getAllUsersWithPrincipal( securePrincipalsManager.lookup( principal ) );
 
-                    for ( SecurablePrincipal user : users ) {
-                        resultMap.put( user.getPrincipal(), ace );
+                    for ( Principal user : users ) {
+                        resultMap.put( user, ace );
                     }
                 }
             }

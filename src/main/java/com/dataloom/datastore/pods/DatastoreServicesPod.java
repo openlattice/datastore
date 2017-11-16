@@ -19,6 +19,8 @@
 
 package com.dataloom.datastore.pods;
 
+import static com.google.common.base.Preconditions.checkState;
+
 import com.dataloom.authorization.AbstractSecurableObjectResolveTypeService;
 import com.dataloom.authorization.AuthorizationManager;
 import com.dataloom.authorization.AuthorizationQueryService;
@@ -35,50 +37,45 @@ import com.dataloom.data.ids.HazelcastEntityKeyIdService;
 import com.dataloom.data.serializers.FullQualifedNameJacksonDeserializer;
 import com.dataloom.data.serializers.FullQualifedNameJacksonSerializer;
 import com.dataloom.data.storage.CassandraEntityDatastore;
-import com.dataloom.datastore.linking.services.SimpleElasticSearchBlocker;
-import com.dataloom.datastore.linking.services.SimpleMatcher;
 import com.dataloom.datastore.scripts.EmptyPermissionRemover;
 import com.dataloom.datastore.services.AnalysisService;
 import com.dataloom.datastore.services.LinkingService;
 import com.dataloom.datastore.services.SearchService;
 import com.dataloom.datastore.services.SyncTicketService;
 import com.dataloom.directory.UserDirectoryService;
-import com.dataloom.edm.properties.CassandraTypeManager;
+import com.dataloom.edm.properties.PostgresTypeManager;
 import com.dataloom.edm.schemas.SchemaQueryService;
-import com.dataloom.edm.schemas.cassandra.CassandraSchemaQueryService;
 import com.dataloom.edm.schemas.manager.HazelcastSchemaManager;
-import com.dataloom.graph.core.GraphQueryService;
+import com.dataloom.edm.schemas.postgres.PostgresSchemaQueryService;
 import com.dataloom.graph.core.LoomGraph;
-import com.dataloom.linking.CassandraLinkingGraphsQueryService;
 import com.dataloom.linking.HazelcastLinkingGraphs;
 import com.dataloom.linking.HazelcastListingService;
 import com.dataloom.linking.HazelcastVertexMergingService;
-import com.dataloom.linking.components.Blocker;
 import com.dataloom.linking.components.Clusterer;
-import com.dataloom.linking.components.Matcher;
 import com.dataloom.mappers.ObjectMappers;
 import com.dataloom.matching.DistributedMatcher;
 import com.dataloom.merging.DistributedMerger;
 import com.dataloom.neuron.Neuron;
 import com.dataloom.neuron.pods.NeuronPod;
 import com.dataloom.organizations.HazelcastOrganizationService;
-import com.dataloom.organizations.roles.HazelcastRolesService;
-import com.dataloom.organizations.roles.RolesManager;
-import com.dataloom.organizations.roles.RolesQueryService;
+import com.dataloom.organizations.roles.HazelcastPrincipalService;
+import com.dataloom.organizations.roles.SecurePrincipalsManager;
 import com.dataloom.organizations.roles.TokenExpirationTracker;
 import com.dataloom.requests.HazelcastRequestsManager;
 import com.dataloom.requests.RequestQueryService;
-import com.datastax.driver.core.Session;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.eventbus.EventBus;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.hazelcast.core.HazelcastInstance;
-import com.kryptnostic.datastore.services.CassandraEntitySetManager;
 import com.kryptnostic.datastore.services.EdmManager;
 import com.kryptnostic.datastore.services.EdmService;
 import com.kryptnostic.datastore.services.ODataStorageService;
-import com.kryptnostic.rhizome.configuration.cassandra.CassandraConfiguration;
+import com.kryptnostic.datastore.services.PostgresEntitySetManager;
 import com.kryptnostic.rhizome.pods.CassandraPod;
+import com.openlattice.authorization.DbCredentialService;
+import com.openlattice.bootstrap.AuthorizationBootstrap;
+import com.openlattice.bootstrap.OrganizationBootstrap;
+import com.zaxxer.hikari.HikariDataSource;
 import digital.loom.rhizome.authentication.Auth0Pod;
 import digital.loom.rhizome.configuration.auth0.Auth0Configuration;
 import javax.annotation.PostConstruct;
@@ -96,25 +93,22 @@ import org.springframework.context.annotation.Import;
 public class DatastoreServicesPod {
 
     @Inject
-    private CassandraConfiguration   cassandraConfiguration;
+    private HazelcastInstance hazelcastInstance;
 
     @Inject
-    private HazelcastInstance        hazelcastInstance;
+    private HikariDataSource hikariDataSource;
 
     @Inject
-    private Session                  session;
-
-    @Inject
-    private Auth0Configuration       auth0Configuration;
+    private Auth0Configuration auth0Configuration;
 
     @Inject
     private ListeningExecutorService executor;
 
     @Inject
-    private EventBus                 eventBus;
+    private EventBus eventBus;
 
     @Inject
-    private Neuron                   neuron;
+    private Neuron neuron;
 
     @Bean
     public ObjectMapper defaultObjectMapper() {
@@ -126,7 +120,7 @@ public class DatastoreServicesPod {
 
     @Bean
     public AuthorizationQueryService authorizationQueryService() {
-        return new AuthorizationQueryService( cassandraConfiguration.getKeyspace(), session, hazelcastInstance );
+        return new AuthorizationQueryService( hikariDataSource, hazelcastInstance );
     }
 
     @Bean
@@ -141,32 +135,30 @@ public class DatastoreServicesPod {
 
     @Bean
     public SchemaQueryService schemaQueryService() {
-        return new CassandraSchemaQueryService( cassandraConfiguration.getKeyspace(), session );
+        return new PostgresSchemaQueryService( hikariDataSource );
     }
 
     @Bean
-    public CassandraEntitySetManager entitySetManager() {
-        return new CassandraEntitySetManager( cassandraConfiguration.getKeyspace(), session, authorizationManager() );
+    public PostgresEntitySetManager entitySetManager() {
+        return new PostgresEntitySetManager( hikariDataSource );
     }
 
     @Bean
     public HazelcastSchemaManager schemaManager() {
         return new HazelcastSchemaManager(
-                cassandraConfiguration.getKeyspace(),
                 hazelcastInstance,
                 schemaQueryService() );
     }
 
     @Bean
-    public CassandraTypeManager entityTypeManager() {
-        return new CassandraTypeManager( cassandraConfiguration.getKeyspace(), session );
+    public PostgresTypeManager entityTypeManager() {
+        return new PostgresTypeManager( hikariDataSource );
     }
 
     @Bean
     public EdmManager dataModelService() {
         return new EdmService(
-                cassandraConfiguration.getKeyspace(),
-                session,
+                hikariDataSource,
                 hazelcastInstance,
                 aclKeyReservationService(),
                 authorizationManager(),
@@ -193,28 +185,25 @@ public class DatastoreServicesPod {
     @Bean
     public ODataStorageService odataStorageService() {
         return new ODataStorageService(
-                cassandraConfiguration.getKeyspace(),
                 hazelcastInstance,
-                dataModelService(),
-                session );
+                dataModelService() );
     }
 
     @Bean
     public CassandraEntityDatastore cassandraDataManager() {
         return new CassandraEntityDatastore(
-                session,
                 hazelcastInstance,
                 executor,
                 defaultObjectMapper(),
                 idService(),
-                linkingGraph(),
-                loomGraph(),
                 datasourceManager() );
     }
 
     @Bean
-    public RolesQueryService rolesQueryService() {
-        return new RolesQueryService( session );
+    public SecurePrincipalsManager principalService() {
+        return new HazelcastPrincipalService( hazelcastInstance,
+                aclKeyReservationService(),
+                authorizationManager() );
     }
 
     @Bean
@@ -228,32 +217,18 @@ public class DatastoreServicesPod {
     }
 
     @Bean
-    public RolesManager rolesService() {
-        return new HazelcastRolesService(
-                hazelcastInstance,
-                rolesQueryService(),
-                aclKeyReservationService(),
-                tokenTracker(),
-                userDirectoryService(),
-                securableObjectTypes(),
-                authorizationManager() );
-    }
-
-    @Bean
     public HazelcastOrganizationService organizationsManager() {
         return new HazelcastOrganizationService(
-                cassandraConfiguration.getKeyspace(),
-                session,
                 hazelcastInstance,
                 aclKeyReservationService(),
                 authorizationManager(),
                 userDirectoryService(),
-                rolesService() );
+                principalService() );
     }
 
     @Bean
     public DatasourceManager datasourceManager() {
-        return new DatasourceManager( session, hazelcastInstance );
+        return new DatasourceManager( hikariDataSource, hazelcastInstance );
     }
 
     @Bean
@@ -278,27 +253,12 @@ public class DatastoreServicesPod {
 
     @Bean
     public RequestQueryService rqs() {
-        return new RequestQueryService( cassandraConfiguration.getKeyspace(), session );
+        return new RequestQueryService( hikariDataSource );
     }
 
     @Bean
     public HazelcastRequestsManager hazelcastRequestsManager() {
         return new HazelcastRequestsManager( hazelcastInstance, rqs(), neuron );
-    }
-
-    @Bean
-    public Blocker simpleElasticSearchBlocker() {
-        return new SimpleElasticSearchBlocker( dataModelService(), cassandraDataManager(), searchService() );
-    }
-
-    @Bean
-    public Matcher simpleMatcher() {
-        return new SimpleMatcher( dataModelService() );
-    }
-
-    @Bean
-    public CassandraLinkingGraphsQueryService cgqs() {
-        return new CassandraLinkingGraphsQueryService( cassandraConfiguration.getKeyspace(), session );
     }
 
     @Bean
@@ -313,41 +273,27 @@ public class DatastoreServicesPod {
 
     @Bean
     public DistributedMerger merger() {
-        return new DistributedMerger( hazelcastInstance, hazelcastListingService(), dataModelService(), datasourceManager() );
+        return new DistributedMerger( hazelcastInstance,
+                hazelcastListingService(),
+                dataModelService(),
+                datasourceManager() );
     }
 
     @Bean
     public LinkingService linkingService() {
         return new LinkingService(
-                cassandraConfiguration.getKeyspace(),
-                session,
                 linkingGraph(),
-                simpleElasticSearchBlocker(),
                 matcher(),
                 clusterer(),
                 merger(),
-                hazelcastInstance,
                 eventBus,
-                hazelcastListingService(),
                 dataModelService(),
-                dataGraphService(),
-                datasourceManager(),
-                cassandraDataManager(),
-                loomGraph(),
-                idService(),
-                vms(),
-                cgqs(),
-                defaultObjectMapper() );
+                datasourceManager() );
     }
 
     @Bean
     public AnalysisService analysisService() {
         return new AnalysisService();
-    }
-
-    @Bean
-    public GraphQueryService graphQueryService() {
-        return new GraphQueryService( session );
     }
 
     @Bean
@@ -372,8 +318,24 @@ public class DatastoreServicesPod {
     }
 
     @Bean
+    public DbCredentialService dcs() {
+        return new DbCredentialService( hazelcastInstance, hikariDataSource );
+    }
+
+    @Bean
     public HazelcastVertexMergingService vms() {
         return new HazelcastVertexMergingService( hazelcastInstance );
+    }
+
+    @Bean
+    public OrganizationBootstrap orgBoot() {
+        checkState( authzBoot().isInitialized(), "Organizations must be initialized." );
+        return new OrganizationBootstrap( organizationsManager() );
+    }
+
+    @Bean
+    public AuthorizationBootstrap authzBoot() {
+        return new AuthorizationBootstrap( hazelcastInstance, principalService() );
     }
 
     // Startup scripts
@@ -388,7 +350,7 @@ public class DatastoreServicesPod {
         // hazelcastInstance ).run();
 
         // Remove empty permissions
-        new EmptyPermissionRemover( cassandraConfiguration.getKeyspace(), session ).run();
+        new EmptyPermissionRemover( hikariDataSource ).run();
 
         // Create default organization and roles
         // new DefaultOrganizationCreator( organizationsManager(), rolesService() ).run();

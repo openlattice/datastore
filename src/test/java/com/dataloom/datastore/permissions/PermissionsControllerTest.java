@@ -19,6 +19,7 @@
 
 package com.dataloom.datastore.permissions;
 
+import com.google.common.collect.Iterables;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.UUID;
@@ -27,7 +28,6 @@ import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.spark_project.guava.collect.Iterables;
 
 import com.dataloom.authorization.Ace;
 import com.dataloom.authorization.AceExplanation;
@@ -59,16 +59,8 @@ public class PermissionsControllerTest extends MultipleAuthenticatedUsersBase {
 
         // create some roles
         UUID organizationId = organizationsApi.createOrganizationIfNotExists( TestDataFactory.organization() );
-        Role r1 = new Role(
-                Optional.absent(),
-                organizationId,
-                RandomStringUtils.randomAlphanumeric( 5 ),
-                Optional.of( RandomStringUtils.randomAlphanumeric( 5 ) ) );
-        Role r2 = new Role(
-                Optional.absent(),
-                organizationId,
-                RandomStringUtils.randomAlphanumeric( 5 ),
-                Optional.of( RandomStringUtils.randomAlphanumeric( 5 ) ) );
+        Role r1 = TestDataFactory.role( organizationId );
+        Role r2 = TestDataFactory.role(organizationId);
 
         organizationsApi.createRole( r1 );
         organizationsApi.createRole( r2 );

@@ -19,6 +19,7 @@
 
 package com.dataloom.datastore.pods;
 
+import com.dataloom.organizations.roles.SecurePrincipalsManager;
 import com.ryantenney.metrics.spring.config.annotation.EnableMetrics;
 import javax.inject.Inject;
 
@@ -49,18 +50,18 @@ public class DatastoreSecurityPod extends Auth0SecurityPod {
     @Inject
     ObjectMapper defaultObjectMapper;
 
-    @Inject
-    TokenExpirationTracker tokenTracker;
+    @Inject SecurePrincipalsManager spm;
 
     @Override
     protected ConfigurableAuth0AuthenticationProvider getAuthenticationProvider() {
-        return new LoomAuth0AuthenticationProvider( getAuthenticationApiClient(), tokenTracker );
+        return new LoomAuth0AuthenticationProvider( getAuthenticationApiClient(), spm );
     }
 
     @Override
     protected void authorizeRequests( HttpSecurity http ) throws Exception {
         http.authorizeRequests()
                 .antMatchers( HttpMethod.OPTIONS ).permitAll()
+                .antMatchers( HttpMethod.PUT, "/datastore/principals/user/*" ).permitAll()
                 .antMatchers( HttpMethod.GET, "/datastore/edm/**" ).permitAll()
                 .antMatchers( "/datastore/data/entitydata/*" ).permitAll()
                 .antMatchers( "/datastore/**" ).hasAnyAuthority( SystemRole.valuesAsArray() );

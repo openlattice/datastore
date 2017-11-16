@@ -1,119 +1,53 @@
 package com.dataloom.datastore.services;
 
 import com.codahale.metrics.annotation.Timed;
-import com.dataloom.data.DataGraphManager;
 import com.dataloom.data.DatasourceManager;
-import com.dataloom.data.EntityDatastore;
-import com.dataloom.data.EntityKeyIdService;
 import com.dataloom.edm.type.EntityType;
-import com.dataloom.linking.aggregators.MergeEdgeAggregator;
-import com.dataloom.edm.type.PropertyType;
-import com.dataloom.graph.core.LoomGraphApi;
-import com.dataloom.graph.edge.EdgeKey;
-import com.dataloom.graph.edge.LoomEdge;
-import com.dataloom.graph.mapstores.PostgresEdgeMapstore;
-import com.dataloom.linking.CassandraLinkingGraphsQueryService;
 import com.dataloom.linking.HazelcastLinkingGraphs;
-import com.dataloom.linking.HazelcastListingService;
-import com.dataloom.linking.HazelcastVertexMergingService;
-import com.dataloom.linking.components.Blocker;
 import com.dataloom.linking.components.Clusterer;
 import com.dataloom.matching.DistributedMatcher;
 import com.dataloom.merging.DistributedMerger;
-import com.dataloom.streams.StreamUtil;
-import com.datastax.driver.core.Session;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Stopwatch;
 import com.google.common.collect.HashMultimap;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Maps;
 import com.google.common.collect.SetMultimap;
-import com.google.common.collect.Sets;
 import com.google.common.eventbus.EventBus;
-import com.hazelcast.aggregation.Aggregator;
-import com.hazelcast.core.HazelcastInstance;
-import com.hazelcast.query.Predicates;
 import com.kryptnostic.datastore.services.EdmManager;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
-import org.apache.olingo.commons.api.edm.EdmPrimitiveTypeKind;
 import org.apache.olingo.commons.api.edm.FullQualifiedName;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.TimeUnit;
+
 public class LinkingService {
     private static final FullQualifiedName BASE_PERSON_TYPE = new FullQualifiedName( "general.person" );
-    private static final Logger logger = LoggerFactory.getLogger( LinkingService.class );
+    private static final Logger            logger           = LoggerFactory.getLogger( LinkingService.class );
 
-    private final ObjectMapper                       mapper;
     private final HazelcastLinkingGraphs             linkingGraph;
-    private final Blocker                            blocker;
     private final DistributedMatcher                 matcher;
     private final Clusterer                          clusterer;
     private final DistributedMerger                  merger;
-    private final HazelcastListingService            listingService;
     private final EdmManager                         dms;
-    private final DataGraphManager                   dgm;
-    private final EntityDatastore                    eds;
-    private final LoomGraphApi                       lm;
     private final DatasourceManager                  dsm;
-    private final String                             keyspace;
-    private final Session                            session;
-    private final EntityKeyIdService                 idService;
-    private final HazelcastVertexMergingService      vms;
-    private final CassandraLinkingGraphsQueryService clgqs;
 
     public LinkingService(
-            String keyspace,
-            Session session,
             HazelcastLinkingGraphs linkingGraph,
-            Blocker blocker,
             DistributedMatcher matcher,
             Clusterer clusterer,
             DistributedMerger merger,
-            HazelcastInstance hazelcast,
             EventBus eventBus,
-            HazelcastListingService listingService,
             EdmManager dms,
-            DataGraphManager dgm,
-            DatasourceManager dsm,
-            EntityDatastore eds,
-            LoomGraphApi lm,
-            EntityKeyIdService idService,
-            HazelcastVertexMergingService vms,
-            CassandraLinkingGraphsQueryService clgqs,
-            ObjectMapper mapper ) {
+            DatasourceManager dsm  ) {
         this.linkingGraph = linkingGraph;
-
-        this.blocker = blocker;
         this.matcher = matcher;
         this.clusterer = clusterer;
         this.merger = merger;
-
-        this.session = session;
-        this.keyspace = keyspace;
+        this.dms = dms;
+        this.dsm = dsm;
 
         eventBus.register( this );
-
-        this.listingService = listingService;
-        this.dms = dms;
-        this.dgm = dgm;
-        this.dsm = dsm;
-        this.eds = eds;
-        this.lm = lm;
-        this.idService = idService;
-        this.vms = vms;
-        this.mapper = mapper;
-        this.clgqs = clgqs;
     }
 
     private void validateMatchingTypes( Set<UUID> entitySetIds ) {
@@ -177,18 +111,7 @@ public class LinkingService {
             Map<UUID, UUID> linkingEntitySetsWithSyncIds,
             SetMultimap<UUID, UUID> linkIndexedByPropertyTypes,
             SetMultimap<UUID, UUID> linkIndexedByEntitySets ) {
-        blocker.setLinking( linkingEntitySetsWithSyncIds, linkIndexedByPropertyTypes, linkIndexedByEntitySets );
         matcher.setLinking( linkingEntitySetsWithSyncIds, linkIndexedByPropertyTypes, linkIndexedByEntitySets );
-    }
-
-    public Map<FullQualifiedName, String> getPropertyTypeIdIndexedByFqn( Set<Map<UUID, UUID>> linkingProperties ) {
-        Map<FullQualifiedName, String> result = Maps.newHashMap();
-
-        linkingProperties.stream().flatMap( m -> m.entrySet().stream() )
-                .forEach( entry -> result.put( dms.getPropertyType( entry.getValue() ).getType(),
-                        entry.getValue().toString() ) );
-
-        return result;
     }
 
     /**

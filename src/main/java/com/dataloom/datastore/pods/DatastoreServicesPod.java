@@ -358,7 +358,7 @@ public class DatastoreServicesPod {
     public UserBootstrap userBoot() {
         checkState( orgBoot().isInitialized(), "Organizations must be initialized." );
         checkState( authzBoot().isInitialized(), "Roles must be initialized." );
-        return new UserBootstrap( hazelcastInstance, principalService(), dcs() );
+        return new UserBootstrap( auth0Configuration, principalService(), dcs() );
     }
 
     // Startup scripts

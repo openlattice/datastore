@@ -78,7 +78,7 @@ public class PrincipalDirectoryController implements PrincipalApi, AuthorizingCo
 
     @Override
     @RequestMapping(
-            path = USERS,
+            path = ROLES,
             method = RequestMethod.GET,
             produces = MediaType.APPLICATION_JSON_VALUE )
     public Map<AclKey, Role> getAvailableRoles() {

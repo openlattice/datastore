@@ -94,7 +94,7 @@ public class OrganizationsController implements AuthorizingComponent, Organizati
             consumes = MediaType.APPLICATION_JSON_VALUE )
     public UUID createOrganizationIfNotExists( @RequestBody Organization organization ) {
         organizations.createOrganization( Principals.getCurrentUser(), organization );
-        securableObjectTypes.createSecurableObjectType( ImmutableList.of( organization.getId() ),
+        securableObjectTypes.createSecurableObjectType( new AclKey( organization.getId() ),
                 SecurableObjectType.Organization );
         return organization.getId();
     }
@@ -125,7 +125,7 @@ public class OrganizationsController implements AuthorizingComponent, Organizati
 
         organizations.destroyOrganization( organizationId );
         authorizations.deletePermissions( aclKey );
-        securableObjectTypes.deleteSecurableObjectType( ImmutableList.of( organizationId ) );
+        securableObjectTypes.deleteSecurableObjectType( new AclKey( organizationId ) );
         return null;
     }
 

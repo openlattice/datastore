@@ -436,7 +436,7 @@ public class EdmController implements EdmApi, AuthorizingComponent {
     public Void deleteEntitySet( @PathVariable( ID ) UUID entitySetId ) {
         ensureOwnerAccess( new AclKey( entitySetId ) );
         modelService.deleteEntitySet( entitySetId );
-        securableObjectTypes.deleteSecurableObjectType( ImmutableList.of( entitySetId ) );
+        securableObjectTypes.deleteSecurableObjectType( new AclKey( entitySetId ) );
 
         dataManager.deleteEntitySetData( entitySetId );
 

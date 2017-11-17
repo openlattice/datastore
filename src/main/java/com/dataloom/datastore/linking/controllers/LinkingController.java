@@ -19,23 +19,6 @@
 
 package com.dataloom.datastore.linking.controllers;
 
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
-import java.util.stream.Collectors;
-
-import javax.inject.Inject;
-
-import com.openlattice.authorization.AclKey;
-import org.springframework.http.MediaType;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
-
 import com.dataloom.authorization.AuthorizationManager;
 import com.dataloom.authorization.AuthorizingComponent;
 import com.dataloom.authorization.Permission;
@@ -55,7 +38,18 @@ import com.google.common.collect.HashMultimap;
 import com.google.common.collect.SetMultimap;
 import com.google.common.collect.Sets;
 import com.kryptnostic.datastore.services.EdmManager;
-
+import com.openlattice.authorization.AclKey;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+import java.util.stream.Collectors;
+import javax.inject.Inject;
+import org.springframework.http.MediaType;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 import retrofit2.http.Body;
 import retrofit2.http.Path;
 
@@ -67,26 +61,26 @@ import retrofit2.http.Path;
 public class LinkingController implements LinkingApi, AuthorizingComponent {
 
     @Inject
-    private AuthorizationManager    authorizationManager;
+    private AuthorizationManager authorizationManager;
 
     @Inject
-    private EdmManager              edm;
+    private EdmManager edm;
 
     @Inject
     private HazelcastListingService listings;
 
     @Inject
-    private LinkingService          linkingService;
+    private LinkingService linkingService;
 
     @Inject
-    private DatasourceManager       datasourceManager;
+    private DatasourceManager datasourceManager;
 
     @Override
     @PostMapping(
-        value = "/"
-                + TYPE,
-        consumes = MediaType.APPLICATION_JSON_VALUE,
-        produces = MediaType.APPLICATION_JSON_VALUE )
+            value = "/"
+                    + TYPE,
+            consumes = MediaType.APPLICATION_JSON_VALUE,
+            produces = MediaType.APPLICATION_JSON_VALUE )
     public UUID createLinkingEntityType( @RequestBody LinkingEntityType linkingEntityType ) {
         EntityType entityType = linkingEntityType.getLinkingEntityType();
         // remove PII properties of linked entity type if deidentified flag is on.
@@ -103,8 +97,8 @@ public class LinkingController implements LinkingApi, AuthorizingComponent {
 
     @Override
     @PostMapping(
-        consumes = MediaType.APPLICATION_JSON_VALUE,
-        produces = MediaType.APPLICATION_JSON_VALUE )
+            consumes = MediaType.APPLICATION_JSON_VALUE,
+            produces = MediaType.APPLICATION_JSON_VALUE )
     public UUID linkEntitySets( @RequestBody LinkingRequest linkingRequest ) {
         LinkingEntitySet linkingEntitySet = linkingRequest.getLinkingEntitySet();
         Set<Map<UUID, UUID>> linkingProperties = linkingEntitySet.getLinkingProperties();

@@ -19,6 +19,7 @@
 
 package com.dataloom.datastore.services;
 
+import com.openlattice.authorization.AclKey;
 import java.util.Collection;
 import java.util.EnumSet;
 import java.util.List;

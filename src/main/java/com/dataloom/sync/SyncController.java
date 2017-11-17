@@ -1,6 +1,11 @@
 package com.dataloom.sync;
 
-import com.dataloom.authorization.*;
+
+import com.dataloom.authorization.AuthorizationManager;
+import com.dataloom.authorization.AuthorizingComponent;
+import com.dataloom.authorization.ForbiddenException;
+import com.dataloom.authorization.Permission;
+import com.dataloom.authorization.Principals;
 import com.dataloom.data.DatasourceManager;
 import com.openlattice.authorization.AclKey;
 import org.springframework.web.bind.annotation.PathVariable;

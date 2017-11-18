@@ -44,6 +44,7 @@ import com.kryptnostic.datastore.exceptions.BadRequestException;
 import com.kryptnostic.datastore.exceptions.BatchException;
 import com.kryptnostic.datastore.services.EdmManager;
 import com.kryptnostic.datastore.services.PostgresEntitySetManager;
+import com.openlattice.authorization.AclKey;
 import org.apache.olingo.commons.api.edm.FullQualifiedName;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -55,6 +56,7 @@ import javax.inject.Inject;
 import javax.servlet.http.HttpServletResponse;
 import java.util.*;
 import java.util.concurrent.ConcurrentSkipListSet;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping( EdmApi.CONTROLLER )
@@ -360,6 +362,7 @@ public class EdmController implements EdmApi, AuthorizingComponent {
             method = RequestMethod.POST )
     @ResponseStatus( HttpStatus.OK )
     public Void createSchemaIfNotExists( @RequestBody Schema schema ) {
+        ensureAdminAccess();
         schemaManager.createOrUpdateSchemas( schema );
         return null;
     }
@@ -370,6 +373,7 @@ public class EdmController implements EdmApi, AuthorizingComponent {
             method = RequestMethod.PUT )
     @ResponseStatus( HttpStatus.OK )
     public Void createEmptySchema( @PathVariable( NAMESPACE ) String namespace, @PathVariable( NAME ) String name ) {
+        ensureAdminAccess();
         schemaManager.upsertSchemas( ImmutableSet.of( new FullQualifiedName( namespace, name ) ) );
         return null;
     }
@@ -391,10 +395,6 @@ public class EdmController implements EdmApi, AuthorizingComponent {
                 ensureValidEntitySet( entitySet );
                 modelService.createEntitySet( Principals.getCurrentUser(), entitySet );
                 createdEntitySets.put( entitySet.getName(), entitySet.getId() );
-                securableObjectTypes.createSecurableObjectType( ImmutableList.of( entitySet.getId() ),
-                        SecurableObjectType.EntitySet );
-                datasourceManager.setCurrentSyncId( entitySet.getId(),
-                        datasourceManager.createNewSyncIdForEntitySet( entitySet.getId() ) );
             } catch ( Exception e ) {
                 dto.addError( LoomExceptions.OTHER_EXCEPTION, entitySet.getName() + ": " + e.getMessage() );
             }
@@ -424,11 +424,8 @@ public class EdmController implements EdmApi, AuthorizingComponent {
             path = ENTITY_SETS_PATH + ID_PATH,
             method = RequestMethod.GET )
     public EntitySet getEntitySet( @PathVariable( ID ) UUID entitySetId ) {
-        if ( isAuthorized( Permission.READ ).test( ImmutableList.of( entitySetId ) ) ) {
-            return modelService.getEntitySet( entitySetId );
-        } else {
-            throw new ForbiddenException( "Unable to find entity set: " + entitySetId );
-        }
+        ensureReadAccess( new AclKey( entitySetId ) );
+        return modelService.getEntitySet( entitySetId );
     }
 
     @Override
@@ -437,9 +434,9 @@ public class EdmController implements EdmApi, AuthorizingComponent {
             method = RequestMethod.DELETE )
     @ResponseStatus( HttpStatus.OK )
     public Void deleteEntitySet( @PathVariable( ID ) UUID entitySetId ) {
-        ensureOwnerAccess( Arrays.asList( entitySetId ) );
+        ensureOwnerAccess( new AclKey( entitySetId ) );
         modelService.deleteEntitySet( entitySetId );
-        securableObjectTypes.deleteSecurableObjectType( ImmutableList.of( entitySetId ) );
+        securableObjectTypes.deleteSecurableObjectType( new AclKey( entitySetId ) );
 
         dataManager.deleteEntitySetData( entitySetId );
 
@@ -456,6 +453,8 @@ public class EdmController implements EdmApi, AuthorizingComponent {
             @PathVariable( NAMESPACE ) String namespace,
             @PathVariable( NAME ) String name,
             @RequestBody EdmRequest request ) {
+        ensureAdminAccess();
+
         final Set<UUID> propertyTypes = request.getPropertyTypes();
         final Set<UUID> entityTypes = request.getEntityTypes();
         final FullQualifiedName schemaName = new FullQualifiedName( namespace, name );
@@ -491,6 +490,7 @@ public class EdmController implements EdmApi, AuthorizingComponent {
             path = ENUM_TYPE_PATH,
             consumes = MediaType.APPLICATION_JSON_VALUE )
     public UUID createEnumType( @RequestBody EnumType enumType ) {
+        ensureAdminAccess();
         modelService.createEnumTypeIfNotExists( enumType );
         return enumType.getId();
     }
@@ -523,6 +523,7 @@ public class EdmController implements EdmApi, AuthorizingComponent {
     @DeleteMapping(
             path = ENUM_TYPE_PATH + ID_PATH )
     public Void deleteEnumType( @PathVariable( ID ) UUID enumTypeId ) {
+        ensureAdminAccess();
         modelService.deleteEnumType( enumTypeId );
         return null;
     }
@@ -540,6 +541,7 @@ public class EdmController implements EdmApi, AuthorizingComponent {
             path = COMPLEX_TYPE_PATH,
             consumes = MediaType.APPLICATION_JSON_VALUE )
     public UUID createComplexType( @RequestBody ComplexType complexType ) {
+        ensureAdminAccess();
         modelService.createComplexTypeIfNotExists( complexType );
         return complexType.getId();
     }
@@ -565,6 +567,7 @@ public class EdmController implements EdmApi, AuthorizingComponent {
             path = COMPLEX_TYPE_PATH + ID_PATH,
             produces = MediaType.APPLICATION_JSON_VALUE )
     public Void deleteComplexType( @PathVariable( ID ) UUID complexTypeId ) {
+        ensureAdminAccess();
         modelService.deleteComplexType( complexTypeId );
         return null;
     }
@@ -702,6 +705,7 @@ public class EdmController implements EdmApi, AuthorizingComponent {
             consumes = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
     public UUID createPropertyType( @RequestBody PropertyType propertyType ) {
+        ensureAdminAccess();
         modelService.createPropertyTypeIfNotExists( propertyType );
         return propertyType.getId();
     }
@@ -813,11 +817,8 @@ public class EdmController implements EdmApi, AuthorizingComponent {
             method = RequestMethod.PATCH,
             consumes = MediaType.APPLICATION_JSON_VALUE )
     public Void updateEntitySetMetadata( @PathVariable( ID ) UUID entitySetId, @RequestBody MetadataUpdate update ) {
-        if ( authorizations.checkIfHasPermissions( ImmutableList.of( entitySetId ),
-                Principals.getCurrentPrincipals(),
-                EnumSet.of( Permission.OWNER ) ) ) {
-            modelService.updateEntitySetMetadata( entitySetId, update );
-        }
+        ensureOwnerAccess( new AclKey( entitySetId ) );
+        modelService.updateEntitySetMetadata( entitySetId, update );
         return null;
     }
 
@@ -842,6 +843,7 @@ public class EdmController implements EdmApi, AuthorizingComponent {
             method = RequestMethod.POST,
             produces = MediaType.APPLICATION_JSON_VALUE )
     public UUID createAssociationType( @RequestBody AssociationType associationType ) {
+        ensureAdminAccess();
         EntityType entityType = associationType.getAssociationEntityType();
         if ( entityType == null ) {
             throw new IllegalArgumentException( "You cannot create an edge type without specifying its entity type" );
@@ -944,11 +946,14 @@ public class EdmController implements EdmApi, AuthorizingComponent {
             produces = MediaType.APPLICATION_JSON_VALUE )
     public Map<UUID, EntitySetPropertyMetadata> getAllEntitySetPropertyMetadata(
             @PathVariable( ID ) UUID entitySetId ) {
-        if ( isAuthorized( Permission.READ ).test( ImmutableList.of( entitySetId ) ) ) {
-            return modelService.getAllEntitySetPropertyMetadata( entitySetId );
-        } else {
-            throw new ForbiddenException( "Unable to find entity set: " + entitySetId );
-        }
+        ensureReadAccess( new AclKey( entitySetId ) );
+        Set<UUID> authorizedPropertyTypes = modelService.getEntityTypeByEntitySetId( entitySetId ).getProperties()
+                .stream().filter( propertyTypeId -> authorizations
+                        .checkIfHasPermissions( new AclKey( entitySetId, propertyTypeId ),
+                                Principals.getCurrentPrincipals(),
+                                EnumSet.of( Permission.READ ) )
+                ).collect( Collectors.toSet() );
+        return modelService.getAllEntitySetPropertyMetadata( entitySetId, authorizedPropertyTypes );
     }
 
     @Override
@@ -959,11 +964,8 @@ public class EdmController implements EdmApi, AuthorizingComponent {
     public EntitySetPropertyMetadata getEntitySetPropertyMetadata(
             @PathVariable( ID ) UUID entitySetId,
             @PathVariable( PROPERTY_TYPE_ID ) UUID propertyTypeId ) {
-        if ( isAuthorized( Permission.READ ).test( ImmutableList.of( entitySetId ) ) ) {
-            return modelService.getEntitySetPropertyMetadata( entitySetId, propertyTypeId );
-        } else {
-            throw new ForbiddenException( "Unable to find entity set: " + entitySetId );
-        }
+        ensureReadAccess( new AclKey( entitySetId, propertyTypeId ) );
+        return modelService.getEntitySetPropertyMetadata( entitySetId, propertyTypeId );
     }
 
     @Override
@@ -975,11 +977,8 @@ public class EdmController implements EdmApi, AuthorizingComponent {
             @PathVariable( ID ) UUID entitySetId,
             @PathVariable( PROPERTY_TYPE_ID ) UUID propertyTypeId,
             @RequestBody MetadataUpdate update ) {
-        if ( authorizations.checkIfHasPermissions( ImmutableList.of( entitySetId ),
-                Principals.getCurrentPrincipals(),
-                EnumSet.of( Permission.OWNER ) ) ) {
-            modelService.updateEntitySetPropertyMetadata( entitySetId, propertyTypeId, update );
-        }
+        ensureOwnerAccess( new AclKey( entitySetId, propertyTypeId ) );
+        modelService.updateEntitySetPropertyMetadata( entitySetId, propertyTypeId, update );
         return null;
     }
 }

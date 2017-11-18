@@ -19,6 +19,7 @@
 
 package com.dataloom.datastore.services;
 
+import com.openlattice.authorization.AclKey;
 import java.util.Collection;
 import java.util.EnumSet;
 import java.util.List;
@@ -30,6 +31,8 @@ import java.util.stream.Collectors;
 import javax.annotation.PostConstruct;
 import javax.inject.Inject;
 
+import com.hazelcast.core.HazelcastInstance;
+import com.openlattice.authorization.AclKey;
 import com.openlattice.rhizome.hazelcast.DelegatedStringSet;
 import org.apache.olingo.commons.api.edm.FullQualifiedName;
 import org.slf4j.Logger;
@@ -120,6 +123,7 @@ public class SearchService {
 
     @Inject
     private EntityKeyIdService                        entityKeyService;
+
 
     @PostConstruct
     public void initializeBus() {
@@ -447,7 +451,7 @@ public class SearchService {
     }
 
     private boolean getAuthorization( UUID entitySetId ) {
-        return authorizations.checkIfHasPermissions( ImmutableList.of( entitySetId ),
+        return authorizations.checkIfHasPermissions( new AclKey( entitySetId ),
                 Principals.getCurrentPrincipals(),
                 EnumSet.of( Permission.READ ) );
     }

@@ -21,6 +21,7 @@ package com.dataloom.datastore.pods;
 
 import com.dataloom.data.DataApi;
 import com.dataloom.datastore.analysis.controllers.AnalysisController;
+import com.dataloom.datastore.apps.controllers.AppController;
 import com.dataloom.datastore.authorization.controllers.AuthorizationsController;
 import com.dataloom.datastore.constants.CustomMediaType;
 import com.dataloom.datastore.converters.CsvHttpMessageConverter;
@@ -57,7 +58,7 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurationSupp
                 PrincipalDirectoryController.class,
                 EdmController.class, OrganizationsController.class,
                 DataStoreExceptionHandler.class, LinkingController.class, AnalysisController.class,
-                SyncController.class, RequestsController.class },
+                SyncController.class, RequestsController.class, AppController.class },
         includeFilters = @ComponentScan.Filter(
                 value = { org.springframework.stereotype.Controller.class,
                         org.springframework.web.bind.annotation.RestControllerAdvice.class },

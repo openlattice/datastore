@@ -58,11 +58,7 @@ public class RolesServiceTest extends OrganizationsTest {
     }
 
     private Role createRole( UUID organizationId ) {
-        Role role = new Role(
-                Optional.absent(),
-                organizationId,
-                RandomStringUtils.randomAlphanumeric( 5 ),
-                Optional.of( RandomStringUtils.randomAlphanumeric( 5 ) ) );
+        Role role = TestDataFactory.role( organizationId );
         UUID roleId = organizations.createRole( role );
         Assert.assertNotNull( roleId );
         Role registered = organizations.getRole( organizationId, roleId );

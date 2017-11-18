@@ -112,8 +112,9 @@ public class PrincipalDirectoryController implements PrincipalApi, AuthorizingCo
             checkState( user.getUserId().equals( userId ), "Retrieved user id must match submitted user id" );
             dbCredService.createUser( userId );
             //TODO: Store more useful information in Auth0 about the user
+            String title = (user.getNickname() != null && user.getNickname().length() > 0) ? user.getNickname() : user.getEmail();
             spm.createSecurablePrincipalIfNotExists( principal,
-                    new SecurablePrincipal( Optional.absent(), principal, user.getNickname(), Optional.absent() ) );
+                    new SecurablePrincipal( Optional.absent(), principal, title, Optional.absent() ) );
         }
         return null;
     }

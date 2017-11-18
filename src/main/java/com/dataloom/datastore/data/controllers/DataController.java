@@ -32,6 +32,7 @@ import javax.annotation.PostConstruct;
 import javax.inject.Inject;
 import javax.servlet.http.HttpServletResponse;
 
+import com.openlattice.authorization.AclKey;
 import org.apache.olingo.commons.api.edm.EdmPrimitiveTypeKind;
 import org.apache.olingo.commons.api.edm.FullQualifiedName;
 import org.slf4j.Logger;
@@ -200,7 +201,7 @@ public class DataController implements DataApi, AuthorizingComponent {
             UUID entitySetId,
             Optional<UUID> syncId,
             Optional<Set<UUID>> selectedProperties ) {
-        if ( authz.checkIfHasPermissions( ImmutableList.of( entitySetId ),
+        if ( authz.checkIfHasPermissions( new AclKey( entitySetId ),
                 Principals.getCurrentPrincipals(),
                 EnumSet.of( Permission.READ ) ) ) {
             return loadNormalEntitySetData( entitySetId, syncId, selectedProperties );
@@ -246,7 +247,7 @@ public class DataController implements DataApi, AuthorizingComponent {
             @PathVariable( SET_ID ) UUID entitySetId,
             @PathVariable( SYNC_ID ) UUID syncId,
             @RequestBody Map<String, SetMultimap<UUID, Object>> entities ) {
-        if ( authz.checkIfHasPermissions( ImmutableList.of( entitySetId ),
+        if ( authz.checkIfHasPermissions( new AclKey( entitySetId ),
                 Principals.getCurrentPrincipals(),
                 EnumSet.of( Permission.WRITE ) ) ) {
             // To avoid re-doing authz check more of than once every 250 ms during an integration we cache the
@@ -316,7 +317,7 @@ public class DataController implements DataApi, AuthorizingComponent {
     @Override
     @PostMapping( "/" + TICKET + "/" + SET_ID_PATH + "/" + SYNC_ID_PATH )
     public UUID acquireSyncTicket( @PathVariable( SET_ID ) UUID entitySetId, @PathVariable( SYNC_ID ) UUID syncId ) {
-        if ( authz.checkIfHasPermissions( ImmutableList.of( entitySetId ),
+        if ( authz.checkIfHasPermissions( new AclKey( entitySetId ),
                 Principals.getCurrentPrincipals(),
                 EnumSet.of( Permission.WRITE ) ) ) {
             AuthorizationKey ak = new AuthorizationKey( Principals.getCurrentUser(), entitySetId, syncId );
@@ -390,7 +391,7 @@ public class DataController implements DataApi, AuthorizingComponent {
             @PathVariable( SET_ID ) UUID entitySetId,
             @PathVariable( SYNC_ID ) UUID syncId,
             @RequestBody Set<Association> associations ) {
-        if ( authz.checkIfHasPermissions( ImmutableList.of( entitySetId ),
+        if ( authz.checkIfHasPermissions( new AclKey( entitySetId ),
                 Principals.getCurrentPrincipals(),
                 EnumSet.of( Permission.WRITE ) ) ) {
             // To avoid re-doing authz check more of than once every 250 ms during an integration we cache the

@@ -19,6 +19,7 @@
 
 package com.dataloom.datastore.pods;
 
+import com.dataloom.authorization.*;
 import static com.google.common.base.Preconditions.checkState;
 
 import com.dataloom.authorization.AbstractSecurableObjectResolveTypeService;
@@ -37,6 +38,7 @@ import com.dataloom.data.ids.HazelcastEntityKeyIdService;
 import com.dataloom.data.serializers.FullQualifedNameJacksonDeserializer;
 import com.dataloom.data.serializers.FullQualifedNameJacksonSerializer;
 import com.dataloom.data.storage.CassandraEntityDatastore;
+import com.dataloom.datastore.apps.services.AppService;
 import com.dataloom.datastore.scripts.EmptyPermissionRemover;
 import com.dataloom.datastore.services.AnalysisService;
 import com.dataloom.datastore.services.LinkingService;
@@ -75,14 +77,16 @@ import com.kryptnostic.rhizome.pods.CassandraPod;
 import com.openlattice.authorization.DbCredentialService;
 import com.openlattice.bootstrap.AuthorizationBootstrap;
 import com.openlattice.bootstrap.OrganizationBootstrap;
+import com.openlattice.bootstrap.UserBootstrap;
 import com.zaxxer.hikari.HikariDataSource;
 import digital.loom.rhizome.authentication.Auth0Pod;
 import digital.loom.rhizome.configuration.auth0.Auth0Configuration;
-import javax.annotation.PostConstruct;
-import javax.inject.Inject;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
+
+import javax.annotation.PostConstruct;
+import javax.inject.Inject;
 
 @Configuration
 @Import( {
@@ -164,7 +168,8 @@ public class DatastoreServicesPod {
                 authorizationManager(),
                 entitySetManager(),
                 entityTypeManager(),
-                schemaManager() );
+                schemaManager(),
+                datasourceManager() );
     }
 
     @Bean
@@ -328,14 +333,32 @@ public class DatastoreServicesPod {
     }
 
     @Bean
-    public OrganizationBootstrap orgBoot() {
-        checkState( authzBoot().isInitialized(), "Organizations must be initialized." );
-        return new OrganizationBootstrap( organizationsManager() );
+    public AppService appService() {
+        return new AppService( hazelcastInstance,
+                dataModelService(),
+                organizationsManager(),
+                authorizationQueryService(),
+                authorizationManager(),
+                principalService(),
+                aclKeyReservationService() );
     }
 
     @Bean
     public AuthorizationBootstrap authzBoot() {
         return new AuthorizationBootstrap( hazelcastInstance, principalService() );
+    }
+
+    @Bean
+    public OrganizationBootstrap orgBoot() {
+        checkState( authzBoot().isInitialized(), "Roles must be initialized." );
+        return new OrganizationBootstrap( organizationsManager() );
+    }
+
+    @Bean
+    public UserBootstrap userBoot() {
+        checkState( orgBoot().isInitialized(), "Organizations must be initialized." );
+        checkState( authzBoot().isInitialized(), "Roles must be initialized." );
+        return new UserBootstrap( auth0Configuration, principalService(), dcs() );
     }
 
     // Startup scripts

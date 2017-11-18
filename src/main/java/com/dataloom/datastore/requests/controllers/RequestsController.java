@@ -19,6 +19,7 @@
 
 package com.dataloom.datastore.requests.controllers;
 
+import com.openlattice.authorization.AclKey;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -98,7 +99,7 @@ public class RequestsController implements RequestsApi, AuthorizingComponent {
         path = { "", "/" },
         consumes = MediaType.APPLICATION_JSON_VALUE,
         produces = MediaType.APPLICATION_JSON_VALUE )
-    public Iterable<Status> getStatuses( @RequestBody Set<List<UUID>> aclKeys ) {
+    public Iterable<Status> getStatuses( @RequestBody Set<AclKey> aclKeys ) {
         return aclKeys.stream().flatMap( this::getStatuses )::iterator;
     }
 
@@ -109,7 +110,7 @@ public class RequestsController implements RequestsApi, AuthorizingComponent {
         produces = MediaType.APPLICATION_JSON_VALUE )
     public Iterable<Status> getStatuses(
             @PathVariable( REQUEST_STATUS ) RequestStatus requestStatus,
-            @RequestBody Set<List<UUID>> aclKeys ) {
+            @RequestBody Set<AclKey> aclKeys ) {
         return aclKeys.stream().flatMap( getStatusesInStatus( requestStatus ) )::iterator;
     }
 
@@ -127,14 +128,14 @@ public class RequestsController implements RequestsApi, AuthorizingComponent {
         throw new ForbiddenException();
     }
 
-    private Function<List<UUID>, Stream<Status>> getStatusesInStatus( RequestStatus requestStatus ) {
+    private Function<AclKey, Stream<Status>> getStatusesInStatus( RequestStatus requestStatus ) {
         return aclKey -> owns( aclKey ) ? hrm.getStatusesForAllUser( aclKey, requestStatus )
                 : hrm.getStatuses( Stream.of( new AceKey( aclKey, Principals.getCurrentUser() ) ) )
                         .filter( Predicates.notNull()::apply)
                         .filter( status -> status.getStatus().equals( requestStatus ) );
     }
 
-    private Stream<Status> getStatuses( List<UUID> aclKey ) {
+    private Stream<Status> getStatuses( AclKey aclKey ) {
         return owns( aclKey ) ? hrm.getStatusesForAllUser( aclKey )
                 : hrm.getStatuses( Stream.of( new AceKey( aclKey, Principals.getCurrentUser() ) ) );
     }

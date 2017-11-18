@@ -21,16 +21,13 @@ package com.dataloom.datastore.permissions.controllers;
 
 import java.util.Collection;
 import java.util.EnumSet;
-import java.util.List;
 import java.util.Map.Entry;
 import java.util.Set;
-import java.util.UUID;
 import java.util.stream.Collectors;
 
 import javax.inject.Inject;
 
 import com.openlattice.authorization.AclKey;
-import com.openlattice.authorization.SecurablePrincipal;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.MediaType;
@@ -58,22 +55,7 @@ import com.google.common.collect.SetMultimap;
 import com.google.common.collect.Sets;
 import com.google.common.eventbus.EventBus;
 import com.kryptnostic.datastore.exceptions.BadRequestException;
-import java.util.Collection;
-import java.util.EnumSet;
-import java.util.List;
-import java.util.Map.Entry;
-import java.util.Set;
-import java.util.UUID;
-import java.util.stream.Collectors;
-import javax.inject.Inject;
 import jersey.repackaged.com.google.common.collect.Iterables;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.http.MediaType;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping( PermissionsApi.CONTROLLER )

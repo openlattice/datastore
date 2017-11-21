@@ -46,7 +46,6 @@ public class Datastore extends BaseRhizomeServer {
             DatastoreServletsPod.class,
             DatastoreSecurityPod.class, };
     public static final Class<?>[] rhizomePods   = new Class<?>[] {
-            CassandraPod.class,
             RegistryBasedHazelcastInstanceConfigurationPod.class,
             Auth0Pod.class };
 
@@ -56,7 +55,6 @@ public class Datastore extends BaseRhizomeServer {
             SharedStreamSerializersPod.class,
             //TODO: Why is this here?
             MapstoresPod.class,
-            CassandraTablesPod.class,
             SparkDependencyPod.class,
             JdbcPod.class,
             PostgresPod.class

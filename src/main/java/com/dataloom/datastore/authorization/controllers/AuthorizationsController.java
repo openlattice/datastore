@@ -19,12 +19,20 @@
 
 package com.dataloom.datastore.authorization.controllers;
 
+import com.dataloom.authorization.AccessCheck;
+import com.dataloom.authorization.Authorization;
+import com.dataloom.authorization.AuthorizationManager;
+import com.dataloom.authorization.AuthorizationsApi;
+import com.dataloom.authorization.AuthorizingComponent;
+import com.dataloom.authorization.Permission;
+import com.dataloom.authorization.Principals;
+import com.dataloom.authorization.paging.AuthorizedObjectsSearchResult;
+import com.dataloom.authorization.securable.SecurableObjectType;
+import com.google.common.collect.Maps;
+import com.openlattice.authorization.AclKey;
 import java.util.Map;
 import java.util.Set;
-
 import javax.inject.Inject;
-
-import com.openlattice.authorization.AclKey;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.MediaType;
@@ -34,35 +42,52 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.dataloom.authorization.AccessCheck;
-import com.dataloom.authorization.Authorization;
-import com.dataloom.authorization.AuthorizationManager;
-import com.dataloom.authorization.AuthorizationsApi;
-import com.dataloom.authorization.AuthorizingComponent;
-import com.dataloom.authorization.Permission;
-import com.dataloom.authorization.Principals;
-import com.dataloom.authorization.paging.AuthorizedObjectsPagingFactory;
-import com.dataloom.authorization.paging.AuthorizedObjectsSearchResult;
-import com.dataloom.authorization.securable.SecurableObjectType;
-import com.google.common.collect.Maps;
-
 @RestController
 @RequestMapping( AuthorizationsApi.CONTROLLER )
 public class AuthorizationsController implements AuthorizationsApi, AuthorizingComponent {
-    private static final Logger  logger = LoggerFactory.getLogger( AuthorizationsController.class );
+    private static final Logger logger            = LoggerFactory.getLogger( AuthorizationsController.class );
     //Number of authorized objects in each page of results
-    private static final int DEFAULT_PAGE_SIZE = 10;
-    
+    private static final int    DEFAULT_PAGE_SIZE = 10;
+
     @Inject
     private AuthorizationManager authorizations;
 
     @Override
     @RequestMapping(
-        method = RequestMethod.POST,
-        consumes = MediaType.APPLICATION_JSON_VALUE,
-        produces = MediaType.APPLICATION_JSON_VALUE )
+            method = RequestMethod.POST,
+            consumes = MediaType.APPLICATION_JSON_VALUE,
+            produces = MediaType.APPLICATION_JSON_VALUE )
     public Iterable<Authorization> checkAuthorizations( @RequestBody Set<AccessCheck> queries ) {
-        return queries.parallelStream().map( this::getAuth )::iterator;
+        //        Map<AclKey, EnumMap<Permission, Boolean>> accessChecks = new HashMap<>( queries.size() );
+        //
+        //        for ( AccessCheck accessCheck : queries ) {
+        //            EnumMap<Permission, Boolean> results = new EnumMap<>( Permission.class );
+        //            accessCheck.getPermissions().forEach( p -> results.put( p, false ) );
+        //            accessChecks.put( accessCheck.getAclKey(), results );
+        //        }
+        //
+        //        Map<AceKey, AceValue> permissionMap =
+        //                authorizations.getPermissionMap( accessChecks.keySet(), Principals.getCurrentPrincipals() );
+        //
+        //        permissionMap.forEach( ( k, v ) -> {
+        //            //The permission map will have null ace values for missing aces.
+        //            if ( v != null ) {
+        //                EnumMap<Permission, Boolean> results = accessChecks.get( k.getKey() );
+        //                checkNotNull( results, "Got a permission back for an acl key that wasn't requested" );
+        //                EnumSet<Permission> permissions = v.getPermissions();
+        //
+        //                for ( Permission p : results.keySet() ) {
+        //                    if ( permissions.contains( p ) ) {
+        //                        results.put( p, true );
+        //                    }
+        //                }
+        //            }
+        //        } );
+
+        return authorizations.accessChecksForPrincipals( queries, Principals.getCurrentPrincipals() )
+                .entrySet()
+                .stream()
+                .map( e -> new Authorization( e.getKey(), e.getValue() ) )::iterator;
     }
 
     @Override
@@ -71,17 +96,17 @@ public class AuthorizationsController implements AuthorizationsApi, AuthorizingC
     }
 
     private Authorization getAuth( AccessCheck query ) {
-        Set<Permission> currentPermissions = authorizations.getSecurableObjectPermissions( new AclKey( query.getAclKey() ),
-                Principals.getCurrentPrincipals() );
+        Set<Permission> currentPermissions = authorizations
+                .getSecurableObjectPermissions( new AclKey( query.getAclKey() ), Principals.getCurrentPrincipals() );
         Map<Permission, Boolean> permissionsMap = Maps.asMap( query.getPermissions(), currentPermissions::contains );
         return new Authorization( query.getAclKey(), permissionsMap );
     }
-    
+
     @Override
     @RequestMapping(
-        method = RequestMethod.GET,
-        produces = MediaType.APPLICATION_JSON_VALUE )
-    public AuthorizedObjectsSearchResult getAccessibleObjects( 
+            method = RequestMethod.GET,
+            produces = MediaType.APPLICATION_JSON_VALUE )
+    public AuthorizedObjectsSearchResult getAccessibleObjects(
             @RequestParam(
                     value = OBJECT_TYPE,
                     required = true ) SecurableObjectType objectType,
@@ -91,8 +116,12 @@ public class AuthorizationsController implements AuthorizationsApi, AuthorizingC
             @RequestParam(
                     value = PAGING_TOKEN,
                     required = false ) String pagingToken
-            ){
-        return authorizations.getAuthorizedObjectsOfType( Principals.getCurrentPrincipals(), objectType, permission, pagingToken, DEFAULT_PAGE_SIZE );
-    }    
+    ) {
+        return authorizations.getAuthorizedObjectsOfType( Principals.getCurrentPrincipals(),
+                objectType,
+                permission,
+                pagingToken,
+                DEFAULT_PAGE_SIZE );
+    }
 
 }

@@ -523,7 +523,7 @@ public class DataController implements DataApi, AuthorizingComponent {
     @Override
     @RequestMapping(
             path = { "/" + ENTITY_DATA + "/" + SET_ID_PATH + "/" + ENTITY_KEY_ID_PATH },
-            method = RequestMethod.POST )
+            method = RequestMethod.PUT )
     public Void replaceEntityInEntitySet(
             @PathVariable( SET_ID ) UUID entitySetId,
             @PathVariable( ENTITY_KEY_ID ) UUID entityKeyId,

@@ -54,7 +54,6 @@ public class Datastore extends BaseRhizomeServer {
             TypeCodecsPod.class,
             SharedStreamSerializersPod.class,
             //TODO: Why is this here?
-            MapstoresPod.class,
             SparkDependencyPod.class,
             JdbcPod.class,
             PostgresPod.class

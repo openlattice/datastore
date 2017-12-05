@@ -355,7 +355,7 @@ public class DatastoreServicesPod {
     }
 
     @Bean
-    public UserBootstrap userBoot() {
+    public UserBootstrap userBoot() throws InterruptedException {
         checkState( orgBoot().isInitialized(), "Organizations must be initialized." );
         checkState( authzBoot().isInitialized(), "Roles must be initialized." );
         return new UserBootstrap( hazelcastInstance, principalService(), dcs() );

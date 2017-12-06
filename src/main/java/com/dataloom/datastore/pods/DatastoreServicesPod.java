@@ -224,7 +224,7 @@ public class DatastoreServicesPod {
 
     @Bean
     public UserDirectoryService userDirectoryService() {
-        return new UserDirectoryService( auth0Configuration.getToken() );
+        return new UserDirectoryService( auth0Configuration.getToken() , hazelcastInstance );
     }
 
     @Bean

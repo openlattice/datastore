@@ -36,7 +36,7 @@ distTar {
     archiveName "$baseName" + ".tgz"
 }
 
-apply from: "https://raw.githubusercontent.com/kryptnostic/gradles/master/kryptnostic.gradle"
+apply from: "https://raw.githubusercontent.com/openlattice/gradles/master/openlattice.gradle"
 
 mainClassName = "com.dataloom.datastore.Datastore"
 
@@ -55,7 +55,7 @@ if (DS_XMX == 'null' || DS_XMX == null || DS_XMX == "") {
 }
 
 if (DS_ARGS == 'null' || DS_ARGS == null || DS_ARGS == "") {
-    DS_ARGS = 'local cassandra'
+    DS_ARGS = 'local postgres'
 }
 
 
@@ -103,7 +103,7 @@ dependencies {
         logger.quiet(project.name + " using jar dependencies.")
         compile "com.openlattice:rhizome:${rhizome_version}"
         compile "com.openlattice:conductor-client:${conductor_client_version}"
-        compile("com.openlattice:loom-api:${loom_api_version}")
+        compile "com.openlattice:loom-api:${loom_api_version}"
         testCompile "com.openlattice:loom-api:${loom_api_version}:tests"
         testCompile "com.openlattice:rhizome:${rhizome_version}:tests"
         testCompile "com.openlattice:rhizome-client:${rhizome_client_version}:tests"

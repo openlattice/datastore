@@ -33,7 +33,6 @@ import org.springframework.security.web.AuthenticationEntryPoint;
 import com.dataloom.authentication.LoomAuth0AuthenticationProvider;
 import com.dataloom.authorization.SystemRole;
 import com.dataloom.datastore.util.RefreshTokenAuthenticationEntryPoint;
-import com.dataloom.organizations.roles.TokenExpirationTracker;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import digital.loom.rhizome.authentication.Auth0SecurityPod;

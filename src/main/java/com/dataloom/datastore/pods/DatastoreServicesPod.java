@@ -19,7 +19,6 @@
 
 package com.dataloom.datastore.pods;
 
-import com.dataloom.authorization.*;
 import static com.google.common.base.Preconditions.checkState;
 
 import com.dataloom.authorization.AbstractSecurableObjectResolveTypeService;
@@ -29,7 +28,6 @@ import com.dataloom.authorization.EdmAuthorizationHelper;
 import com.dataloom.authorization.HazelcastAbstractSecurableObjectResolveTypeService;
 import com.dataloom.authorization.HazelcastAclKeyReservationService;
 import com.dataloom.authorization.HazelcastAuthorizationService;
-import com.dataloom.authorization.Principals;
 import com.dataloom.clustering.DistributedClusterer;
 import com.dataloom.data.DataGraphManager;
 import com.dataloom.data.DataGraphService;
@@ -62,7 +60,6 @@ import com.dataloom.neuron.pods.NeuronPod;
 import com.dataloom.organizations.HazelcastOrganizationService;
 import com.dataloom.organizations.roles.HazelcastPrincipalService;
 import com.dataloom.organizations.roles.SecurePrincipalsManager;
-import com.dataloom.organizations.roles.TokenExpirationTracker;
 import com.dataloom.requests.HazelcastRequestsManager;
 import com.dataloom.requests.RequestQueryService;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -81,12 +78,11 @@ import com.openlattice.bootstrap.UserBootstrap;
 import com.zaxxer.hikari.HikariDataSource;
 import digital.loom.rhizome.authentication.Auth0Pod;
 import digital.loom.rhizome.configuration.auth0.Auth0Configuration;
+import javax.annotation.PostConstruct;
+import javax.inject.Inject;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
-
-import javax.annotation.PostConstruct;
-import javax.inject.Inject;
 
 @Configuration
 @Import( {
@@ -209,16 +205,6 @@ public class DatastoreServicesPod {
         return new HazelcastPrincipalService( hazelcastInstance,
                 aclKeyReservationService(),
                 authorizationManager() );
-    }
-
-    @Bean
-    public TokenExpirationTracker tokenTracker() {
-        return new TokenExpirationTracker( hazelcastInstance );
-    }
-
-    @PostConstruct
-    public void setExpiringTokenTracker() {
-        Principals.setExpiringTokenTracker( tokenTracker() );
     }
 
     @Bean

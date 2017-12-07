@@ -74,7 +74,6 @@ import com.kryptnostic.rhizome.pods.CassandraPod;
 import com.openlattice.authorization.DbCredentialService;
 import com.openlattice.bootstrap.AuthorizationBootstrap;
 import com.openlattice.bootstrap.OrganizationBootstrap;
-import com.openlattice.bootstrap.UserBootstrap;
 import com.zaxxer.hikari.HikariDataSource;
 import digital.loom.rhizome.authentication.Auth0Pod;
 import digital.loom.rhizome.configuration.auth0.Auth0Configuration;
@@ -339,14 +338,5 @@ public class DatastoreServicesPod {
         checkState( authzBoot().isInitialized(), "Roles must be initialized." );
         return returnAndLog( new OrganizationBootstrap( organizationsManager() ),
                 "Checkpoint organization bootstrap." );
-    }
-
-    @Bean
-    public UserBootstrap userBoot() throws InterruptedException {
-        returnAndLog( null, "Starting activation of user bootstrap" );
-        checkState( orgBoot().isInitialized(), "Organizations must be initialized." );
-        checkState( authzBoot().isInitialized(), "Roles must be initialized." );
-        return returnAndLog( new UserBootstrap( hazelcastInstance, principalService(), dcs() ),
-                "Checkpoint user boostrap" );
     }
 }

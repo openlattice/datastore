@@ -143,9 +143,4 @@ public final class DatastoreUtil {
         return iterable::iterator;
     }
 
-    public static <T> T returnAndLog( T obj, String msg, Object... args ) {
-        logger.info( msg, args );
-        return obj;
-    }
-
 }

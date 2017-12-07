@@ -19,7 +19,7 @@
 
 package com.dataloom.datastore.pods;
 
-import static com.dataloom.datastore.DatastoreUtil.returnAndLog;
+import static com.kryptnostic.datastore.util.Util.returnAndLog;
 import static com.google.common.base.Preconditions.checkState;
 
 import com.dataloom.authorization.AbstractSecurableObjectResolveTypeService;
@@ -72,8 +72,6 @@ import com.kryptnostic.datastore.services.ODataStorageService;
 import com.kryptnostic.datastore.services.PostgresEntitySetManager;
 import com.kryptnostic.rhizome.pods.CassandraPod;
 import com.openlattice.authorization.DbCredentialService;
-import com.openlattice.bootstrap.AuthorizationBootstrap;
-import com.openlattice.bootstrap.OrganizationBootstrap;
 import com.zaxxer.hikari.HikariDataSource;
 import digital.loom.rhizome.authentication.Auth0Pod;
 import digital.loom.rhizome.configuration.auth0.Auth0Configuration;
@@ -327,16 +325,4 @@ public class DatastoreServicesPod {
                 aclKeyReservationService() ), "Checkpoint app service" );
     }
 
-    @Bean
-    public AuthorizationBootstrap authzBoot() {
-        return returnAndLog( new AuthorizationBootstrap( hazelcastInstance, principalService() ),
-                "Checkpoint AuthZ Boostrap" );
-    }
-
-    @Bean
-    public OrganizationBootstrap orgBoot() {
-        checkState( authzBoot().isInitialized(), "Roles must be initialized." );
-        return returnAndLog( new OrganizationBootstrap( organizationsManager() ),
-                "Checkpoint organization bootstrap." );
-    }
 }

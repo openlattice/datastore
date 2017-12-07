@@ -21,7 +21,6 @@ package com.dataloom.datastore;
 
 import java.util.List;
 import java.util.Locale;
-
 import org.apache.olingo.commons.api.data.Entity;
 import org.apache.olingo.commons.api.data.EntityCollection;
 import org.apache.olingo.commons.api.edm.EdmEntitySet;
@@ -36,11 +35,14 @@ import org.apache.olingo.server.api.uri.UriInfoResource;
 import org.apache.olingo.server.api.uri.UriParameter;
 import org.apache.olingo.server.api.uri.UriResource;
 import org.apache.olingo.server.api.uri.UriResourceEntitySet;
-
-import com.dataloom.datastore.util.JacksonCassandraIterableWrapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public final class DatastoreUtil {
-    private DatastoreUtil() {}
+    private static final Logger logger = LoggerFactory.getLogger( Datastore.class );
+
+    private DatastoreUtil() {
+    }
 
     public static EdmEntitySet getEdmEntitySet( UriInfoResource uriInfo ) throws ODataApplicationException {
 
@@ -138,7 +140,12 @@ public final class DatastoreUtil {
     }
 
     public static <T> Iterable<T> wrapForJackson( Iterable<T> iterable ) {
-        return new JacksonCassandraIterableWrapper<T>( iterable );
+        return iterable::iterator;
+    }
+
+    public static <T> T returnAndLog( T obj, String msg, Object... args ) {
+        logger.debug( msg, args );
+        return obj;
     }
 
 }

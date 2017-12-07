@@ -19,6 +19,7 @@
 
 package com.dataloom.datastore.pods;
 
+import static com.dataloom.datastore.DatastoreUtil.returnAndLog;
 import static com.google.common.base.Preconditions.checkState;
 
 import com.dataloom.authorization.AbstractSecurableObjectResolveTypeService;
@@ -37,7 +38,6 @@ import com.dataloom.data.serializers.FullQualifedNameJacksonDeserializer;
 import com.dataloom.data.serializers.FullQualifedNameJacksonSerializer;
 import com.dataloom.data.storage.CassandraEntityDatastore;
 import com.dataloom.datastore.apps.services.AppService;
-import com.dataloom.datastore.scripts.EmptyPermissionRemover;
 import com.dataloom.datastore.services.AnalysisService;
 import com.dataloom.datastore.services.LinkingService;
 import com.dataloom.datastore.services.SearchService;
@@ -78,7 +78,6 @@ import com.openlattice.bootstrap.UserBootstrap;
 import com.zaxxer.hikari.HikariDataSource;
 import digital.loom.rhizome.authentication.Auth0Pod;
 import digital.loom.rhizome.configuration.auth0.Auth0Configuration;
-import javax.annotation.PostConstruct;
 import javax.inject.Inject;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -224,7 +223,7 @@ public class DatastoreServicesPod {
 
     @Bean
     public UserDirectoryService userDirectoryService() {
-        return new UserDirectoryService( auth0Configuration.getToken() , hazelcastInstance );
+        return new UserDirectoryService( auth0Configuration.getToken(), hazelcastInstance );
     }
 
     @Bean
@@ -272,14 +271,14 @@ public class DatastoreServicesPod {
 
     @Bean
     public LinkingService linkingService() {
-        return new LinkingService(
+        return returnAndLog( new LinkingService(
                 linkingGraph(),
                 matcher(),
                 clusterer(),
                 merger(),
                 eventBus,
                 dataModelService(),
-                datasourceManager() );
+                datasourceManager() ), "Checkpoint linking service" );
     }
 
     @Bean
@@ -320,48 +319,33 @@ public class DatastoreServicesPod {
 
     @Bean
     public AppService appService() {
-        return new AppService( hazelcastInstance,
+        return returnAndLog( new AppService( hazelcastInstance,
                 dataModelService(),
                 organizationsManager(),
                 authorizationQueryService(),
                 authorizationManager(),
                 principalService(),
-                aclKeyReservationService() );
+                aclKeyReservationService() ), "Checkpoint app service" );
     }
 
     @Bean
     public AuthorizationBootstrap authzBoot() {
-        return new AuthorizationBootstrap( hazelcastInstance, principalService() );
+        return returnAndLog( new AuthorizationBootstrap( hazelcastInstance, principalService() ),
+                "Checkpoint AuthZ Boostrap" );
     }
 
     @Bean
     public OrganizationBootstrap orgBoot() {
         checkState( authzBoot().isInitialized(), "Roles must be initialized." );
-        return new OrganizationBootstrap( organizationsManager() );
+        return returnAndLog( new OrganizationBootstrap( organizationsManager() ),
+                "Checkpoint organization bootstrap." );
     }
 
     @Bean
     public UserBootstrap userBoot() throws InterruptedException {
         checkState( orgBoot().isInitialized(), "Organizations must be initialized." );
         checkState( authzBoot().isInitialized(), "Roles must be initialized." );
-        return new UserBootstrap( hazelcastInstance, principalService(), dcs() );
-    }
-
-    // Startup scripts
-    @PostConstruct
-    public void scripts() {
-        // Populate entity set contacts
-        // new EntitySetContactsPopulator(
-        // cassandraConfiguration.getKeyspace(),
-        // session,
-        // dataModelService(),
-        // userDirectoryService(),
-        // hazelcastInstance ).run();
-
-        // Remove empty permissions
-        new EmptyPermissionRemover( hikariDataSource ).run();
-
-        // Create default organization and roles
-        // new DefaultOrganizationCreator( organizationsManager(), rolesService() ).run();
+        return returnAndLog( new UserBootstrap( hazelcastInstance, principalService(), dcs() )
+                "Checkpoint user boostrap" );
     }
 }

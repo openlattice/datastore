@@ -85,16 +85,13 @@ public class AuthorizationsController implements AuthorizationsApi, AuthorizingC
         //        } );
 
         Iterable<Authorization> methodA = authorizations
-                .accessChecksForPrincipals( queries, Principals.getCurrentPrincipals() )
-                .entrySet()
-                .stream()
-                .map( e -> new Authorization( e.getKey(), e.getValue() ) )::iterator;
-        Iterable<Authorization> methodB = authorizations
-                .maybeFastAccessChecksForPrincipals( queries, Principals.getCurrentPrincipals() )
-                .entrySet()
-                .stream()
-                .map( e -> new Authorization( e.getKey(), e.getValue() ) )::iterator;
-        return methodB;
+                .accessChecksForPrincipals( queries, Principals.getCurrentPrincipals() )::iterator;
+//        Iterable<Authorization> methodB = authorizations
+//                .maybeFastAccessChecksForPrincipals( queries, Principals.getCurrentPrincipals() )
+//                .entrySet()
+//                .stream()
+//                .map( e -> new Authorization( e.getKey(), e.getValue() ) )::iterator;
+        return methodA;
     }
 
     @Override

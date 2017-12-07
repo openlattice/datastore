@@ -19,6 +19,7 @@
 
 package com.dataloom.datastore.authorization.controllers;
 
+import com.codahale.metrics.annotation.Timed;
 import com.dataloom.authorization.AccessCheck;
 import com.dataloom.authorization.Authorization;
 import com.dataloom.authorization.AuthorizationManager;
@@ -52,6 +53,7 @@ public class AuthorizationsController implements AuthorizationsApi, AuthorizingC
     @Inject
     private AuthorizationManager authorizations;
 
+    @Timed
     @Override
     @RequestMapping(
             method = RequestMethod.POST,
@@ -72,7 +74,7 @@ public class AuthorizationsController implements AuthorizationsApi, AuthorizingC
         //        permissionMap.forEach( ( k, v ) -> {
         //            //The permission map will have null ace values for missing aces.
         //            if ( v != null ) {
-        //                EnumMap<Permission, Boolean> results = accessChecks.get( k.getKey() );
+        //                EnumMap<Permission, Boolean> results = accessChecks.get( k.getAclKey() );
         //                checkNotNull( results, "Got a permission back for an acl key that wasn't requested" );
         //                EnumSet<Permission> permissions = v.getPermissions();
         //
@@ -90,7 +92,7 @@ public class AuthorizationsController implements AuthorizationsApi, AuthorizingC
 //                .maybeFastAccessChecksForPrincipals( queries, Principals.getCurrentPrincipals() )
 //                .entrySet()
 //                .stream()
-//                .map( e -> new Authorization( e.getKey(), e.getValue() ) )::iterator;
+//                .map( e -> new Authorization( e.getAclKey(), e.getValue() ) )::iterator;
         return methodA;
     }
 
@@ -106,6 +108,7 @@ public class AuthorizationsController implements AuthorizationsApi, AuthorizingC
         return new Authorization( query.getAclKey(), permissionsMap );
     }
 
+    @Timed
     @Override
     @RequestMapping(
             method = RequestMethod.GET,

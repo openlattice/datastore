@@ -231,7 +231,7 @@ public class AppController implements AppApi, AuthorizingComponent {
 
     @Override
     @RequestMapping(
-            path = UPDATE_PATH + TYPE_PATH + ID_PATH,
+            path =  TYPE_PATH + UPDATE_PATH + ID_PATH,
             method = RequestMethod.POST,
             consumes = MediaType.APPLICATION_JSON_VALUE )
     public void updateAppTypeMetadata(

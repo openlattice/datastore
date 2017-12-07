@@ -20,6 +20,8 @@
 package com.dataloom.datastore.services;
 
 import com.codahale.metrics.annotation.Timed;
+import com.dataloom.apps.App;
+import com.dataloom.apps.AppType;
 import com.dataloom.authorization.*;
 import com.dataloom.authorization.securable.SecurableObjectType;
 import com.dataloom.data.DatasourceManager;
@@ -297,6 +299,18 @@ public class SearchService {
     }
 
     @Subscribe
+    public void createApp( AppCreatedEvent event ) {
+        App app = event.getApp();
+        elasticsearchApi.saveAppToElasticsearch( app );
+    }
+
+    @Subscribe
+    public void createAppType( AppTypeCreatedEvent event ) {
+        AppType appType = event.getAppType();
+        elasticsearchApi.saveAppTypeToElasticsearch( appType );
+    }
+
+    @Subscribe
     public void deleteEntityType( EntityTypeDeletedEvent event ) {
         UUID entityTypeId = event.getEntityTypeId();
         elasticsearchApi.deleteEntityType( entityTypeId );
@@ -314,6 +328,18 @@ public class SearchService {
         elasticsearchApi.deletePropertyType( propertyTypeId );
     }
 
+    @Subscribe
+    public void deleteApp( AppDeletedEvent event ) {
+        UUID appId = event.getAppId();
+        elasticsearchApi.deleteApp( appId );
+    }
+
+    @Subscribe
+    public void deleteAppType( AppTypeDeletedEvent event ) {
+        UUID appTypeId = event.getAppTypeId();
+        elasticsearchApi.deleteAppType( appTypeId );
+    }
+
     public SearchResult executeEntityTypeSearch( String searchTerm, int start, int maxHits ) {
         return elasticsearchApi.executeEntityTypeSearch( searchTerm, start, maxHits );
     }
@@ -324,6 +350,14 @@ public class SearchService {
 
     public SearchResult executePropertyTypeSearch( String searchTerm, int start, int maxHits ) {
         return elasticsearchApi.executePropertyTypeSearch( searchTerm, start, maxHits );
+    }
+
+    public SearchResult executeAppSearch( String searchTerm, int start, int maxHits ) {
+        return elasticsearchApi.executeAppSearch( searchTerm, start, maxHits );
+    }
+
+    public SearchResult executeAppTypeSearch( String searchTerm, int start, int maxHits ) {
+        return elasticsearchApi.executeAppTypeSearch( searchTerm, start, maxHits );
     }
 
     public SearchResult executeFQNEntityTypeSearch( String namespace, String name, int start, int maxHits ) {
@@ -484,6 +518,14 @@ public class SearchService {
 
     public void triggerAssociationTypeIndex( List<AssociationType> associationTypes ) {
         elasticsearchApi.triggerAssociationTypeIndex( associationTypes );
+    }
+
+    public void triggerAppIndex( List<App> apps ) {
+        elasticsearchApi.triggerAppIndex( apps );
+    }
+
+    public void triggerAppTypeIndex( List<AppType> appTypes ) {
+        elasticsearchApi.triggerAppTypeIndex( appTypes );
     }
 
 }

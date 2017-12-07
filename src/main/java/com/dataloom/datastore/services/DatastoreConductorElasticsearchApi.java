@@ -1,5 +1,7 @@
 package com.dataloom.datastore.services;
 
+import com.dataloom.apps.App;
+import com.dataloom.apps.AppType;
 import com.dataloom.authorization.Principal;
 import com.dataloom.data.EntityKey;
 import com.dataloom.edm.EntitySet;
@@ -489,6 +491,96 @@ public class DatastoreConductorElasticsearchApi implements ConductorElasticsearc
         } catch ( InterruptedException | ExecutionException e ) {
             logger.debug( "Unable to trigger association type re-index" );
             return false;
+        }
+    }
+
+    @Override public boolean triggerAppIndex( List<App> apps ) {
+        try {
+            return executor.submit( ConductorElasticsearchCall.wrap(
+                    ElasticsearchLambdas.triggerAppIndex( apps ) ) ).get();
+        } catch ( InterruptedException | ExecutionException e ) {
+            logger.debug( "Unable to trigger app re-index" );
+            return false;
+        }
+    }
+
+    @Override public boolean triggerAppTypeIndex( List<AppType> appTypes ) {
+        try {
+            return executor.submit( ConductorElasticsearchCall.wrap(
+                    ElasticsearchLambdas.triggerAppTypeIndex( appTypes ) ) ).get();
+        } catch ( InterruptedException | ExecutionException e ) {
+            logger.debug( "Unable to trigger app type re-index" );
+            return false;
+        }
+    }
+
+    @Override public boolean saveAppToElasticsearch( App app ) {
+        try {
+            return executor.submit( ConductorElasticsearchCall
+                    .wrap( ElasticsearchLambdas.saveAppToElasticsearch( app ) ) ).get();
+        } catch ( InterruptedException | ExecutionException e ) {
+            logger.debug( "unable to save app to elasticsearch" );
+            return false;
+        }
+    }
+
+    @Override public boolean deleteApp( UUID appId ) {
+        try {
+            return executor.submit( ConductorElasticsearchCall
+                    .wrap( ElasticsearchLambdas.deleteApp( appId ) ) ).get();
+        } catch ( InterruptedException | ExecutionException e ) {
+            logger.debug( "unable to delete app from elasticsearch" );
+            return false;
+        }
+    }
+
+    @Override public SearchResult executeAppSearch( String searchTerm, int start, int maxHits ) {
+        try {
+            SearchResult queryResults = executor.submit( ConductorElasticsearchCall.wrap(
+                    ElasticsearchLambdas.executeAppSearch(
+                            searchTerm,
+                            start,
+                            maxHits ) ) )
+                    .get();
+            return queryResults;
+        } catch ( InterruptedException | ExecutionException e ) {
+            logger.debug( "unable to execute app search" );
+            return new SearchResult( 0, Lists.newArrayList() );
+        }
+    }
+
+    @Override public boolean saveAppTypeToElasticsearch( AppType appType ) {
+        try {
+            return executor.submit( ConductorElasticsearchCall
+                    .wrap( ElasticsearchLambdas.saveAppTypeToElasticsearch( appType ) ) ).get();
+        } catch ( InterruptedException | ExecutionException e ) {
+            logger.debug( "unable to save app type to elasticsearch" );
+            return false;
+        }
+    }
+
+    @Override public boolean deleteAppType( UUID appTypeId ) {
+        try {
+            return executor.submit( ConductorElasticsearchCall
+                    .wrap( ElasticsearchLambdas.deleteAppType( appTypeId ) ) ).get();
+        } catch ( InterruptedException | ExecutionException e ) {
+            logger.debug( "unable to delete app type from elasticsearch" );
+            return false;
+        }
+    }
+
+    @Override public SearchResult executeAppTypeSearch( String searchTerm, int start, int maxHits ) {
+        try {
+            SearchResult queryResults = executor.submit( ConductorElasticsearchCall.wrap(
+                    ElasticsearchLambdas.executeAppTypeSearch(
+                            searchTerm,
+                            start,
+                            maxHits ) ) )
+                    .get();
+            return queryResults;
+        } catch ( InterruptedException | ExecutionException e ) {
+            logger.debug( "unable to execute app type search" );
+            return new SearchResult( 0, Lists.newArrayList() );
         }
     }
 

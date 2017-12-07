@@ -25,6 +25,7 @@ import com.dataloom.authorization.EdmAuthorizationHelper;
 import com.dataloom.authorization.Permission;
 import com.dataloom.authorization.Principals;
 import com.dataloom.data.requests.NeighborEntityDetails;
+import com.dataloom.datastore.apps.services.AppService;
 import com.dataloom.datastore.services.SearchService;
 import com.dataloom.edm.EntitySet;
 import com.dataloom.edm.type.PropertyType;
@@ -42,6 +43,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.kryptnostic.datastore.services.EdmService;
 import com.openlattice.authorization.AclKey;
+
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
@@ -67,6 +69,9 @@ public class SearchController implements SearchApi, AuthorizingComponent {
 
     @Inject
     private EdmService edm;
+
+    @Inject
+    private AppService appService;
 
     @Inject
     private AuthorizationManager authorizations;
@@ -206,6 +211,28 @@ public class SearchController implements SearchApi, AuthorizingComponent {
     }
 
     @RequestMapping(
+            path = { APP },
+            method = RequestMethod.POST,
+            produces = { MediaType.APPLICATION_JSON_VALUE } )
+    @Override
+    public SearchResult executeAppSearch( @RequestBody SearchTerm searchTerm ) {
+        return searchService.executeAppSearch( searchTerm.getSearchTerm(),
+                searchTerm.getStart(),
+                searchTerm.getMaxHits() );
+    }
+
+    @RequestMapping(
+            path = { APP_TYPES },
+            method = RequestMethod.POST,
+            produces = { MediaType.APPLICATION_JSON_VALUE } )
+    @Override
+    public SearchResult executeAppTypeSearch( @RequestBody SearchTerm searchTerm ) {
+        return searchService.executeAppTypeSearch( searchTerm.getSearchTerm(),
+                searchTerm.getStart(),
+                searchTerm.getMaxHits() );
+    }
+
+    @RequestMapping(
             path = { ENTITY_TYPES + FQN },
             method = RequestMethod.POST,
             produces = { MediaType.APPLICATION_JSON_VALUE } )
@@ -271,6 +298,8 @@ public class SearchController implements SearchApi, AuthorizingComponent {
         searchService.triggerPropertyTypeIndex( Lists.newArrayList( edm.getPropertyTypes() ) );
         searchService.triggerEntityTypeIndex( Lists.newArrayList( edm.getEntityTypes() ) );
         searchService.triggerAssociationTypeIndex( Lists.newArrayList( edm.getAssociationTypes() ) );
+        searchService.triggerAppIndex( Lists.newArrayList( appService.getApps() ) );
+        searchService.triggerAppTypeIndex( Lists.newArrayList( appService.getAppTypes() ) );
         return null;
     }
 }

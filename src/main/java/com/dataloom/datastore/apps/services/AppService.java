@@ -4,6 +4,10 @@ import com.dataloom.apps.*;
 import com.dataloom.apps.processors.*;
 import com.dataloom.authorization.*;
 import com.dataloom.edm.EntitySet;
+import com.dataloom.edm.events.AppCreatedEvent;
+import com.dataloom.edm.events.AppDeletedEvent;
+import com.dataloom.edm.events.AppTypeCreatedEvent;
+import com.dataloom.edm.events.AppTypeDeletedEvent;
 import com.dataloom.edm.requests.MetadataUpdate;
 import com.dataloom.hazelcast.HazelcastMap;
 import com.dataloom.organization.Organization;
@@ -12,10 +16,10 @@ import com.dataloom.organizations.HazelcastOrganizationService;
 import com.dataloom.organizations.roles.SecurePrincipalsManager;
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.common.eventbus.EventBus;
 import com.hazelcast.core.HazelcastInstance;
 import com.hazelcast.core.IMap;
 import com.kryptnostic.datastore.exceptions.BadRequestException;
@@ -24,6 +28,7 @@ import com.kryptnostic.datastore.util.Util;
 import com.openlattice.authorization.AclKey;
 import org.apache.olingo.commons.api.edm.FullQualifiedName;
 
+import javax.inject.Inject;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -39,6 +44,9 @@ public class AppService {
     private final AuthorizationManager              authorizationService;
     private final SecurePrincipalsManager           principalsService;
     private final HazelcastAclKeyReservationService reservations;
+
+    @Inject
+    private EventBus eventBus;
 
     public AppService(
             HazelcastInstance hazelcast,
@@ -65,15 +73,21 @@ public class AppService {
         return apps.values();
     }
 
+    public Iterable<AppType> getAppTypes() {
+        return appTypes.values();
+    }
+
     public UUID createApp( App app ) {
         reservations.reserveIdAndValidateType( app, app::getName );
         apps.putIfAbsent( app.getId(), app );
+        eventBus.post( new AppCreatedEvent( app ) );
         return app.getId();
     }
 
     public void deleteApp( UUID appId ) {
         apps.delete( appId );
         reservations.release( appId );
+        eventBus.post( new AppDeletedEvent( appId ) );
     }
 
     public App getApp( UUID appId ) {
@@ -168,12 +182,14 @@ public class AppService {
     public UUID createAppType( AppType appType ) {
         reservations.reserveIdAndValidateType( appType );
         appTypes.putIfAbsent( appType.getId(), appType );
+        eventBus.post( new AppTypeCreatedEvent( appType ) );
         return appType.getId();
     }
 
     public void deleteAppType( UUID id ) {
         appTypes.delete( id );
         reservations.release( id );
+        eventBus.post( new AppTypeDeletedEvent( id ) );
     }
 
     public AppType getAppType( UUID id ) {
@@ -245,10 +261,12 @@ public class AppService {
 
     public void addAppTypesToApp( UUID appId, Set<UUID> appTypeIds ) {
         apps.executeOnKey( appId, new AddAppTypesToAppProcessor( appTypeIds ) );
+        eventBus.post( new AppCreatedEvent( apps.get( appId ) ) );
     }
 
     public void removeAppTypesFromApp( UUID appId, Set<UUID> appTypeIds ) {
         apps.executeOnKey( appId, new RemoveAppTypesFromAppProcessor( appTypeIds ) );
+        eventBus.post( new AppCreatedEvent( apps.get( appId ) ) );
     }
 
     public void updateAppConfigEntitySetId( UUID organizationId, UUID appId, UUID appTypeId, UUID entitySetId ) {
@@ -267,10 +285,12 @@ public class AppService {
 
     public void updateAppMetadata( UUID appId, MetadataUpdate metadataUpdate ) {
         apps.executeOnKey( appId, new UpdateAppMetadataProcessor( metadataUpdate ) );
+        eventBus.post( new AppCreatedEvent( apps.get( appId ) ) );
     }
 
     public void updateAppTypeMetadata( UUID appTypeId, MetadataUpdate metadataUpdate ) {
         appTypes.executeOnKey( appTypeId, new UpdateAppTypeMetadataProcessor( metadataUpdate ) );
+        eventBus.post( new AppTypeCreatedEvent( appTypes.get( appTypeId ) ) );
     }
 
 }

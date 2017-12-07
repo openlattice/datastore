@@ -144,7 +144,7 @@ public final class DatastoreUtil {
     }
 
     public static <T> T returnAndLog( T obj, String msg, Object... args ) {
-        logger.debug( msg, args );
+        logger.info( msg, args );
         return obj;
     }
 

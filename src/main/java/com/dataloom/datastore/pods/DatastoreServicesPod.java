@@ -345,7 +345,7 @@ public class DatastoreServicesPod {
     public UserBootstrap userBoot() throws InterruptedException {
         checkState( orgBoot().isInitialized(), "Organizations must be initialized." );
         checkState( authzBoot().isInitialized(), "Roles must be initialized." );
-        return returnAndLog( new UserBootstrap( hazelcastInstance, principalService(), dcs() )
+        return returnAndLog( new UserBootstrap( hazelcastInstance, principalService(), dcs() ),
                 "Checkpoint user boostrap" );
     }
 }

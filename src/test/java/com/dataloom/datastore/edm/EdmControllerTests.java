@@ -230,6 +230,7 @@ public class EdmControllerTests extends BootstrapDatastoreWithCassandra {
                         Optional.absent(),
                         Optional.absent(),
                         Optional.absent(),
+                        Optional.absent(),
                         Optional.absent() ) );
 
         PropertyType updatedPt = edm.getPropertyType( pt.getId() );
@@ -251,7 +252,8 @@ public class EdmControllerTests extends BootstrapDatastoreWithCassandra {
                         Optional.absent(),
                         Optional.of( newPtFqn ),
                         Optional.absent(),
-                        Optional.absent() ) );
+                        Optional.absent(),
+                        Optional.absent()) );
 
         PropertyType updatedPt = edm.getPropertyType( pt.getId() );
         Assert.assertEquals( newPtFqn, updatedPt.getType() );
@@ -272,7 +274,8 @@ public class EdmControllerTests extends BootstrapDatastoreWithCassandra {
                         Optional.absent(),
                         Optional.absent(),
                         Optional.absent(),
-                        Optional.absent() ) );
+                        Optional.absent(),
+                        Optional.absent()) );
 
         EntityType updatedEt = edm.getEntityType( et.getId() );
         Assert.assertEquals( newTitle, updatedEt.getTitle() );
@@ -292,6 +295,7 @@ public class EdmControllerTests extends BootstrapDatastoreWithCassandra {
                         Optional.absent(),
                         Optional.absent(),
                         Optional.of( newEtFqn ),
+                        Optional.absent(),
                         Optional.absent(),
                         Optional.absent() ) );
 
@@ -316,6 +320,7 @@ public class EdmControllerTests extends BootstrapDatastoreWithCassandra {
                         Optional.of( newContacts ),
                         Optional.absent(),
                         Optional.absent(),
+                        Optional.absent(),
                         Optional.absent() ) );
 
         EntitySet updatedEs = edm.getEntitySet( es.getId() );
@@ -335,6 +340,7 @@ public class EdmControllerTests extends BootstrapDatastoreWithCassandra {
                         Optional.absent(),
                         Optional.absent(),
                         Optional.of( newEsName ),
+                        Optional.absent(),
                         Optional.absent(),
                         Optional.absent(),
                         Optional.absent(),

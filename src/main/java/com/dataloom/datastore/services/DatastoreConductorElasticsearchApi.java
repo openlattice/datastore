@@ -1,6 +1,5 @@
 package com.dataloom.datastore.services;
 
-import com.dataloom.authorization.Permission;
 import com.dataloom.authorization.Principal;
 import com.dataloom.data.EntityKey;
 import com.dataloom.edm.EntitySet;
@@ -15,6 +14,7 @@ import com.google.common.collect.Lists;
 import com.hazelcast.core.HazelcastInstance;
 import com.hazelcast.durableexecutor.DurableExecutorService;
 import com.kryptnostic.conductor.rpc.*;
+import com.openlattice.authorization.AclKey;
 import com.openlattice.rhizome.hazelcast.DelegatedStringSet;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -95,7 +95,7 @@ public class DatastoreConductorElasticsearchApi implements ConductorElasticsearc
             Optional<String> optionalSearchTerm,
             Optional<UUID> optionalEntityType,
             Optional<Set<UUID>> optionalPropertyTypes,
-            Set<Principal> principals,
+            Set<AclKey> authorizedAclKeys,
             int start,
             int maxHits ) {
         try {
@@ -103,6 +103,7 @@ public class DatastoreConductorElasticsearchApi implements ConductorElasticsearc
                     .wrap( ElasticsearchLambdas.executeEntitySetMetadataQuery( optionalSearchTerm,
                             optionalEntityType,
                             optionalPropertyTypes,
+                            authorizedAclKeys,
                             start,
                             maxHits ) ) )
                     .get();
@@ -110,18 +111,6 @@ public class DatastoreConductorElasticsearchApi implements ConductorElasticsearc
         } catch ( InterruptedException | ExecutionException e ) {
             logger.error( "Unable to to perofrm keyword search.", e );
             return new SearchResult( 0, Lists.newArrayList() );
-        }
-    }
-
-    @Override
-    public boolean updateEntitySetPermissions( UUID entitySetId, Principal principal, Set<Permission> permissions ) {
-        try {
-            return executor.submit( ConductorElasticsearchCall
-                    .wrap( ElasticsearchLambdas.updateEntitySetPermissions( entitySetId, principal, permissions ) ) )
-                    .get();
-        } catch ( InterruptedException | ExecutionException e ) {
-            logger.debug( "unable to update entity set permissions in elasticsearch" );
-            return false;
         }
     }
 
@@ -161,23 +150,6 @@ public class DatastoreConductorElasticsearchApi implements ConductorElasticsearc
     }
 
     @Override
-    public boolean updateOrganizationPermissions(
-            UUID organizationId,
-            Principal principal,
-            Set<Permission> permissions ) {
-        try {
-            return executor.submit( ConductorElasticsearchCall
-                    .wrap( ElasticsearchLambdas.updateOrganizationPermissions( organizationId,
-                            principal,
-                            permissions ) ) )
-                    .get();
-        } catch ( InterruptedException | ExecutionException e ) {
-            logger.debug( "unable to update organization permissions" );
-            return false;
-        }
-    }
-
-    @Override
     public boolean deleteOrganization( UUID organizationId ) {
         try {
             return executor.submit( ConductorElasticsearchCall
@@ -191,12 +163,13 @@ public class DatastoreConductorElasticsearchApi implements ConductorElasticsearc
     @Override
     public SearchResult executeOrganizationSearch(
             String searchTerm,
-            Set<Principal> principals,
+            Set<AclKey> authorizedOrganizationIds,
             int start,
             int maxHits ) {
         try {
             SearchResult searchResult = executor.submit( ConductorElasticsearchCall
                     .wrap( ElasticsearchLambdas.executeOrganizationKeywordSearch( searchTerm,
+                            authorizedOrganizationIds,
                             start,
                             maxHits ) ) )
                     .get();

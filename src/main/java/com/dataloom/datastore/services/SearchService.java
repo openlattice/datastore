@@ -19,33 +19,8 @@
 
 package com.dataloom.datastore.services;
 
-import com.openlattice.authorization.AclKey;
-import java.util.Collection;
-import java.util.EnumSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
-import java.util.stream.Collectors;
-
-import javax.annotation.PostConstruct;
-import javax.inject.Inject;
-
-import com.hazelcast.core.HazelcastInstance;
-import com.openlattice.authorization.AclKey;
-import com.openlattice.rhizome.hazelcast.DelegatedStringSet;
-import org.apache.olingo.commons.api.edm.FullQualifiedName;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.codahale.metrics.annotation.Timed;
-import com.dataloom.authorization.AbstractSecurableObjectResolveTypeService;
-import com.dataloom.authorization.AuthorizationManager;
-import com.dataloom.authorization.EdmAuthorizationHelper;
-import com.dataloom.authorization.Permission;
-import com.dataloom.authorization.Principal;
-import com.dataloom.authorization.Principals;
-import com.dataloom.authorization.events.AclUpdateEvent;
+import com.dataloom.authorization.*;
 import com.dataloom.authorization.securable.SecurableObjectType;
 import com.dataloom.data.DatasourceManager;
 import com.dataloom.data.EntityKey;
@@ -55,17 +30,7 @@ import com.dataloom.data.events.EntityDataDeletedEvent;
 import com.dataloom.data.requests.NeighborEntityDetails;
 import com.dataloom.data.storage.CassandraEntityDatastore;
 import com.dataloom.edm.EntitySet;
-import com.dataloom.edm.events.AssociationTypeCreatedEvent;
-import com.dataloom.edm.events.AssociationTypeDeletedEvent;
-import com.dataloom.edm.events.ClearAllDataEvent;
-import com.dataloom.edm.events.EntitySetCreatedEvent;
-import com.dataloom.edm.events.EntitySetDeletedEvent;
-import com.dataloom.edm.events.EntitySetMetadataUpdatedEvent;
-import com.dataloom.edm.events.EntityTypeCreatedEvent;
-import com.dataloom.edm.events.EntityTypeDeletedEvent;
-import com.dataloom.edm.events.PropertyTypeCreatedEvent;
-import com.dataloom.edm.events.PropertyTypeDeletedEvent;
-import com.dataloom.edm.events.PropertyTypesInEntitySetUpdatedEvent;
+import com.dataloom.edm.events.*;
 import com.dataloom.edm.type.AssociationType;
 import com.dataloom.edm.type.EntityType;
 import com.dataloom.edm.type.PropertyType;
@@ -74,15 +39,10 @@ import com.dataloom.graph.edge.LoomEdge;
 import com.dataloom.organizations.events.OrganizationCreatedEvent;
 import com.dataloom.organizations.events.OrganizationDeletedEvent;
 import com.dataloom.organizations.events.OrganizationUpdatedEvent;
-import com.dataloom.search.requests.AdvancedSearch;
-import com.dataloom.search.requests.DataSearchResult;
-import com.dataloom.search.requests.SearchDetails;
-import com.dataloom.search.requests.SearchResult;
-import com.dataloom.search.requests.SearchTerm;
+import com.dataloom.search.requests.*;
 import com.dataloom.sync.events.CurrentSyncUpdatedEvent;
 import com.dataloom.sync.events.SyncIdCreatedEvent;
 import com.google.common.base.Optional;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.SetMultimap;
@@ -90,40 +50,49 @@ import com.google.common.collect.Sets;
 import com.google.common.eventbus.EventBus;
 import com.google.common.eventbus.Subscribe;
 import com.kryptnostic.datastore.services.EdmManager;
+import com.openlattice.authorization.AclKey;
+import com.openlattice.rhizome.hazelcast.DelegatedStringSet;
+import org.apache.olingo.commons.api.edm.FullQualifiedName;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import javax.annotation.PostConstruct;
+import javax.inject.Inject;
+import java.util.*;
+import java.util.stream.Collectors;
 
 public class SearchService {
-    private static final Logger                       logger = LoggerFactory.getLogger( SearchService.class );
+    private static final Logger logger = LoggerFactory.getLogger( SearchService.class );
 
     @Inject
-    private EventBus                                  eventBus;
+    private EventBus eventBus;
 
     @Inject
-    private AuthorizationManager                      authorizations;
+    private AuthorizationManager authorizations;
 
     @Inject
     private AbstractSecurableObjectResolveTypeService securableObjectTypes;
 
     @Inject
-    private DatastoreConductorElasticsearchApi        elasticsearchApi;
+    private DatastoreConductorElasticsearchApi elasticsearchApi;
 
     @Inject
-    private DatasourceManager                         datasourceManager;
+    private DatasourceManager datasourceManager;
 
     @Inject
-    private EdmManager                                dataModelService;
+    private EdmManager dataModelService;
 
     @Inject
-    private LoomGraphApi                              graphApi;
+    private LoomGraphApi graphApi;
 
     @Inject
-    private CassandraEntityDatastore                  dataManager;
+    private CassandraEntityDatastore dataManager;
 
     @Inject
-    private EdmAuthorizationHelper                    authzHelper;
+    private EdmAuthorizationHelper authzHelper;
 
     @Inject
-    private EntityKeyIdService                        entityKeyService;
-
+    private EntityKeyIdService entityKeyService;
 
     @PostConstruct
     public void initializeBus() {
@@ -136,38 +105,20 @@ public class SearchService {
             Optional<Set<UUID>> optionalPropertyTypes,
             int start,
             int maxHits ) {
+
+        Set<AclKey> authorizedEntitySetIds = authorizations
+                .getAuthorizedObjectsOfType( Principals.getCurrentPrincipals(),
+                        SecurableObjectType.EntitySet,
+                        EnumSet.of( Permission.READ ) ).collect( Collectors.toSet() );
+        if ( authorizedEntitySetIds.size() == 0 )
+            return new SearchResult( 0, Lists.newArrayList() );
+
         return elasticsearchApi.executeEntitySetMetadataSearch( optionalQuery,
                 optionalEntityType,
                 optionalPropertyTypes,
-                null,
+                authorizedEntitySetIds,
                 start,
                 maxHits );
-    }
-
-    public void updateEntitySetPermissions( List<UUID> aclKeys, Principal principal, Set<Permission> permissions ) {
-        aclKeys.forEach( aclKey -> elasticsearchApi.updateEntitySetPermissions( aclKey, principal, permissions ) );
-    }
-
-    public void updateOrganizationPermissions( List<UUID> aclKeys, Principal principal, Set<Permission> permissions ) {
-        aclKeys.forEach( aclKey -> elasticsearchApi.updateOrganizationPermissions( aclKey, principal, permissions ) );
-    }
-
-    @Subscribe
-    public void onAclUpdate( AclUpdateEvent event ) {
-        SecurableObjectType type = securableObjectTypes.getSecurableObjectType( event.getAclKeys() );
-        if ( type == SecurableObjectType.EntitySet ) {
-            event.getPrincipals().forEach( principal -> updateEntitySetPermissions(
-                    event.getAclKeys(),
-                    principal,
-                    authorizations.getSecurableObjectPermissions( event.getAclKeys(),
-                            Sets.newHashSet( principal ) ) ) );
-        } else if ( type == SecurableObjectType.Organization ) {
-            event.getPrincipals().forEach( principal -> updateOrganizationPermissions(
-                    event.getAclKeys(),
-                    principal,
-                    authorizations.getSecurableObjectPermissions( event.getAclKeys(),
-                            Sets.newHashSet( principal ) ) ) );
-        }
     }
 
     @Subscribe
@@ -207,8 +158,15 @@ public class SearchService {
     }
 
     public SearchResult executeOrganizationKeywordSearch( SearchTerm searchTerm ) {
+        Set<AclKey> authorizedOrganizationIds = authorizations
+                .getAuthorizedObjectsOfType( Principals.getCurrentPrincipals(),
+                        SecurableObjectType.Organization,
+                        EnumSet.of( Permission.READ ) ).collect( Collectors.toSet() );
+        if ( authorizedOrganizationIds.size() == 0 )
+            return new SearchResult( 0, Lists.newArrayList() );
+
         return elasticsearchApi.executeOrganizationSearch( searchTerm.getSearchTerm(),
-                null,
+                authorizedOrganizationIds,
                 searchTerm.getStart(),
                 searchTerm.getMaxHits() );
     }
@@ -499,7 +457,6 @@ public class SearchService {
         }
     }
 
-   
     private List<SetMultimap<Object, Object>> getResults(
             UUID entitySetId,
             UUID syncId,
@@ -511,7 +468,7 @@ public class SearchService {
                 .collect( Collectors.toSet() ) ).values();
         return dataManager.getEntities( ids, authorizedPropertyTypes ).collect( Collectors.toList() );
     }
-    
+
     @Subscribe
     public void clearAllData( ClearAllDataEvent event ) {
         elasticsearchApi.clearAllData();

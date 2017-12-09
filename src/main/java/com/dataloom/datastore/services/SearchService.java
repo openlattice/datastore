@@ -45,10 +45,7 @@ import com.dataloom.search.requests.*;
 import com.dataloom.sync.events.CurrentSyncUpdatedEvent;
 import com.dataloom.sync.events.SyncIdCreatedEvent;
 import com.google.common.base.Optional;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-import com.google.common.collect.SetMultimap;
-import com.google.common.collect.Sets;
+import com.google.common.collect.*;
 import com.google.common.eventbus.EventBus;
 import com.google.common.eventbus.Subscribe;
 import com.kryptnostic.datastore.services.EdmManager;
@@ -372,6 +369,8 @@ public class SearchService {
     public Map<UUID, List<NeighborEntityDetails>> executeEntityNeighborSearch( Set<UUID> entityKeyIds ) {
         List<LoomEdge> edges = Lists.newArrayList();
 
+        Set<Principal> principals = Principals.getCurrentPrincipals();
+
         Map<UUID, Set<UUID>> authorizedEdgeESIdsToVertexESIds = Maps.newHashMap();
         Map<UUID, Map<UUID, PropertyType>> entitySetsIdsToAuthorizedProps = Maps.newHashMap();
         Map<UUID, EntitySet> entitySetsById = Maps.newHashMap();
@@ -389,9 +388,9 @@ public class SearchService {
                     : edge.getSrcSetId();
 
             if ( !entitySetIsAuthorized.containsKey( edgeEntitySetId ) )
-                entitySetIsAuthorized.put( edgeEntitySetId, getAuthorization( edgeEntitySetId ) );
+                entitySetIsAuthorized.put( edgeEntitySetId, getAuthorization( edgeEntitySetId, principals ) );
             if ( !entitySetIsAuthorized.containsKey( neighborEntitySetId ) )
-                entitySetIsAuthorized.put( neighborEntitySetId, getAuthorization( neighborEntitySetId ) );
+                entitySetIsAuthorized.put( neighborEntitySetId, getAuthorization( neighborEntitySetId, principals ) );
 
             if ( entitySetIsAuthorized.get( edgeEntitySetId ) ) {
                 edges.add( edge );
@@ -442,10 +441,10 @@ public class SearchService {
 
     }
 
-    private boolean getAuthorization( UUID entitySetId ) {
-        return authorizations.checkIfHasPermissions( new AclKey( entitySetId ),
-                Principals.getCurrentPrincipals(),
-                EnumSet.of( Permission.READ ) );
+    private boolean getAuthorization( UUID entitySetId, Set<Principal> principals ) {
+        return authorizations.accessChecksForPrincipals( ImmutableSet
+                .of( new AccessCheck( new AclKey( entitySetId ), EnumSet.of( Permission.READ ) ) ), principals )
+                .findFirst().get().getPermissions().get( Permission.READ );
     }
 
     private Map<UUID, PropertyType> getAuthorizedProperties( UUID entitySetId ) {

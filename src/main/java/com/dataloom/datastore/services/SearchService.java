@@ -223,6 +223,13 @@ public class SearchService {
         return new DataSearchResult( result.getNumHits(), results );
     }
 
+    @Timed
+    public long getEntitySetSize( UUID entitySetId ) {
+        UUID syncId = datasourceManager.getCurrentSyncId( entitySetId );
+        Set<UUID> properties = Sets.newHashSet( dataModelService.getEntityTypeByEntitySetId( entitySetId ).getProperties() );
+        return elasticsearchApi.executeEntitySetDataSearch( entitySetId, syncId, "*", 0, 0, properties ).getNumHits();
+    }
+
     @Subscribe
     public void updateEntitySetMetadata( EntitySetMetadataUpdatedEvent event ) {
         elasticsearchApi.updateEntitySetMetadata( event.getEntitySet() );

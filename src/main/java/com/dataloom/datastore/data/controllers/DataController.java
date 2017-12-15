@@ -33,6 +33,7 @@ import javax.inject.Inject;
 import javax.servlet.http.HttpServletResponse;
 
 import com.dataloom.data.*;
+import com.dataloom.datastore.services.SearchService;
 import com.google.common.collect.*;
 import com.hazelcast.core.IMap;
 import com.openlattice.authorization.AclKey;
@@ -105,6 +106,9 @@ public class DataController implements DataApi, AuthorizingComponent {
 
     @Inject
     private DatasourceManager datasourceManager;
+
+    @Inject
+    private SearchService searchService;
 
     private LoadingCache<UUID, EdmPrimitiveTypeKind>  primitiveTypeKinds;
     private LoadingCache<AuthorizationKey, Set<UUID>> authorizedPropertyCache;
@@ -552,5 +556,15 @@ public class DataController implements DataApi, AuthorizingComponent {
                 .forEach( entry -> entity.put( dms.getPropertyType( entry.getKey() ).getId(), entry.getValue() ) );
         return replaceEntityInEntitySet( entitySetId, entityKeyId, entity );
     }
+
+    @Override
+    @RequestMapping(
+            path = { "/" + SET_ID_PATH + "/" + COUNT  },
+            method = RequestMethod.GET )
+    public long getEntitySetSize( @PathVariable( SET_ID ) UUID entitySetId ) {
+        ensureReadAccess( new AclKey( entitySetId ) );
+        return searchService.getEntitySetSize( entitySetId );
+    }
+
 
 }

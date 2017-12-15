@@ -42,6 +42,7 @@ import com.dataloom.organizations.events.OrganizationCreatedEvent;
 import com.dataloom.organizations.events.OrganizationDeletedEvent;
 import com.dataloom.organizations.events.OrganizationUpdatedEvent;
 import com.dataloom.search.requests.*;
+import com.dataloom.streams.StreamUtil;
 import com.dataloom.sync.events.CurrentSyncUpdatedEvent;
 import com.dataloom.sync.events.SyncIdCreatedEvent;
 import com.google.common.base.Optional;
@@ -51,6 +52,7 @@ import com.google.common.eventbus.Subscribe;
 import com.kryptnostic.datastore.services.EdmManager;
 import com.openlattice.authorization.AclKey;
 import com.openlattice.rhizome.hazelcast.DelegatedStringSet;
+import org.apache.olingo.commons.api.edm.EdmPrimitiveTypeKind;
 import org.apache.olingo.commons.api.edm.FullQualifiedName;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -122,9 +124,7 @@ public class SearchService {
 
     @Subscribe
     public void createEntitySet( EntitySetCreatedEvent event ) {
-        elasticsearchApi.saveEntitySetToElasticsearch( event.getEntitySet(),
-                event.getPropertyTypes(),
-                event.getPrincipal() );
+        elasticsearchApi.saveEntitySetToElasticsearch( event.getEntitySet(), event.getPropertyTypes() );
     }
 
     @Subscribe
@@ -153,7 +153,7 @@ public class SearchService {
 
     @Subscribe
     public void createOrganization( OrganizationCreatedEvent event ) {
-        elasticsearchApi.createOrganization( event.getOrganization(), event.getPrincipal() );
+        elasticsearchApi.createOrganization( event.getOrganization() );
     }
 
     public SearchResult executeOrganizationKeywordSearch( SearchTerm searchTerm ) {
@@ -184,12 +184,15 @@ public class SearchService {
 
     @Subscribe
     public void createEntityData( EntityDataCreatedEvent event ) {
+        UUID entitySetId = event.getEntitySetId();
         UUID syncId = ( event.getOptionalSyncId().isPresent() ) ? event.getOptionalSyncId().get()
                 : datasourceManager.getCurrentSyncId( event.getEntitySetId() );
-        elasticsearchApi.createEntityData( event.getEntitySetId(),
-                syncId,
-                event.getEntityId(),
-                event.getPropertyValues() );
+        String entityId = event.getEntityId();
+        SetMultimap<UUID, Object> entity = event.getPropertyValues();
+        if ( event.getShouldUpdate() )
+            elasticsearchApi.updateEntityData( entitySetId, syncId, entityId, entity );
+        else
+            elasticsearchApi.createEntityData( entitySetId, syncId, entityId, entity );
     }
 
     @Subscribe
@@ -540,6 +543,52 @@ public class SearchService {
 
     public void triggerAssociationTypeIndex( List<AssociationType> associationTypes ) {
         elasticsearchApi.triggerAssociationTypeIndex( associationTypes );
+    }
+
+    public void triggerEntitySetIndex() {
+        Map<EntitySet, Set<UUID>> entitySets = StreamUtil.stream( dataModelService.getEntitySets() ).collect( Collectors
+                .toMap( entitySet -> entitySet,
+                        entitySet -> dataModelService.getEntityType( entitySet.getEntityTypeId() ).getProperties() ) );
+        Map<UUID, PropertyType> propertyTypes = StreamUtil.stream( dataModelService.getPropertyTypes() )
+                .collect( Collectors.toMap( pt -> pt.getId(), pt -> pt ) );
+        elasticsearchApi.triggerEntitySetIndex( entitySets, propertyTypes );
+    }
+
+    public void triggerEntitySetDataIndex( UUID entitySetId ) {
+        Set<UUID> propertyTypeIds = dataModelService.getEntityTypeByEntitySetId( entitySetId ).getProperties();
+        Map<UUID, PropertyType> propertyTypes = dataModelService.getPropertyTypesAsMap( propertyTypeIds );
+        List<PropertyType> propertyTypeList = Lists.newArrayList( propertyTypes.values() );
+        UUID syncId = datasourceManager.getCurrentSyncId( entitySetId );
+
+        elasticsearchApi.deleteEntitySet( entitySetId );
+        elasticsearchApi.saveEntitySetToElasticsearch( dataModelService.getEntitySet( entitySetId ), propertyTypeList );
+        elasticsearchApi.createSecurableObjectIndex( entitySetId, syncId, propertyTypeList );
+
+        Map<FullQualifiedName, UUID> propertyIdsByFqn = propertyTypes.values().stream()
+                .collect( Collectors.toMap( pt -> pt.getType(), pt -> pt.getId() ) );
+
+        Set<FullQualifiedName> ignore = propertyTypeList.stream()
+                .filter( pt -> pt.getDatatype().equals( EdmPrimitiveTypeKind.Binary ) )
+                .map( pt -> pt.getType() )
+                .collect( Collectors.toSet() );
+
+        dataManager.getEntityKeysForEntitySet( entitySetId, syncId )
+                .parallel()
+                .forEach( entityKey -> {
+                    String entityId = entityKey.getEntityId();
+                    SetMultimap<UUID, Object> entity = HashMultimap.create();
+                    dataManager
+                            .getEntity( entitySetId, syncId, entityId, propertyTypes )
+                            .entries().stream()
+                            .filter( entry -> !ignore.contains( entry.getKey() ) )
+                            .forEach( entry -> entity.put( propertyIdsByFqn.get( entry.getKey() ), entry.getValue() ) );
+                    elasticsearchApi
+                            .createEntityData( entitySetId, syncId, entityId, entity );
+                } );
+    }
+
+    public void triggerAllEntitySetDataIndex() {
+        dataModelService.getEntitySets().forEach( entitySet -> triggerEntitySetDataIndex( entitySet.getId() ) );
     }
 
     public void triggerAppIndex( List<App> apps ) {

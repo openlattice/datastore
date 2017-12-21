@@ -19,8 +19,7 @@
 
 package com.dataloom.datastore.edm.controllers;
 
-import com.auth0.jwt.internal.org.apache.commons.lang3.StringUtils;
-import com.auth0.spring.security.api.Auth0JWTToken;
+import com.auth0.spring.security.api.authentication.PreAuthenticatedAuthenticationJsonWebToken;
 import com.dataloom.authentication.LoomAuth0AuthenticationProvider;
 import com.dataloom.authorization.*;
 import com.dataloom.authorization.securable.SecurableObjectType;
@@ -45,6 +44,7 @@ import com.kryptnostic.datastore.exceptions.BatchException;
 import com.kryptnostic.datastore.services.EdmManager;
 import com.kryptnostic.datastore.services.PostgresEntitySetManager;
 import com.openlattice.authorization.AclKey;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.olingo.commons.api.edm.FullQualifiedName;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -340,7 +340,7 @@ public class EdmController implements EdmApi, AuthorizingComponent {
             FileType fileType,
             String token ) {
         if ( StringUtils.isNotBlank( token ) ) {
-            Authentication authentication = authProvider.authenticate( new Auth0JWTToken( token ) );
+            Authentication authentication = authProvider.authenticate( PreAuthenticatedAuthenticationJsonWebToken.usingToken( token ) );
             SecurityContextHolder.getContext().setAuthentication( authentication );
         }
         return schemaManager.getSchema( namespace, name );

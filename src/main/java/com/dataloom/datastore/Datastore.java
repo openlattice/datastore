@@ -25,21 +25,18 @@ import com.dataloom.datastore.pods.DatastoreSecurityPod;
 import com.dataloom.datastore.pods.DatastoreServicesPod;
 import com.dataloom.datastore.pods.DatastoreServletsPod;
 import com.dataloom.datastore.pods.SparkDependencyPod;
-import com.dataloom.hazelcast.pods.MapstoresPod;
 import com.dataloom.hazelcast.pods.SharedStreamSerializersPod;
 import com.dataloom.mappers.ObjectMappers;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.kryptnostic.conductor.codecs.pods.TypeCodecsPod;
-import com.kryptnostic.datastore.cassandra.CassandraTablesPod;
 import com.kryptnostic.rhizome.configuration.websockets.BaseRhizomeServer;
 import com.kryptnostic.rhizome.core.RhizomeApplicationServer;
 import com.kryptnostic.rhizome.hazelcast.serializers.RhizomeUtils.Pods;
-import com.kryptnostic.rhizome.pods.CassandraPod;
 import com.kryptnostic.rhizome.pods.hazelcast.RegistryBasedHazelcastInstanceConfigurationPod;
 
 import com.openlattice.jdbc.JdbcPod;
 import com.openlattice.postgres.PostgresPod;
-import digital.loom.rhizome.authentication.Auth0Pod;
+import com.openlattice.auth0.Auth0Pod;
 
 public class Datastore extends BaseRhizomeServer {
     public static final Class<?>[] webPods       = new Class<?>[] {
@@ -75,6 +72,11 @@ public class Datastore extends BaseRhizomeServer {
     }
 
     public static void main( String[] args ) throws Exception {
-        new Datastore().start( args );
+        Datastore datastore = new Datastore();
+        datastore.start( args );
+    }
+
+    @Override public void start( String... profiles ) throws Exception {
+        super.start( profiles );
     }
 }

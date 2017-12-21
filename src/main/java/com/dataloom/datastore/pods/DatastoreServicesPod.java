@@ -20,7 +20,6 @@
 package com.dataloom.datastore.pods;
 
 import static com.kryptnostic.datastore.util.Util.returnAndLog;
-import static com.google.common.base.Preconditions.checkState;
 
 import com.dataloom.authorization.AbstractSecurableObjectResolveTypeService;
 import com.dataloom.authorization.AuthorizationManager;
@@ -29,6 +28,7 @@ import com.dataloom.authorization.EdmAuthorizationHelper;
 import com.dataloom.authorization.HazelcastAbstractSecurableObjectResolveTypeService;
 import com.dataloom.authorization.HazelcastAclKeyReservationService;
 import com.dataloom.authorization.HazelcastAuthorizationService;
+import com.dataloom.authorization.Principals;
 import com.dataloom.clustering.DistributedClusterer;
 import com.dataloom.data.DataGraphManager;
 import com.dataloom.data.DataGraphService;
@@ -71,10 +71,11 @@ import com.kryptnostic.datastore.services.EdmService;
 import com.kryptnostic.datastore.services.ODataStorageService;
 import com.kryptnostic.datastore.services.PostgresEntitySetManager;
 import com.kryptnostic.rhizome.pods.CassandraPod;
+import com.openlattice.auth0.Auth0Pod;
+import com.openlattice.authentication.Auth0Configuration;
 import com.openlattice.authorization.DbCredentialService;
 import com.zaxxer.hikari.HikariDataSource;
-import digital.loom.rhizome.authentication.Auth0Pod;
-import digital.loom.rhizome.configuration.auth0.Auth0Configuration;
+import javax.annotation.PostConstruct;
 import javax.inject.Inject;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -325,4 +326,8 @@ public class DatastoreServicesPod {
                 aclKeyReservationService() ), "Checkpoint app service" );
     }
 
+    @PostConstruct
+    void initPrincipals() {
+        Principals.init( principalService() );
+    }
 }

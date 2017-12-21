@@ -19,45 +19,52 @@
 
 package com.dataloom.datastore.pods;
 
+import com.dataloom.authentication.LoomAuth0AuthenticationProvider;
+import com.dataloom.authorization.SystemRole;
 import com.dataloom.organizations.roles.SecurePrincipalsManager;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.openlattice.auth0.Auth0SecurityPod;
 import com.ryantenney.metrics.spring.config.annotation.EnableMetrics;
+import com.openlattice.authentication.Auth0Configuration;
 import javax.inject.Inject;
-
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
+import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.config.annotation.method.configuration.EnableGlobalMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
-import org.springframework.security.web.AuthenticationEntryPoint;
-
-import com.dataloom.authentication.LoomAuth0AuthenticationProvider;
-import com.dataloom.authorization.SystemRole;
-import com.dataloom.datastore.util.RefreshTokenAuthenticationEntryPoint;
-import com.fasterxml.jackson.databind.ObjectMapper;
-
-import digital.loom.rhizome.authentication.Auth0SecurityPod;
-import digital.loom.rhizome.authentication.ConfigurableAuth0AuthenticationProvider;
 
 @Configuration
 @EnableGlobalMethodSecurity(
-    prePostEnabled = true )
+        prePostEnabled = true )
 @EnableWebSecurity(
-    debug = false )
+        debug = false )
 @EnableMetrics
 public class DatastoreSecurityPod extends Auth0SecurityPod {
 
-    @Inject
+    @Inject private
     ObjectMapper defaultObjectMapper;
 
-    @Inject SecurePrincipalsManager spm;
+    @Inject private SecurePrincipalsManager spm;
 
-    @Override
-    protected ConfigurableAuth0AuthenticationProvider getAuthenticationProvider() {
-        return new LoomAuth0AuthenticationProvider( getAuthenticationApiClient(), spm );
+    @Inject private Auth0Configuration auth0Configuration;
+
+    protected AuthenticationProvider getAuthenticationProvider() {
+        return new LoomAuth0AuthenticationProvider(
+                auth0Configuration.getClientSecret().getBytes(),
+                auth0Configuration.getIssuer(),
+                auth0Configuration.getAudience(),
+                spm );
+    }
+
+    @Override protected void configure( HttpSecurity http ) throws Exception {
+        super.configure( http );
+        http.authenticationProvider( getAuthenticationProvider() );
     }
 
     @Override
     protected void authorizeRequests( HttpSecurity http ) throws Exception {
+        //TODO: Lock these down
         http.authorizeRequests()
                 .antMatchers( HttpMethod.OPTIONS ).permitAll()
                 .antMatchers( HttpMethod.PUT, "/datastore/principals/users/*" ).permitAll()
@@ -65,10 +72,4 @@ public class DatastoreSecurityPod extends Auth0SecurityPod {
                 .antMatchers( "/datastore/data/entitydata/*" ).permitAll()
                 .antMatchers( "/datastore/**" ).hasAnyAuthority( SystemRole.valuesAsArray() );
     }
-
-    @Override
-    public AuthenticationEntryPoint auth0AuthenticationEntryPoint() {
-        return new RefreshTokenAuthenticationEntryPoint( defaultObjectMapper );
-    }
-
 }

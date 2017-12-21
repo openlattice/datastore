@@ -19,46 +19,24 @@
 
 package com.dataloom.datastore.search.controllers;
 
-import com.dataloom.authorization.AuthorizationManager;
-import com.dataloom.authorization.AuthorizingComponent;
-import com.dataloom.authorization.EdmAuthorizationHelper;
-import com.dataloom.authorization.Permission;
-import com.dataloom.authorization.Principals;
+import com.dataloom.authorization.*;
 import com.dataloom.data.requests.NeighborEntityDetails;
 import com.dataloom.datastore.apps.services.AppService;
 import com.dataloom.datastore.services.SearchService;
 import com.dataloom.edm.EntitySet;
-import com.dataloom.edm.type.PropertyType;
 import com.dataloom.search.SearchApi;
-import com.dataloom.search.requests.AdvancedSearch;
-import com.dataloom.search.requests.DataSearchResult;
-import com.dataloom.search.requests.FQNSearchTerm;
-import com.dataloom.search.requests.Search;
-import com.dataloom.search.requests.SearchResult;
-import com.dataloom.search.requests.SearchTerm;
+import com.dataloom.search.requests.*;
 import com.google.common.base.Optional;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.kryptnostic.datastore.services.EdmService;
 import com.openlattice.authorization.AclKey;
-
-import java.util.EnumSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
-import javax.inject.Inject;
-
-import com.openlattice.authorization.AclKey;
 import org.springframework.http.MediaType;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.RestController;
-import retrofit2.http.GET;
+import org.springframework.web.bind.annotation.*;
+
+import javax.inject.Inject;
+import java.util.*;
 
 @RestController
 @RequestMapping( SearchApi.CONTROLLER )
@@ -298,8 +276,29 @@ public class SearchController implements SearchApi, AuthorizingComponent {
         searchService.triggerPropertyTypeIndex( Lists.newArrayList( edm.getPropertyTypes() ) );
         searchService.triggerEntityTypeIndex( Lists.newArrayList( edm.getEntityTypes() ) );
         searchService.triggerAssociationTypeIndex( Lists.newArrayList( edm.getAssociationTypes() ) );
+        searchService.triggerEntitySetIndex();
         searchService.triggerAppIndex( Lists.newArrayList( appService.getApps() ) );
         searchService.triggerAppTypeIndex( Lists.newArrayList( appService.getAppTypes() ) );
+        return null;
+    }
+
+    @RequestMapping(
+            path = { ENTITY_SETS + INDEX + ENTITY_SET_ID_PATH },
+            method = RequestMethod.GET )
+    @Override
+    public Void trigerEntitySetDataIndex( @PathVariable( ENTITY_SET_ID ) UUID entitySetId ) {
+        ensureAdminAccess();
+        searchService.triggerEntitySetDataIndex( entitySetId );
+        return null;
+    }
+
+    @RequestMapping(
+            path = { ENTITY_SETS + INDEX },
+            method = RequestMethod.GET )
+    @Override
+    public Void trigerAllEntitySetDataIndex() {
+        ensureAdminAccess();
+        searchService.triggerAllEntitySetDataIndex();
         return null;
     }
 }

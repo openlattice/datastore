@@ -19,7 +19,6 @@
 
 package com.dataloom.datastore.pods;
 
-import com.dataloom.authorization.SystemRole;
 import com.openlattice.auth0.Auth0SecurityPod;
 import com.ryantenney.metrics.spring.config.annotation.EnableMetrics;
 import org.springframework.context.annotation.Configuration;
@@ -44,6 +43,7 @@ public class DatastoreSecurityPod extends Auth0SecurityPod {
                 .antMatchers( HttpMethod.PUT, "/datastore/principals/users/*" ).permitAll()
                 .antMatchers( HttpMethod.GET, "/datastore/edm/**" ).permitAll()
                 .antMatchers( "/datastore/data/entitydata/*" ).permitAll()
-                .antMatchers( "/datastore/**" ).hasAnyAuthority( SystemRole.valuesAsArray() );
+                .antMatchers( "/datastore/**" ).authenticated();
     }
+
 }

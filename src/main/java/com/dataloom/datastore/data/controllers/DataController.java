@@ -19,51 +19,17 @@
 
 package com.dataloom.datastore.data.controllers;
 
-import java.util.EnumSet;
-import java.util.LinkedHashSet;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
-
-import javax.annotation.PostConstruct;
-import javax.inject.Inject;
-import javax.servlet.http.HttpServletResponse;
-
-import com.dataloom.data.*;
-import com.google.common.collect.*;
-import com.hazelcast.core.IMap;
-import com.openlattice.authorization.AclKey;
-import org.apache.olingo.commons.api.edm.EdmPrimitiveTypeKind;
-import org.apache.olingo.commons.api.edm.FullQualifiedName;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.ResponseStatus;
-import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.client.HttpServerErrorException;
-
-import com.auth0.jwt.internal.org.apache.commons.lang3.StringUtils;
-import com.auth0.spring.security.api.Auth0JWTToken;
-import com.dataloom.authentication.LoomAuth0AuthenticationProvider;
+import com.auth0.spring.security.api.authentication.PreAuthenticatedAuthenticationJsonWebToken;
 import com.dataloom.authorization.AuthorizationManager;
 import com.dataloom.authorization.AuthorizingComponent;
 import com.dataloom.authorization.EdmAuthorizationHelper;
 import com.dataloom.authorization.ForbiddenException;
 import com.dataloom.authorization.Permission;
 import com.dataloom.authorization.Principals;
+import com.dataloom.data.DataApi;
+import com.dataloom.data.DataGraphManager;
+import com.dataloom.data.DatasourceManager;
+import com.dataloom.data.EntitySetData;
 import com.dataloom.data.requests.Association;
 import com.dataloom.data.requests.BulkDataCreation;
 import com.dataloom.data.requests.EntitySetSelection;
@@ -76,9 +42,46 @@ import com.google.common.base.Optional;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Maps;
+import com.google.common.collect.SetMultimap;
+import com.google.common.collect.Sets;
 import com.kryptnostic.datastore.exceptions.ResourceNotFoundException;
 import com.kryptnostic.datastore.services.EdmService;
 import com.kryptnostic.datastore.util.Util;
+import com.openlattice.authorization.AclKey;
+import java.util.EnumSet;
+import java.util.LinkedHashSet;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
+import javax.annotation.PostConstruct;
+import javax.inject.Inject;
+import javax.servlet.http.HttpServletResponse;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.olingo.commons.api.edm.EdmPrimitiveTypeKind;
+import org.apache.olingo.commons.api.edm.FullQualifiedName;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.client.HttpServerErrorException;
 
 @RestController
 @RequestMapping( DataApi.CONTROLLER )
@@ -101,35 +104,13 @@ public class DataController implements DataApi, AuthorizingComponent {
     private EdmAuthorizationHelper authzHelper;
 
     @Inject
-    private LoomAuth0AuthenticationProvider authProvider;
+    private AuthenticationManager authProvider;
 
     @Inject
     private DatasourceManager datasourceManager;
 
     private LoadingCache<UUID, EdmPrimitiveTypeKind>  primitiveTypeKinds;
     private LoadingCache<AuthorizationKey, Set<UUID>> authorizedPropertyCache;
-
-    /**
-     * Methods for setting http response header
-     */
-
-    private static void setDownloadContentType( HttpServletResponse response, FileType fileType ) {
-        if ( fileType == FileType.csv ) {
-            response.setContentType( CustomMediaType.TEXT_CSV_VALUE );
-        } else {
-            response.setContentType( MediaType.APPLICATION_JSON_VALUE );
-        }
-    }
-
-    private static void setContentDisposition(
-            HttpServletResponse response,
-            String fileName,
-            FileType fileType ) {
-        if ( fileType == FileType.csv || fileType == FileType.json ) {
-            response.setHeader( "Content-Disposition",
-                    "attachment; filename=" + fileName + "." + fileType.toString() );
-        }
-    }
 
     @RequestMapping(
             path = { "/" + ENTITY_DATA + "/" + SET_ID_PATH },
@@ -156,7 +137,8 @@ public class DataController implements DataApi, AuthorizingComponent {
             FileType fileType,
             String token ) {
         if ( StringUtils.isNotBlank( token ) ) {
-            Authentication authentication = authProvider.authenticate( new Auth0JWTToken( token ) );
+            Authentication authentication = authProvider
+                    .authenticate( PreAuthenticatedAuthenticationJsonWebToken.usingToken( token ) );
             SecurityContextHolder.getContext().setAuthentication( authentication );
         }
         return loadEntitySetData( entitySetId, Optional.absent(), Optional.absent() );
@@ -551,6 +533,28 @@ public class DataController implements DataApi, AuthorizingComponent {
         entityByFqns.entries()
                 .forEach( entry -> entity.put( dms.getPropertyType( entry.getKey() ).getId(), entry.getValue() ) );
         return replaceEntityInEntitySet( entitySetId, entityKeyId, entity );
+    }
+
+    /**
+     * Methods for setting http response header
+     */
+
+    private static void setDownloadContentType( HttpServletResponse response, FileType fileType ) {
+        if ( fileType == FileType.csv ) {
+            response.setContentType( CustomMediaType.TEXT_CSV_VALUE );
+        } else {
+            response.setContentType( MediaType.APPLICATION_JSON_VALUE );
+        }
+    }
+
+    private static void setContentDisposition(
+            HttpServletResponse response,
+            String fileName,
+            FileType fileType ) {
+        if ( fileType == FileType.csv || fileType == FileType.json ) {
+            response.setHeader( "Content-Disposition",
+                    "attachment; filename=" + fileName + "." + fileType.toString() );
+        }
     }
 
 }

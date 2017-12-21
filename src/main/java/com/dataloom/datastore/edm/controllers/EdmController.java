@@ -20,7 +20,6 @@
 package com.dataloom.datastore.edm.controllers;
 
 import com.auth0.spring.security.api.authentication.PreAuthenticatedAuthenticationJsonWebToken;
-import com.dataloom.authentication.LoomAuth0AuthenticationProvider;
 import com.dataloom.authorization.*;
 import com.dataloom.authorization.securable.SecurableObjectType;
 import com.dataloom.authorization.util.AuthorizationUtils;
@@ -48,6 +47,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.olingo.commons.api.edm.FullQualifiedName;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
@@ -78,7 +78,7 @@ public class EdmController implements EdmApi, AuthorizingComponent {
     private AbstractSecurableObjectResolveTypeService securableObjectTypes;
 
     @Inject
-    private LoomAuth0AuthenticationProvider authProvider;
+    private AuthenticationManager authenticationManager;
 
     @Inject
     private CassandraEntityDatastore dataManager;
@@ -340,7 +340,7 @@ public class EdmController implements EdmApi, AuthorizingComponent {
             FileType fileType,
             String token ) {
         if ( StringUtils.isNotBlank( token ) ) {
-            Authentication authentication = authProvider.authenticate( PreAuthenticatedAuthenticationJsonWebToken.usingToken( token ) );
+            Authentication authentication = authenticationManager.authenticate( PreAuthenticatedAuthenticationJsonWebToken.usingToken( token ) );
             SecurityContextHolder.getContext().setAuthentication( authentication );
         }
         return schemaManager.getSchema( namespace, name );

@@ -35,6 +35,7 @@ import com.dataloom.data.requests.BulkDataCreation;
 import com.dataloom.data.requests.EntitySetSelection;
 import com.dataloom.data.requests.FileType;
 import com.dataloom.datastore.constants.CustomMediaType;
+import com.dataloom.datastore.services.SearchService;
 import com.dataloom.datastore.services.SyncTicketService;
 import com.dataloom.edm.processors.EdmPrimitiveTypeKindGetter;
 import com.dataloom.edm.type.PropertyType;
@@ -108,6 +109,9 @@ public class DataController implements DataApi, AuthorizingComponent {
 
     @Inject
     private DatasourceManager datasourceManager;
+
+    @Inject
+    private SearchService searchService;
 
     private LoadingCache<UUID, EdmPrimitiveTypeKind>  primitiveTypeKinds;
     private LoadingCache<AuthorizationKey, Set<UUID>> authorizedPropertyCache;
@@ -535,6 +539,15 @@ public class DataController implements DataApi, AuthorizingComponent {
         return replaceEntityInEntitySet( entitySetId, entityKeyId, entity );
     }
 
+    @Override
+    @RequestMapping(
+            path = { "/" + SET_ID_PATH + "/" + COUNT },
+            method = RequestMethod.GET )
+    public long getEntitySetSize( @PathVariable( SET_ID ) UUID entitySetId ) {
+        ensureReadAccess( new AclKey( entitySetId ) );
+        return searchService.getEntitySetSize( entitySetId );
+    }
+
     /**
      * Methods for setting http response header
      */
@@ -556,5 +569,4 @@ public class DataController implements DataApi, AuthorizingComponent {
                     "attachment; filename=" + fileName + "." + fileType.toString() );
         }
     }
-
 }

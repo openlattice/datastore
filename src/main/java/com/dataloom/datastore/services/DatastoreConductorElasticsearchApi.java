@@ -2,7 +2,6 @@ package com.dataloom.datastore.services;
 
 import com.dataloom.apps.App;
 import com.dataloom.apps.AppType;
-import com.dataloom.authorization.Principal;
 import com.dataloom.data.EntityKey;
 import com.dataloom.edm.EntitySet;
 import com.dataloom.edm.type.AssociationType;
@@ -13,6 +12,7 @@ import com.dataloom.search.requests.SearchDetails;
 import com.dataloom.search.requests.SearchResult;
 import com.google.common.base.Optional;
 import com.google.common.collect.Lists;
+import com.google.common.collect.SetMultimap;
 import com.hazelcast.core.HazelcastInstance;
 import com.hazelcast.durableexecutor.DurableExecutorService;
 import com.kryptnostic.conductor.rpc.*;
@@ -21,10 +21,7 @@ import com.openlattice.rhizome.hazelcast.DelegatedStringSet;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.ExecutionException;
 
 public class DatastoreConductorElasticsearchApi implements ConductorElasticsearchApi {
@@ -38,16 +35,10 @@ public class DatastoreConductorElasticsearchApi implements ConductorElasticsearc
     }
 
     @Override
-    public boolean saveEntitySetToElasticsearch(
-            EntitySet entitySet,
-            List<PropertyType> propertyTypes,
-            Principal principal ) {
+    public boolean saveEntitySetToElasticsearch( EntitySet entitySet, List<PropertyType> propertyTypes ) {
         try {
             return executor.submit( ConductorElasticsearchCall
-                    .wrap( ElasticsearchLambdas.submitEntitySetToElasticsearch(
-                            entitySet,
-                            propertyTypes,
-                            principal ) ) )
+                    .wrap( ElasticsearchLambdas.submitEntitySetToElasticsearch( entitySet, propertyTypes ) ) )
                     .get();
         } catch ( InterruptedException | ExecutionException e ) {
             logger.debug( "unable to save entity set to elasticsearch" );
@@ -141,10 +132,10 @@ public class DatastoreConductorElasticsearchApi implements ConductorElasticsearc
     }
 
     @Override
-    public boolean createOrganization( Organization organization, Principal principal ) {
+    public boolean createOrganization( Organization organization ) {
         try {
             return executor.submit( ConductorElasticsearchCall
-                    .wrap( ElasticsearchLambdas.createOrganization( organization, principal ) ) ).get();
+                    .wrap( ElasticsearchLambdas.createOrganization( organization ) ) ).get();
         } catch ( InterruptedException | ExecutionException e ) {
             logger.debug( "unable to create organization in elasticsearch" );
             return false;
@@ -201,12 +192,27 @@ public class DatastoreConductorElasticsearchApi implements ConductorElasticsearc
             UUID entitySetId,
             UUID syncId,
             String entityId,
-            Map<UUID, Object> propertyValues ) {
+            SetMultimap<UUID, Object> propertyValues ) {
         try {
             return executor.submit( ConductorElasticsearchCall.wrap(
-                    new EntityDataLambdas( entitySetId, syncId, entityId, propertyValues ) ) ).get();
+                    new EntityDataLambdas( entitySetId, syncId, entityId, propertyValues, false ) ) ).get();
         } catch ( InterruptedException | ExecutionException e ) {
             logger.debug( "unable to save entity data to elasticsearch" );
+            return false;
+        }
+    }
+
+    @Override
+    public boolean updateEntityData(
+            UUID entitySetId,
+            UUID syncId,
+            String entityId,
+            SetMultimap<UUID, Object> propertyValues ) {
+        try {
+            return executor.submit( ConductorElasticsearchCall.wrap(
+                    new EntityDataLambdas( entitySetId, syncId, entityId, propertyValues, true ) ) ).get();
+        } catch ( InterruptedException | ExecutionException e ) {
+            logger.debug( "unable to update entity data in elasticsearch" );
             return false;
         }
     }
@@ -490,6 +496,19 @@ public class DatastoreConductorElasticsearchApi implements ConductorElasticsearc
                     ElasticsearchLambdas.triggerAssociationTypeIndex( associationTypes ) ) ).get();
         } catch ( InterruptedException | ExecutionException e ) {
             logger.debug( "Unable to trigger association type re-index" );
+            return false;
+        }
+    }
+
+    @Override
+    public boolean triggerEntitySetIndex(
+            Map<EntitySet, Set<UUID>> entitySets,
+            Map<UUID, PropertyType> propertyTypes ) {
+        try {
+            return executor.submit( ConductorElasticsearchCall.wrap(
+                    ElasticsearchLambdas.triggerEntitySetIndex( entitySets, propertyTypes ) ) ).get();
+        } catch ( InterruptedException | ExecutionException e ) {
+            logger.debug( "Unable to trigger entity set re-index" );
             return false;
         }
     }

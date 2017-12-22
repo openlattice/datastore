@@ -48,7 +48,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
 public class PermissionsControllerTest extends MultipleAuthenticatedUsersBase {
-    protected static List<UUID> entitySetAclKey;
+    protected static AclKey entitySetAclKey;
     protected static Principal  rolePrincipal1;
     protected static Principal  rolePrincipal2;
 
@@ -56,7 +56,7 @@ public class PermissionsControllerTest extends MultipleAuthenticatedUsersBase {
     public static void init() {
         loginAs( "admin" );
         EntitySet es = createEntitySet();
-        entitySetAclKey = ImmutableList.of( es.getId() );
+        entitySetAclKey = new AclKey( es.getId() );
 
         // create some roles
         UUID organizationId = organizationsApi.createOrganizationIfNotExists( TestDataFactory.organization() );

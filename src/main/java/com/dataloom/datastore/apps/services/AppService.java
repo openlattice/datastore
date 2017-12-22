@@ -1,8 +1,23 @@
 package com.dataloom.datastore.apps.services;
 
-import com.dataloom.apps.*;
-import com.dataloom.apps.processors.*;
-import com.dataloom.authorization.*;
+import com.dataloom.apps.App;
+import com.dataloom.apps.AppConfig;
+import com.dataloom.apps.AppConfigKey;
+import com.dataloom.apps.AppType;
+import com.dataloom.apps.AppTypeSetting;
+import com.dataloom.apps.processors.AddAppTypesToAppProcessor;
+import com.dataloom.apps.processors.RemoveAppTypesFromAppProcessor;
+import com.dataloom.apps.processors.UpdateAppConfigEntitySetProcessor;
+import com.dataloom.apps.processors.UpdateAppConfigPermissionsProcessor;
+import com.dataloom.apps.processors.UpdateAppMetadataProcessor;
+import com.dataloom.apps.processors.UpdateAppTypeMetadataProcessor;
+import com.dataloom.authorization.AuthorizationManager;
+import com.dataloom.authorization.AuthorizationQueryService;
+import com.dataloom.authorization.HazelcastAclKeyReservationService;
+import com.dataloom.authorization.Permission;
+import com.dataloom.authorization.Principal;
+import com.dataloom.authorization.PrincipalType;
+import com.dataloom.authorization.Principals;
 import com.dataloom.edm.EntitySet;
 import com.dataloom.edm.events.AppCreatedEvent;
 import com.dataloom.edm.events.AppDeletedEvent;
@@ -28,11 +43,15 @@ import com.kryptnostic.datastore.services.EdmManager;
 import com.kryptnostic.datastore.util.Util;
 import com.openlattice.authorization.AclKey;
 import com.openlattice.postgres.mapstores.AppConfigMapstore;
-import org.apache.olingo.commons.api.edm.FullQualifiedName;
-
-import javax.inject.Inject;
-import java.util.*;
+import java.util.Collection;
+import java.util.EnumSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
 import java.util.stream.Collectors;
+import javax.inject.Inject;
+import org.apache.olingo.commons.api.edm.FullQualifiedName;
 
 public class AppService {
     private final IMap<UUID, App>                    apps;
@@ -215,8 +234,7 @@ public class AppService {
                     .checkIfHasPermissions( aclKey, ImmutableSet.of( appPrincipal ), setting.getPermissions() );
             boolean userIsAuthorized = authorizationService
                     .checkIfHasPermissions( aclKey, userPrincipals, setting.getPermissions() );
-            if ( !appIsAuthorized || !userIsAuthorized )
-                authorized = false;
+            if ( !appIsAuthorized || !userIsAuthorized ) { authorized = false; }
         }
         return authorized;
     }

@@ -29,3 +29,7 @@ hikari:
     dataSource.user: "mtamayo"
     dataSource.databaseName: "openlattice"
     maximumPoolSize: 1
+
+#graphite:
+#    host: "jarvis"
+#    global-prefix: "datastore"

@@ -19,20 +19,6 @@
 
 package com.dataloom.requests;
 
-import java.util.EnumSet;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.UUID;
-import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
-
-import org.junit.Assert;
-import org.junit.BeforeClass;
-import org.junit.FixMethodOrder;
-import org.junit.Test;
-import org.junit.runners.MethodSorters;
-
 import com.dataloom.authorization.AccessCheck;
 import com.dataloom.authorization.Authorization;
 import com.dataloom.authorization.Permission;
@@ -43,36 +29,34 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
+import com.openlattice.authorization.AclKey;
+import java.util.EnumSet;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
+import org.junit.Assert;
+import org.junit.BeforeClass;
+import org.junit.FixMethodOrder;
+import org.junit.Test;
+import org.junit.runners.MethodSorters;
 
 //Awkward test naming, to force JUnit Test runs in correct order
 @FixMethodOrder( MethodSorters.NAME_ASCENDING )
 public class RequestsControllerTest extends MultipleAuthenticatedUsersBase {
-    protected static EntityType          et;
-    protected static EntitySet           es;
+    protected static EntityType et;
+    protected static EntitySet  es;
 
-    protected static List<UUID>          entitySetAclKey;
-    protected static Set<List<UUID>>     propertiesAclKeys;
-    protected static Set<List<UUID>>     allAclKeys;
+    protected static AclKey      entitySetAclKey;
+    protected static Set<AclKey> propertiesAclKeys;
+    protected static Set<AclKey> allAclKeys;
 
     protected static EnumSet<Permission> entitySetPermissions  = EnumSet.of( Permission.READ, Permission.WRITE );
     protected static EnumSet<Permission> propertiesPermissions = EnumSet.of( Permission.READ );
 
-    protected static int                 entitySetRequestMade  = 0;
-    protected static int                 propertiesRequestMade = 0;
-    protected static int                 totalRequestMade      = 0;
-
-    @BeforeClass
-    public static void init() {
-        loginAs( "admin" );
-        et = createEntityType();
-        es = createEntitySet( et );
-
-        entitySetAclKey = ImmutableList.of( es.getId() );
-        propertiesAclKeys = et.getProperties().stream()
-                .map( ptId -> ImmutableList.of( es.getId(), ptId ) )
-                .collect( Collectors.toSet() );
-        allAclKeys = Sets.union( ImmutableSet.of( entitySetAclKey ), propertiesAclKeys );
-    }
+    protected static int entitySetRequestMade  = 0;
+    protected static int propertiesRequestMade = 0;
+    protected static int totalRequestMade      = 0;
 
     @Test
     public void test1RequestPermissions() {
@@ -174,5 +158,18 @@ public class RequestsControllerTest extends MultipleAuthenticatedUsersBase {
         Assert.assertEquals( propertiesRequestMade, Iterables.size( propertiesAuth ) );
 
         propertiesAclKeys.stream().forEach( aclKey -> checkUserPermissions( aclKey, propertiesPermissions ) );
+    }
+
+    @BeforeClass
+    public static void init() {
+        loginAs( "admin" );
+        et = createEntityType();
+        es = createEntitySet( et );
+
+        entitySetAclKey = new AclKey( es.getId() );
+        propertiesAclKeys = et.getProperties().stream()
+                .map( ptId -> new AclKey( es.getId(), ptId ) )
+                .collect( Collectors.toSet() );
+        allAclKeys = Sets.union( ImmutableSet.of( entitySetAclKey ), propertiesAclKeys );
     }
 }

@@ -19,94 +19,113 @@
 
 package com.dataloom.datastore;
 
+import com.auth0.json.auth.TokenHolder;
+import com.dataloom.authorization.Principal;
+import com.dataloom.authorization.Principals;
+import com.dataloom.client.RetrofitFactory;
+import com.dataloom.data.storage.CassandraEntityDatastore;
+import com.dataloom.directory.PrincipalApi;
+import com.dataloom.edm.schemas.manager.HazelcastSchemaManager;
+import com.google.common.collect.Sets;
+import com.google.common.util.concurrent.RateLimiter;
+import com.kryptnostic.datastore.services.EdmManager;
+import com.openlattice.authentication.AuthenticationTest;
+import com.openlattice.authentication.AuthenticationTestRequestOptions;
 import java.util.Set;
-
 import org.junit.AfterClass;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.auth0.spring.security.api.Auth0JWTToken;
-import com.dataloom.authentication.LoomAuth0AuthenticationProvider;
-import com.dataloom.authentication.LoomAuthentication;
-import com.dataloom.authorization.AuthorizationManager;
-import com.dataloom.authorization.Principal;
-import com.dataloom.client.RetrofitFactory;
-import com.dataloom.edm.schemas.manager.HazelcastSchemaManager;
-import com.geekbeast.rhizome.tests.bootstrap.CassandraBootstrap;
-import com.google.common.collect.Sets;
-import com.dataloom.data.storage.CassandraEntityDatastore;
-import com.kryptnostic.datastore.services.EdmManager;
-
-import com.openlattice.authentication.AuthenticationTest;
-import com.openlattice.authentication.AuthenticationTestRequestOptions;
+import org.springframework.security.core.Authentication;
 import retrofit2.Retrofit;
 
-public class BootstrapDatastoreWithCassandra extends CassandraBootstrap {
-    protected static final Datastore                 ds       = new Datastore();
-    protected static final Set<Class<?>>             PODS     = Sets.newHashSet(  );
-    protected static final Set<String>               PROFILES = Sets.newHashSet( "local", "cassandra" );
-    protected static final Principal                 admin;
-    protected static final Principal                 user1;
-    protected static final Principal                 user2;
-    protected static final Principal                       user3;
-    protected static final Retrofit                        retrofit;
-    protected static final Retrofit                        retrofit1;
-    protected static final Retrofit                        retrofit2;
-    protected static final Retrofit                        retrofit3;
-    protected static       LoomAuth0AuthenticationProvider loomAuthProvider;
-    protected static       EdmManager                      dms;
-    protected static       AuthorizationManager            am;
-    protected static       CassandraEntityDatastore        dataService;
-    protected static       HazelcastSchemaManager          schemaManager;
-
+public class BootstrapDatastoreWithCassandra {
+    protected static final Datastore     ds       = new Datastore();
+    protected static final Set<Class<?>> PODS     = Sets.newHashSet();
+    protected static final Set<String>   PROFILES = Sets.newHashSet( "local", "postgres" );
+    protected static final Principal admin;
+    protected static final Principal user1;
+    protected static final Principal user2;
+    protected static final Principal user3;
+    protected static final Retrofit  retrofit;
+    protected static final Retrofit  retrofit1;
+    protected static final Retrofit  retrofit2;
+    protected static final Retrofit  retrofit3;
     protected static final AuthenticationTestRequestOptions authOptions1 = new AuthenticationTestRequestOptions()
-            .setUsernameOrEmail( "tests1@kryptnostic.com" )
+            .setUsernameOrEmail( "tests1@openlattice.com" )
             .setPassword( "abracadabra" );
     protected static final AuthenticationTestRequestOptions authOptions2 = new AuthenticationTestRequestOptions()
-            .setUsernameOrEmail( "tests2@kryptnostic.com" )
+            .setUsernameOrEmail( "tests2@openlattice.com" )
             .setPassword( "abracadabra" );
     protected static final AuthenticationTestRequestOptions authOptions3 = new AuthenticationTestRequestOptions()
-            .setUsernameOrEmail( "tests3@kryptnostic.com" )
+            .setUsernameOrEmail( "tests3@openlattice.com" )
             .setPassword( "abracadabra" );
-    
+    protected static EdmManager               dms;
+    //    protected static AuthorizationManager     am;
+    protected static CassandraEntityDatastore dataService;
+    protected static HazelcastSchemaManager   schemaManager;
+
     static {
-        String jwtAdmin = AuthenticationTest.authenticate().getCredentials().getIdToken();
-        String jwtUser1 = AuthenticationTest.getAuthentication( authOptions1 ).getCredentials().getIdToken();
-        String jwtUser2 = AuthenticationTest.getAuthentication( authOptions2 ).getCredentials().getIdToken();
-        String jwtUser3 = AuthenticationTest.getAuthentication( authOptions3 ).getCredentials().getIdToken();
-
-        retrofit = RetrofitFactory.newClient( RetrofitFactory.Environment.TESTING, () -> jwtAdmin );
-        retrofit1 = RetrofitFactory.newClient( RetrofitFactory.Environment.TESTING, () -> jwtUser1 );
-        retrofit2 = RetrofitFactory.newClient( RetrofitFactory.Environment.TESTING, () -> jwtUser2 );
-        retrofit3 = RetrofitFactory.newClient( RetrofitFactory.Environment.TESTING, () -> jwtUser3 );
-
         try {
             ds.intercrop( PODS.toArray( new Class<?>[ 0 ] ) );
             ds.start( PROFILES.toArray( new String[ 0 ] ) );
         } catch ( Exception e ) {
             throw new IllegalStateException( "Unable to start datastore", e );
         }
-
-        loomAuthProvider = getBean( LoomAuth0AuthenticationProvider.class );
         dms = getBean( EdmManager.class );
-        am = getBean( AuthorizationManager.class );
+        //        am = getBean( AuthorizationManager.class );
         dataService = getBean( CassandraEntityDatastore.class );
         schemaManager = getBean( HazelcastSchemaManager.class );
 
-        admin = toPrincipal( jwtAdmin );
-        user1 = toPrincipal( jwtUser1 );
-        user2 = toPrincipal( jwtUser2 );
-        user3 = toPrincipal( jwtUser3 );
+        RateLimiter limiter = RateLimiter.create( .5 );
+
+        limiter.acquire();
+        Authentication jwtAdmin = AuthenticationTest.authenticate();
+        Authentication jwtUser1 = AuthenticationTest.getAuthentication( authOptions1 );
+        limiter.acquire();
+        Authentication jwtUser2 = AuthenticationTest.getAuthentication( authOptions2 );
+        Authentication jwtUser3 = AuthenticationTest.getAuthentication( authOptions3 );
+
+        limiter.acquire();
+        TokenHolder thAdmin = AuthenticationTest.tokenHolder();
+        TokenHolder thUser1 = AuthenticationTest.tokenHolder( authOptions1 );
+        limiter.acquire();
+        TokenHolder thUser2 = AuthenticationTest.tokenHolder( authOptions2 );
+        TokenHolder thUser3 = AuthenticationTest.tokenHolder( authOptions3 );
+
+        String tokenAdmin = (String) jwtAdmin.getCredentials();
+        String tokenUser1 = (String) jwtUser1.getCredentials();
+        String tokenUser2 = (String) jwtUser2.getCredentials();
+        String tokenUser3 = (String) jwtUser3.getCredentials();
+
+        retrofit = RetrofitFactory.newClient( RetrofitFactory.Environment.TESTING, () -> tokenAdmin );
+        retrofit1 = RetrofitFactory.newClient( RetrofitFactory.Environment.TESTING, () -> tokenUser1 );
+        retrofit2 = RetrofitFactory.newClient( RetrofitFactory.Environment.TESTING, () -> tokenUser2 );
+        retrofit3 = RetrofitFactory.newClient( RetrofitFactory.Environment.TESTING, () -> tokenUser3 );
+
+        PrincipalApi pApi = retrofit.create( PrincipalApi.class );
+
+        String idAdmin = (String) jwtAdmin.getPrincipal();
+        String idUser1 = (String) jwtUser1.getPrincipal();
+        String idUser2 = (String) jwtUser2.getPrincipal();
+        String idUser3 = (String) jwtUser3.getPrincipal();
+
+        pApi.activateUser( thAdmin.getAccessToken() );
+        pApi.activateUser( thUser1.getAccessToken() );
+        pApi.activateUser( thUser2.getAccessToken() );
+        pApi.activateUser( thUser3.getAccessToken() );
+
+        admin = toPrincipal( idAdmin );
+        user1 = toPrincipal( idUser1 );
+        user2 = toPrincipal( idUser2 );
+        user3 = toPrincipal( idUser3 );
 
         TestEdmConfigurer.setupDatamodel( admin, dms, schemaManager );
     }
 
     protected final Logger logger = LoggerFactory.getLogger( getClass() );
 
-    private static Principal toPrincipal( String jwtToken ) {
-        return ( (LoomAuthentication) loomAuthProvider
-                .authenticate( new Auth0JWTToken( jwtToken ) ) )
-                        .getLoomPrincipal();
+    private static Principal toPrincipal( String principalId ) {
+        return Principals.getUserPrincipal( principalId );
     }
 
     protected static <T> T getBean( Class<T> clazz ) {

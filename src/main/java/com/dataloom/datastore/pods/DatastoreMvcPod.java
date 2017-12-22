@@ -40,6 +40,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ryantenney.metrics.spring.config.annotation.EnableMetrics;
 import java.util.List;
 import javax.inject.Inject;
+
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.FilterType;
@@ -47,6 +49,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.converter.HttpMessageConverter;
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
 import org.springframework.scheduling.annotation.EnableAsync;
+import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.web.servlet.config.annotation.ContentNegotiationConfigurer;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurationSupport;
@@ -70,6 +73,9 @@ public class DatastoreMvcPod extends WebMvcConfigurationSupport {
 
     @Inject
     private ObjectMapper defaultObjectMapper;
+
+    @Inject
+    private DatastoreSecurityPod datastoreSecurityPod;
 
     @Override
     protected void configureMessageConverters( List<HttpMessageConverter<?>> converters ) {
@@ -103,5 +109,10 @@ public class DatastoreMvcPod extends WebMvcConfigurationSupport {
                 .mediaType( "json", MediaType.APPLICATION_JSON )
                 .mediaType( "yaml", CustomMediaType.TEXT_YAML )
                 .defaultContentType( MediaType.APPLICATION_JSON );
+    }
+
+    @Bean
+    public AuthenticationManager authenticationManagerBean() throws Exception {
+        return datastoreSecurityPod.authenticationManagerBean();
     }
 }

@@ -123,7 +123,8 @@ public class AppService {
                 name,
                 title,
                 description,
-                ImmutableSet.of() );
+                ImmutableSet.of(),
+                Optional.of( false ) );
         edmService.createEntitySet( principal, entitySet );
         return edmService.getEntitySet( name ).getId();
     }

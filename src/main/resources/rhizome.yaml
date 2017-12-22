@@ -30,6 +30,6 @@ hikari:
     dataSource.databaseName: "openlattice"
     maximumPoolSize: 1
 
-graphite:
-    host: "jarvis"
-    global-prefix: "datastore"
+#graphite:
+#    host: "jarvis"
+#    global-prefix: "datastore"

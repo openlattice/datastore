@@ -22,10 +22,12 @@ import com.google.common.collect.Maps;
 import com.google.common.eventbus.EventBus;
 import com.hazelcast.core.HazelcastInstance;
 import com.hazelcast.core.IMap;
+import com.hazelcast.query.Predicates;
 import com.kryptnostic.datastore.exceptions.BadRequestException;
 import com.kryptnostic.datastore.services.EdmManager;
 import com.kryptnostic.datastore.util.Util;
 import com.openlattice.authorization.AclKey;
+import com.openlattice.postgres.mapstores.AppConfigMapstore;
 import org.apache.olingo.commons.api.edm.FullQualifiedName;
 
 import javax.inject.Inject;
@@ -99,10 +101,21 @@ public class AppService {
         return getApp( id );
     }
 
+    private String getNextAvailableName( String name ) {
+        String nameAttempt = name;
+        int counter = 1;
+        while ( reservations.isReserved( nameAttempt ) ) {
+            nameAttempt = name + "_" + String.valueOf( counter );
+            counter++;
+        }
+        return nameAttempt;
+    }
+
     private UUID generateEntitySet( UUID appTypeId, String prefix, Principal principal ) {
         AppType appType = getAppType( appTypeId );
-        String name = prefix.concat( "_" ).concat( appType.getType().getNamespace() ).concat( "_" )
-                .concat( appType.getType().getName() );
+        String name = getNextAvailableName( prefix.concat( "_" ).concat( appType.getType().getNamespace() )
+                .concat( "_" )
+                .concat( appType.getType().getName() ) );
         String title = prefix.concat( " " ).concat( appType.getTitle() );
         Optional<String> description = Optional.of( prefix.concat( " " ).concat( appType.getDescription() ) );
         EntitySet entitySet = new EntitySet( Optional.absent(),
@@ -110,12 +123,13 @@ public class AppService {
                 name,
                 title,
                 description,
-                ImmutableSet.of() );
+                ImmutableSet.of(),
+                Optional.of( false ) );
         edmService.createEntitySet( principal, entitySet );
         return edmService.getEntitySet( name ).getId();
     }
 
-    private Map<Permission, Principal> createRolesForAppPermission(
+    private Map<Permission, Principal> getOrCreateRolesForAppPermission(
             App app,
             UUID organizationId,
             EnumSet<Permission> permissions,
@@ -146,10 +160,7 @@ public class AppService {
         App app = getApp( appId );
         Preconditions.checkNotNull( app, "The requested app with id %s does not exist.", appId.toString() );
 
-        EnumSet<Permission> defaultPermissions = EnumSet
-                .of( Permission.DISCOVER, Permission.LINK, Permission.READ, Permission.WRITE, Permission.OWNER );
-
-        Map<Permission, Principal> appRoles = createRolesForAppPermission( app,
+        Map<Permission, Principal> appRoles = getOrCreateRolesForAppPermission( app,
                 organizationId,
                 EnumSet.of( Permission.READ, Permission.WRITE, Permission.OWNER ),
                 principal );
@@ -158,23 +169,11 @@ public class AppService {
                 AppConfig.getAppPrincipalId( appId, organizationId ) );
 
         app.getAppTypeIds().stream().forEach( appTypeId -> {
-            UUID entitySetId = generateEntitySet( appTypeId, prefix, principal );
-            appConfigs.put( new AppConfigKey( appId, organizationId, appTypeId ),
-                    new AppTypeSetting( entitySetId, EnumSet.of( Permission.READ, Permission.WRITE ) ) );
-            authorizationService.addPermission( new AclKey( entitySetId ), appPrincipal, defaultPermissions );
-
-            appRoles.entrySet().forEach( entry -> {
-                Permission permission = entry.getKey();
-                Principal rolePrincipal = entry.getValue();
-                authorizationService
-                        .addPermission( new AclKey( entitySetId ), rolePrincipal, EnumSet.of( permission ) );
-                edmService.getEntityType( appTypes.get( appTypeId ).getEntityTypeId() ).getProperties()
-                        .forEach( propertyTypeId -> {
-                            AclKey aclKeys = new AclKey( entitySetId, propertyTypeId );
-                            authorizationService.addPermission( aclKeys, appPrincipal, defaultPermissions );
-                            authorizationService.addPermission( aclKeys, rolePrincipal, EnumSet.of( permission ) );
-                        } );
-            } );
+            createEntitySetForApp( new AppConfigKey( appId, organizationId, appTypeId ),
+                    prefix,
+                    principal,
+                    appPrincipal,
+                    appRoles );
         } );
         organizationService.addAppToOrg( organizationId, appId );
     }
@@ -261,6 +260,7 @@ public class AppService {
 
     public void addAppTypesToApp( UUID appId, Set<UUID> appTypeIds ) {
         apps.executeOnKey( appId, new AddAppTypesToAppProcessor( appTypeIds ) );
+        updateAppConfigsForNewAppType( appId, appTypeIds );
         eventBus.post( new AppCreatedEvent( apps.get( appId ) ) );
     }
 
@@ -291,6 +291,56 @@ public class AppService {
     public void updateAppTypeMetadata( UUID appTypeId, MetadataUpdate metadataUpdate ) {
         appTypes.executeOnKey( appTypeId, new UpdateAppTypeMetadataProcessor( metadataUpdate ) );
         eventBus.post( new AppTypeCreatedEvent( appTypes.get( appTypeId ) ) );
+    }
+
+    private void createEntitySetForApp(
+            AppConfigKey key,
+            String prefix,
+            Principal userPrincipal,
+            Principal appPrincipal,
+            Map<Permission, Principal> appRoles ) {
+
+        EnumSet<Permission> allPermissions = EnumSet
+                .of( Permission.DISCOVER, Permission.LINK, Permission.READ, Permission.WRITE, Permission.OWNER );
+
+        UUID entitySetId = generateEntitySet( key.getAppTypeId(), prefix, userPrincipal );
+        appConfigs.put( key, new AppTypeSetting( entitySetId, EnumSet.of( Permission.READ, Permission.WRITE ) ) );
+        authorizationService.addPermission( new AclKey( entitySetId ), appPrincipal, allPermissions );
+
+        appRoles.entrySet().forEach( entry -> {
+            Permission permission = entry.getKey();
+            Principal rolePrincipal = entry.getValue();
+            authorizationService
+                    .addPermission( new AclKey( entitySetId ), rolePrincipal, EnumSet.of( permission ) );
+            edmService.getEntityType( appTypes.get( key.getAppTypeId() ).getEntityTypeId() ).getProperties()
+                    .forEach( propertyTypeId -> {
+                        AclKey aclKeys = new AclKey( entitySetId, propertyTypeId );
+                        authorizationService.addPermission( aclKeys, appPrincipal, allPermissions );
+                        authorizationService.addPermission( aclKeys, rolePrincipal, EnumSet.of( permission ) );
+                    } );
+        } );
+    }
+
+    private void updateAppConfigsForNewAppType( UUID appId, Set<UUID> appTypeIds ) {
+        Principal principal = Principals.getCurrentUser();
+
+        Set<AppConfigKey> appConfigKeys = appConfigs.keySet( Predicates.equal( AppConfigMapstore.APP_ID, appId ) );
+        appConfigKeys.stream().map( key -> key.getOrganizationId() ).distinct().forEach( organizationId -> {
+            Principal appPrincipal = new Principal( PrincipalType.APP,
+                    AppConfig.getAppPrincipalId( appId, organizationId ) );
+            Organization org = organizationService.getOrganization( organizationId );
+            Map<Permission, Principal> appRoles = getOrCreateRolesForAppPermission( getApp( appId ),
+                    organizationId,
+                    EnumSet.of( Permission.READ, Permission.WRITE, Permission.OWNER ),
+                    principal );
+
+            appTypeIds.forEach( appTypeId -> {
+                AppConfigKey appConfigKey = new AppConfigKey( appId, organizationId, appTypeId );
+                if ( !appConfigKeys.contains( appConfigKey ) ) {
+                    createEntitySetForApp( appConfigKey, org.getTitle(), principal, appPrincipal, appRoles );
+                }
+            } );
+        } );
     }
 
 }

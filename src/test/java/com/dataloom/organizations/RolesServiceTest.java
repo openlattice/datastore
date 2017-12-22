@@ -50,8 +50,7 @@ public class RolesServiceTest extends OrganizationsTest {
         if ( authOption == null ) {
             throw new IllegalArgumentException( "User does not exist in Retrofit map." );
         }
-        String jwt = AuthenticationTest.refreshAndGetAuthentication( authOptionsMap.get( user ) ).getCredentials()
-                .getIdToken();
+        String jwt = (String) AuthenticationTest.refreshAndGetAuthentication( authOptionsMap.get( user ) ).getCredentials();
         Retrofit r = RetrofitFactory.newClient( RetrofitFactory.Environment.TESTING, () -> jwt );
 
         return r.create( OrganizationsApi.class );

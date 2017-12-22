@@ -6,18 +6,17 @@
 enable-persistence:  false
 session-clustering-enabled: false
 
-cassandra:
-    embedded: true
-    random-ports: true
-    ssl-enabled: false
-    keyspace: "sparks"
-    replication-factor: 1
-    seed-nodes:
-        - "127.0.0.1"
-
 hazelcast:
     server: true
     group: "local"
     password: "kryptodoge4life"
     seed-nodes: 
         - "127.0.0.1"
+
+hikari:
+    jdbcUrl: jdbc:postgresql://localhost:5432/openlattice
+    username: "oltest"
+    password: "test"
+    maximumPoolSize: 98
+    #20 minutes
+    connectionTimeout: 12000000

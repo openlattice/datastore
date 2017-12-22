@@ -19,13 +19,16 @@
 
 package com.dataloom.datastore.directory.controllers;
 
+import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 
+import com.auth0.client.auth.AuthAPI;
+import com.auth0.exception.Auth0Exception;
+import com.auth0.json.auth.UserInfo;
 import com.dataloom.authorization.AuthorizationManager;
 import com.dataloom.authorization.AuthorizingComponent;
 import com.dataloom.authorization.Permission;
 import com.dataloom.authorization.Principal;
-import com.dataloom.authorization.PrincipalType;
 import com.dataloom.authorization.Principals;
 import com.dataloom.authorization.securable.SecurableObjectType;
 import com.dataloom.directory.PrincipalApi;
@@ -42,10 +45,13 @@ import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
+import org.apache.commons.lang.StringUtils;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseStatus;
@@ -66,6 +72,9 @@ public class PrincipalDirectoryController implements PrincipalApi, AuthorizingCo
 
     @Inject
     private AuthorizationManager authorizations;
+
+    @Inject
+    private AuthAPI authApi;
 
     @Override
     @RequestMapping(
@@ -102,19 +111,54 @@ public class PrincipalDirectoryController implements PrincipalApi, AuthorizingCo
 
     @Override
     @RequestMapping(
-            path = USERS + USER_ID_PATH,
-            method = RequestMethod.PUT )
+            path = USERS,
+            method = RequestMethod.POST,
+            consumes = MediaType.TEXT_PLAIN_VALUE )
     @ResponseStatus( HttpStatus.OK )
-    public Void activateUser( @PathVariable( USER_ID ) String userId ) {
-        Auth0UserBasic user = spm.getUser( userId );
-        Principal principal = new Principal( PrincipalType.USER, userId );
-        if ( user != null && !spm.principalExists( principal ) ) {
-            checkState( user.getUserId().equals( userId ), "Retrieved user id must match submitted user id" );
-            dbCredService.createUserIfNotExists( userId );
+    public Void activateUser( @RequestBody String accessToken ) {
+        Principal principal = checkNotNull( Principals.getCurrentUser() );
+
+        UserInfo userInfo;
+
+        Map<String, Object> values;
+        String userId;
+        String tokenUserId;
+
+        try {
+            userInfo = checkNotNull( authApi.userInfo( accessToken ).execute() );
+            values = userInfo.getValues();
+            userId = principal.getId();
+            tokenUserId = (String) values.get( "sub" );
+            checkState( StringUtils.equals( userId, tokenUserId ),
+                    "User %s in header does not match user %s retrieved by access token.",
+                    userId,
+                    tokenUserId );
+        } catch ( IllegalArgumentException | Auth0Exception e ) {
+            throw new BadCredentialsException( "Unable to retrieve user profile information from auth0", e );
+        }
+
+        //Auth0UserBasic user = spm.getUser( principal.getId() );
+        if ( !spm.principalExists( principal ) ) {
             //TODO: Store more useful information in Auth0 about the user
-            String title = (user.getNickname() != null && user.getNickname().length() > 0) ? user.getNickname() : user.getEmail();
+            //We create securable principal first as db creds can be reset separately
+            String title = (String) values.get( "name" );
+
+            if ( StringUtils.isBlank( title ) ) {
+                title = (String) values.get( "nickname" );
+            }
+
+            if ( StringUtils.isBlank( title ) ) {
+                title = (String) values.get( "email" );
+            }
+
+            if ( StringUtils.isBlank( title ) ) {
+                title = tokenUserId;
+            }
+
             spm.createSecurablePrincipalIfNotExists( principal,
                     new SecurablePrincipal( Optional.absent(), principal, title, Optional.absent() ) );
+
+            dbCredService.createUserIfNotExists( userId );
         }
         return null;
     }

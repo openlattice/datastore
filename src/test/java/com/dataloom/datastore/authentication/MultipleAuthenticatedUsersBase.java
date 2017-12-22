@@ -19,15 +19,16 @@
 
 package com.dataloom.datastore.authentication;
 
+import com.openlattice.authorization.AclKey;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.Assert;
 
-import com.auth0.jwt.internal.org.apache.commons.lang3.RandomStringUtils;
 import com.dataloom.authorization.AccessCheck;
 import com.dataloom.authorization.AuthorizationsApi;
 import com.dataloom.authorization.Permission;
@@ -99,7 +100,7 @@ public class MultipleAuthenticatedUsersBase extends BootstrapDatastoreWithCassan
         } );
     }
 
-    public static void checkUserPermissions( List<UUID> aclKey, EnumSet<Permission> expected ) {
+    public static void checkUserPermissions( AclKey aclKey, EnumSet<Permission> expected ) {
         authorizationsApi
                 .checkAuthorizations( ImmutableSet.of( new AccessCheck( aclKey, EnumSet.allOf( Permission.class ) ) ) )
                 .forEach( auth -> checkPermissionsMap( auth.getPermissions(), expected ) );

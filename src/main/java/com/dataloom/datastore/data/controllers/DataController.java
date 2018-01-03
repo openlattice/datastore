@@ -508,7 +508,7 @@ public class DataController implements DataApi, AuthorizingComponent {
 
     @Override
     @RequestMapping(
-            path = { "/" + ENTITY_DATA + "/" + SET_ID_PATH + "/" + ENTITY_KEY_ID_PATH },
+            path = { "/" + ENTITY_DATA + "/" + UPDATE + "/" + SET_ID_PATH + "/" + ENTITY_KEY_ID_PATH },
             method = RequestMethod.PUT )
     public Void replaceEntityInEntitySet(
             @PathVariable( SET_ID ) UUID entitySetId,
@@ -527,7 +527,7 @@ public class DataController implements DataApi, AuthorizingComponent {
 
     @Override
     @RequestMapping(
-            path = { "/" + ENTITY_DATA + "/" + SET_ID_PATH + "/" + ENTITY_KEY_ID_PATH },
+            path = { "/" + ENTITY_DATA + "/" + UPDATE + "/" + SET_ID_PATH + "/" + ENTITY_KEY_ID_PATH },
             method = RequestMethod.POST )
     public Void replaceEntityInEntitySetUsingFqns(
             @PathVariable( SET_ID ) UUID entitySetId,

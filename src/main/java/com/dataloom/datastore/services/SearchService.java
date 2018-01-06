@@ -498,29 +498,32 @@ public class SearchService {
             Map<UUID, SetMultimap<FullQualifiedName, Object>> entities ) {
 
         UUID edgeEntitySetId = edge.getEdgeSetId();
-        UUID neighborEntityKeyId = ( vertexIsSrc ) ? edge.getDstEntityKeyId() : edge.getSrcEntityKeyId();
-        UUID neighborEntitySetId = ( vertexIsSrc ) ? edge.getDstSetId() : edge.getSrcSetId();
+        if (authorizedEdgeESIdsToVertexESIds.containsKey( edgeEntitySetId )) {
+            UUID neighborEntityKeyId = ( vertexIsSrc ) ? edge.getDstEntityKeyId() : edge.getSrcEntityKeyId();
+            UUID neighborEntitySetId = ( vertexIsSrc ) ? edge.getDstSetId() : edge.getSrcSetId();
 
-        SetMultimap<FullQualifiedName, Object> edgeDetails = entities.get( edge.getEdgeEntityKeyId() );
-        if ( authorizedEdgeESIdsToVertexESIds.get( edgeEntitySetId )
-                .contains( neighborEntitySetId ) ) {
-            SetMultimap<FullQualifiedName, Object> neighborDetails = entities.get( neighborEntityKeyId );
-            return new NeighborEntityDetails(
-                    entitySetsById.get( edgeEntitySetId ),
-                    edgeDetails,
-                    entitySetsIdsToAuthorizedProps.get( edgeEntitySetId ).values(),
-                    entitySetsById.get( neighborEntitySetId ),
-                    neighborEntityKeyId,
-                    neighborDetails,
-                    entitySetsIdsToAuthorizedProps.get( neighborEntitySetId ).values(),
-                    vertexIsSrc );
-        } else {
-            return new NeighborEntityDetails(
-                    entitySetsById.get( edgeEntitySetId ),
-                    edgeDetails,
-                    entitySetsIdsToAuthorizedProps.get( edgeEntitySetId ).values(),
-                    vertexIsSrc );
+            SetMultimap<FullQualifiedName, Object> edgeDetails = entities.get( edge.getEdgeEntityKeyId() );
+            if ( authorizedEdgeESIdsToVertexESIds.get( edgeEntitySetId )
+                    .contains( neighborEntitySetId ) ) {
+                SetMultimap<FullQualifiedName, Object> neighborDetails = entities.get( neighborEntityKeyId );
+                return new NeighborEntityDetails(
+                        entitySetsById.get( edgeEntitySetId ),
+                        edgeDetails,
+                        entitySetsIdsToAuthorizedProps.get( edgeEntitySetId ).values(),
+                        entitySetsById.get( neighborEntitySetId ),
+                        neighborEntityKeyId,
+                        neighborDetails,
+                        entitySetsIdsToAuthorizedProps.get( neighborEntitySetId ).values(),
+                        vertexIsSrc );
+            } else {
+                return new NeighborEntityDetails(
+                        entitySetsById.get( edgeEntitySetId ),
+                        edgeDetails,
+                        entitySetsIdsToAuthorizedProps.get( edgeEntitySetId ).values(),
+                        vertexIsSrc );
+            }
         }
+        return null;
     }
 
     private List<SetMultimap<Object, Object>> getResults(

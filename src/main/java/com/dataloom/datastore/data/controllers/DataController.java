@@ -52,6 +52,7 @@ import com.kryptnostic.datastore.exceptions.ResourceNotFoundException;
 import com.kryptnostic.datastore.services.EdmService;
 import com.kryptnostic.datastore.util.Util;
 import com.openlattice.authorization.AclKey;
+
 import java.util.EnumSet;
 import java.util.LinkedHashSet;
 import java.util.Map;
@@ -63,6 +64,7 @@ import java.util.stream.Collectors;
 import javax.annotation.PostConstruct;
 import javax.inject.Inject;
 import javax.servlet.http.HttpServletResponse;
+
 import org.apache.commons.lang3.StringUtils;
 import org.apache.olingo.commons.api.edm.EdmPrimitiveTypeKind;
 import org.apache.olingo.commons.api.edm.FullQualifiedName;
@@ -440,6 +442,7 @@ public class DataController implements DataApi, AuthorizingComponent {
             logger.error( "Unable to bulk store association data.", e );
             throw new HttpServerErrorException( HttpStatus.INTERNAL_SERVER_ERROR, e.getMessage() );
         }
+
         return null;
     }
 
@@ -546,6 +549,20 @@ public class DataController implements DataApi, AuthorizingComponent {
     public long getEntitySetSize( @PathVariable( SET_ID ) UUID entitySetId ) {
         ensureReadAccess( new AclKey( entitySetId ) );
         return searchService.getEntitySetSize( entitySetId );
+    }
+
+    @Override
+    @RequestMapping(
+            path = { "/" + SET_ID_PATH + "/" + ENTITY_KEY_ID_PATH },
+            method = RequestMethod.GET )
+    public SetMultimap<FullQualifiedName, Object> getEntity(
+            @PathVariable( SET_ID ) UUID entitySetId,
+            @PathVariable( ENTITY_KEY_ID ) UUID entityKeyId ) {
+        ensureReadAccess( new AclKey( entitySetId ) );
+        Map<UUID, PropertyType> authorizedPropertyTypes = dms
+                .getPropertyTypesAsMap( authzHelper.getAuthorizedPropertiesOnEntitySet( entitySetId,
+                        EnumSet.of( Permission.READ ) ) );
+        return dgm.getEntity( entityKeyId, authorizedPropertyTypes );
     }
 
     /**

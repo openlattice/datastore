@@ -1,38 +1,27 @@
 package com.dataloom.datastore.scripts;
 
-import java.io.Serializable;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map.Entry;
-import java.util.Set;
-import java.util.UUID;
-import java.util.stream.Collectors;
-
 import com.dataloom.authorization.Permission;
 import com.dataloom.authorization.Principal;
 import com.dataloom.authorization.PrincipalType;
-import com.dataloom.authorization.securable.SecurableObjectType;
 import com.dataloom.authorization.util.AuthorizationUtils;
 import com.dataloom.directory.UserDirectoryService;
 import com.dataloom.edm.EntitySet;
-import com.dataloom.edm.types.processors.UpdateEntitySetContactsProcessor;
 import com.dataloom.hazelcast.HazelcastMap;
-import com.dataloom.streams.StreamUtil;
 import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.ResultSet;
-import com.datastax.driver.core.Row;
 import com.datastax.driver.core.Session;
 import com.datastax.driver.core.querybuilder.QueryBuilder;
-import com.google.common.base.Optional;
-import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import com.hazelcast.core.HazelcastInstance;
 import com.hazelcast.core.IMap;
 import com.kryptnostic.conductor.rpc.odata.Table;
 import com.kryptnostic.datastore.cassandra.CommonColumns;
 import com.kryptnostic.datastore.services.EdmManager;
-import com.kryptnostic.rhizome.hazelcast.processors.AbstractRhizomeEntryProcessor;
 
-import jersey.repackaged.com.google.common.collect.Iterables;
+import java.io.Serializable;
+import java.util.List;
+import java.util.UUID;
+
 
 public class EntitySetContactsPopulator implements Serializable {
     private static final long serialVersionUID = -6252192257512539448L;
@@ -77,7 +66,7 @@ public class EntitySetContactsPopulator implements Serializable {
         ResultSet rs = session.execute( getOwnerQuery().bind().setList( CommonColumns.ACL_KEYS.cql(),
                 entitySetId,
                 UUID.class ) );
-        return Iterables.transform( rs, AuthorizationUtils::getPrincipalFromRow );        
+        return Iterables.transform( rs, AuthorizationUtils::getPrincipalFromRow );
     }
     
     private PreparedStatement getOwnerQuery(){

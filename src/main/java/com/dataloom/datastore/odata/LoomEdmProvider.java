@@ -23,6 +23,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import com.google.common.collect.Lists;
 import org.apache.olingo.commons.api.edm.FullQualifiedName;
 import org.apache.olingo.commons.api.edm.provider.CsdlAbstractEdmProvider;
 import org.apache.olingo.commons.api.edm.provider.CsdlEntityContainer;
@@ -44,7 +45,6 @@ import com.google.common.base.Predicates;
 import com.google.common.collect.Iterables;
 import com.kryptnostic.datastore.services.EdmManager;
 
-import jersey.repackaged.com.google.common.collect.Lists;
 
 /**
  * Loom Entity Data Model provider.

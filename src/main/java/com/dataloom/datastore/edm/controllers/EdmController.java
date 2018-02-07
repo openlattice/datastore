@@ -640,6 +640,32 @@ public class EdmController implements EdmApi, AuthorizingComponent {
 
     @Override
     @RequestMapping(
+            path = KEY_PATH + ENTITY_TYPE_PATH + ENTITY_TYPE_ID_PATH + PROPERTY_TYPE_ID_PATH,
+            method = RequestMethod.DELETE )
+    @ResponseStatus( HttpStatus.OK )
+    public Void removePrimaryKeyFromEntityType(
+            @PathVariable( ENTITY_TYPE_ID ) UUID entityTypeId,
+            @PathVariable( PROPERTY_TYPE_ID ) UUID propertyTypeId ) {
+        ensureAdminAccess();
+        modelService.removePropertyTypesFromEntityType( entityTypeId, ImmutableSet.of( propertyTypeId ) );
+        return null;
+    }
+
+    @Override
+    @RequestMapping(
+            path = KEY_PATH + ENTITY_TYPE_PATH + ENTITY_TYPE_ID_PATH + PROPERTY_TYPE_ID_PATH,
+            method = RequestMethod.PUT )
+    @ResponseStatus( HttpStatus.OK )
+    public Void addPrimaryKeyToEntityType(
+            @PathVariable( ENTITY_TYPE_ID ) UUID entityTypeId,
+            @PathVariable( PROPERTY_TYPE_ID ) UUID propertyTypeId ) {
+        ensureAdminAccess();
+        modelService.addPropertyTypesToEntityType( entityTypeId, ImmutableSet.of( propertyTypeId ) );
+        return null;
+    }
+
+    @Override
+    @RequestMapping(
             path = ENTITY_TYPE_PATH + ENTITY_TYPE_ID_PATH + PROPERTY_TYPE_ID_PATH,
             method = RequestMethod.DELETE )
     @ResponseStatus( HttpStatus.OK )

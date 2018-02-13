@@ -34,6 +34,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 import com.google.common.eventbus.EventBus;
 import com.hazelcast.core.HazelcastInstance;
 import com.hazelcast.core.IMap;
@@ -43,6 +44,7 @@ import com.kryptnostic.datastore.services.EdmManager;
 import com.kryptnostic.datastore.util.Util;
 import com.openlattice.authorization.AclKey;
 import com.openlattice.postgres.mapstores.AppConfigMapstore;
+
 import java.util.Collection;
 import java.util.EnumSet;
 import java.util.List;
@@ -51,6 +53,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
+
 import org.apache.olingo.commons.api.edm.FullQualifiedName;
 
 public class AppService {
@@ -187,12 +190,15 @@ public class AppService {
         Principal appPrincipal = new Principal( PrincipalType.APP,
                 AppConfig.getAppPrincipalId( appId, organizationId ) );
 
+        Set<Principal> ownerPrincipals = Sets.newHashSet( authorizations.getOwnersForSecurableObject( new AclKey( organizationId ) ) );
+
         app.getAppTypeIds().stream().forEach( appTypeId -> {
             createEntitySetForApp( new AppConfigKey( appId, organizationId, appTypeId ),
                     prefix,
                     principal,
                     appPrincipal,
-                    appRoles );
+                    appRoles,
+                    ownerPrincipals );
         } );
         organizationService.addAppToOrg( organizationId, appId );
     }
@@ -316,7 +322,8 @@ public class AppService {
             String prefix,
             Principal userPrincipal,
             Principal appPrincipal,
-            Map<Permission, Principal> appRoles ) {
+            Map<Permission, Principal> appRoles,
+            Set<Principal> owners ) {
 
         EnumSet<Permission> allPermissions = EnumSet
                 .of( Permission.DISCOVER, Permission.LINK, Permission.READ, Permission.WRITE, Permission.OWNER );
@@ -324,6 +331,25 @@ public class AppService {
         UUID entitySetId = generateEntitySet( key.getAppTypeId(), prefix, userPrincipal );
         appConfigs.put( key, new AppTypeSetting( entitySetId, EnumSet.of( Permission.READ, Permission.WRITE ) ) );
         authorizationService.addPermission( new AclKey( entitySetId ), appPrincipal, allPermissions );
+        owners.forEach( owner -> {
+            authorizationService.addPermission( new AclKey( entitySetId ), owner, allPermissions );
+        } );
+
+        edmService.getEntityType( appTypes.get( key.getAppTypeId() ).getEntityTypeId() ).getProperties()
+                .forEach( propertyTypeId -> {
+                    AclKey aclKeys = new AclKey( entitySetId, propertyTypeId );
+                    appRoles.entrySet().forEach( entry -> {
+                        Permission permission = entry.getKey();
+                        Principal rolePrincipal = entry.getValue();
+                        authorizationService.addPermission( aclKeys, rolePrincipal, EnumSet.of( permission ) );
+                    } );
+
+                    owners.forEach( owner -> {
+                        authorizationService.addPermission( aclKeys, owner, allPermissions );
+                    } );
+
+                    authorizationService.addPermission( aclKeys, appPrincipal, allPermissions );
+                } );
 
         appRoles.entrySet().forEach( entry -> {
             Permission permission = entry.getKey();
@@ -340,22 +366,27 @@ public class AppService {
     }
 
     private void updateAppConfigsForNewAppType( UUID appId, Set<UUID> appTypeIds ) {
-        Principal principal = Principals.getCurrentUser();
-
         Set<AppConfigKey> appConfigKeys = appConfigs.keySet( Predicates.equal( AppConfigMapstore.APP_ID, appId ) );
         appConfigKeys.stream().map( key -> key.getOrganizationId() ).distinct().forEach( organizationId -> {
+            Set<Principal> ownerPrincipals = Sets
+                    .newHashSet( authorizations.getOwnersForSecurableObject( new AclKey( organizationId ) ) );
             Principal appPrincipal = new Principal( PrincipalType.APP,
                     AppConfig.getAppPrincipalId( appId, organizationId ) );
             Organization org = organizationService.getOrganization( organizationId );
             Map<Permission, Principal> appRoles = getOrCreateRolesForAppPermission( getApp( appId ),
                     organizationId,
                     EnumSet.of( Permission.READ, Permission.WRITE, Permission.OWNER ),
-                    principal );
+                    ownerPrincipals.iterator().next() );
 
             appTypeIds.forEach( appTypeId -> {
                 AppConfigKey appConfigKey = new AppConfigKey( appId, organizationId, appTypeId );
                 if ( !appConfigKeys.contains( appConfigKey ) ) {
-                    createEntitySetForApp( appConfigKey, org.getTitle(), principal, appPrincipal, appRoles );
+                    createEntitySetForApp( appConfigKey,
+                            org.getTitle(),
+                            ownerPrincipals.iterator().next(),
+                            appPrincipal,
+                            appRoles,
+                            ownerPrincipals );
                 }
             } );
         } );

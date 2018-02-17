@@ -240,6 +240,7 @@ public class OrganizationsController implements AuthorizingComponent, Organizati
     public Void addMember(
             @PathVariable( ID ) UUID organizationId,
             @PathVariable( USER_ID ) String userId ) {
+        ensureWriteAccess( new AclKey( organizationId ) );
         organizations.addMembers( organizationId, ImmutableSet.of( new Principal( PrincipalType.USER, userId ) ) );
         return null;
     }
@@ -250,6 +251,7 @@ public class OrganizationsController implements AuthorizingComponent, Organizati
     public Void removeMember(
             @PathVariable( ID ) UUID organizationId,
             @PathVariable( USER_ID ) String userId ) {
+        ensureWriteAccess( new AclKey( organizationId ) );
         organizations.removeMembers( organizationId, ImmutableSet.of( new Principal( PrincipalType.USER, userId ) ) );
         return null;
     }
@@ -335,6 +337,7 @@ public class OrganizationsController implements AuthorizingComponent, Organizati
     public Iterable<Auth0UserBasic> getAllUsersOfRole(
             @PathVariable( ID ) UUID organizationId,
             @PathVariable( ROLE_ID ) UUID roleId ) {
+        ensureRead( organizationId );
         return principalService.getAllUserProfilesWithPrincipal( new AclKey( organizationId, roleId ) );
     }
 
@@ -345,6 +348,7 @@ public class OrganizationsController implements AuthorizingComponent, Organizati
             @PathVariable( ID ) UUID organizationId,
             @PathVariable( ROLE_ID ) UUID roleId,
             @PathVariable( USER_ID ) String userId ) {
+        ensureWriteAccess( new AclKey( organizationId ) );
         principalService.addPrincipalToPrincipal( new AclKey( organizationId, roleId ),
                 principalService.lookup( new Principal( PrincipalType.USER, userId ) ) );
         return null;
@@ -357,6 +361,7 @@ public class OrganizationsController implements AuthorizingComponent, Organizati
             @PathVariable( ID ) UUID organizationId,
             @PathVariable( ROLE_ID ) UUID roleId,
             @PathVariable( USER_ID ) String userId ) {
+        ensureWriteAccess( new AclKey( organizationId ) );
         organizations.removeRoleFromUser( new AclKey( organizationId, roleId ),
                 new Principal( PrincipalType.USER, userId ) );
         return null;

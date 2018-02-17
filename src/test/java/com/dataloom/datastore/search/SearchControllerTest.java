@@ -28,12 +28,10 @@ import org.junit.Ignore;
 import org.junit.Test;
 
 import com.dataloom.datastore.authentication.MultipleAuthenticatedUsersBase;
-import com.dataloom.edm.EntitySet;
-import com.dataloom.edm.type.EntityType;
-import com.dataloom.mappers.ObjectMappers;
-import com.dataloom.search.requests.Search;
-import com.dataloom.search.requests.SearchResult;
-import com.fasterxml.jackson.core.JsonProcessingException;
+import com.openlattice.edm.EntitySet;
+import com.openlattice.edm.type.EntityType;
+import com.openlattice.search.requests.Search;
+import com.openlattice.search.requests.SearchResult;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;

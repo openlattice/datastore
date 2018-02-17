@@ -31,15 +31,12 @@ import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import com.dataloom.data.requests.EntitySetSelection;
-import com.dataloom.datasource.UUIDs.Syncs;
+import com.openlattice.data.requests.EntitySetSelection;
 import com.dataloom.datastore.authentication.MultipleAuthenticatedUsersBase;
-import com.dataloom.edm.EntitySet;
-import com.dataloom.edm.type.EntityType;
-import com.dataloom.mapstores.TestDataFactory;
-import com.datastax.driver.core.utils.UUIDs;
+import com.openlattice.edm.EntitySet;
+import com.openlattice.edm.type.EntityType;
+import com.openlattice.mapstores.TestDataFactory;
 import com.google.common.base.Optional;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.SetMultimap;
 

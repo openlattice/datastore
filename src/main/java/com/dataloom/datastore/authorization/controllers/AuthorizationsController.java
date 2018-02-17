@@ -20,15 +20,15 @@
 package com.dataloom.datastore.authorization.controllers;
 
 import com.codahale.metrics.annotation.Timed;
-import com.dataloom.authorization.AccessCheck;
-import com.dataloom.authorization.Authorization;
+import com.openlattice.authorization.AccessCheck;
+import com.openlattice.authorization.Authorization;
 import com.dataloom.authorization.AuthorizationManager;
-import com.dataloom.authorization.AuthorizationsApi;
+import com.openlattice.authorization.AuthorizationsApi;
 import com.dataloom.authorization.AuthorizingComponent;
-import com.dataloom.authorization.Permission;
+import com.openlattice.authorization.Permission;
 import com.dataloom.authorization.Principals;
-import com.dataloom.authorization.paging.AuthorizedObjectsSearchResult;
-import com.dataloom.authorization.securable.SecurableObjectType;
+import com.openlattice.authorization.paging.AuthorizedObjectsSearchResult;
+import com.openlattice.authorization.securable.SecurableObjectType;
 import com.google.common.collect.Maps;
 import com.openlattice.authorization.AclKey;
 import java.util.Map;

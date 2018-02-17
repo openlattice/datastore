@@ -19,11 +19,10 @@
 
 package com.dataloom.datastore.requests.controllers;
 
+import com.openlattice.authorization.AceKey;
 import com.openlattice.authorization.AclKey;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Stream;
 
@@ -32,7 +31,6 @@ import javax.ws.rs.ForbiddenException;
 
 import com.dataloom.authorization.*;
 import com.google.common.base.Predicates;
-import com.google.common.collect.ImmutableMap;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -44,14 +42,11 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.dataloom.requests.HazelcastRequestsManager;
-import com.dataloom.requests.Request;
-import com.dataloom.requests.RequestStatus;
-import com.dataloom.requests.RequestsApi;
-import com.dataloom.requests.Status;
+import com.openlattice.requests.Request;
+import com.openlattice.requests.RequestStatus;
+import com.openlattice.requests.RequestsApi;
+import com.openlattice.requests.Status;
 import com.dataloom.requests.util.RequestUtil;
-
-import retrofit2.http.Body;
-import retrofit2.http.Path;
 
 /**
  * @author Matthew Tamayo-Rios &lt;matthew@kryptnostic.com&gt;

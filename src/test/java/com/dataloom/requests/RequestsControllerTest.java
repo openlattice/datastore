@@ -19,17 +19,19 @@
 
 package com.dataloom.requests;
 
-import com.dataloom.authorization.AccessCheck;
-import com.dataloom.authorization.Authorization;
-import com.dataloom.authorization.Permission;
+import com.openlattice.authorization.AccessCheck;
+import com.openlattice.authorization.Authorization;
+import com.openlattice.authorization.Permission;
 import com.dataloom.datastore.authentication.MultipleAuthenticatedUsersBase;
-import com.dataloom.edm.EntitySet;
-import com.dataloom.edm.type.EntityType;
-import com.google.common.collect.ImmutableList;
+import com.openlattice.edm.EntitySet;
+import com.openlattice.edm.type.EntityType;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import com.openlattice.authorization.AclKey;
+import com.openlattice.requests.Request;
+import com.openlattice.requests.RequestStatus;
+import com.openlattice.requests.Status;
 import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.Set;

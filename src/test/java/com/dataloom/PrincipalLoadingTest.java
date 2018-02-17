@@ -19,8 +19,8 @@
 
 package com.dataloom;
 
-import com.dataloom.client.RetrofitFactory;
-import com.dataloom.directory.pojo.Auth0UserBasic;
+import com.openlattice.client.RetrofitFactory;
+import com.openlattice.directory.pojo.Auth0UserBasic;
 import com.kryptnostic.datastore.services.Auth0ManagementApi;
 import org.junit.Assert;
 import org.junit.Ignore;

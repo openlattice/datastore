@@ -21,7 +21,7 @@ package com.dataloom.datastore.data.controllers;
 
 import java.util.UUID;
 
-import com.dataloom.authorization.Principal;
+import com.openlattice.authorization.Principal;
 
 public class AuthorizationKey {
     private final Principal user;

@@ -1,36 +1,25 @@
 package com.dataloom.datastore.scripts;
 
 import java.io.Serializable;
-import java.util.Arrays;
 import java.util.List;
-import java.util.Map.Entry;
-import java.util.Set;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
-import com.dataloom.authorization.Permission;
-import com.dataloom.authorization.Principal;
-import com.dataloom.authorization.PrincipalType;
-import com.dataloom.authorization.securable.SecurableObjectType;
+import com.openlattice.authorization.Permission;
+import com.openlattice.authorization.Principal;
+import com.openlattice.authorization.PrincipalType;
 import com.dataloom.authorization.util.AuthorizationUtils;
 import com.dataloom.directory.UserDirectoryService;
-import com.dataloom.edm.EntitySet;
-import com.dataloom.edm.types.processors.UpdateEntitySetContactsProcessor;
+import com.openlattice.edm.EntitySet;
 import com.dataloom.hazelcast.HazelcastMap;
-import com.dataloom.streams.StreamUtil;
 import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.ResultSet;
-import com.datastax.driver.core.Row;
 import com.datastax.driver.core.Session;
 import com.datastax.driver.core.querybuilder.QueryBuilder;
-import com.google.common.base.Optional;
-import com.google.common.collect.ImmutableSet;
 import com.hazelcast.core.HazelcastInstance;
 import com.hazelcast.core.IMap;
 import com.kryptnostic.conductor.rpc.odata.Table;
 import com.kryptnostic.datastore.cassandra.CommonColumns;
 import com.kryptnostic.datastore.services.EdmManager;
-import com.kryptnostic.rhizome.hazelcast.processors.AbstractRhizomeEntryProcessor;
 
 import jersey.repackaged.com.google.common.collect.Iterables;
 

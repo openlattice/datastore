@@ -1,7 +1,7 @@
 package com.dataloom.datastore.scripts;
 
-import com.dataloom.authorization.Permission;
-import com.dataloom.authorization.Principal;
+import com.openlattice.authorization.Permission;
+import com.openlattice.authorization.Principal;
 import com.google.common.collect.ImmutableList;
 import com.openlattice.postgres.*;
 import com.zaxxer.hikari.HikariDataSource;

@@ -19,8 +19,8 @@
 
 package com.dataloom.datastore;
 
-import com.dataloom.data.serializers.FullQualifedNameJacksonDeserializer;
-import com.dataloom.data.serializers.FullQualifedNameJacksonSerializer;
+import com.openlattice.data.serializers.FullQualifedNameJacksonDeserializer;
+import com.openlattice.data.serializers.FullQualifedNameJacksonSerializer;
 import com.dataloom.datastore.pods.DatastoreSecurityPod;
 import com.dataloom.datastore.pods.DatastoreServicesPod;
 import com.dataloom.datastore.pods.DatastoreServletsPod;

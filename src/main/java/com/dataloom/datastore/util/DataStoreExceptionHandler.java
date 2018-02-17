@@ -29,8 +29,8 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import com.dataloom.authorization.ForbiddenException;
 import com.dataloom.edm.exceptions.TypeExistsException;
-import com.dataloom.exceptions.ErrorsDTO;
-import com.dataloom.exceptions.LoomExceptions;
+import com.openlattice.exceptions.ErrorsDTO;
+import com.openlattice.exceptions.LoomExceptions;
 import com.kryptnostic.datastore.exceptions.BatchException;
 import com.kryptnostic.datastore.exceptions.ResourceNotFoundException;
 

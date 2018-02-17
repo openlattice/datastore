@@ -36,9 +36,9 @@ import org.slf4j.LoggerFactory;
 
 import com.dataloom.datastore.odata.Transformers.EntitySetTransformer;
 import com.dataloom.datastore.odata.Transformers.EntityTypeTransformer;
-import com.dataloom.edm.EntitySet;
-import com.dataloom.edm.type.EntityType;
-import com.dataloom.edm.Schema;
+import com.openlattice.edm.EntitySet;
+import com.openlattice.edm.type.EntityType;
+import com.openlattice.edm.Schema;
 import com.dataloom.edm.schemas.manager.HazelcastSchemaManager;
 import com.google.common.base.Predicates;
 import com.google.common.collect.Iterables;

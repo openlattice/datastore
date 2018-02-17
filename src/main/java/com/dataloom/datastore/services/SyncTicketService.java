@@ -28,8 +28,8 @@ import java.util.concurrent.TimeUnit;
 
 import javax.ws.rs.ForbiddenException;
 
-import com.dataloom.authorization.Principal;
-import com.dataloom.authorization.PrincipalType;
+import com.openlattice.authorization.Principal;
+import com.openlattice.authorization.PrincipalType;
 import com.dataloom.data.TicketKey;
 import com.dataloom.hazelcast.HazelcastMap;
 import com.hazelcast.core.HazelcastInstance;

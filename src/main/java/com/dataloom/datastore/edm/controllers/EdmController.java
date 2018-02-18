@@ -41,7 +41,7 @@ import com.dataloom.edm.schemas.manager.HazelcastSchemaManager;
 import com.openlattice.edm.set.EntitySetPropertyMetadata;
 import com.dataloom.edm.type.*;
 import com.openlattice.exceptions.ErrorsDTO;
-import com.openlattice.exceptions.LoomExceptions;
+import com.openlattice.exceptions.ApiExceptions;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.*;
 import com.kryptnostic.datastore.exceptions.BadRequestException;
@@ -408,7 +408,7 @@ public class EdmController implements EdmApi, AuthorizingComponent {
                 modelService.createEntitySet( Principals.getCurrentUser(), entitySet );
                 createdEntitySets.put( entitySet.getName(), entitySet.getId() );
             } catch ( Exception e ) {
-                dto.addError( LoomExceptions.OTHER_EXCEPTION, entitySet.getName() + ": " + e.getMessage() );
+                dto.addError( ApiExceptions.OTHER_EXCEPTION, entitySet.getName() + ": " + e.getMessage() );
             }
         }
 

@@ -20,11 +20,11 @@
 package com.dataloom.datastore.search.controllers;
 
 import com.dataloom.authorization.*;
-import com.dataloom.data.requests.NeighborEntityDetails;
+import com.openlattice.data.requests.NeighborEntityDetails;
 import com.dataloom.datastore.apps.services.AppService;
 import com.dataloom.datastore.services.SearchService;
-import com.dataloom.edm.EntitySet;
-import com.dataloom.search.SearchApi;
+import com.openlattice.edm.EntitySet;
+import com.openlattice.search.SearchApi;
 import com.dataloom.search.requests.*;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableSet;
@@ -32,6 +32,13 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.kryptnostic.datastore.services.EdmService;
 import com.openlattice.authorization.AclKey;
+import com.openlattice.authorization.Permission;
+import com.openlattice.search.requests.AdvancedSearch;
+import com.openlattice.search.requests.DataSearchResult;
+import com.openlattice.search.requests.FQNSearchTerm;
+import com.openlattice.search.requests.Search;
+import com.openlattice.search.requests.SearchResult;
+import com.openlattice.search.requests.SearchTerm;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
 

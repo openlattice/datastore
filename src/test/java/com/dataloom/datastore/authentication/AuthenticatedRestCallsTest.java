@@ -20,8 +20,8 @@
 package com.dataloom.datastore.authentication;
 
 import com.dataloom.datastore.BootstrapDatastoreWithCassandra;
-import com.dataloom.edm.EdmApi;
-import com.dataloom.edm.type.EntityType;
+import com.openlattice.edm.EdmApi;
+import com.openlattice.edm.type.EntityType;
 import org.junit.Assert;
 import org.junit.Test;
 

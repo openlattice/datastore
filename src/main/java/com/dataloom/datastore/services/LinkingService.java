@@ -2,7 +2,7 @@ package com.dataloom.datastore.services;
 
 import com.codahale.metrics.annotation.Timed;
 import com.dataloom.data.DatasourceManager;
-import com.dataloom.edm.type.EntityType;
+import com.openlattice.edm.type.EntityType;
 import com.dataloom.linking.HazelcastLinkingGraphs;
 import com.dataloom.linking.components.Clusterer;
 import com.dataloom.matching.DistributedMatcher;

@@ -26,9 +26,9 @@ import org.junit.Assert;
 import org.junit.Test;
 
 import com.dataloom.datastore.BootstrapDatastoreWithCassandra;
-import com.dataloom.mapstores.TestDataFactory;
-import com.dataloom.organization.Organization;
-import com.dataloom.organization.OrganizationsApi;
+import com.openlattice.mapstores.TestDataFactory;
+import com.openlattice.organization.Organization;
+import com.openlattice.organization.OrganizationsApi;
 import com.google.common.collect.ImmutableSet;
 
 public class OrganizationsTest extends BootstrapDatastoreWithCassandra {

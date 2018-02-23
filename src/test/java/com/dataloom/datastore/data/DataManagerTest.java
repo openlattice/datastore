@@ -52,7 +52,7 @@ import org.junit.Ignore;
 import org.junit.Test;
 
 import com.dataloom.datastore.BootstrapDatastoreWithCassandra;
-import com.dataloom.edm.type.PropertyType;
+import com.openlattice.edm.type.PropertyType;
 import com.datastax.driver.core.utils.UUIDs;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Optional;

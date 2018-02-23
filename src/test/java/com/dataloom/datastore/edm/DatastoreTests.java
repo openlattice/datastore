@@ -57,7 +57,7 @@ import com.dataloom.datastore.odata.LoomEdmProvider;
 import com.dataloom.datastore.odata.Transformers.EntitySetTransformer;
 import com.dataloom.datastore.odata.Transformers.EntityTypeTransformer;
 import com.dataloom.edm.exceptions.TypeExistsException;
-import com.dataloom.edm.type.PropertyType;
+import com.openlattice.edm.type.PropertyType;
 import com.dataloom.edm.schemas.manager.HazelcastSchemaManager;
 import com.google.common.base.Optional;
 import com.google.common.collect.HashMultimap;

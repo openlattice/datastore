@@ -23,17 +23,17 @@ import com.dataloom.authorization.AbstractSecurableObjectResolveTypeService;
 import com.dataloom.authorization.AuthorizationManager;
 import com.dataloom.authorization.AuthorizingComponent;
 import com.dataloom.authorization.ForbiddenException;
-import com.dataloom.authorization.Permission;
-import com.dataloom.authorization.Principal;
-import com.dataloom.authorization.PrincipalType;
+import com.openlattice.authorization.Permission;
+import com.openlattice.authorization.Principal;
+import com.openlattice.authorization.PrincipalType;
 import com.dataloom.authorization.Principals;
-import com.dataloom.authorization.securable.SecurableObjectType;
+import com.openlattice.authorization.securable.SecurableObjectType;
 import com.dataloom.authorization.util.AuthorizationUtils;
-import com.dataloom.directory.pojo.Auth0UserBasic;
-import com.dataloom.organization.Organization;
-import com.dataloom.organization.OrganizationMember;
-import com.dataloom.organization.OrganizationsApi;
-import com.dataloom.organization.roles.Role;
+import com.openlattice.directory.pojo.Auth0UserBasic;
+import com.openlattice.organization.Organization;
+import com.openlattice.organization.OrganizationMember;
+import com.openlattice.organization.OrganizationsApi;
+import com.openlattice.organization.roles.Role;
 import com.dataloom.organizations.HazelcastOrganizationService;
 import com.dataloom.organizations.roles.SecurePrincipalsManager;
 import com.dataloom.streams.StreamUtil;
@@ -240,6 +240,7 @@ public class OrganizationsController implements AuthorizingComponent, Organizati
     public Void addMember(
             @PathVariable( ID ) UUID organizationId,
             @PathVariable( USER_ID ) String userId ) {
+        ensureWriteAccess( new AclKey( organizationId ) );
         organizations.addMembers( organizationId, ImmutableSet.of( new Principal( PrincipalType.USER, userId ) ) );
         return null;
     }
@@ -250,6 +251,7 @@ public class OrganizationsController implements AuthorizingComponent, Organizati
     public Void removeMember(
             @PathVariable( ID ) UUID organizationId,
             @PathVariable( USER_ID ) String userId ) {
+        ensureWriteAccess( new AclKey( organizationId ) );
         organizations.removeMembers( organizationId, ImmutableSet.of( new Principal( PrincipalType.USER, userId ) ) );
         return null;
     }
@@ -335,6 +337,7 @@ public class OrganizationsController implements AuthorizingComponent, Organizati
     public Iterable<Auth0UserBasic> getAllUsersOfRole(
             @PathVariable( ID ) UUID organizationId,
             @PathVariable( ROLE_ID ) UUID roleId ) {
+        ensureRead( organizationId );
         return principalService.getAllUserProfilesWithPrincipal( new AclKey( organizationId, roleId ) );
     }
 
@@ -345,6 +348,7 @@ public class OrganizationsController implements AuthorizingComponent, Organizati
             @PathVariable( ID ) UUID organizationId,
             @PathVariable( ROLE_ID ) UUID roleId,
             @PathVariable( USER_ID ) String userId ) {
+        ensureWriteAccess( new AclKey( organizationId ) );
         principalService.addPrincipalToPrincipal( new AclKey( organizationId, roleId ),
                 principalService.lookup( new Principal( PrincipalType.USER, userId ) ) );
         return null;
@@ -357,6 +361,7 @@ public class OrganizationsController implements AuthorizingComponent, Organizati
             @PathVariable( ID ) UUID organizationId,
             @PathVariable( ROLE_ID ) UUID roleId,
             @PathVariable( USER_ID ) String userId ) {
+        ensureWriteAccess( new AclKey( organizationId ) );
         organizations.removeRoleFromUser( new AclKey( organizationId, roleId ),
                 new Principal( PrincipalType.USER, userId ) );
         return null;

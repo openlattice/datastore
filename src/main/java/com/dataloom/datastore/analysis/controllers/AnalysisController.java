@@ -1,5 +1,6 @@
 package com.dataloom.datastore.analysis.controllers;
 
+import com.openlattice.authorization.Permission;
 import java.util.EnumSet;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -11,7 +12,7 @@ import java.util.stream.Collectors;
 import javax.inject.Inject;
 import javax.servlet.http.HttpServletResponse;
 
-import com.dataloom.analysis.requests.NeighborType;
+import com.openlattice.analysis.requests.NeighborType;
 import com.dataloom.authorization.*;
 import com.openlattice.authorization.AclKey;
 import org.springframework.http.MediaType;
@@ -22,13 +23,13 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.dataloom.analysis.AnalysisApi;
-import com.dataloom.analysis.requests.TopUtilizerDetails;
+import com.openlattice.analysis.AnalysisApi;
+import com.openlattice.analysis.requests.TopUtilizerDetails;
 import com.dataloom.data.EntitySetData;
-import com.dataloom.data.requests.FileType;
+import com.openlattice.data.requests.FileType;
 import com.dataloom.datastore.constants.CustomMediaType;
 import com.dataloom.datastore.services.AnalysisService;
-import com.dataloom.edm.type.PropertyType;
+import com.openlattice.edm.type.PropertyType;
 import com.google.common.collect.SetMultimap;
 import com.kryptnostic.datastore.services.EdmService;
 

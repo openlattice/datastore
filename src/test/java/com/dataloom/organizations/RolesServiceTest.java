@@ -1,11 +1,10 @@
 package com.dataloom.organizations;
 
-import com.dataloom.client.RetrofitFactory;
-import com.dataloom.directory.pojo.Auth0UserBasic;
-import com.dataloom.mapstores.TestDataFactory;
-import com.dataloom.organization.OrganizationsApi;
-import com.dataloom.organization.roles.Role;
-import com.google.common.base.Optional;
+import com.openlattice.client.RetrofitFactory;
+import com.openlattice.directory.pojo.Auth0UserBasic;
+import com.openlattice.mapstores.TestDataFactory;
+import com.openlattice.organization.OrganizationsApi;
+import com.openlattice.organization.roles.Role;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.openlattice.authentication.AuthenticationTest;

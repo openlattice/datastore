@@ -27,8 +27,8 @@ import java.util.UUID;
 
 import com.dataloom.datastore.BootstrapDatastoreWithCassandra;
 
-import com.dataloom.edm.type.ComplexType;
-import com.dataloom.edm.type.EnumType;
+import com.openlattice.edm.type.ComplexType;
+import com.openlattice.edm.type.EnumType;
 
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.olingo.commons.api.edm.FullQualifiedName;
@@ -39,13 +39,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.dataloom.datastore.authentication.AuthenticatedRestCallsTest;
-import com.dataloom.edm.EdmApi;
-import com.dataloom.edm.EntityDataModel;
-import com.dataloom.edm.EntitySet;
-import com.dataloom.edm.requests.MetadataUpdate;
-import com.dataloom.edm.type.EntityType;
-import com.dataloom.edm.type.PropertyType;
-import com.dataloom.mapstores.TestDataFactory;
+import com.openlattice.edm.EdmApi;
+import com.openlattice.edm.EntityDataModel;
+import com.openlattice.edm.EntitySet;
+import com.openlattice.edm.requests.MetadataUpdate;
+import com.openlattice.edm.type.EntityType;
+import com.openlattice.edm.type.PropertyType;
+import com.openlattice.mapstores.TestDataFactory;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;

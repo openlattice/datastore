@@ -21,30 +21,26 @@ package com.dataloom.datastore.permissions;
 
 import com.google.common.collect.Iterables;
 import java.util.EnumSet;
-import java.util.List;
 import java.util.UUID;
 
 import com.openlattice.authorization.AclKey;
-import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import com.dataloom.authorization.Ace;
-import com.dataloom.authorization.AceExplanation;
-import com.dataloom.authorization.Acl;
-import com.dataloom.authorization.AclData;
-import com.dataloom.authorization.AclExplanation;
-import com.dataloom.authorization.Action;
-import com.dataloom.authorization.Permission;
-import com.dataloom.authorization.Principal;
-import com.dataloom.authorization.PrincipalType;
+import com.openlattice.authorization.Ace;
+import com.openlattice.authorization.AceExplanation;
+import com.openlattice.authorization.Acl;
+import com.openlattice.authorization.AclData;
+import com.openlattice.authorization.AclExplanation;
+import com.openlattice.authorization.Action;
+import com.openlattice.authorization.Permission;
+import com.openlattice.authorization.Principal;
+import com.openlattice.authorization.PrincipalType;
 import com.dataloom.datastore.authentication.MultipleAuthenticatedUsersBase;
-import com.dataloom.edm.EntitySet;
-import com.dataloom.mapstores.TestDataFactory;
-import com.dataloom.organization.roles.Role;
-import com.google.common.base.Optional;
-import com.google.common.collect.ImmutableList;
+import com.openlattice.edm.EntitySet;
+import com.openlattice.mapstores.TestDataFactory;
+import com.openlattice.organization.roles.Role;
 import com.google.common.collect.ImmutableSet;
 
 public class PermissionsControllerTest extends MultipleAuthenticatedUsersBase {

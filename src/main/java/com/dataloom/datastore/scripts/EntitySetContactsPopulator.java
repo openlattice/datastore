@@ -1,11 +1,7 @@
 package com.dataloom.datastore.scripts;
 
-import com.dataloom.authorization.Permission;
-import com.dataloom.authorization.Principal;
-import com.dataloom.authorization.PrincipalType;
 import com.dataloom.authorization.util.AuthorizationUtils;
 import com.dataloom.directory.UserDirectoryService;
-import com.dataloom.edm.EntitySet;
 import com.dataloom.hazelcast.HazelcastMap;
 import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.ResultSet;
@@ -17,11 +13,14 @@ import com.hazelcast.core.IMap;
 import com.kryptnostic.conductor.rpc.odata.Table;
 import com.kryptnostic.datastore.cassandra.CommonColumns;
 import com.kryptnostic.datastore.services.EdmManager;
+import com.openlattice.authorization.Permission;
+import com.openlattice.authorization.Principal;
+import com.openlattice.authorization.PrincipalType;
+import com.openlattice.edm.EntitySet;
 
 import java.io.Serializable;
 import java.util.List;
 import java.util.UUID;
-
 
 public class EntitySetContactsPopulator implements Serializable {
     private static final long serialVersionUID = -6252192257512539448L;
@@ -30,8 +29,7 @@ public class EntitySetContactsPopulator implements Serializable {
     private EdmManager           dms;
     private UserDirectoryService uds;
 
-    private final IMap<UUID, EntitySet>             entitySets;
-
+    private final IMap<UUID, EntitySet> entitySets;
 
     public EntitySetContactsPopulator(
             String keyspace,
@@ -47,40 +45,40 @@ public class EntitySetContactsPopulator implements Serializable {
     }
 
     public void run() {
-//        StreamUtil.stream( dms.getEntitySets() )
-//                .filter( es -> es.getContacts() == null || es.getContacts().isEmpty() )
-//                .forEach( es -> {
-//                    Set<String> contacts = StreamUtil.stream( getOwnerForEntitySet( Arrays.asList( es.getId() ) ) )
-//                            .map( principal -> getUserAsString( principal ) )
-//                            .collect( Collectors.toSet() );
-//
-//                    if( contacts.isEmpty() ){
-//                        contacts = ImmutableSet.of( "No contacts found" );
-//                    }
-//
-//                    entitySets.executeOnKey( es.getId(), new UpdateEntitySetContactsProcessor( contacts ) );
-//        } );
+        //        StreamUtil.stream( dms.getEntitySets() )
+        //                .filter( es -> es.getContacts() == null || es.getContacts().isEmpty() )
+        //                .forEach( es -> {
+        //                    Set<String> contacts = StreamUtil.stream( getOwnerForEntitySet( Arrays.asList( es.getId() ) ) )
+        //                            .map( principal -> getUserAsString( principal ) )
+        //                            .collect( Collectors.toSet() );
+        //
+        //                    if( contacts.isEmpty() ){
+        //                        contacts = ImmutableSet.of( "No contacts found" );
+        //                    }
+        //
+        //                    entitySets.executeOnKey( es.getId(), new UpdateEntitySetContactsProcessor( contacts ) );
+        //        } );
     }
-    
-    private Iterable<Principal> getOwnerForEntitySet( List<UUID> entitySetId ){
+
+    private Iterable<Principal> getOwnerForEntitySet( List<UUID> entitySetId ) {
         ResultSet rs = session.execute( getOwnerQuery().bind().setList( CommonColumns.ACL_KEYS.cql(),
                 entitySetId,
                 UUID.class ) );
         return Iterables.transform( rs, AuthorizationUtils::getPrincipalFromRow );
     }
-    
-    private PreparedStatement getOwnerQuery(){
+
+    private PreparedStatement getOwnerQuery() {
         return session.prepare( QueryBuilder
-        .select()
-        .from( keyspace, Table.PERMISSIONS.getName() ).allowFiltering()
-        .where( QueryBuilder.eq( CommonColumns.ACL_KEYS.cql(),
-                CommonColumns.ACL_KEYS.bindMarker() ) )
-        .and( QueryBuilder.eq( CommonColumns.PRINCIPAL_TYPE.cql(), PrincipalType.USER ) )
-        .and( QueryBuilder.contains( CommonColumns.PERMISSIONS.cql(), Permission.OWNER ) ) );
+                .select()
+                .from( keyspace, Table.PERMISSIONS.getName() ).allowFiltering()
+                .where( QueryBuilder.eq( CommonColumns.ACL_KEYS.cql(),
+                        CommonColumns.ACL_KEYS.bindMarker() ) )
+                .and( QueryBuilder.eq( CommonColumns.PRINCIPAL_TYPE.cql(), PrincipalType.USER ) )
+                .and( QueryBuilder.contains( CommonColumns.PERMISSIONS.cql(), Permission.OWNER ) ) );
     }
-    
-    private String getUserAsString( Principal principal ){
+
+    private String getUserAsString( Principal principal ) {
         return uds.getUser( principal.getId() ).getUsername();
     }
-    
+
 }

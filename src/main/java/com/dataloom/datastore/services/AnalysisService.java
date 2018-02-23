@@ -1,28 +1,28 @@
 package com.dataloom.datastore.services;
 
+import com.openlattice.authorization.AccessCheck;
+import com.openlattice.authorization.Permission;
 import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
 import javax.inject.Inject;
 
-import com.dataloom.analysis.requests.NeighborType;
+import com.openlattice.analysis.requests.NeighborType;
 import com.dataloom.authorization.*;
-import com.dataloom.edm.EntitySet;
-import com.dataloom.edm.type.EntityType;
+import com.openlattice.edm.EntitySet;
+import com.openlattice.edm.type.EntityType;
 import com.dataloom.graph.core.objects.NeighborTripletSet;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.kryptnostic.datastore.services.EdmManager;
 import com.openlattice.authorization.AclKey;
-import com.openlattice.rhizome.hazelcast.DelegatedUUIDList;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.dataloom.analysis.requests.TopUtilizerDetails;
+import com.openlattice.analysis.requests.TopUtilizerDetails;
 import com.dataloom.data.DataGraphManager;
 import com.dataloom.data.DatasourceManager;
-import com.dataloom.edm.type.PropertyType;
+import com.openlattice.edm.type.PropertyType;
 import com.google.common.collect.SetMultimap;
 
 public class AnalysisService {

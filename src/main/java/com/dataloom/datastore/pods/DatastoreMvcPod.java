@@ -19,7 +19,7 @@
 
 package com.dataloom.datastore.pods;
 
-import com.dataloom.data.DataApi;
+import com.openlattice.data.DataApi;
 import com.dataloom.datastore.analysis.controllers.AnalysisController;
 import com.dataloom.datastore.apps.controllers.AppController;
 import com.dataloom.datastore.authorization.controllers.AuthorizationsController;

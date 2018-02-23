@@ -20,11 +20,11 @@
 package com.dataloom.datastore;
 
 import com.auth0.json.auth.TokenHolder;
-import com.dataloom.authorization.Principal;
+import com.openlattice.authorization.Principal;
 import com.dataloom.authorization.Principals;
-import com.dataloom.client.RetrofitFactory;
+import com.openlattice.client.RetrofitFactory;
 import com.dataloom.data.storage.CassandraEntityDatastore;
-import com.dataloom.directory.PrincipalApi;
+import com.openlattice.directory.PrincipalApi;
 import com.dataloom.edm.schemas.manager.HazelcastSchemaManager;
 import com.google.common.collect.Sets;
 import com.google.common.util.concurrent.RateLimiter;

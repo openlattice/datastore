@@ -87,6 +87,9 @@ public class DataController implements DataApi, AuthorizingComponent {
     @Inject
     private SearchService searchService;
 
+    @Inject
+    private EntityKeyIdService idService;
+
     private LoadingCache<UUID, EdmPrimitiveTypeKind>  primitiveTypeKinds;
     private LoadingCache<AuthorizationKey, Set<UUID>> authorizedPropertyCache;
 
@@ -436,7 +439,7 @@ public class DataController implements DataApi, AuthorizingComponent {
             method = RequestMethod.PUT )
     public UUID getEntityKeyId( @RequestBody EntityKey entityKey ) {
         ensureWriteAccess( new AclKey( entityKey.getEntitySetId() ) );
-        return dgm.getEntityKeyId( entityKey );
+        return idService.getEntityKeyId( entityKey );
     }
 
     @Override
@@ -446,7 +449,7 @@ public class DataController implements DataApi, AuthorizingComponent {
     public Map<EntityKey, UUID> getEntityKeyIds( @RequestBody Set<EntityKey> entityKeys ) {
         entityKeys.stream().map( entityKey -> entityKey.getEntitySetId() ).distinct()
                 .forEach( entitySetId -> ensureWriteAccess( new AclKey( entitySetId ) ) );
-        return dgm.getEntityKeyIds( entityKeys );
+        return idService.getEntityKeyIds( entityKeys );
     }
 
     private Map<UUID, Map<UUID, EdmPrimitiveTypeKind>> getAuthorizedProperties( Set<UUID> entitySetIds ) {

@@ -446,17 +446,19 @@ public class DataController implements DataApi, AuthorizingComponent {
     @RequestMapping(
             path = { "/" + ENTITY_KEY_ID },
             method = RequestMethod.POST )
-    public Map<EntityKey, UUID> getEntityKeyIds( @RequestBody Set<EntityKey> entityKeys ) {
+    public List<UUID> getEntityKeyIds( @RequestBody Set<EntityKey> entityKeys ) {
         entityKeys.stream().map( entityKey -> entityKey.getEntitySetId() ).distinct()
                 .forEach( entitySetId -> ensureWriteAccess( new AclKey( entitySetId ) ) );
-        return idService.getEntityKeyIds( entityKeys );
+        Map<EntityKey, UUID> entityKeyIdMap = idService.getEntityKeyIds( entityKeys );
+        return entityKeys.stream().map( entityKeyIdMap::get ).collect( Collectors.toList() );
     }
 
     private Map<UUID, Map<UUID, EdmPrimitiveTypeKind>> getAuthorizedProperties( Set<UUID> entitySetIds ) {
         Map<UUID, Map<UUID, EdmPrimitiveTypeKind>> authorizedPropertiesByEntitySetId = Maps.newHashMap();
 
         entitySetIds.stream().forEach( entitySetId -> {
-            Set<UUID> authorizedProperties = authzHelper.getAuthorizedPropertiesOnEntitySet( entitySetId, EnumSet.of( Permission.WRITE ) );
+            Set<UUID> authorizedProperties = authzHelper
+                    .getAuthorizedPropertiesOnEntitySet( entitySetId, EnumSet.of( Permission.WRITE ) );
             Map<UUID, EdmPrimitiveTypeKind> authorizedPropertiesWithDataType;
             try {
                 authorizedPropertiesWithDataType = primitiveTypeKinds
@@ -483,7 +485,8 @@ public class DataController implements DataApi, AuthorizingComponent {
                 .getTickets().stream()
                 .map( ticket -> sts.getAuthorizedEntitySet( Principals.getCurrentUser(), ticket ) ).collect(
                         Collectors.toSet() );
-        Map<UUID, Map<UUID, EdmPrimitiveTypeKind>> authorizedPropertiesByEntitySetId = getAuthorizedProperties( entitySetIds );
+        Map<UUID, Map<UUID, EdmPrimitiveTypeKind>> authorizedPropertiesByEntitySetId = getAuthorizedProperties(
+                entitySetIds );
 
         try {
             dgm.createEntitiesAndAssociations( data.getEntities(),

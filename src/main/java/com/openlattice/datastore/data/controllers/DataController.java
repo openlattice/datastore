@@ -25,23 +25,10 @@ import com.google.common.base.Optional;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
-import com.google.common.collect.HashMultimap;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Maps;
-import com.google.common.collect.SetMultimap;
-import com.google.common.collect.Sets;
-import com.openlattice.authorization.AclKey;
-import com.openlattice.authorization.AuthorizationManager;
-import com.openlattice.authorization.AuthorizingComponent;
-import com.openlattice.authorization.EdmAuthorizationHelper;
-import com.openlattice.authorization.ForbiddenException;
-import com.openlattice.authorization.Permission;
-import com.openlattice.authorization.Principals;
+import com.google.common.collect.*;
+import com.openlattice.authorization.*;
 import com.openlattice.data.*;
-import com.openlattice.data.requests.Association;
-import com.openlattice.data.requests.BulkDataCreation;
-import com.openlattice.data.requests.EntitySetSelection;
-import com.openlattice.data.requests.FileType;
+import com.openlattice.data.requests.*;
 import com.openlattice.datastore.constants.CustomMediaType;
 import com.openlattice.datastore.exceptions.ResourceNotFoundException;
 import com.openlattice.datastore.services.EdmService;
@@ -50,18 +37,6 @@ import com.openlattice.datastore.services.SyncTicketService;
 import com.openlattice.datastore.util.Util;
 import com.openlattice.edm.processors.EdmPrimitiveTypeKindGetter;
 import com.openlattice.edm.type.PropertyType;
-import java.util.Collection;
-import java.util.EnumSet;
-import java.util.LinkedHashSet;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
-import javax.annotation.PostConstruct;
-import javax.inject.Inject;
-import javax.servlet.http.HttpServletResponse;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.olingo.commons.api.edm.EdmPrimitiveTypeKind;
 import org.apache.olingo.commons.api.edm.FullQualifiedName;
@@ -72,16 +47,16 @@ import org.springframework.http.MediaType;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.ResponseStatus;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.HttpServerErrorException;
+
+import javax.annotation.PostConstruct;
+import javax.inject.Inject;
+import javax.servlet.http.HttpServletResponse;
+import java.util.*;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping( DataApi.CONTROLLER )
@@ -111,6 +86,9 @@ public class DataController implements DataApi, AuthorizingComponent {
 
     @Inject
     private SearchService searchService;
+
+    @Inject
+    private EntityKeyIdService idService;
 
     private LoadingCache<UUID, EdmPrimitiveTypeKind>  primitiveTypeKinds;
     private LoadingCache<AuthorizationKey, Set<UUID>> authorizedPropertyCache;
@@ -458,15 +436,30 @@ public class DataController implements DataApi, AuthorizingComponent {
 
     @Override
     @RequestMapping(
-            value = "/" + ENTITY_DATA,
-            method = RequestMethod.PATCH,
-            consumes = MediaType.APPLICATION_JSON_VALUE )
-    public Void createEntityAndAssociationData( @RequestBody BulkDataCreation data ) {
+            path = { "/" + ENTITY_KEY_ID },
+            method = RequestMethod.PUT )
+    public UUID getEntityKeyId( @RequestBody EntityKey entityKey ) {
+        ensureWriteAccess( new AclKey( entityKey.getEntitySetId() ) );
+        return idService.getEntityKeyId( entityKey );
+    }
+
+    @Override
+    @RequestMapping(
+            path = { "/" + ENTITY_KEY_ID },
+            method = RequestMethod.POST )
+    public List<UUID> getEntityKeyIds( @RequestBody Set<EntityKey> entityKeys ) {
+        entityKeys.stream().map( entityKey -> entityKey.getEntitySetId() ).distinct()
+                .forEach( entitySetId -> ensureWriteAccess( new AclKey( entitySetId ) ) );
+        Map<EntityKey, UUID> entityKeyIdMap = idService.getEntityKeyIds( entityKeys );
+        return entityKeys.stream().map( entityKeyIdMap::get ).collect( Collectors.toList() );
+    }
+
+    private Map<UUID, Map<UUID, EdmPrimitiveTypeKind>> getAuthorizedProperties( Set<UUID> entitySetIds ) {
         Map<UUID, Map<UUID, EdmPrimitiveTypeKind>> authorizedPropertiesByEntitySetId = Maps.newHashMap();
 
-        data.getTickets().stream().forEach( ticket -> {
-            UUID entitySetId = sts.getAuthorizedEntitySet( Principals.getCurrentUser(), ticket );
-            Set<UUID> authorizedProperties = sts.getAuthorizedProperties( Principals.getCurrentUser(), ticket );
+        entitySetIds.stream().forEach( entitySetId -> {
+            Set<UUID> authorizedProperties = authzHelper
+                    .getAuthorizedPropertiesOnEntitySet( entitySetId, EnumSet.of( Permission.WRITE ) );
             Map<UUID, EdmPrimitiveTypeKind> authorizedPropertiesWithDataType;
             try {
                 authorizedPropertiesWithDataType = primitiveTypeKinds
@@ -480,6 +473,22 @@ public class DataController implements DataApi, AuthorizingComponent {
             authorizedPropertiesByEntitySetId.put( entitySetId, authorizedPropertiesWithDataType );
         } );
 
+        return authorizedPropertiesByEntitySetId;
+    }
+
+    @Override
+    @RequestMapping(
+            value = "/" + ENTITY_DATA,
+            method = RequestMethod.PATCH,
+            consumes = MediaType.APPLICATION_JSON_VALUE )
+    public Void createEntityAndAssociationData( @RequestBody BulkDataCreation data ) {
+        Set<UUID> entitySetIds = data
+                .getTickets().stream()
+                .map( ticket -> sts.getAuthorizedEntitySet( Principals.getCurrentUser(), ticket ) ).collect(
+                        Collectors.toSet() );
+        Map<UUID, Map<UUID, EdmPrimitiveTypeKind>> authorizedPropertiesByEntitySetId = getAuthorizedProperties(
+                entitySetIds );
+
         try {
             dgm.createEntitiesAndAssociations( data.getEntities(),
                     data.getAssociations(),
@@ -489,7 +498,26 @@ public class DataController implements DataApi, AuthorizingComponent {
             throw new HttpServerErrorException( HttpStatus.INTERNAL_SERVER_ERROR, e.getMessage() );
         }
         return null;
+    }
 
+    @Override
+    @RequestMapping(
+            value = { "/" + ENTITY_DATA + "/" + ASSOCIATION_DATA },
+            method = RequestMethod.PATCH,
+            consumes = MediaType.APPLICATION_JSON_VALUE )
+    public Void bulkCreateEntityData( @RequestBody CreateDataRequest data ) {
+        Map<UUID, Map<UUID, EdmPrimitiveTypeKind>> authorizedPropertiesByEntitySetId = getAuthorizedProperties( data
+                .getEntitySetIds() );
+
+        try {
+            dgm.bulkCreateEntityData( data.getEntities(),
+                    data.getAssociations(),
+                    authorizedPropertiesByEntitySetId );
+        } catch ( ExecutionException | InterruptedException e ) {
+            logger.error( "Unable to bulk create data.", e );
+            throw new HttpServerErrorException( HttpStatus.INTERNAL_SERVER_ERROR, e.getMessage() );
+        }
+        return null;
     }
 
     @Override

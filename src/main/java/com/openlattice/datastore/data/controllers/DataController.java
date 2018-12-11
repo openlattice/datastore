@@ -674,6 +674,12 @@ public class DataController implements DataApi, AuthorizingComponent {
         return byteBlobDataManager.getBase64EncodedString( url );
     }
 
+    @Override
+    @GetMapping( path = "/" + S3_URLS_PATH)
+    public Map<URL, String> getBase64EncodedStrings (@PathVariable(S3_URLS) Set<URL> urls) {
+        return byteBlobDataManager.getBase64EncodedStrings( urls );
+    }
+
     /**
      * Methods for setting http response header
      */

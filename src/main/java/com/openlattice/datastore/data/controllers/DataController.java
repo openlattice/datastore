@@ -44,6 +44,7 @@ import com.openlattice.data.EntitySetData;
 import com.openlattice.data.UpdateType;
 import com.openlattice.data.requests.EntitySetSelection;
 import com.openlattice.data.requests.FileType;
+import com.openlattice.data.storage.ByteBlobDataManager;
 import com.openlattice.datastore.constants.CustomMediaType;
 import com.openlattice.datastore.services.EdmService;
 import com.openlattice.datastore.services.SyncTicketService;
@@ -73,6 +74,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import javax.inject.Inject;
 import javax.servlet.http.HttpServletResponse;
+import java.net.URL;
 import java.nio.ByteBuffer;
 import java.util.Collection;
 import java.util.EnumSet;
@@ -115,6 +117,9 @@ public class DataController implements DataApi, AuthorizingComponent {
 
     @Inject
     private AuthenticationManager authProvider;
+
+    @Inject
+    private ByteBlobDataManager byteBlobDataManager;
 
     private LoadingCache<UUID, EdmPrimitiveTypeKind>  primitiveTypeKinds;
     private LoadingCache<AuthorizationKey, Set<UUID>> authorizedPropertyCache;
@@ -661,6 +666,12 @@ public class DataController implements DataApi, AuthorizingComponent {
             return dgm.getEntity( entitySetId, entitySetId, authorizedPropertyTypes )
                     .get( propertyTypeFqn );
         }
+    }
+
+    @Override
+    @GetMapping( path = "/" + S3_URL_PATH )
+    public String getBase64EncodedString( @PathVariable( S3_URL ) URL url ) {
+        return byteBlobDataManager.getBase64EncodedString( url );
     }
 
     /**

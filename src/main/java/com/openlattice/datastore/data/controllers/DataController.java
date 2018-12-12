@@ -670,13 +670,13 @@ public class DataController implements DataApi, AuthorizingComponent {
 
     @Override
     @GetMapping( path = "/" + S3_URL_PATH )
-    public String getBase64EncodedString( @PathVariable( S3_URL ) URL url ) {
+    public String getBase64EncodedString( @PathVariable( S3_URL ) String url ) {
         return byteBlobDataManager.getBase64EncodedString( url );
     }
 
     @Override
     @GetMapping( path = "/" + S3_URLS_PATH)
-    public Map<URL, String> getBase64EncodedStrings (@PathVariable(S3_URLS) Set<URL> urls) {
+    public Map<String, String> getBase64EncodedStrings (@PathVariable(S3_URLS) Set<String> urls) {
         return byteBlobDataManager.getBase64EncodedStrings( urls );
     }
 

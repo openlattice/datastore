@@ -145,9 +145,9 @@ class AnalysisController : AnalysisApi, AuthorizingComponent {
             filters: Map<UUID, Set<Filter>>,
             entitySetId: UUID
     ): Pair<UUID, Set<UUID>> {
-        val authorizedPropertyTypes = authzHelper.getAuthorizedPropertyTypes(entitySetId, EnumSet.of(Permission.READ))
-        authzHelper.accessCheck(authorizedPropertyTypes, filters.keys)
-        return entitySetId to authorizedPropertyTypes.keys
+        val authorizedPropertyTypeIds = authzHelper.getAuthorizedPropertiesOnEntitySet(entitySetId, EnumSet.of(Permission.READ))
+        authzHelper.accessCheck(authorizedPropertyTypeIds, filters.keys)
+        return entitySetId to authorizedPropertyTypeIds
     }
 
     fun getFilteredRankings(

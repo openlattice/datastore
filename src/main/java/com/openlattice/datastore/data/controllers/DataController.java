@@ -251,7 +251,8 @@ public class DataController implements DataApi, AuthorizingComponent {
                 .getAuthorizedPropertyTypes( entitySetId, EnumSet.of( Permission.WRITE ) );
         var requiredPropertyTypes = requiredEntitySetPropertyTypes( entities );
 
-        accessCheck( allAuthorizedPropertyTypes, requiredPropertyTypes );
+        accessCheck( allAuthorizedPropertyTypes.values().stream().map( PropertyType::getId )
+                .collect( Collectors.toSet() ), requiredPropertyTypes );
 
         var authorizedPropertyTypes = Maps.asMap( requiredPropertyTypes, allAuthorizedPropertyTypes::get );
 

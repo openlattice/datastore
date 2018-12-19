@@ -28,10 +28,11 @@ import com.google.common.collect.Sets;
 import com.openlattice.authorization.*;
 import com.openlattice.authorization.securable.SecurableObjectType;
 import com.openlattice.authorization.util.AuthorizationUtils;
+import com.openlattice.data.DataGraphManager;
 import com.openlattice.data.EntityDatastore;
 import com.openlattice.data.PropertyUsageSummary;
 import com.openlattice.data.requests.FileType;
-import com.openlattice.datastore.constants.CustomMediaType;
+import com.openlattice.web.mediatypes.CustomMediaType;
 import com.openlattice.datastore.exceptions.BadRequestException;
 import com.openlattice.datastore.exceptions.BatchException;
 import com.openlattice.datastore.services.EdmManager;
@@ -109,6 +110,9 @@ public class EdmController implements EdmApi, AuthorizingComponent {
     @Inject
     private EdmAuthorizationHelper authzHelper;
 
+    @Inject
+    private DataGraphManager dgm;
+
     @RequestMapping(
             path = CLEAR_PATH,
             method = RequestMethod.DELETE )
@@ -164,9 +168,10 @@ public class EdmController implements EdmApi, AuthorizingComponent {
             method = RequestMethod.PATCH,
             consumes = { MediaType.APPLICATION_JSON_VALUE, CustomMediaType.TEXT_YAML_VALUE } )
     @ResponseStatus( HttpStatus.OK )
-    public void updateEntityDataModel( @RequestBody EntityDataModel edm ) {
+    public Void updateEntityDataModel( @RequestBody EntityDataModel edm ) {
         ensureAdminAccess();
         modelService.setEntityDataModel( edm );
+        return null;
     }
 
     @Override
@@ -367,7 +372,7 @@ public class EdmController implements EdmApi, AuthorizingComponent {
     @Override
     @RequestMapping(
             path = ENTITY_SETS_PATH,
-            method = RequestMethod.POST,
+            method = RequestMethod.PUT,
             consumes = MediaType.APPLICATION_JSON_VALUE,
             produces = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
@@ -455,8 +460,7 @@ public class EdmController implements EdmApi, AuthorizingComponent {
 
         modelService.deleteEntitySet( entitySetId );
         securableObjectTypes.deleteSecurableObjectType( new AclKey( entitySetId ) );
-        dataManager.deleteEntitySetData( entitySetId, authorizedPropertyTypes );
-
+        dgm.deleteEntitySet( entitySetId, authorizedPropertyTypes );
         return null;
     }
 
@@ -807,9 +811,15 @@ public class EdmController implements EdmApi, AuthorizingComponent {
             produces = MediaType.APPLICATION_JSON_VALUE )
     public UUID getEntityTypeId( @PathVariable( NAMESPACE ) String namespace, @PathVariable( NAME ) String name ) {
         FullQualifiedName fqn = new FullQualifiedName( namespace, name );
-        return Preconditions.checkNotNull( modelService.getTypeAclKey( fqn ),
+        return getEntityTypeId( fqn );
+    }
+
+    @Override public UUID getEntityTypeId( FullQualifiedName fqn ) {
+        return Preconditions.checkNotNull(
+                modelService.getTypeAclKey( fqn ),
                 "Entity Type %s does not exists.",
                 fqn.getFullQualifiedNameAsString() );
+
     }
 
     @Override
@@ -971,7 +981,8 @@ public class EdmController implements EdmApi, AuthorizingComponent {
             path = ENTITY_SETS_PATH + PROPERTY_TYPE_PATH,
             method = RequestMethod.POST,
             produces = MediaType.APPLICATION_JSON_VALUE )
-    public Map<UUID, Map<UUID, EntitySetPropertyMetadata>> getPropertyMetadataForEntitySets( @RequestBody Set<UUID> entitySetIds ) {
+    public Map<UUID, Map<UUID, EntitySetPropertyMetadata>> getPropertyMetadataForEntitySets(
+            @RequestBody Set<UUID> entitySetIds ) {
         Set<AccessCheck> accessChecks = entitySetIds.stream()
                 .map( id -> new AccessCheck( new AclKey( id ), EnumSet.of( Permission.READ ) ) )
                 .collect( Collectors.toSet() );
@@ -982,10 +993,8 @@ public class EdmController implements EdmApi, AuthorizingComponent {
                                 "AclKey " + authorization.getAclKey().toString() + " is not authorized." );
                     }
                 } );
-        return entitySetIds.stream()
-                .map( id -> Pair.of( id, modelService.getEntityTypeByEntitySetId( id ).getProperties() ) )
-                .collect( Collectors.toMap( pair -> pair.getLeft(),
-                        pair -> modelService.getAllEntitySetPropertyMetadata( pair.getLeft(), pair.getRight() ) ) );
+
+        return Maps.toMap( entitySetIds, modelService::getAllEntitySetPropertyMetadata );
     }
 
     @Override
@@ -995,9 +1004,9 @@ public class EdmController implements EdmApi, AuthorizingComponent {
             produces = MediaType.APPLICATION_JSON_VALUE )
     public Map<UUID, EntitySetPropertyMetadata> getAllEntitySetPropertyMetadata(
             @PathVariable( ID ) UUID entitySetId ) {
+        //You should be able to get properties without having read access
         ensureReadAccess( new AclKey( entitySetId ) );
-        Set<UUID> authorizedPropertyTypes = authzHelper.getAuthorizedPropertiesOnEntitySet( entitySetId, EnumSet.of( Permission.READ ) );
-        return modelService.getAllEntitySetPropertyMetadata( entitySetId, authorizedPropertyTypes );
+        return modelService.getAllEntitySetPropertyMetadata( entitySetId );
     }
 
     @Override
@@ -1010,6 +1019,14 @@ public class EdmController implements EdmApi, AuthorizingComponent {
             @PathVariable( PROPERTY_TYPE_ID ) UUID propertyTypeId ) {
         ensureReadAccess( new AclKey( entitySetId, propertyTypeId ) );
         return modelService.getEntitySetPropertyMetadata( entitySetId, propertyTypeId );
+    }
+
+    @Override
+    @GetMapping( value = ENTITY_SETS_PATH + ID_PATH + PROPERTIES_PATH, produces = MediaType.APPLICATION_JSON_VALUE )
+    public Map<UUID, PropertyType> getPropertyTypesForEntitySet( @PathVariable( ID ) UUID entitySetId ) {
+        //We only check for entity set metadata read access.
+        ensureReadAccess( new AclKey( entitySetId ) );
+        return modelService.getPropertyTypesForEntitySet( entitySetId );
     }
 
     @Override

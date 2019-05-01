@@ -45,12 +45,17 @@ import com.openlattice.edm.requests.EdmRequest;
 import com.openlattice.edm.requests.MetadataUpdate;
 import com.openlattice.edm.schemas.manager.HazelcastSchemaManager;
 import com.openlattice.edm.set.EntitySetPropertyMetadata;
-import com.openlattice.edm.type.*;
+import com.openlattice.edm.type.AssociationDetails;
+import com.openlattice.edm.type.AssociationType;
+import com.openlattice.edm.type.EntityType;
+import com.openlattice.edm.type.PropertyType;
 import com.openlattice.organizations.roles.SecurePrincipalsManager;
+import com.openlattice.postgres.IndexType;
 import com.openlattice.postgres.streams.PostgresIterable;
 import com.openlattice.web.mediatypes.CustomMediaType;
 import org.apache.commons.lang3.NotImplementedException;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.olingo.commons.api.edm.EdmPrimitiveTypeKind;
 import org.apache.olingo.commons.api.edm.FullQualifiedName;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.core.env.Environment;
@@ -787,6 +792,10 @@ public class EdmController implements EdmApi, AuthorizingComponent, AuditingComp
     @ResponseStatus( HttpStatus.OK )
     public UUID createPropertyType( @RequestBody PropertyType propertyType ) {
         ensureAdminAccess();
+
+        if ( EdmPrimitiveTypeKind.Binary == propertyType.getDatatype() && propertyType.getPostgresIndexType() != IndexType.NONE ){
+            throw new BadRequestException( "Indexes are not allowed on Binary property types" );
+        }
         modelService.createPropertyTypeIfNotExists( propertyType );
 
         recordEvent( new AuditableEvent(

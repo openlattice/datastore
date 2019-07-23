@@ -1113,7 +1113,13 @@ public class DataController implements DataApi, AuthorizingComponent, AuditingCo
                         requiredProperties,
                         propertyPermissionsToCheck )
                 .get( entitySetId );
-        authorizedPropertyTypes.put( IdConstants.ID_ID.getId(), PostgresMetaDataProperties.ID.getPropertyType() );
+
+        // if properties is empty, then the entire entity should be deleted,
+        // so the entityKeyId row in the data table should be deleted too
+        if ( !properties.isPresent() ) {
+            authorizedPropertyTypes.put( IdConstants.ID_ID.getId(), PostgresMetaDataProperties.ID.getPropertyType() );
+        }
+        
         if ( !authorizedPropertyTypes.keySet().containsAll( requiredProperties ) ) {
             throw new ForbiddenException(
                     "You must have " + propertyPermissionsToCheck.iterator().next() + " permission of all required " +

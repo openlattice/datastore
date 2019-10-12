@@ -134,7 +134,6 @@ public class PrincipalDirectoryController implements PrincipalApi, AuthorizingCo
                 Principals.getCurrentPrincipals(),
                 SecurableObjectType.Role,
                 EnumSet.of( Permission.READ ) )
-                .map( AclKey::new )
                 .collect( Collectors
                         .toMap( Function.identity(), aclKey -> (Role) spm.getSecurablePrincipal( aclKey ) ) );
     }

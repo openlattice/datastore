@@ -45,6 +45,7 @@ import com.openlattice.postgres.PostgresMetaDataProperties;
 import com.openlattice.postgres.streams.PostgresIterable;
 import com.openlattice.search.requests.EntityNeighborsFilter;
 import com.openlattice.web.mediatypes.CustomMediaType;
+import com.zaxxer.hikari.HikariDataSource;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.commons.lang3.tuple.Triple;
@@ -66,6 +67,7 @@ import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.util.*;
+import java.util.concurrent.Semaphore;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -113,6 +115,8 @@ public class DataController implements DataApi, AuthorizingComponent, AuditingCo
 
     private LoadingCache<AuthorizationKey, Set<UUID>> authorizedPropertyCache;
 
+    private Semaphore connectionLimiter;
+
     @RequestMapping(
             path = { "/" + ENTITY_SET + "/" + SET_ID_PATH },
             method = RequestMethod.GET,
@@ -126,18 +130,19 @@ public class DataController implements DataApi, AuthorizingComponent, AuditingCo
             @RequestParam(
                     value = TOKEN,
                     required = false ) String token,
-            HttpServletResponse response ) {
+            HttpServletResponse response ) throws InterruptedException {
         setContentDisposition( response, entitySetId.toString(), fileType );
         setDownloadContentType( response, fileType );
 
-        return loadEntitySetData( entitySetId, fileType, token );
+       return loadEntitySetData( entitySetId, fileType, token );
+
     }
 
     @Override
     public EntitySetData<FullQualifiedName> loadEntitySetData(
             UUID entitySetId,
             FileType fileType,
-            String token ) {
+            String token ) throws InterruptedException {
         if ( StringUtils.isNotBlank( token ) ) {
             Authentication authentication = authProvider
                     .authenticate( PreAuthenticatedAuthenticationJsonWebToken.usingToken( token ) );
@@ -156,9 +161,10 @@ public class DataController implements DataApi, AuthorizingComponent, AuditingCo
             @PathVariable( ENTITY_SET_ID ) UUID entitySetId,
             @RequestBody( required = false ) EntitySetSelection selection,
             @RequestParam( value = FILE_TYPE, required = false ) FileType fileType,
-            HttpServletResponse response ) {
+            HttpServletResponse response ) throws InterruptedException {
         setContentDisposition( response, entitySetId.toString(), fileType );
         setDownloadContentType( response, fileType );
+
         return loadEntitySetData( entitySetId, selection, fileType );
     }
 
@@ -166,13 +172,13 @@ public class DataController implements DataApi, AuthorizingComponent, AuditingCo
     public EntitySetData<FullQualifiedName> loadEntitySetData(
             UUID entitySetId,
             EntitySetSelection selection,
-            FileType fileType ) {
+            FileType fileType ) throws InterruptedException {
         return loadEntitySetData( entitySetId, selection );
     }
 
     private EntitySetData<FullQualifiedName> loadEntitySetData(
             UUID entitySetId,
-            EntitySetSelection selection ) {
+            EntitySetSelection selection ) throws InterruptedException {
         if ( authz.checkIfHasPermissions(
                 new AclKey( entitySetId ), Principals.getCurrentPrincipals(), READ_PERMISSION ) ) {
 
@@ -215,11 +221,18 @@ public class DataController implements DataApi, AuthorizingComponent, AuditingCo
                     .map( pt -> pt.getType().getFullQualifiedNameAsString() )
                     .forEach( orderedPropertyNames::add );
 
-            return dgm.getEntitySetData(
-                    entityKeyIdsOfEntitySets,
-                    orderedPropertyNames,
-                    authorizedPropertyTypesOfEntitySets,
-                    entitySet.isLinking() );
+            connectionLimiter.acquire();
+
+            try {
+
+                return dgm.getEntitySetData(
+                        entityKeyIdsOfEntitySets,
+                        orderedPropertyNames,
+                        authorizedPropertyTypesOfEntitySets,
+                        entitySet.isLinking() );
+            } finally {
+                connectionLimiter.release();
+            }
         } else {
             throw new ForbiddenException( "Insufficient permissions to read the entity set " + entitySetId
                     + " or it doesn't exists." );
@@ -234,7 +247,7 @@ public class DataController implements DataApi, AuthorizingComponent, AuditingCo
     public Integer updateEntitiesInEntitySet(
             @PathVariable( ENTITY_SET_ID ) UUID entitySetId,
             @RequestBody Map<UUID, Map<UUID, Set<Object>>> entities,
-            @RequestParam( value = TYPE, defaultValue = "Merge" ) UpdateType updateType ) {
+            @RequestParam( value = TYPE, defaultValue = "Merge" ) UpdateType updateType ) throws InterruptedException {
         Preconditions.checkNotNull( updateType, "An invalid update type value was specified." );
         ensureReadAccess( new AclKey( entitySetId ) );
         var allAuthorizedPropertyTypes = authzHelper
@@ -248,21 +261,28 @@ public class DataController implements DataApi, AuthorizingComponent, AuditingCo
         final AuditEventType auditEventType;
         final WriteEvent writeEvent;
 
-        switch ( updateType ) {
-            case Replace:
-                auditEventType = AuditEventType.REPLACE_ENTITIES;
-                writeEvent = dgm.replaceEntities( entitySetId, entities, authorizedPropertyTypes );
-                break;
-            case PartialReplace:
-                auditEventType = AuditEventType.PARTIAL_REPLACE_ENTITIES;
-                writeEvent = dgm.partialReplaceEntities( entitySetId, entities, authorizedPropertyTypes );
-                break;
-            case Merge:
-                auditEventType = AuditEventType.MERGE_ENTITIES;
-                writeEvent = dgm.mergeEntities( entitySetId, entities, authorizedPropertyTypes );
-                break;
-            default:
-                throw new BadRequestException( "Unsupported UpdateType: \"" + updateType + "\'" );
+        connectionLimiter.acquire();
+
+        try {
+
+            switch ( updateType ) {
+                case Replace:
+                    auditEventType = AuditEventType.REPLACE_ENTITIES;
+                    writeEvent = dgm.replaceEntities( entitySetId, entities, authorizedPropertyTypes );
+                    break;
+                case PartialReplace:
+                    auditEventType = AuditEventType.PARTIAL_REPLACE_ENTITIES;
+                    writeEvent = dgm.partialReplaceEntities( entitySetId, entities, authorizedPropertyTypes );
+                    break;
+                case Merge:
+                    auditEventType = AuditEventType.MERGE_ENTITIES;
+                    writeEvent = dgm.mergeEntities( entitySetId, entities, authorizedPropertyTypes );
+                    break;
+                default:
+                    throw new BadRequestException( "Unsupported UpdateType: \"" + updateType + "\'" );
+            }
+        } finally {
+            connectionLimiter.release();
         }
 
         recordEvent( new AuditableEvent(
@@ -287,7 +307,7 @@ public class DataController implements DataApi, AuthorizingComponent, AuditingCo
     @Timed
     public Integer replaceEntityProperties(
             @PathVariable( ENTITY_SET_ID ) UUID entitySetId,
-            @RequestBody Map<UUID, Map<UUID, Set<Map<ByteBuffer, Object>>>> entities ) {
+            @RequestBody Map<UUID, Map<UUID, Set<Map<ByteBuffer, Object>>>> entities ) throws InterruptedException {
         ensureReadAccess( new AclKey( entitySetId ) );
 
         final Set<UUID> requiredPropertyTypes = requiredReplacementPropertyTypes( entities );
@@ -295,9 +315,17 @@ public class DataController implements DataApi, AuthorizingComponent, AuditingCo
                         .putAll( entitySetId, requiredPropertyTypes ).build(),
                 WRITE_PERMISSION ) );
 
-        WriteEvent writeEvent = dgm.replacePropertiesInEntities( entitySetId,
-                entities,
-                edmService.getPropertyTypesAsMap( requiredPropertyTypes ) );
+        connectionLimiter.acquire();
+
+        WriteEvent writeEvent;
+
+        try {
+            writeEvent = dgm.replacePropertiesInEntities( entitySetId,
+                    entities,
+                    edmService.getPropertyTypesAsMap( requiredPropertyTypes ) );
+        } finally {
+            connectionLimiter.release();
+        }
 
         recordEvent( new AuditableEvent(
                 getCurrentUserId(),
@@ -376,14 +404,22 @@ public class DataController implements DataApi, AuthorizingComponent, AuditingCo
             consumes = MediaType.APPLICATION_JSON_VALUE )
     public List<UUID> createEntities(
             @RequestParam( ENTITY_SET_ID ) UUID entitySetId,
-            @RequestBody List<Map<UUID, Set<Object>>> entities ) {
+            @RequestBody List<Map<UUID, Set<Object>>> entities ) throws InterruptedException {
         //Ensure that we have read access to entity set metadata.
         ensureReadAccess( new AclKey( entitySetId ) );
         //Load authorized property types
         final Map<UUID, PropertyType> authorizedPropertyTypes = authzHelper
                 .getAuthorizedPropertyTypes( entitySetId, WRITE_PERMISSION );
-        Pair<List<UUID>, WriteEvent> entityKeyIdsToWriteEvent = dgm
-                .createEntities( entitySetId, entities, authorizedPropertyTypes );
+
+        connectionLimiter.acquire();
+
+        Pair<List<UUID>, WriteEvent> entityKeyIdsToWriteEvent;
+        try {
+            entityKeyIdsToWriteEvent = dgm
+                    .createEntities( entitySetId, entities, authorizedPropertyTypes );
+        } finally {
+            connectionLimiter.release();
+        }
         List<UUID> entityKeyIds = entityKeyIdsToWriteEvent.getKey();
 
         recordEvent( new AuditableEvent(
@@ -408,9 +444,14 @@ public class DataController implements DataApi, AuthorizingComponent, AuditingCo
     public Integer mergeIntoEntityInEntitySet(
             @PathVariable( ENTITY_SET_ID ) UUID entitySetId,
             @PathVariable( ENTITY_KEY_ID ) UUID entityKeyId,
-            @RequestBody Map<UUID, Set<Object>> entity ) {
+            @RequestBody Map<UUID, Set<Object>> entity ) throws InterruptedException {
         final var entities = ImmutableMap.of( entityKeyId, entity );
-        return updateEntitiesInEntitySet( entitySetId, entities, UpdateType.Merge );
+        connectionLimiter.acquire();
+        try {
+            return updateEntitiesInEntitySet( entitySetId, entities, UpdateType.Merge );
+        } finally {
+            connectionLimiter.release();
+        }
     }
 
     @Override
@@ -424,7 +465,8 @@ public class DataController implements DataApi, AuthorizingComponent, AuditingCo
             path = { "/" + ASSOCIATION },
             method = RequestMethod.POST,
             consumes = MediaType.APPLICATION_JSON_VALUE )
-    public ListMultimap<UUID, UUID> createAssociations( @RequestBody ListMultimap<UUID, DataEdge> associations ) {
+    public ListMultimap<UUID, UUID> createAssociations( @RequestBody ListMultimap<UUID, DataEdge> associations )
+            throws InterruptedException {
         //Ensure that we have read access to entity set metadata.
         associations.keySet().forEach( entitySetId -> ensureReadAccess( new AclKey( entitySetId ) ) );
 
@@ -436,8 +478,15 @@ public class DataController implements DataApi, AuthorizingComponent, AuditingCo
                 .getAuthorizedPropertiesOnEntitySets( associations.keySet(), WRITE_PERMISSION );
 
         dataGraphServiceHelper.checkAssociationEntityTypes( associations );
-        Map<UUID, CreateAssociationEvent> associationsCreated = dgm
-                .createAssociations( associations, authorizedPropertyTypesByEntitySet );
+
+        connectionLimiter.acquire();
+        Map<UUID, CreateAssociationEvent> associationsCreated;
+        try {
+            associationsCreated = dgm
+                    .createAssociations( associations, authorizedPropertyTypesByEntitySet );
+        } finally {
+            connectionLimiter.release();
+        }
 
         ListMultimap<UUID, UUID> associationIds = ArrayListMultimap.create();
 
@@ -523,7 +572,8 @@ public class DataController implements DataApi, AuthorizingComponent, AuditingCo
     @PatchMapping( value = "/" + ASSOCIATION )
     public Integer replaceAssociationData(
             @RequestBody Map<UUID, Map<UUID, DataEdge>> associations,
-            @RequestParam( value = PARTIAL, required = false, defaultValue = "false" ) boolean partial ) {
+            @RequestParam( value = PARTIAL, required = false, defaultValue = "false" ) boolean partial )
+            throws InterruptedException {
         associations.keySet().forEach( entitySetId -> ensureReadAccess( new AclKey( entitySetId ) ) );
 
         //Ensure that we can write properties.
@@ -532,32 +582,39 @@ public class DataController implements DataApi, AuthorizingComponent, AuditingCo
 
         final Map<UUID, PropertyType> authorizedPropertyTypes = edmService
                 .getPropertyTypesAsMap( ImmutableSet.copyOf( requiredPropertyTypes.values() ) );
-        return associations.entrySet().stream().mapToInt( association -> {
-            final UUID entitySetId = association.getKey();
-            if ( partial ) {
-                return dgm.partialReplaceEntities( entitySetId,
-                        transformValues( association.getValue(), DataEdge::getData ),
-                        authorizedPropertyTypes ).getNumUpdates();
-            } else {
 
-                return dgm.replaceEntities( entitySetId,
-                        transformValues( association.getValue(), DataEdge::getData ),
-                        authorizedPropertyTypes ).getNumUpdates();
-            }
-        } ).sum();
+        connectionLimiter.acquire();
+        try {
+            return associations.entrySet().stream().mapToInt( association -> {
+                final UUID entitySetId = association.getKey();
+                if ( partial ) {
+                    return dgm.partialReplaceEntities( entitySetId,
+                            transformValues( association.getValue(), DataEdge::getData ),
+                            authorizedPropertyTypes ).getNumUpdates();
+                } else {
+
+                    return dgm.replaceEntities( entitySetId,
+                            transformValues( association.getValue(), DataEdge::getData ),
+                            authorizedPropertyTypes ).getNumUpdates();
+                }
+            } ).sum();
+        } finally {
+            connectionLimiter.release();
+        }
     }
 
     @Timed
     @Override
     @PostMapping( value = { "/", "" } )
-    public DataGraphIds createEntityAndAssociationData( @RequestBody DataGraph data ) {
+    public DataGraphIds createEntityAndAssociationData( @RequestBody DataGraph data ) throws InterruptedException {
         final ListMultimap<UUID, UUID> entityKeyIds = ArrayListMultimap.create();
         final ListMultimap<UUID, UUID> associationEntityKeyIds;
 
         //First create the entities so we have entity key ids to work with
-        Multimaps.asMap( data.getEntities() )
-                .forEach( ( entitySetId, entities ) ->
-                        entityKeyIds.putAll( entitySetId, createEntities( entitySetId, entities ) ) );
+        for ( var entry : Multimaps.asMap( data.getEntities() ).entrySet() ) {
+            entityKeyIds.putAll( entry.getKey(), createEntities( entry.getKey(), entry.getValue() ) );
+        }
+
         final ListMultimap<UUID, DataEdge> toBeCreated = ArrayListMultimap.create();
         Multimaps.asMap( data.getAssociations() )
                 .forEach( ( entitySetId, associations ) -> {
@@ -892,15 +949,21 @@ public class DataController implements DataApi, AuthorizingComponent, AuditingCo
     public Integer replaceEntityInEntitySet(
             @PathVariable( ENTITY_SET_ID ) UUID entitySetId,
             @PathVariable( ENTITY_KEY_ID ) UUID entityKeyId,
-            @RequestBody Map<UUID, Set<Object>> entity ) {
+            @RequestBody Map<UUID, Set<Object>> entity ) throws InterruptedException {
         ensureReadAccess( new AclKey( entitySetId ) );
         Map<UUID, PropertyType> authorizedPropertyTypes = authzHelper.getAuthorizedPropertyTypes( entitySetId,
                 WRITE_PERMISSION,
                 edmService.getPropertyTypesAsMap( entity.keySet() ),
                 Principals.getCurrentPrincipals() );
 
-        WriteEvent writeEvent = dgm
-                .replaceEntities( entitySetId, ImmutableMap.of( entityKeyId, entity ), authorizedPropertyTypes );
+        connectionLimiter.acquire();
+        WriteEvent writeEvent;
+        try {
+            writeEvent = dgm
+                    .replaceEntities( entitySetId, ImmutableMap.of( entityKeyId, entity ), authorizedPropertyTypes );
+        } finally {
+            connectionLimiter.release();
+        }
 
         recordEvent( new AuditableEvent(
                 getCurrentUserId(),
@@ -924,7 +987,7 @@ public class DataController implements DataApi, AuthorizingComponent, AuditingCo
     public Integer replaceEntityInEntitySetUsingFqns(
             @PathVariable( ENTITY_SET_ID ) UUID entitySetId,
             @PathVariable( ENTITY_KEY_ID ) UUID entityKeyId,
-            @RequestBody Map<FullQualifiedName, Set<Object>> entityByFqns ) {
+            @RequestBody Map<FullQualifiedName, Set<Object>> entityByFqns ) throws InterruptedException {
         final Map<UUID, Set<Object>> entity = new HashMap<>();
 
         entityByFqns
@@ -1085,7 +1148,7 @@ public class DataController implements DataApi, AuthorizingComponent, AuditingCo
         // access checks for entity set and properties
         final Map<UUID, PropertyType> authorizedPropertyTypes =
                 getAuthorizedPropertyTypesForDelete( entitySetId, Optional.empty(), deleteType );
-        
+
         Iterable<List<UUID>> entityKeyIdChunks = Iterables.partition( entityKeyIds, MAX_BATCH_SIZE );
         for ( List<UUID> chunkList : entityKeyIdChunks ) {
             Set<UUID> chunk = Sets.newHashSet( chunkList );
@@ -1168,6 +1231,11 @@ public class DataController implements DataApi, AuthorizingComponent, AuditingCo
 
     private static OffsetDateTime getDateTimeFromLong( long epochTime ) {
         return OffsetDateTime.ofInstant( Instant.ofEpochMilli( epochTime ), ZoneId.systemDefault() );
+    }
+
+    @Inject
+    private void setConnectionLimiter( HikariDataSource hds ) {
+        this.connectionLimiter = new Semaphore( Math.max( 2, hds.getMaximumPoolSize() - 2 ) );
     }
 
 }

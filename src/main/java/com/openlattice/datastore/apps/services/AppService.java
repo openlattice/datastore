@@ -74,6 +74,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.inject.Inject;
 
+import com.openlattice.util.SingletonArrays;
 import org.apache.olingo.commons.api.edm.FullQualifiedName;
 
 public class AppService {
@@ -494,7 +495,7 @@ public class AppService {
 
     private void ensureAppTypesAreValid( Set<UUID> appTypeIds ) {
         Set<UUID> missingAppTypes = Sets.difference( appTypeIds,
-                appTypes.keySet( Predicates.in( "__key", appTypeIds.toArray( new UUID[] {} ) ) ) );
+                appTypes.keySet( Predicates.in( "__key", appTypeIds.toArray( SingletonArrays.EMPTY_UUIDS ) ) ) );
 
         Preconditions.checkArgument( missingAppTypes.isEmpty(),
                 "The following app types do not exist: " + appTypeIds.toString() );

@@ -18,7 +18,7 @@
  *
  */
 
-package com.openlattice.controllers;
+package com.openlattice.datastore.organization.controllers;
 
 import com.auth0.json.mgmt.users.User;
 import com.codahale.metrics.annotation.Timed;

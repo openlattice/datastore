@@ -25,7 +25,7 @@ import com.openlattice.admin.AdminController;
 import com.openlattice.analysis.assembler.AssemblyAnalyzationController;
 import com.openlattice.codex.controllers.CodexController;
 import com.openlattice.collection.CollectionsController;
-import com.openlattice.controllers.OrganizationsController;
+import com.openlattice.datastore.organization.controllers.OrganizationsController;
 import com.openlattice.data.DataApi;
 import com.openlattice.datastore.analysis.controllers.AnalysisController;
 import com.openlattice.datastore.apps.controllers.AppController;

@@ -286,9 +286,8 @@ public class DataIntegrationController implements DataIntegrationApi, Authorizin
 
     private void ensureEntitySetsCanBeWritten( Set<UUID> entitySetIds ) {
         if ( entitySetService.entitySetsContainFlag( entitySetIds, EntitySetFlag.AUDIT ) ) {
-            Set<UUID> auditEntitySetIds = entitySetService.getEntitySetsAsMap( entitySetIds ).values().stream()
-                    .filter( it -> it.getFlags().contains( EntitySetFlag.AUDIT ) ).map( EntitySet::getId ).collect(
-                            Collectors.toSet() );
+            Set<UUID> auditEntitySetIds = entitySetService
+                    .getEntitySetIdsWithFlags( entitySetIds, Set.of( EntitySetFlag.AUDIT ) );
             throw new ForbiddenException( "You cannot modify data of entity sets " + auditEntitySetIds.toString()
                     + " because they are audit entity sets." );
         }

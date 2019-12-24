@@ -136,7 +136,7 @@ constructor(
     }
 
     private fun ensureReadOnRequired(
-            authorizedPropertyTypes: Map<UUID, MutableMap<UUID, PropertyType>>,
+            authorizedPropertyTypes: Map<UUID, Map<UUID, PropertyType>>,
             requiredPropertyTypes: Map<UUID, Set<UUID>>
     ) {
         if (!requiredPropertyTypes.all { (entitySetId, propertyTypeIds) ->

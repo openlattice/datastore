@@ -12,7 +12,6 @@ import com.openlattice.subscriptions.Subscription
 import com.openlattice.subscriptions.SubscriptionApi
 import com.openlattice.subscriptions.SubscriptionService
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings
-import org.slf4j.LoggerFactory
 import org.springframework.web.bind.annotation.*
 import java.util.*
 import javax.inject.Inject
@@ -30,9 +29,6 @@ constructor(
         private val subscriptionService: SubscriptionService,
         private val edmAuthorizationHelper: EdmAuthorizationHelper
 ) : SubscriptionApi, AuthorizingComponent {
-    companion object {
-        private val logger = LoggerFactory.getLogger(SubscriptionController::class.java)!!
-    }
 
     @Timed
     @RequestMapping(path = ["", "/"], method = [RequestMethod.PUT])
@@ -119,7 +115,7 @@ constructor(
     }
 
     private fun ensureReadOnRequired(
-            authorizedPropertyTypes: Map<UUID, MutableMap<UUID, PropertyType>>,
+            authorizedPropertyTypes: Map<UUID, Map<UUID, PropertyType>>,
             requiredPropertyTypes: Map<UUID, Set<UUID>>
     ) {
         if (!requiredPropertyTypes.all { (entitySetId, propertyTypeIds) ->

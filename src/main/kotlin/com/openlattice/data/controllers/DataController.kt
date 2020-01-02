@@ -424,38 +424,37 @@ constructor(
         val entityKeyIds = ArrayListMultimap.create<UUID, UUID>()
         val associationEntityKeyIds: ListMultimap<UUID, UUID>
 
-        val entitySetIds = getEntitySetIdsFromCollection<DataAssociation>(data.associations.values()) { association ->
-            listOf(association.srcEntitySetId, association.dstEntitySetId)
-        }
+        val entitySetIds = getEntitySetIdsFromCollection<DataAssociation>(data.associations.values.flatten())
+        { association -> listOf(association.srcEntitySetId, association.dstEntitySetId) }
 
         checkPermissionsOnEntitySetIds(entitySetIds, EdmAuthorizationHelper.READ_PERMISSION)
 
         //First create the entities so we have entity key ids to work with
-        Multimaps.asMap(data.entities)
-                .forEach { (entitySetId, entities) -> entityKeyIds.putAll(entitySetId, createEntities(entitySetId, entities)) }
+        data.entities.forEach { (entitySetId, entities) ->
+            entityKeyIds.putAll(entitySetId, createEntities(entitySetId, entities))
+        }
         val toBeCreated = ArrayListMultimap.create<UUID, DataEdge>()
-        Multimaps.asMap(data.associations)
-                .forEach { (entitySetId, associations) ->
-                    for (association in associations) {
-                        val srcEntitySetId = association.srcEntitySetId
-                        val srcEntityKeyId = association
-                                .srcEntityKeyId
-                                .orElseGet { entityKeyIds.get(srcEntitySetId)[association.srcEntityIndex.get()] }
+        data.associations.forEach { (entitySetId, associations) ->
+            for (association in associations) {
+                val srcEntitySetId = association.srcEntitySetId
+                val srcEntityKeyId = association
+                        .srcEntityKeyId
+                        .orElseGet { entityKeyIds.get(srcEntitySetId)[association.srcEntityIndex.get()] }
 
-                        val dstEntitySetId = association.dstEntitySetId
-                        val dstEntityKeyId = association
-                                .dstEntityKeyId
-                                .orElseGet { entityKeyIds.get(dstEntitySetId)[association.dstEntityIndex.get()] }
+                val dstEntitySetId = association.dstEntitySetId
+                val dstEntityKeyId = association
+                        .dstEntityKeyId
+                        .orElseGet { entityKeyIds.get(dstEntitySetId)[association.dstEntityIndex.get()] }
 
-                        toBeCreated.put(
-                                entitySetId,
-                                DataEdge(
-                                        EntityDataKey(srcEntitySetId, srcEntityKeyId),
-                                        EntityDataKey(dstEntitySetId, dstEntityKeyId),
-                                        association.data)
-                        )
-                    }
-                }
+                toBeCreated.put(
+                        entitySetId,
+                        DataEdge(
+                                EntityDataKey(srcEntitySetId, srcEntityKeyId),
+                                EntityDataKey(dstEntitySetId, dstEntityKeyId),
+                                association.data)
+                )
+            }
+        }
         associationEntityKeyIds = createAssociations(toBeCreated)
 
         /* entity and association creation will be audited by createEntities and createAssociations */

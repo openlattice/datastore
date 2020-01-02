@@ -75,7 +75,6 @@ import com.openlattice.data.storage.ByteBlobDataManager;
 import com.openlattice.data.storage.DataDeletionService;
 import com.openlattice.data.storage.EntityDatastore;
 import com.openlattice.data.storage.IndexingMetadataManager;
-import com.openlattice.data.storage.PostgresDataSinkService;
 import com.openlattice.data.storage.PostgresEntityDataQueryService;
 import com.openlattice.data.storage.PostgresEntityDatastore;
 import com.openlattice.data.storage.PostgresEntitySetSizesInitializationTask;
@@ -489,11 +488,6 @@ public class DatastoreServicesPod {
     @Bean
     public PersistentSearchService persistentSearchService() {
         return new PersistentSearchService( hikariDataSource, principalService() );
-    }
-
-    @Bean
-    PostgresDataSinkService postgresDataSinkService() {
-        return new PostgresDataSinkService();
     }
 
     @Bean AwsDataSinkService awsDataSinkService() {

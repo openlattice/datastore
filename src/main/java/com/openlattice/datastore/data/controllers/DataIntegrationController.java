@@ -32,7 +32,6 @@ import com.openlattice.data.integration.Association;
 import com.openlattice.data.integration.BulkDataCreation;
 import com.openlattice.data.integration.Entity;
 import com.openlattice.data.integration.S3EntityData;
-import com.openlattice.data.storage.PostgresDataSinkService;
 import com.openlattice.data.storage.aws.AwsDataSinkService;
 import com.openlattice.datastore.services.EdmService;
 import com.openlattice.datastore.services.EntitySetService;
@@ -57,9 +56,6 @@ public class DataIntegrationController implements DataIntegrationApi, Authorizin
 
     @Inject
     private DataGraphManager dgm;
-
-    @Inject
-    private PostgresDataSinkService postgresDataSinkService;
 
     @Inject
     private AwsDataSinkService awsDataSinkService;

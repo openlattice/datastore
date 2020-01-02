@@ -1,7 +1,6 @@
 package com.openlattice.datastore.search.controllers;
 
 import com.codahale.metrics.annotation.Timed;
-import com.openlattice.organizations.roles.SecurePrincipalsManager;
 import com.openlattice.search.PersistentSearchApi;
 import com.openlattice.search.PersistentSearchService;
 import com.openlattice.search.requests.PersistentSearch;
@@ -19,9 +18,6 @@ public class PersistentSearchController implements PersistentSearchApi {
 
     @Inject
     private PersistentSearchService persistentSearchService;
-
-    @Inject
-    private SecurePrincipalsManager spm;
 
     @Timed
     @Override

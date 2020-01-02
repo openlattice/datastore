@@ -22,12 +22,10 @@ package com.openlattice.datastore.directory.controllers;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import com.auth0.client.auth.AuthAPI;
 import com.auth0.client.mgmt.ManagementAPI;
 import com.auth0.client.mgmt.filter.UserFilter;
 import com.auth0.exception.Auth0Exception;
 import com.codahale.metrics.annotation.Timed;
-import com.google.common.eventbus.EventBus;
 import com.openlattice.assembler.PostgresRoles;
 import com.openlattice.authorization.AclKey;
 import com.openlattice.authorization.AuthorizationManager;
@@ -78,13 +76,9 @@ public class PrincipalDirectoryController implements PrincipalApi, AuthorizingCo
     @Inject
     private AuthorizationManager    authorizations;
     @Inject
-    private AuthAPI                 authApi;
-    @Inject
     private ManagementAPI           managementApi;
     @Inject
     private Auth0SyncService        syncService;
-    @Inject
-    private EventBus                eventBus;
 
     @Timed
     @Override

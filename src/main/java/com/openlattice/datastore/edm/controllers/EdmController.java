@@ -22,7 +22,6 @@ package com.openlattice.datastore.edm.controllers;
 
 import com.auth0.spring.security.api.authentication.PreAuthenticatedAuthenticationJsonWebToken;
 import com.codahale.metrics.annotation.Timed;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -33,10 +32,8 @@ import com.openlattice.authorization.*;
 import com.openlattice.authorization.securable.SecurableObjectType;
 import com.openlattice.controllers.exceptions.BadRequestException;
 import com.openlattice.controllers.exceptions.ForbiddenException;
-import com.openlattice.data.DataGraphManager;
 import com.openlattice.data.PropertyUsageSummary;
 import com.openlattice.data.requests.FileType;
-import com.openlattice.data.storage.EntityDatastore;
 import com.openlattice.datastore.services.EdmManager;
 import com.openlattice.datastore.services.EntitySetManager;
 import com.openlattice.edm.*;
@@ -87,34 +84,13 @@ public class EdmController implements EdmApi, AuthorizingComponent, AuditingComp
     private AuthorizationManager authorizations;
 
     @Inject
-    private PostgresEdmManager edmManager;
-
-    @Inject
-    private SecurableObjectResolveTypeService securableObjectTypes;
-
-    @Inject
     private AuthenticationManager authenticationManager;
-
-    @Inject
-    private EntityDatastore dataManager;
-
-    @Inject
-    private EdmAuthorizationHelper authzHelper;
-
-    @Inject
-    private DataGraphManager dgm;
 
     @Inject
     private Environment env;
 
     @Inject
     private SecurePrincipalsManager spm;
-
-    @Inject
-    private ObjectMapper mapper;
-
-    @Inject
-    private AuditRecordEntitySetsManager auditRecordEntitySetsManager;
 
     @Inject
     private AuditingManager auditingManager;

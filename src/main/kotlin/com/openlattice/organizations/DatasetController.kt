@@ -35,9 +35,6 @@ class DatasetController : DatasetApi, AuthorizingComponent {
     private lateinit var authorizations: AuthorizationManager
 
     @Inject
-    private lateinit var securableObjectTypes: SecurableObjectResolveTypeService
-
-    @Inject
     private lateinit var aclKeyReservations: HazelcastAclKeyReservationService
 
     @Timed

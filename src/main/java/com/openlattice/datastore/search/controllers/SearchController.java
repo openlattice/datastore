@@ -21,7 +21,6 @@
 package com.openlattice.datastore.search.controllers;
 
 import com.codahale.metrics.annotation.Timed;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.*;
 import com.openlattice.auditing.AuditEventType;
 import com.openlattice.auditing.AuditableEvent;
@@ -30,7 +29,6 @@ import com.openlattice.auditing.AuditingManager;
 import com.openlattice.authorization.*;
 import com.openlattice.authorization.securable.SecurableObjectType;
 import com.openlattice.authorization.util.AuthorizationUtils;
-import com.openlattice.data.DataGraphManager;
 import com.openlattice.data.requests.NeighborEntityDetails;
 import com.openlattice.data.requests.NeighborEntityIds;
 import com.openlattice.datastore.apps.services.AppService;
@@ -91,13 +89,8 @@ public class SearchController implements SearchApi, AuthorizingComponent, Auditi
     private SecurePrincipalsManager spm;
 
     @Inject
-    private ObjectMapper mapper;
-
-    @Inject
     private AuditingManager auditingManager;
 
-    @Inject
-    private DataGraphManager dgm;
 
     @RequestMapping(
             path = { "/", "" },

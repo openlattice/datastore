@@ -33,12 +33,9 @@ import com.openlattice.data.integration.BulkDataCreation;
 import com.openlattice.data.integration.Entity;
 import com.openlattice.data.integration.S3EntityData;
 import com.openlattice.data.storage.aws.AwsDataSinkService;
-import com.openlattice.datastore.services.EdmService;
 import com.openlattice.datastore.services.EntitySetService;
 import com.openlattice.edm.set.EntitySetFlag;
 import com.openlattice.edm.type.PropertyType;
-import com.openlattice.search.SearchService;
-import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.web.bind.annotation.*;
 
 import javax.inject.Inject;
@@ -51,8 +48,6 @@ import static com.openlattice.authorization.EdmAuthorizationHelper.*;
 @RestController
 @RequestMapping( DataIntegrationApi.CONTROLLER )
 public class DataIntegrationController implements DataIntegrationApi, AuthorizingComponent {
-    @Inject
-    private EdmService dms;
 
     @Inject
     private DataGraphManager dgm;
@@ -65,12 +60,6 @@ public class DataIntegrationController implements DataIntegrationApi, Authorizin
 
     @Inject
     private EdmAuthorizationHelper authzHelper;
-
-    @Inject
-    private AuthenticationManager authProvider;
-
-    @Inject
-    private SearchService searchService;
 
     @Inject
     private DataGraphServiceHelper dataGraphServiceHelper;

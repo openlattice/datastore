@@ -303,7 +303,7 @@ constructor(
 
     @Timed
     @RequestMapping(path = [ASSOCIATION], method = [RequestMethod.POST], consumes = [MediaType.APPLICATION_JSON_VALUE])
-    override fun createAssociations(@RequestBody associations: ListMultimap<UUID, DataEdge>): ListMultimap<UUID, UUID> {
+    override fun createAssociations(@RequestBody associations: ListMultimap<UUID, DataEdge>): Map<UUID, List<UUID>> {
         //Ensure that we have read access to entity set metadata.
         val entitySetIds = getEntitySetIdsFromCollection<DataEdge>(associations.values()) { dataEdge ->
             listOf(dataEdge.src.entitySetId, dataEdge.dst.entitySetId)
@@ -322,13 +322,15 @@ constructor(
         dataGraphServiceHelper.checkAssociationEntityTypes(associations)
         val associationsCreated = dgm.createAssociations(associations, authorizedPropertyTypesByEntitySet)
 
-        val associationIds = ArrayListMultimap.create<UUID, UUID>()
+        val associationIds = mutableMapOf<UUID, MutableList<UUID>>()
 
         val currentUserId = getCurrentUserId()
 
         val entitiesCreated = mutableListOf<AuditableEvent>()
         associationsCreated.forEach { (associationEntitySetId, createAssociationEvent) ->
-            associationIds.putAll(associationEntitySetId, createAssociationEvent.ids)
+            val ids = associationIds.getOrDefault(associationEntitySetId, mutableListOf())
+            ids.addAll(createAssociationEvent.ids)
+
             entitiesCreated.add(
                     AuditableEvent(
                             currentUserId,
@@ -421,8 +423,7 @@ constructor(
     @Timed
     @PostMapping(value = [""])
     override fun createEntityAndAssociationData(@RequestBody data: DataGraph): DataGraphIds {
-        val entityKeyIds = ArrayListMultimap.create<UUID, UUID>()
-        val associationEntityKeyIds: ListMultimap<UUID, UUID>
+        val entityKeyIds = mutableMapOf<UUID, MutableList<UUID>>()
 
         val entitySetIds = getEntitySetIdsFromCollection<DataAssociation>(data.associations.values.flatten())
         { association -> listOf(association.srcEntitySetId, association.dstEntitySetId) }
@@ -431,31 +432,33 @@ constructor(
 
         //First create the entities so we have entity key ids to work with
         data.entities.forEach { (entitySetId, entities) ->
-            entityKeyIds.putAll(entitySetId, createEntities(entitySetId, entities))
+            val ids = entityKeyIds.getOrDefault(entitySetId, mutableListOf())
+            ids.addAll(createEntities(entitySetId, entities))
         }
         val toBeCreated = ArrayListMultimap.create<UUID, DataEdge>()
         data.associations.forEach { (entitySetId, associations) ->
-            for (association in associations) {
+            associations.forEach { association ->
                 val srcEntitySetId = association.srcEntitySetId
                 val srcEntityKeyId = association
                         .srcEntityKeyId
-                        .orElseGet { entityKeyIds.get(srcEntitySetId)[association.srcEntityIndex.get()] }
+                        .orElseGet { entityKeyIds.getValue(srcEntitySetId)[association.srcEntityIndex.get()] }
 
                 val dstEntitySetId = association.dstEntitySetId
                 val dstEntityKeyId = association
                         .dstEntityKeyId
-                        .orElseGet { entityKeyIds.get(dstEntitySetId)[association.dstEntityIndex.get()] }
+                        .orElseGet { entityKeyIds.getValue(dstEntitySetId)[association.dstEntityIndex.get()] }
 
                 toBeCreated.put(
                         entitySetId,
                         DataEdge(
                                 EntityDataKey(srcEntitySetId, srcEntityKeyId),
                                 EntityDataKey(dstEntitySetId, dstEntityKeyId),
-                                association.data)
+                                association.data
+                        )
                 )
             }
         }
-        associationEntityKeyIds = createAssociations(toBeCreated)
+        val associationEntityKeyIds = createAssociations(toBeCreated)
 
         /* entity and association creation will be audited by createEntities and createAssociations */
 

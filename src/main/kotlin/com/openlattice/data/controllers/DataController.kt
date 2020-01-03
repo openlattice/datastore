@@ -303,21 +303,21 @@ constructor(
 
     @Timed
     @RequestMapping(path = [ASSOCIATION], method = [RequestMethod.POST], consumes = [MediaType.APPLICATION_JSON_VALUE])
-    override fun createAssociations(@RequestBody associations: ListMultimap<UUID, DataEdge>): Map<UUID, List<UUID>> {
+    override fun createAssociations(@RequestBody associations: Map<UUID, List<DataEdge>>): Map<UUID, List<UUID>> {
         //Ensure that we have read access to entity set metadata.
-        val entitySetIds = getEntitySetIdsFromCollection<DataEdge>(associations.values()) { dataEdge ->
+        val entitySetIds = getEntitySetIdsFromCollection(associations.values.flatten()) { dataEdge ->
             listOf(dataEdge.src.entitySetId, dataEdge.dst.entitySetId)
         }
         checkPermissionsOnEntitySetIds(entitySetIds, EdmAuthorizationHelper.READ_PERMISSION)
 
         //Ensure that we can write properties.
-        val requiredPropertyTypes = requiredAssociationPropertyTypes(associations)
+        val requiredPropertyTypes = requiredAssociationPropertyTypes(associations) { it }
         accessCheck(EdmAuthorizationHelper.aclKeysForAccessCheck(
                 requiredPropertyTypes, EdmAuthorizationHelper.WRITE_PERMISSION
         ))
 
         val authorizedPropertyTypesByEntitySet = authzHelper
-                .getAuthorizedPropertiesOnEntitySets(associations.keySet(), EdmAuthorizationHelper.WRITE_PERMISSION)
+                .getAuthorizedPropertiesOnEntitySets(associations.keys, EdmAuthorizationHelper.WRITE_PERMISSION)
 
         dataGraphServiceHelper.checkAssociationEntityTypes(associations)
         val associationsCreated = dgm.createAssociations(associations, authorizedPropertyTypesByEntitySet)
@@ -354,7 +354,7 @@ constructor(
                     entry.value.ids.forEachIndexed { index, associationEntityKeyId ->
 
                         val associationEntityDataKey = EntityDataKey(associationEntitySetId, associationEntityKeyId)
-                        val dataEdge = associations.get(associationEntitySetId)[index]
+                        val dataEdge = associations.getValue(associationEntitySetId)[index]
 
                         entitiesCreated.add(
                                 AuditableEvent(
@@ -408,18 +408,6 @@ constructor(
         return associationIds
     }
 
-    private fun requiredAssociationPropertyTypes(
-            associations: ListMultimap<UUID, DataEdge>
-    ): Map<UUID, MutableSet<UUID>> {
-        val propertyTypesByEntitySet = HashMap<UUID, MutableSet<UUID>>(associations.size())
-        associations.entries().forEach { (entitySetId, dataEdge) ->
-            val propertyTypes = propertyTypesByEntitySet.getOrPut(entitySetId, { mutableSetOf() })
-            propertyTypes.addAll(dataEdge.data.keys)
-        }
-
-        return propertyTypesByEntitySet
-    }
-
     @Timed
     @PostMapping(value = [""])
     override fun createEntityAndAssociationData(@RequestBody data: DataGraph): DataGraphIds {
@@ -435,8 +423,10 @@ constructor(
             val ids = entityKeyIds.getOrDefault(entitySetId, mutableListOf())
             ids.addAll(createEntities(entitySetId, entities))
         }
-        val toBeCreated = ArrayListMultimap.create<UUID, DataEdge>()
+        val toBeCreated = mutableMapOf<UUID, MutableList<DataEdge>>()
         data.associations.forEach { (entitySetId, associations) ->
+            val edgesOfEntitySet = toBeCreated.getOrDefault(entitySetId, mutableListOf())
+
             associations.forEach { association ->
                 val srcEntitySetId = association.srcEntitySetId
                 val srcEntityKeyId = association
@@ -448,8 +438,7 @@ constructor(
                         .dstEntityKeyId
                         .orElseGet { entityKeyIds.getValue(dstEntitySetId)[association.dstEntityIndex.get()] }
 
-                toBeCreated.put(
-                        entitySetId,
+                edgesOfEntitySet.add(
                         DataEdge(
                                 EntityDataKey(srcEntitySetId, srcEntityKeyId),
                                 EntityDataKey(dstEntitySetId, dstEntityKeyId),
@@ -647,7 +636,7 @@ constructor(
         associations.keys.forEach { entitySetId -> ensureReadAccess(AclKey(entitySetId)) }
 
         //Ensure that we can write properties.
-        val requiredPropertyTypes = requiredAssociationPropertyTypes(associations)
+        val requiredPropertyTypes = requiredAssociationPropertyTypes(associations) { it.values }
         ensureEntitySetsCanBeWritten(associations.keys)
         accessCheck(EdmAuthorizationHelper.aclKeysForAccessCheck(
                 requiredPropertyTypes, EdmAuthorizationHelper.WRITE_PERMISSION
@@ -669,19 +658,6 @@ constructor(
                 ).numUpdates
             }
         }.sum()
-    }
-
-    private fun requiredAssociationPropertyTypes(
-            associations: Map<UUID, Map<UUID, DataEdge>>
-    ): Map<UUID, MutableSet<UUID>> {
-        val propertyTypesByEntitySet = HashMap<UUID, MutableSet<UUID>>(associations.size)
-        associations.forEach { (esId, edges) ->
-            edges.values.forEach { de ->
-                val propertyTypes = propertyTypesByEntitySet.getOrPut(esId, { mutableSetOf() })
-                propertyTypes.addAll(de.data.keys)
-            }
-        }
-        return propertyTypesByEntitySet
     }
 
     @Timed
@@ -899,6 +875,22 @@ constructor(
                     "You cannot modify data of entity sets $auditEntitySetIds because they are audit entity sets."
             )
         }
+    }
+
+    private fun <T> requiredAssociationPropertyTypes(
+            associations: Map<UUID, T>,
+            valueExtractor: (T) -> Collection<DataEdge>
+    ): Map<UUID, MutableSet<UUID>> {
+        val propertyTypesByEntitySet = HashMap<UUID, MutableSet<UUID>>(associations.size)
+        associations.forEach { (entitySetId, dataEdges) ->
+            val propertyTypes = propertyTypesByEntitySet.getOrPut(entitySetId, { mutableSetOf() })
+
+            valueExtractor(dataEdges).forEach { dataEdge ->
+                propertyTypes.addAll(dataEdge.data.keys)
+            }
+        }
+
+        return propertyTypesByEntitySet
     }
 
     private fun <T> getEntitySetIdsFromCollection(

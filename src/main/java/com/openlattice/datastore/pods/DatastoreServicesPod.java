@@ -101,6 +101,7 @@ import com.openlattice.graph.PostgresGraphQueryService;
 import com.openlattice.graph.core.GraphService;
 import com.openlattice.ids.HazelcastIdGenerationService;
 import com.openlattice.ids.HazelcastLongIdService;
+import com.openlattice.ids.IdCipherManager;
 import com.openlattice.linking.LinkingQueryService;
 import com.openlattice.linking.PostgresLinkingFeedbackService;
 import com.openlattice.linking.graph.PostgresLinkingQueryService;
@@ -284,8 +285,14 @@ public class DatastoreServicesPod {
                 authorizationManager(),
                 partitionManager(),
                 dataModelService(),
+                idCipherManager(),
                 auditingConfiguration
         );
+    }
+
+    @Bean
+    public IdCipherManager idCipherManager() {
+        return new IdCipherManager( hazelcastInstance );
     }
 
     @Bean

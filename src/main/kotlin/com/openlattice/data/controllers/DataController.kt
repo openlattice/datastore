@@ -148,7 +148,6 @@ constructor(
     }
 
     private fun loadEntitySetData(entitySetId: UUID, selection: EntitySetSelection?): EntitySetData<FullQualifiedName> {
-        // TODO encrypt linking id
         if (authz.checkIfHasPermissions(
                         AclKey(entitySetId),
                         Principals.getCurrentPrincipals(),
@@ -195,7 +194,6 @@ constructor(
             @PathVariable(ENTITY_SET_ID) linkedEntitySetId: UUID,
             @RequestBody selection: EntitySetSelection?
     ): Map<UUID, Map<UUID, Map<UUID, Map<FullQualifiedName, Set<Any>>>>> {
-        // TODO encrypt linking id
         ensureReadAccess(AclKey(linkedEntitySetId))
 
         val entitySet = getEntitySet(linkedEntitySetId)
@@ -206,9 +204,8 @@ constructor(
         )
 
         val entityKeyIds = if (selection == null) Optional.empty() else selection.entityKeyIds
-        val entityKeyIdsOfEntitySets = entitySet.linkedEntitySets.map { it to entityKeyIds }.toMap()
 
-        return dgm.getLinkedEntitySetBreakDown(entityKeyIdsOfEntitySets, authorizedPropertyTypesOfEntitySets)
+        return dgm.getLinkedEntitySetBreakDown(entitySet, entityKeyIds, authorizedPropertyTypesOfEntitySets)
     }
 
     @Timed
@@ -217,7 +214,6 @@ constructor(
             @PathVariable(ENTITY_SET_ID) entitySetId: UUID,
             @PathVariable(ENTITY_KEY_ID) entityKeyId: UUID
     ): Map<FullQualifiedName, Set<Any>> {
-        // TODO encrypt linking id
         ensureReadAccess(AclKey(entitySetId))
         val entitySet = getEntitySet(entitySetId)
 
@@ -228,7 +224,7 @@ constructor(
         )
 
         return if (entitySet.isLinking) {
-            dgm.getLinkingEntity(entitySet.linkedEntitySets, entityKeyId, authorizedPropertyTypes)
+            dgm.getLinkingEntity(entitySet, entityKeyId, authorizedPropertyTypes)
         } else {
             dgm.getEntity(entitySetId, entityKeyId, authorizedPropertyTypes.getValue(entitySetId))
         }
@@ -243,7 +239,6 @@ constructor(
             @PathVariable(ENTITY_KEY_ID) entityKeyId: UUID,
             @PathVariable(PROPERTY_TYPE_ID) propertyTypeId: UUID
     ): Set<Any> {
-        // TODO encrypt linking id
         ensureReadAccess(AclKey(entitySetId))
         val entitySet = getEntitySet(entitySetId)
 
@@ -263,8 +258,7 @@ constructor(
                 )
             }
 
-            dgm.getLinkingEntity(entitySet.linkedEntitySets, entityKeyId, authorizedPropertyTypes)
-                    .getValue(propertyTypeFqn)
+            dgm.getLinkingEntity(entitySet, entityKeyId, authorizedPropertyTypes).getValue(propertyTypeFqn)
         } else {
             dgm.getEntity(entitySetId, entityKeyId, authorizedPropertyTypes.getValue(entitySetId))
                     .getValue(propertyTypeFqn)

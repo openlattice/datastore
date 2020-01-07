@@ -416,7 +416,9 @@ public class DatastoreServicesPod {
 
     @Bean
     public DataGraphManager dataGraphService() {
-        return new DataGraphService( graphApi(), idService(), entityDatastore(), postgresEntitySetSizeCacheManager() );
+        return new DataGraphService(
+                graphApi(), idService(), entityDatastore(), postgresEntitySetSizeCacheManager(), idCipherManager()
+        );
     }
 
     @Bean

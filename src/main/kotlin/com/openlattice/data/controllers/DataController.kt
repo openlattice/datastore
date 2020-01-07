@@ -148,6 +148,7 @@ constructor(
     }
 
     private fun loadEntitySetData(entitySetId: UUID, selection: EntitySetSelection?): EntitySetData<FullQualifiedName> {
+        // TODO encrypt linking id
         if (authz.checkIfHasPermissions(
                         AclKey(entitySetId),
                         Principals.getCurrentPrincipals(),
@@ -194,6 +195,7 @@ constructor(
             @PathVariable(ENTITY_SET_ID) linkedEntitySetId: UUID,
             @RequestBody selection: EntitySetSelection?
     ): Map<UUID, Map<UUID, Map<UUID, Map<FullQualifiedName, Set<Any>>>>> {
+        // TODO encrypt linking id
         ensureReadAccess(AclKey(linkedEntitySetId))
 
         val entitySet = getEntitySet(linkedEntitySetId)
@@ -215,6 +217,7 @@ constructor(
             @PathVariable(ENTITY_SET_ID) entitySetId: UUID,
             @PathVariable(ENTITY_KEY_ID) entityKeyId: UUID
     ): Map<FullQualifiedName, Set<Any>> {
+        // TODO encrypt linking id
         ensureReadAccess(AclKey(entitySetId))
         val entitySet = getEntitySet(entitySetId)
 
@@ -240,6 +243,7 @@ constructor(
             @PathVariable(ENTITY_KEY_ID) entityKeyId: UUID,
             @PathVariable(PROPERTY_TYPE_ID) propertyTypeId: UUID
     ): Set<Any> {
+        // TODO encrypt linking id
         ensureReadAccess(AclKey(entitySetId))
         val entitySet = getEntitySet(entitySetId)
 
@@ -251,7 +255,7 @@ constructor(
         val propertyTypeFqn = authorizedPropertyTypes.values.first().getValue(propertyTypeId).type
 
         return if (entitySet.isLinking) {
-            // if any of its normal entitysets don't have read permission on property type, reading is not allowed
+            // if any of its normal entity sets don't have read permission on property type, reading is not allowed
             if (authorizedPropertyTypes.values.first().isEmpty()) {
                 throw ForbiddenException(
                         "Not authorized to read property type $propertyTypeId in one or more normal entity sets of " +
@@ -870,7 +874,8 @@ constructor(
 
     private fun ensureEntitySetsCanBeWritten(entitySetIds: Set<UUID>) {
         if (entitySetService.entitySetsContainFlag(entitySetIds, EntitySetFlag.AUDIT)) {
-            val auditEntitySetIds = entitySetService.getEntitySetIdsWithFlags(entitySetIds, setOf(EntitySetFlag.AUDIT))
+            val auditEntitySetIds = entitySetService
+                    .getEntitySetsWithFlags(entitySetIds, setOf(EntitySetFlag.AUDIT)).keys
             throw ForbiddenException(
                     "You cannot modify data of entity sets $auditEntitySetIds because they are audit entity sets."
             )

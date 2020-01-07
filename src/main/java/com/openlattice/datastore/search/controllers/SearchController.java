@@ -59,7 +59,7 @@ import static com.openlattice.authorization.EdmAuthorizationHelper.READ_PERMISSI
 
 @SuppressFBWarnings(
         value = "NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE",
-        justification = "NPEs are prevented by Preconditions.checkState but SpotBugs doesn't understand this")
+        justification = "NPEs are prevented by Preconditions.checkState but SpotBugs doesn't understand this" )
 @RestController
 @RequestMapping( SearchApi.CONTROLLER )
 public class SearchController implements SearchApi, AuthorizingComponent, AuditingComponent {
@@ -212,7 +212,7 @@ public class SearchController implements SearchApi, AuthorizingComponent, Auditi
 
         return searchEntitySetData(
                 SearchConstraints.simpleSearchConstraints(
-                        new UUID[] { entitySetId },
+                        new UUID[]{ entitySetId },
                         searchTerm.getStart(),
                         searchTerm.getMaxHits(),
                         searchTerm.getSearchTerm(),
@@ -232,7 +232,7 @@ public class SearchController implements SearchApi, AuthorizingComponent, Auditi
 
         return searchEntitySetData(
                 SearchConstraints.advancedSearchConstraints(
-                        new UUID[] { entitySetId },
+                        new UUID[]{ entitySetId },
                         search.getStart(),
                         search.getMaxHits(),
                         search.getSearches() )
@@ -388,13 +388,18 @@ public class SearchController implements SearchApi, AuthorizingComponent, Auditi
 
         UUID userId = getCurrentUserId();
 
-        SetMultimap<UUID, UUID> neighborsByEntitySet = HashMultimap.create();
+        Map<UUID, Set<UUID>> neighborsByEntitySet = Maps.newHashMap();
         neighbors.forEach( neighborEntityDetails -> {
-            neighborsByEntitySet.put( neighborEntityDetails.getAssociationEntitySet().getId(),
-                    getEntityKeyId( neighborEntityDetails.getAssociationDetails() ) );
+            var associationEsId = neighborEntityDetails.getAssociationEntitySet().getId();
+            neighborsByEntitySet.putIfAbsent( associationEsId, Sets.newHashSet() );
+            neighborsByEntitySet.get( associationEsId )
+                    .add( getEntityKeyId( neighborEntityDetails.getAssociationDetails() ) );
+
             if ( neighborEntityDetails.getNeighborEntitySet().isPresent() ) {
-                neighborsByEntitySet.put( neighborEntityDetails.getNeighborEntitySet().get().getId(),
-                        getEntityKeyId( neighborEntityDetails.getNeighborDetails().get() ) );
+                var neighborEsId = neighborEntityDetails.getNeighborEntitySet().get().getId();
+                neighborsByEntitySet.putIfAbsent( neighborEsId, Sets.newHashSet() );
+                neighborsByEntitySet.get( neighborEsId )
+                        .add( getEntityKeyId( neighborEntityDetails.getNeighborDetails().get() ) );
             }
         } );
 
@@ -478,14 +483,19 @@ public class SearchController implements SearchApi, AuthorizingComponent, Auditi
 
         /* audit */
 
-        ListMultimap<UUID, UUID> neighborsByEntitySet = ArrayListMultimap.create();
+        Map<UUID, List<UUID>> neighborsByEntitySet = Maps.newHashMap();
 
         result.values().forEach( neighborList ->
                 neighborList.forEach( neighborEntityDetails -> {
-                    neighborsByEntitySet.put( neighborEntityDetails.getAssociationEntitySet().getId(),
-                            getEntityKeyId( neighborEntityDetails.getAssociationDetails() ) );
+                    var associationEsId = neighborEntityDetails.getAssociationEntitySet().getId();
+                    neighborsByEntitySet.putIfAbsent( associationEsId, Lists.newArrayList() );
+                    neighborsByEntitySet.get( associationEsId )
+                            .add( getEntityKeyId( neighborEntityDetails.getAssociationDetails() ) );
+
                     if ( neighborEntityDetails.getNeighborEntitySet().isPresent() ) {
-                        neighborsByEntitySet.put( neighborEntityDetails.getNeighborEntitySet().get().getId(),
+                        var neighborEsId = neighborEntityDetails.getNeighborEntitySet().get().getId();
+                        neighborsByEntitySet.putIfAbsent( neighborEsId, Lists.newArrayList() );
+                        neighborsByEntitySet.get( neighborEsId ).add(
                                 getEntityKeyId( neighborEntityDetails.getNeighborDetails().get() ) );
                     }
                 } )
@@ -565,12 +575,12 @@ public class SearchController implements SearchApi, AuthorizingComponent, Auditi
             produces = { MediaType.APPLICATION_JSON_VALUE } )
     @Override
     @Timed
-    public Map<UUID, Map<UUID, SetMultimap<UUID, NeighborEntityIds>>> executeFilteredEntityNeighborIdsSearch(
+    public Map<UUID, Map<UUID, Map<UUID, Set<NeighborEntityIds>>>> executeFilteredEntityNeighborIdsSearch(
             @PathVariable( ENTITY_SET_ID ) UUID entitySetId,
             @RequestBody EntityNeighborsFilter filter ) {
         Set<Principal> principals = Principals.getCurrentPrincipals();
 
-        Map<UUID, Map<UUID, SetMultimap<UUID, NeighborEntityIds>>> result = Maps.newHashMap();
+        Map<UUID, Map<UUID, Map<UUID, Set<NeighborEntityIds>>>> result = Maps.newHashMap();
         if ( authorizations.checkIfHasPermissions( new AclKey( entitySetId ), principals,
                 EnumSet.of( Permission.READ ) ) ) {
 
@@ -603,15 +613,21 @@ public class SearchController implements SearchApi, AuthorizingComponent, Auditi
 
         /* audit */
 
-        SetMultimap<UUID, UUID> neighborsByEntitySet = HashMultimap.create();
+        Map<UUID, Set<UUID>> neighborsByEntitySet = Maps.newHashMap();
 
         result.values().forEach( associationMap ->
-                associationMap.forEach( (associationEsId, association) -> {
-                    association.forEach( (neighborEsId, neighbor) -> {
-                        neighborsByEntitySet
-                                .put( associationEsId, neighbor.getAssociationEntityKeyId() );
-                        neighborsByEntitySet
-                                .put( neighborEsId, neighbor.getNeighborEntityKeyId() );
+                associationMap.forEach( ( associationEsId, association ) -> {
+                    if ( !neighborsByEntitySet.containsKey( associationEsId ) ) {
+                        neighborsByEntitySet.put( associationEsId, Sets.newHashSet() );
+                    }
+                    association.forEach( ( neighborEsId, neighbors ) -> {
+                        neighborsByEntitySet.putIfAbsent( neighborEsId, Sets.newHashSet() );
+                        neighbors.forEach( neighbor -> {
+                                    neighborsByEntitySet.get( associationEsId )
+                                            .add( neighbor.getAssociationEntityKeyId() );
+                                    neighborsByEntitySet.get( neighborEsId ).add( neighbor.getNeighborEntityKeyId() );
+                                }
+                        );
                     } );
                 } )
         );
@@ -719,7 +735,9 @@ public class SearchController implements SearchApi, AuthorizingComponent, Auditi
         return spm.getPrincipal( Principals.getCurrentUser().getId() ).getId();
     }
 
-    @NotNull @Override public AuditingManager getAuditingManager() {
+    @NotNull
+    @Override
+    public AuditingManager getAuditingManager() {
         return auditingManager;
     }
 

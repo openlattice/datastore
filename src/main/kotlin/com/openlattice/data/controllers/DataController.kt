@@ -160,7 +160,6 @@ constructor(
 
             val normalEntitySetIds = if (entitySet.isLinking) entitySet.linkedEntitySets else setOf(entitySetId)
 
-            val entityKeyIdsOfEntitySets = normalEntitySetIds.map { it to entityKeyIds }.toMap()
             val authorizedPropertyTypesOfEntitySets = getAuthorizedPropertyTypesForEntitySetRead(
                     entitySet, normalEntitySetIds, selectedProperties
             )
@@ -173,11 +172,20 @@ constructor(
                     .map { pt -> pt.type.fullQualifiedNameAsString }
                     .toCollection(orderedPropertyNames)
 
-            return dgm.getEntitySetData(
-                    entityKeyIdsOfEntitySets,
-                    orderedPropertyNames,
-                    authorizedPropertyTypesOfEntitySets,
-                    entitySet.isLinking)
+            return if(entitySet.isLinking) {
+                 dgm.getLinkedEntitySetData(
+                        entitySet,
+                        entityKeyIds,
+                        orderedPropertyNames,
+                        authorizedPropertyTypesOfEntitySets
+                )
+            } else {
+                 dgm.getEntitySetData(
+                        mapOf(entitySetId to entityKeyIds),
+                        orderedPropertyNames,
+                        authorizedPropertyTypesOfEntitySets
+                )
+            }
         } else {
             throw ForbiddenException(
                     "Insufficient permissions to read the entity set $entitySetId or it doesn't exists."

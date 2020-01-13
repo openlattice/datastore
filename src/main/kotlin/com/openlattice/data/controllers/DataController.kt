@@ -771,39 +771,39 @@ constructor(
     }
 
     @Timed
-    @RequestMapping(path = [ENTITY_SET + SET_ID_PATH + NEIGHBORS], method = [RequestMethod.POST])
+    @RequestMapping(path = [ENTITY_SET + NEIGHBORS], method = [RequestMethod.POST])
     override fun deleteEntitiesAndNeighbors(
-            @PathVariable(ENTITY_SET_ID) entitySetId: UUID,
             @RequestBody filter: EntityNeighborsFilter,
             @RequestParam(value = TYPE) deleteType: DeleteType
     ): Long {
         // Note: this function is only useful for deleting src/dst entities and their neighboring entities
         // (along with associations connected to all of them), not associations.
         // If called with an association entity set, it will simplify down to a basic delete call.
+       return filter.entityKeyIds.map { (entitySetId, entityKeyIds) ->
+            ensureEntitySetCanBeWritten(entitySetId)
 
-        ensureEntitySetCanBeWritten(entitySetId)
+            val writeEvent = deletionManager.clearOrDeleteEntitiesAndNeighborsIfAuthorized(
+                    entitySetId,
+                    entityKeyIds,
+                    filter.srcEntitySetIds.orElse(setOf()),
+                    filter.dstEntitySetIds.orElse(setOf()),
+                    deleteType,
+                    Principals.getCurrentPrincipals()
+            )
 
-        val writeEvent = deletionManager.clearOrDeleteEntitiesAndNeighborsIfAuthorized(
-                entitySetId,
-                filter.entityKeyIds,
-                filter.srcEntitySetIds.orElse(setOf()),
-                filter.dstEntitySetIds.orElse(setOf()),
-                deleteType,
-                Principals.getCurrentPrincipals()
-        )
+            recordEvent(AuditableEvent(
+                    getCurrentUserId(),
+                    AclKey(entitySetId),
+                    AuditEventType.DELETE_ENTITY_AND_NEIGHBORHOOD,
+                    ("Entities and all neighbors deleted using delete type $deleteType through " +
+                            "DataApi.clearEntityAndNeighborEntities"),
+                    Optional.of(entityKeyIds),
+                    mapOf(),
+                    writeEvent.version
+            ))
 
-        recordEvent(AuditableEvent(
-                getCurrentUserId(),
-                AclKey(entitySetId),
-                AuditEventType.DELETE_ENTITY_AND_NEIGHBORHOOD,
-                ("Entities and all neighbors deleted using delete type $deleteType through " +
-                        "DataApi.clearEntityAndNeighborEntities"),
-                Optional.of(filter.entityKeyIds),
-                mapOf(),
-                writeEvent.version
-        ))
-
-        return writeEvent.numUpdates.toLong()
+           writeEvent.numUpdates.toLong()
+        }.sum()
     }
 
 

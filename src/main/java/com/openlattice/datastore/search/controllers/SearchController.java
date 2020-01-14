@@ -459,28 +459,8 @@ public class SearchController implements SearchApi, AuthorizingComponent, Auditi
         var entitySetIds = filter.getEntityKeyIds().keySet();
 
         Map<UUID, List<NeighborEntityDetails>> result = Maps.newHashMap();
-        if ( authorizationsHelper
-                .getAuthorizedEntitySetsForPrincipals( entitySetIds, EnumSet.of( Permission.READ ), principals ).size()
-                == entitySetIds.size() ) {
-
-            var entitySets = entitySetManager.getEntitySetsAsMap( entitySetIds ).values();
-            checkState(
-                    entitySets.size() != entitySetIds.size(),
-                    "Could not find one or more entity sets with ids: " + entitySetIds.toString()
-            );
-
-            // do authorization checks on normal entity set ids too
-            final var normalEntitySetIds = entitySets.stream()
-                    .filter( EntitySet::isLinking )
-                    .flatMap( es -> es.getLinkedEntitySets().stream() ).collect( Collectors.toSet() );
-            final var authorizedEntitySets = authorizationsHelper.getAuthorizedEntitySetsForPrincipals(
-                    normalEntitySetIds, EnumSet.of( Permission.READ ), principals
-            );
-            if ( authorizedEntitySets.size() != normalEntitySetIds.size() ) {
-                logger.warn( "Read authorization failed some of the normal entity sets of linking entity set." );
-            } else {
-                result = searchService.executeEntityNeighborSearch( filter, principals );
-            }
+        if ( getEntitySetsForRead( entitySetIds, principals ) != null ) {
+            result = searchService.executeEntityNeighborSearch( filter, principals );
         }
 
 
@@ -533,7 +513,7 @@ public class SearchController implements SearchApi, AuthorizingComponent, Auditi
                                         ".executeFilteredEntityNeighborSearch",
                                 Optional.of( segmentOfIds ),
                                 ImmutableMap.of( "filters",
-                                        new EntityNeighborsFilter( Map.of(entitySetId, segmentOfIds),
+                                        new EntityNeighborsFilter( Map.of( entitySetId, segmentOfIds ),
                                                 filter.getSrcEntitySetIds(),
                                                 filter.getDstEntitySetIds(),
                                                 filter.getAssociationEntitySetIds() ) ),
@@ -584,37 +564,41 @@ public class SearchController implements SearchApi, AuthorizingComponent, Auditi
     @Override
     @Timed
     public Map<UUID, Map<UUID, Map<UUID, Set<NeighborEntityIds>>>> executeFilteredEntityNeighborIdsSearch(
-            @RequestBody EntityNeighborsFilter filter
-    ) {
+            @RequestBody EntityNeighborsFilter filter ) {
         Set<Principal> principals = Principals.getCurrentPrincipals();
 
         Map<UUID, Map<UUID, Map<UUID, Set<NeighborEntityIds>>>> result = Maps.newHashMap();
-        if ( authorizations.checkIfHasPermissions( new AclKey( entitySetId ), principals,
-                EnumSet.of( Permission.READ ) ) ) {
-
-            EntitySet es = entitySetManager.getEntitySet( entitySetId );
-
-            checkState( es != null, "Could not find entity set with id: " + entitySetId.toString() );
-
-            if ( es.isLinking() ) {
-                final Set<UUID> authorizedEntitySets = es.getLinkedEntitySets().stream()
-                        .filter( linkedEntitySetId ->
-                                authorizations.checkIfHasPermissions( new AclKey( linkedEntitySetId ),
-                                        Principals.getCurrentPrincipals(),
-                                        EnumSet.of( Permission.READ ) ) )
-                        .collect( Collectors.toSet() );
-                if ( authorizedEntitySets.size() != es.getLinkedEntitySets().size() ) {
-                    logger.warn(
-                            "Read authorization failed some of the normal entity sets of linking entity set or it " +
-                                    "is empty." );
-                } else {
-                    result = searchService
-                            .executeLinkingEntityNeighborIdsSearch( es, filter, principals );
-                }
-
-            } else {
-                result = searchService
-                        .executeEntityNeighborIdsSearch( ImmutableSet.of( entitySetId ), filter, principals );
+        var entitySets = getEntitySetsForRead( filter.getEntityKeyIds().keySet(), principals );
+        if ( entitySets != null ) {
+            var groupedEntitySets = entitySets.stream().collect( Collectors.groupingBy( EntitySet::isLinking ) );
+            if ( !groupedEntitySets.get( false ).isEmpty() ) {
+                var regularEntitySetIds = groupedEntitySets.get( false ).stream()
+                        .map( EntitySet::getId ).collect( Collectors.toSet() );
+                result = searchService.executeEntityNeighborIdsSearch(
+                        new EntityNeighborsFilter(
+                                filter.getEntityKeyIds().entrySet().stream()
+                                        .filter( entry -> regularEntitySetIds.contains( entry.getKey() ) )
+                                        .collect( Collectors.toMap( Map.Entry::getKey, Map.Entry::getValue ) ),
+                                filter.getSrcEntitySetIds(),
+                                filter.getDstEntitySetIds(),
+                                filter.getAssociationEntitySetIds()
+                        ),
+                        principals );
+            } else if ( !groupedEntitySets.get( true ).isEmpty() ) {
+                var linkedEntitySetIds = groupedEntitySets.get( true ).stream()
+                        .map( EntitySet::getId ).collect( Collectors.toSet() );
+                result.putAll(
+                        searchService.executeLinkingEntityNeighborIdsSearch(
+                                groupedEntitySets.get( true ),
+                                new EntityNeighborsFilter(
+                                        filter.getEntityKeyIds().entrySet().stream()
+                                                .filter( entry -> linkedEntitySetIds.contains( entry.getKey() ) )
+                                                .collect( Collectors.toMap( Map.Entry::getKey, Map.Entry::getValue ) ),
+                                        filter.getSrcEntitySetIds(),
+                                        filter.getDstEntitySetIds(),
+                                        filter.getAssociationEntitySetIds()
+                                ),
+                                principals ) );
             }
         }
 
@@ -640,19 +624,27 @@ public class SearchController implements SearchApi, AuthorizingComponent, Auditi
                 } )
         );
 
-        List<AuditableEvent> events = new ArrayList<>( neighborsByEntitySet.keySet().size() + 1 );
+        List<AuditableEvent> events = new ArrayList<>(
+                neighborsByEntitySet.keySet().size() + filter.getEntityKeyIds().size() );
         UUID userId = getCurrentUserId();
-
-        events.add( new AuditableEvent(
-                userId,
-                new AclKey( entitySetId ),
-                AuditEventType.LOAD_ENTITY_NEIGHBORS,
-                "Load neighbors of entities with filter through SearchApi.executeFilteredEntityNeighborSearch",
-                Optional.of( filter.getEntityKeyIds() ),
-                ImmutableMap.of( "filters", filter ),
-                OffsetDateTime.now(),
-                Optional.empty()
-        ) );
+        filter.getEntityKeyIds().forEach( ( entitySetId, entityKeyIds ) ->
+                events.add( new AuditableEvent(
+                        userId,
+                        new AclKey( entitySetId ),
+                        AuditEventType.LOAD_ENTITY_NEIGHBORS,
+                        "Load neighbors of entities with filter through SearchApi." +
+                                "executeFilteredEntityNeighborSearch",
+                        Optional.of( entityKeyIds ),
+                        ImmutableMap.of( "filters", new EntityNeighborsFilter(
+                                Map.of( entitySetId, entityKeyIds ),
+                                filter.getSrcEntitySetIds(),
+                                filter.getDstEntitySetIds(),
+                                filter.getAssociationEntitySetIds()
+                        ) ),
+                        OffsetDateTime.now(),
+                        Optional.empty()
+                ) )
+        );
 
         for ( UUID neighborEntitySetId : neighborsByEntitySet.keySet() ) {
             events.add( new AuditableEvent(
@@ -661,7 +653,7 @@ public class SearchController implements SearchApi, AuthorizingComponent, Auditi
                     AuditEventType.READ_ENTITIES,
                     "Read entities as filtered neighbors through SearchApi.executeFilteredEntityNeighborIdsSearch",
                     Optional.of( neighborsByEntitySet.get( neighborEntitySetId ) ),
-                    ImmutableMap.of( "entitySetId", entitySetId, "filter", filter ),
+                    ImmutableMap.of( "filter", filter ),
                     OffsetDateTime.now(),
                     Optional.empty()
             ) );
@@ -755,6 +747,46 @@ public class SearchController implements SearchApi, AuthorizingComponent, Auditi
 
     private static UUID getEntityKeyId( Map<FullQualifiedName, Set<Object>> entity ) {
         return SearchService.getEntityKeyId( entity );
+    }
+
+    /**
+     * Checks read permission on requested entity sets and their normal entity sets.
+     *
+     * @param entitySetIds A non-empty set of entity set ids.
+     * @param principals   Set of principals to test read permission against.
+     * @return The authorized set of entity sets or null, if the check failed.
+     */
+    private Collection<EntitySet> getEntitySetsForRead( Set<UUID> entitySetIds, Set<Principal> principals ) {
+        if ( authorizationsHelper
+                .getAuthorizedEntitySetsForPrincipals( entitySetIds, EnumSet.of( Permission.READ ), principals ).size()
+                == entitySetIds.size() ) {
+
+            var entitySets = entitySetManager.getEntitySetsAsMap( entitySetIds ).values();
+            checkState(
+                    entitySets.size() != entitySetIds.size(),
+                    "Could not find one or more entity sets with ids: {}",
+                    entitySetIds
+            );
+
+            // do authorization checks on normal entity set ids too
+            final var normalEntitySetIds = entitySets.stream()
+                    .filter( EntitySet::isLinking )
+                    .flatMap( es -> es.getLinkedEntitySets().stream() ).collect( Collectors.toSet() );
+            final var authorizedEntitySets = authorizationsHelper.getAuthorizedEntitySetsForPrincipals(
+                    normalEntitySetIds, EnumSet.of( Permission.READ ), principals
+            );
+
+            if ( authorizedEntitySets.size() != normalEntitySetIds.size() ) {
+                logger.warn(
+                        "Read authorization failed some of the normal entity sets {} of linking entity set(s).",
+                        normalEntitySetIds );
+                return null;
+            }
+            return entitySets;
+        } else {
+            logger.warn( "Read authorization failed some entity sets with ids: {}", entitySetIds );
+            return null;
+        }
     }
 
     private void validateSearch( SearchConstraints searchConstraints ) {

@@ -362,29 +362,11 @@ public class SearchController implements SearchApi, AuthorizingComponent, Auditi
 
         Set<Principal> principals = Principals.getCurrentPrincipals();
 
-        if ( authorizations.checkIfHasPermissions( new AclKey( entitySetId ), principals,
-                EnumSet.of( Permission.READ ) ) ) {
-            EntitySet es = entitySetManager.getEntitySet( entitySetId );
-
-            checkState( es != null, "Could not find entity set with id: " + entitySetId.toString() );
-
-            final var entitySets = ( es.isLinking() ) ? es.getLinkedEntitySets() : Set.of( entitySetId );
-            final var authorizedEntitySets = entitySets.stream()
-                    .filter( linkedEntitySetId ->
-                            authorizations.checkIfHasPermissions( new AclKey( linkedEntitySetId ),
-                                    Principals.getCurrentPrincipals(),
-                                    EnumSet.of( Permission.READ ) ) )
-                    .collect( Collectors.toSet() );
-            if ( authorizedEntitySets.size() != entitySets.size() ) {
-                logger.warn( "Read authorization failed some of the normal entity sets of linking entity set or it " +
-                        "is empty." );
-            } else {
-                neighbors = searchService
-                        .executeEntityNeighborSearch(
-                                new EntityNeighborsFilter( Map.of( entitySetId, ImmutableSet.of( entityKeyId ) ) ),
-                                principals
-                        ).getOrDefault( entityKeyId, ImmutableList.of() );
-            }
+        if ( getEntitySetsForRead( Set.of( entitySetId ), principals ) != null ) {
+            neighbors = searchService.executeEntityNeighborSearch(
+                    new EntityNeighborsFilter( Map.of( entitySetId, ImmutableSet.of( entityKeyId ) ) ),
+                    principals
+            ).getOrDefault( entityKeyId, ImmutableList.of() );
         }
 
         UUID userId = getCurrentUserId();
@@ -462,7 +444,6 @@ public class SearchController implements SearchApi, AuthorizingComponent, Auditi
         if ( getEntitySetsForRead( entitySetIds, principals ) != null ) {
             result = searchService.executeEntityNeighborSearch( filter, principals );
         }
-
 
         /* audit */
 

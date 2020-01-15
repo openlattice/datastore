@@ -117,6 +117,7 @@ import com.openlattice.requests.HazelcastRequestsManager;
 import com.openlattice.requests.RequestQueryService;
 import com.openlattice.search.PersistentSearchService;
 import com.openlattice.search.SearchService;
+import com.openlattice.search.graph.SearchGraphService;
 import com.openlattice.subscriptions.PostgresSubscriptionService;
 import com.openlattice.subscriptions.SubscriptionService;
 import com.openlattice.tasks.PostConstructInitializerTaskDependencies;
@@ -467,6 +468,18 @@ public class DatastoreServicesPod {
     @Bean
     public SearchService searchService() {
         return new SearchService( eventBus, metricRegistry );
+    }
+
+    @Bean
+    public SearchGraphService searchGraphService() {
+        return new SearchGraphService(
+                entityDatastore(),
+                graphApi(),
+                dataModelService(),
+                entitySetManager(),
+                idCipherManager(),
+                authorizationManager()
+        );
     }
 
     @Bean

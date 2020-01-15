@@ -41,6 +41,7 @@ import com.openlattice.organizations.roles.SecurePrincipalsManager;
 import com.openlattice.search.SearchApi;
 import com.openlattice.search.SearchService;
 import com.openlattice.search.SortDefinition;
+import com.openlattice.search.graph.SearchGraphService;
 import com.openlattice.search.requests.*;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.olingo.commons.api.edm.EdmPrimitiveTypeKind;
@@ -66,6 +67,9 @@ public class SearchController implements SearchApi, AuthorizingComponent, Auditi
 
     @Inject
     private SearchService searchService;
+
+    @Inject
+    private SearchGraphService searchGraphService;
 
     @Inject
     private EdmService edm;
@@ -162,8 +166,7 @@ public class SearchController implements SearchApi, AuthorizingComponent, Auditi
             final var authorizedPropertyTypesByEntitySet = authorizationsHelper.getAuthorizedPropertiesOnEntitySets(
                     authorizedEntitySetIds, READ_PERMISSION, Principals.getCurrentPrincipals() );
 
-            results = searchService
-                    .executeSearch( searchConstraints, authorizedPropertyTypesByEntitySet );
+            results = searchService.executeSearch( searchConstraints, authorizedPropertyTypesByEntitySet );
         }
 
         List<AuditableEvent> searchEvents = Lists.newArrayList();
@@ -361,9 +364,8 @@ public class SearchController implements SearchApi, AuthorizingComponent, Auditi
         List<NeighborEntityDetails> neighbors = Lists.newArrayList();
 
         Set<Principal> principals = Principals.getCurrentPrincipals();
-
         if ( getEntitySetsForRead( Set.of( entitySetId ), principals ) != null ) {
-            neighbors = searchService.executeEntityNeighborSearch(
+            neighbors = searchGraphService.executeEntityNeighborSearch(
                     new EntityNeighborsFilter( Map.of( entitySetId, ImmutableSet.of( entityKeyId ) ) ),
                     principals
             ).getOrDefault( entityKeyId, ImmutableList.of() );
@@ -442,7 +444,7 @@ public class SearchController implements SearchApi, AuthorizingComponent, Auditi
 
         Map<UUID, List<NeighborEntityDetails>> result = Maps.newHashMap();
         if ( getEntitySetsForRead( entitySetIds, principals ) != null ) {
-            result = searchService.executeEntityNeighborSearch( filter, principals );
+            result = searchGraphService.executeEntityNeighborSearch( filter, principals );
         }
 
         /* audit */
@@ -551,11 +553,12 @@ public class SearchController implements SearchApi, AuthorizingComponent, Auditi
         Map<UUID, Map<UUID, Map<UUID, Set<NeighborEntityIds>>>> result = Maps.newHashMap();
         var entitySets = getEntitySetsForRead( filter.getEntityKeyIds().keySet(), principals );
         if ( entitySets != null ) {
-            var groupedEntitySets = entitySets.stream().collect( Collectors.groupingBy( EntitySet::isLinking ) );
+            var groupedEntitySets = entitySets.entrySet().stream()
+                    .collect( Collectors.groupingBy( esEntry -> esEntry.getValue().isLinking() ) );
             if ( !groupedEntitySets.get( false ).isEmpty() ) {
                 var regularEntitySetIds = groupedEntitySets.get( false ).stream()
-                        .map( EntitySet::getId ).collect( Collectors.toSet() );
-                result = searchService.executeEntityNeighborIdsSearch(
+                        .map( Map.Entry::getKey ).collect( Collectors.toSet() );
+                result = searchGraphService.executeEntityNeighborIdsSearch(
                         new EntityNeighborsFilter(
                                 filter.getEntityKeyIds().entrySet().stream()
                                         .filter( entry -> regularEntitySetIds.contains( entry.getKey() ) )
@@ -567,10 +570,11 @@ public class SearchController implements SearchApi, AuthorizingComponent, Auditi
                         principals );
             } else if ( !groupedEntitySets.get( true ).isEmpty() ) {
                 var linkedEntitySetIds = groupedEntitySets.get( true ).stream()
-                        .map( EntitySet::getId ).collect( Collectors.toSet() );
+                        .map( Map.Entry::getKey ).collect( Collectors.toSet() );
                 result.putAll(
-                        searchService.executeLinkingEntityNeighborIdsSearch(
-                                groupedEntitySets.get( true ),
+                        searchGraphService.executeLinkingEntityNeighborIdsSearch(
+                                groupedEntitySets.get( true ).stream()
+                                        .collect( Collectors.toMap( Map.Entry::getKey, Map.Entry::getValue ) ),
                                 new EntityNeighborsFilter(
                                         filter.getEntityKeyIds().entrySet().stream()
                                                 .filter( entry -> linkedEntitySetIds.contains( entry.getKey() ) )
@@ -735,14 +739,14 @@ public class SearchController implements SearchApi, AuthorizingComponent, Auditi
      *
      * @param entitySetIds A non-empty set of entity set ids.
      * @param principals   Set of principals to test read permission against.
-     * @return The authorized set of entity sets or null, if the check failed.
+     * @return The authorized set of entity sets mapped by their ids or null, if the check failed.
      */
-    private Collection<EntitySet> getEntitySetsForRead( Set<UUID> entitySetIds, Set<Principal> principals ) {
+    private Map<UUID, EntitySet> getEntitySetsForRead( Set<UUID> entitySetIds, Set<Principal> principals ) {
         if ( authorizationsHelper
                 .getAuthorizedEntitySetsForPrincipals( entitySetIds, EnumSet.of( Permission.READ ), principals ).size()
                 == entitySetIds.size() ) {
 
-            var entitySets = entitySetManager.getEntitySetsAsMap( entitySetIds ).values();
+            var entitySets = entitySetManager.getEntitySetsAsMap( entitySetIds );
             checkState(
                     entitySets.size() != entitySetIds.size(),
                     "Could not find one or more entity sets with ids: {}",
@@ -750,7 +754,7 @@ public class SearchController implements SearchApi, AuthorizingComponent, Auditi
             );
 
             // do authorization checks on normal entity set ids too
-            final var normalEntitySetIds = entitySets.stream()
+            final var normalEntitySetIds = entitySets.values().stream()
                     .filter( EntitySet::isLinking )
                     .flatMap( es -> es.getLinkedEntitySets().stream() ).collect( Collectors.toSet() );
             final var authorizedEntitySets = authorizationsHelper.getAuthorizedEntitySetsForPrincipals(

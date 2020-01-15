@@ -28,6 +28,7 @@ import com.hazelcast.durableexecutor.DurableExecutorService;
 import com.openlattice.authorization.AclKey;
 import com.openlattice.authorization.securable.SecurableObjectType;
 import com.openlattice.conductor.rpc.*;
+import com.openlattice.data.EntityDataKey;
 import com.openlattice.edm.EntitySet;
 import com.openlattice.edm.type.AssociationType;
 import com.openlattice.edm.type.EntityType;
@@ -115,7 +116,7 @@ public class DatastoreConductorElasticsearchApi implements ConductorElasticsearc
             int start,
             int maxHits ) {
         try {
-            SearchResult searchResult = executor.submit( ConductorElasticsearchCall
+            return executor.submit( ConductorElasticsearchCall
                     .wrap( ElasticsearchLambdas.executeEntitySetMetadataQuery( optionalSearchTerm,
                             optionalEntityType,
                             optionalPropertyTypes,
@@ -123,9 +124,8 @@ public class DatastoreConductorElasticsearchApi implements ConductorElasticsearc
                             start,
                             maxHits ) ) )
                     .get();
-            return searchResult;
         } catch ( InterruptedException | ExecutionException e ) {
-            logger.error( "Unable to to perofrm keyword search.", e );
+            logger.error( "Unable to to perform keyword search.", e );
             return new SearchResult( 0, Lists.newArrayList() );
         }
     }
@@ -184,13 +184,12 @@ public class DatastoreConductorElasticsearchApi implements ConductorElasticsearc
             int start,
             int maxHits ) {
         try {
-            SearchResult searchResult = executor.submit( ConductorElasticsearchCall
+            return executor.submit( ConductorElasticsearchCall
                     .wrap( ElasticsearchLambdas.executeOrganizationKeywordSearch( searchTerm,
                             authorizedOrganizationIds,
                             start,
                             maxHits ) ) )
                     .get();
-            return searchResult;
         } catch ( InterruptedException | ExecutionException e ) {
             logger.error( "Unable to to perform organization keyword search.", e );
             return new SearchResult( 0, Lists.newArrayList() );
@@ -312,14 +311,12 @@ public class DatastoreConductorElasticsearchApi implements ConductorElasticsearc
             Map<UUID, DelegatedUUIDSet> authorizedPropertyTypesByEntitySet,
             Map<UUID, DelegatedUUIDSet> linkingEntitySets ) {
         try {
-            EntityDataKeySearchResult queryResults = executor.submit( ConductorElasticsearchCall.wrap(
+            return executor.submit( ConductorElasticsearchCall.wrap(
                     new SearchWithConstraintsLambda( searchConstraints,
                             entityTypesByEntitySetId,
                             authorizedPropertyTypesByEntitySet,
                             linkingEntitySets ) ) )
                     .get();
-            return queryResults;
-
         } catch ( InterruptedException | ExecutionException e ) {
             logger.debug( "unable to execute entity set data search with constraints" );
             return new EntityDataKeySearchResult( 0, ImmutableList.of() );
@@ -361,14 +358,13 @@ public class DatastoreConductorElasticsearchApi implements ConductorElasticsearc
     public SearchResult executeSecurableObjectSearch(
             SecurableObjectType securableObjectType, String searchTerm, int start, int maxHits ) {
         try {
-            SearchResult queryResults = executor.submit( ConductorElasticsearchCall.wrap(
+            return executor.submit( ConductorElasticsearchCall.wrap(
                     ElasticsearchLambdas.executeSecurableObjectSearch(
                             securableObjectType,
                             searchTerm,
                             start,
                             maxHits ) ) )
                     .get();
-            return queryResults;
         } catch ( InterruptedException | ExecutionException e ) {
             logger.debug( "unable to execute securable object search" );
             return new SearchResult( 0, Lists.newArrayList() );
@@ -379,7 +375,7 @@ public class DatastoreConductorElasticsearchApi implements ConductorElasticsearc
     public SearchResult executeSecurableObjectFQNSearch(
             SecurableObjectType securableObjectType, String namespace, String name, int start, int maxHits ) {
         try {
-            SearchResult queryResults = executor.submit( ConductorElasticsearchCall.wrap(
+            return executor.submit( ConductorElasticsearchCall.wrap(
                     ElasticsearchLambdas.executeSecurableObjectFQNSearch(
                             securableObjectType,
                             namespace,
@@ -387,7 +383,6 @@ public class DatastoreConductorElasticsearchApi implements ConductorElasticsearc
                             start,
                             maxHits ) ) )
                     .get();
-            return queryResults;
         } catch ( InterruptedException | ExecutionException e ) {
             logger.debug( "unable to execute securable object FQN search" );
             return new SearchResult( 0, Lists.newArrayList() );

@@ -172,15 +172,15 @@ constructor(
                     .map { pt -> pt.type.fullQualifiedNameAsString }
                     .toCollection(orderedPropertyNames)
 
-            return if(entitySet.isLinking) {
-                 dgm.getLinkedEntitySetData(
+            return if (entitySet.isLinking) {
+                dgm.getLinkedEntitySetData(
                         entitySet,
                         entityKeyIds,
                         orderedPropertyNames,
                         authorizedPropertyTypesOfEntitySets
                 )
             } else {
-                 dgm.getEntitySetData(
+                dgm.getEntitySetData(
                         mapOf(entitySetId to entityKeyIds),
                         orderedPropertyNames,
                         authorizedPropertyTypesOfEntitySets
@@ -328,14 +328,13 @@ constructor(
         dataGraphServiceHelper.checkAssociationEntityTypes(associations)
         val associationsCreated = dgm.createAssociations(associations, authorizedPropertyTypesByEntitySet)
 
-        val associationIds = mutableMapOf<UUID, MutableList<UUID>>()
+        val associationIds = mutableMapOf<UUID, List<UUID>>()
 
         val currentUserId = getCurrentUserId()
 
         val entitiesCreated = mutableListOf<AuditableEvent>()
         associationsCreated.forEach { (associationEntitySetId, createAssociationEvent) ->
-            val ids = associationIds.getOrDefault(associationEntitySetId, mutableListOf())
-            ids.addAll(createAssociationEvent.ids)
+            associationIds[associationEntitySetId] = createAssociationEvent.ids
 
             entitiesCreated.add(
                     AuditableEvent(
@@ -417,41 +416,36 @@ constructor(
     @Timed
     @PostMapping(value = [""])
     override fun createEntityAndAssociationData(@RequestBody data: DataGraph): DataGraphIds {
-        val entityKeyIds = mutableMapOf<UUID, MutableList<UUID>>()
-
         val entitySetIds = getEntitySetIdsFromCollection<DataAssociation>(data.associations.values.flatten())
         { association -> listOf(association.srcEntitySetId, association.dstEntitySetId) }
-
         checkPermissionsOnEntitySetIds(entitySetIds, EdmAuthorizationHelper.READ_PERMISSION)
 
         //First create the entities so we have entity key ids to work with
+        val entityKeyIds = mutableMapOf<UUID, List<UUID>>()
         data.entities.forEach { (entitySetId, entities) ->
-            val ids = entityKeyIds.getOrDefault(entitySetId, mutableListOf())
-            ids.addAll(createEntities(entitySetId, entities))
+            entityKeyIds[entitySetId] = createEntities(entitySetId, entities)
         }
-        val toBeCreated = mutableMapOf<UUID, MutableList<DataEdge>>()
+
+        val toBeCreated = mutableMapOf<UUID, List<DataEdge>>()
         data.associations.forEach { (entitySetId, associations) ->
-            val edgesOfEntitySet = toBeCreated.getOrDefault(entitySetId, mutableListOf())
 
-            associations.forEach { association ->
-                val srcEntitySetId = association.srcEntitySetId
-                val srcEntityKeyId = association
-                        .srcEntityKeyId
-                        .orElseGet { entityKeyIds.getValue(srcEntitySetId)[association.srcEntityIndex.get()] }
+            toBeCreated[entitySetId] =
+                    associations.map { association ->
+                        val srcEntitySetId = association.srcEntitySetId
+                        val srcEntityKeyId = association.srcEntityKeyId
+                                .orElseGet { entityKeyIds.getValue(srcEntitySetId)[association.srcEntityIndex.get()] }
 
-                val dstEntitySetId = association.dstEntitySetId
-                val dstEntityKeyId = association
-                        .dstEntityKeyId
-                        .orElseGet { entityKeyIds.getValue(dstEntitySetId)[association.dstEntityIndex.get()] }
+                        val dstEntitySetId = association.dstEntitySetId
+                        val dstEntityKeyId = association.dstEntityKeyId
+                                .orElseGet { entityKeyIds.getValue(dstEntitySetId)[association.dstEntityIndex.get()] }
 
-                edgesOfEntitySet.add(
+
                         DataEdge(
                                 EntityDataKey(srcEntitySetId, srcEntityKeyId),
                                 EntityDataKey(dstEntitySetId, dstEntityKeyId),
                                 association.data
                         )
-                )
-            }
+                    }
         }
         val associationEntityKeyIds = createAssociations(toBeCreated)
 
@@ -779,7 +773,7 @@ constructor(
         // Note: this function is only useful for deleting src/dst entities and their neighboring entities
         // (along with associations connected to all of them), not associations.
         // If called with an association entity set, it will simplify down to a basic delete call.
-       return filter.entityKeyIds.map { (entitySetId, entityKeyIds) ->
+        return filter.entityKeyIds.map { (entitySetId, entityKeyIds) ->
             ensureEntitySetCanBeWritten(entitySetId)
 
             val writeEvent = deletionManager.clearOrDeleteEntitiesAndNeighborsIfAuthorized(
@@ -802,7 +796,7 @@ constructor(
                     writeEvent.version
             ))
 
-           writeEvent.numUpdates.toLong()
+            writeEvent.numUpdates.toLong()
         }.sum()
     }
 

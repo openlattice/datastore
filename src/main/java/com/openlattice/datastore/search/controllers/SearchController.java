@@ -736,7 +736,7 @@ public class SearchController implements SearchApi, AuthorizingComponent, Auditi
 
             var entitySets = entitySetManager.getEntitySetsAsMap( entitySetIds );
             checkState(
-                    entitySets.size() != entitySetIds.size(),
+                    entitySets.size() == entitySetIds.size(),
                     "Could not find one or more entity sets with ids: {}",
                     entitySetIds
             );

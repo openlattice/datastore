@@ -102,8 +102,8 @@ constructor(
     @Timed
     fun loadEntitySetData(
             @PathVariable(ENTITY_SET_ID) entitySetId: UUID,
-            @RequestParam(value = FILE_TYPE, required = false) fileType: FileType,
-            @RequestParam(value = TOKEN, required = false) token: String,
+            @RequestParam(value = FILE_TYPE, required = false) fileType: FileType?,
+            @RequestParam(value = TOKEN, required = false) token: String?,
             response: HttpServletResponse
     ): EntitySetData<FullQualifiedName> {
         setContentDisposition(response, entitySetId.toString(), fileType)
@@ -113,7 +113,7 @@ constructor(
     }
 
     override fun loadEntitySetData(
-            entitySetId: UUID, fileType: FileType, token: String
+            entitySetId: UUID, fileType: FileType?, token: String?
     ): EntitySetData<FullQualifiedName> {
         if (StringUtils.isNotBlank(token)) {
             val authentication = authProvider
@@ -138,6 +138,7 @@ constructor(
     ): EntitySetData<FullQualifiedName> {
         setContentDisposition(response, entitySetId.toString(), fileType)
         setDownloadContentType(response, fileType)
+
         return loadSelectedEntitySetData(entitySetId, selection, fileType)
     }
 
@@ -800,13 +801,13 @@ constructor(
 
     /* UTIL */
 
-    private fun setContentDisposition(response: HttpServletResponse, fileName: String, fileType: FileType) {
+    private fun setContentDisposition(response: HttpServletResponse, fileName: String, fileType: FileType?) {
         if (fileType == FileType.csv || fileType == FileType.json) {
             response.setHeader("Content-Disposition", "attachment; filename=$fileName.$fileType")
         }
     }
 
-    private fun setDownloadContentType(response: HttpServletResponse, fileType: FileType) {
+    private fun setDownloadContentType(response: HttpServletResponse, fileType: FileType?) {
         if (fileType == FileType.csv) {
             response.contentType = CustomMediaType.TEXT_CSV_VALUE
         } else {

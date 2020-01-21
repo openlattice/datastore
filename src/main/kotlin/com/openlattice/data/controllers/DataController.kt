@@ -133,7 +133,7 @@ constructor(
     fun loadEntitySetData(
             @PathVariable(ENTITY_SET_ID) entitySetId: UUID,
             @RequestBody(required = false) selection: EntitySetSelection,
-            @RequestParam(value = FILE_TYPE, required = false) fileType: FileType,
+            @RequestParam(value = FILE_TYPE, required = false) fileType: FileType?,
             response: HttpServletResponse
     ): EntitySetData<FullQualifiedName> {
         setContentDisposition(response, entitySetId.toString(), fileType)
@@ -143,7 +143,7 @@ constructor(
     }
 
     override fun loadSelectedEntitySetData(
-            entitySetId: UUID, selection: EntitySetSelection, fileType: FileType
+            entitySetId: UUID, selection: EntitySetSelection, fileType: FileType?
     ): EntitySetData<FullQualifiedName> {
         return loadEntitySetData(entitySetId, selection)
     }

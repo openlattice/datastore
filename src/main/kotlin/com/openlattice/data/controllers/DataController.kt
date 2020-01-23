@@ -252,22 +252,20 @@ constructor(
         val entitySet = getEntitySet(entitySetId)
 
         val normalEntitySetIds = if (entitySet.isLinking) entitySet.linkedEntitySets else setOf(entitySetId)
-        val properties = setOf(propertyTypeId)
-        val authorizedPropertyTypes = getAuthorizedPropertyTypesForEntitySetRead(
-                entitySet, normalEntitySetIds, properties
+        val authorizedPropertyTypesByEntitySet = getAuthorizedPropertyTypesForEntitySetRead(
+                entitySet, normalEntitySetIds, setOf(propertyTypeId)
         )
 
-        if (authorizedPropertyTypes.getValue(entitySetId).isEmpty()) {
+        val authorizedPropertyTypes = authorizedPropertyTypesByEntitySet.getValue(normalEntitySetIds.first())
+        if (authorizedPropertyTypes.isEmpty()) {
             throw ForbiddenException("Not authorized to read property type $propertyTypeId in entity set $entitySetId.")
         }
 
-        val propertyTypeFqn = authorizedPropertyTypes.getValue(entitySetId).getValue(propertyTypeId).type
-
+        val propertyTypeFqn = authorizedPropertyTypes.getValue(propertyTypeId).type
         return if (entitySet.isLinking) {
-            dgm.getLinkingEntity(entitySet, entityKeyId, authorizedPropertyTypes).getValue(propertyTypeFqn)
+            dgm.getLinkingEntity(entitySet, entityKeyId, authorizedPropertyTypesByEntitySet).getValue(propertyTypeFqn)
         } else {
-            dgm.getEntity(entitySetId, entityKeyId, authorizedPropertyTypes.getValue(entitySetId))
-                    .getValue(propertyTypeFqn)
+            dgm.getEntity(entitySetId, entityKeyId, authorizedPropertyTypes).getValue(propertyTypeFqn)
         }
     }
 

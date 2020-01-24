@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2018. OpenLattice, Inc.
+ * Copyright (C) 2020. OpenLattice, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,18 +21,10 @@
 package com.openlattice.datastore.data.controllers;
 
 import com.codahale.metrics.annotation.Timed;
-import com.google.common.collect.Sets;
 import com.openlattice.authorization.*;
-import com.openlattice.controllers.exceptions.ForbiddenException;
 import com.openlattice.data.*;
-import com.openlattice.data.graph.DataGraphServiceHelper;
-import com.openlattice.data.integration.Association;
-import com.openlattice.data.integration.BulkDataCreation;
-import com.openlattice.data.integration.Entity;
 import com.openlattice.data.integration.S3EntityData;
 import com.openlattice.data.storage.aws.AwsDataSinkService;
-import com.openlattice.datastore.services.EntitySetService;
-import com.openlattice.edm.set.EntitySetFlag;
 import com.openlattice.edm.type.PropertyType;
 import org.springframework.web.bind.annotation.*;
 
@@ -59,42 +51,10 @@ public class DataIntegrationController implements DataIntegrationApi, Authorizin
     @Inject
     private EdmAuthorizationHelper authzHelper;
 
-    @Inject
-    private DataGraphServiceHelper dataGraphServiceHelper;
-
-    @Inject
-    private EntitySetService entitySetService;
 
     @Override
     public AuthorizationManager getAuthorizationManager() {
         return authz;
-    }
-
-    @Timed
-    @PostMapping( { "/", "" } )
-    @Override
-    public IntegrationResults integrateEntityAndAssociationData(
-            @RequestBody BulkDataCreation data,
-            @RequestParam( value = DETAILED_RESULTS, required = false, defaultValue = "false" )
-                    boolean detailedResults ) {
-        final Set<Entity> entities = data.getEntities();
-        final Set<Association> associations = data.getAssociations();
-
-        if ( entities.isEmpty() && associations.isEmpty() ) {
-            return new IntegrationResults( 0, 0, Optional.empty(), Optional.empty() );
-        }
-
-        Set<UUID> entitySetIds = performAccessChecksOnEntitiesAndAssociations( associations, entities );
-
-        accessCheck( aclKeysForAccessCheck( requiredEntityPropertyTypes( entities ), WRITE_PERMISSION ) );
-        accessCheck( aclKeysForAccessCheck( requiredAssociationPropertyTypes( associations ), WRITE_PERMISSION ) );
-
-        final Map<UUID, Map<UUID, PropertyType>> authorizedPropertyTypesByEntitySet =
-                entitySetIds.stream().collect( Collectors.toMap( Function.identity(),
-                        entitySetId -> authzHelper.getAuthorizedPropertyTypes(
-                                entitySetId, WRITE_PERMISSION ) ) );
-        dataGraphServiceHelper.checkAssociationEntityTypes( associations );
-        return dgm.integrateEntitiesAndAssociations( entities, associations, authorizedPropertyTypesByEntitySet );
     }
 
     @Override
@@ -104,8 +64,7 @@ public class DataIntegrationController implements DataIntegrationApi, Authorizin
 
     @Timed
     @PostMapping( "/" + S3 )
-    public List<String> generatePresignedUrls(
-            @RequestBody List<S3EntityData> data ) {
+    public List<String> generatePresignedUrls( @RequestBody List<S3EntityData> data ) {
         final Set<UUID> entitySetIds = data.stream().map( S3EntityData::getEntitySetId ).collect(
                 Collectors.toSet() );
         final Map<UUID, Set<UUID>> propertyIdsByEntitySet = new HashMap<>( data.size() );
@@ -140,59 +99,5 @@ public class DataIntegrationController implements DataIntegrationApi, Authorizin
     public Set<UUID> getEntityKeyIds( @RequestBody LinkedHashSet<EntityKey> entityKeys ) {
         return dgm.getEntityKeyIds( entityKeys );
     }
-
-    private Set<UUID> performAccessChecksOnEntitiesAndAssociations(
-            Set<Association> associations,
-            Set<Entity> entities ) {
-        final Set<UUID> entitySetIds = Sets.newHashSetWithExpectedSize( ( associations.size() * 3 ) + entities.size() );
-        entities.forEach( entity -> entitySetIds.add( entity.getEntitySetId() ) );
-        associations.forEach(
-                association -> {
-                    entitySetIds.add( association.getSrc().getEntitySetId() );
-                    entitySetIds.add( association.getDst().getEntitySetId() );
-                    entitySetIds.add( association.getKey().getEntitySetId() );
-                }
-        );
-
-        checkPermissionsOnEntitySetIds( entitySetIds, READ_PERMISSION );
-
-        return entitySetIds;
-    }
-
-    private void checkPermissionsOnEntitySetIds( Set<UUID> entitySetIds, EnumSet<Permission> permissions ) {
-        //Ensure that we have access to entity sets.
-        ensureEntitySetsCanBeWritten( entitySetIds );
-        accessCheck( entitySetIds.stream().collect( Collectors.toMap( AclKey::new, id -> permissions ) ) );
-    }
-
-    private void ensureEntitySetsCanBeWritten( Set<UUID> entitySetIds ) {
-        if ( entitySetService.entitySetsContainFlag( entitySetIds, EntitySetFlag.AUDIT ) ) {
-            Set<UUID> auditEntitySetIds = entitySetService
-                    .getEntitySetsWithFlags( entitySetIds, Set.of( EntitySetFlag.AUDIT ) ).keySet();
-            throw new ForbiddenException( "You cannot modify data of entity sets " + auditEntitySetIds.toString()
-                    + " because they are audit entity sets." );
-        }
-    }
-
-    private static Map<UUID, Set<UUID>> requiredAssociationPropertyTypes( Set<Association> associations ) {
-        final Map<UUID, Set<UUID>> propertyTypesByEntitySet = new HashMap<>( associations.size() );
-        associations.forEach( association -> {
-            var propertyTypes = propertyTypesByEntitySet
-                    .computeIfAbsent( association.getKey().getEntitySetId(), ( a ) -> new HashSet<>() );
-            propertyTypes.addAll( association.getDetails().keySet() );
-        } );
-        return propertyTypesByEntitySet;
-    }
-
-    private static Map<UUID, Set<UUID>> requiredEntityPropertyTypes( Set<Entity> entities ) {
-        final Map<UUID, Set<UUID>> propertyTypesByEntitySet = new HashMap<>( entities.size() );
-        entities.forEach( entity -> {
-            var propertyTypes = propertyTypesByEntitySet
-                    .computeIfAbsent( entity.getEntitySetId(), ( a ) -> new HashSet<>() );
-            propertyTypes.addAll( entity.getDetails().keySet() );
-        } );
-        return propertyTypesByEntitySet;
-    }
-
 }
 

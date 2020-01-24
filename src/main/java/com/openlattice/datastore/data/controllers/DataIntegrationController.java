@@ -21,8 +21,6 @@
 package com.openlattice.datastore.data.controllers;
 
 import com.codahale.metrics.annotation.Timed;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import com.openlattice.authorization.*;
 import com.openlattice.controllers.exceptions.ForbiddenException;
@@ -70,63 +68,6 @@ public class DataIntegrationController implements DataIntegrationApi, Authorizin
     @Override
     public AuthorizationManager getAuthorizationManager() {
         return authz;
-    }
-
-    @Timed
-    @PostMapping( "/" + ENTITY_SET + "/" + SET_ID_PATH )
-    @Override
-    public IntegrationResults integrateEntities(
-            @PathVariable( ENTITY_SET_ID ) UUID entitySetId,
-            @RequestParam( value = DETAILED_RESULTS, required = false, defaultValue = "false" ) boolean detailedResults,
-            @RequestBody Map<String, Map<UUID, Set<Object>>> entities ) {
-        //Ensure that we have read access to entity set metadata.
-        ensureEntitySetsCanBeWritten( ImmutableSet.of( entitySetId ) );
-        ensureReadAccess( new AclKey( entitySetId ) );
-        //Load authorized property types
-        final Map<UUID, PropertyType> authorizedPropertyTypes = authzHelper
-                .getAuthorizedPropertyTypes( entitySetId, WRITE_PERMISSION );
-
-        final Map<String, UUID> entityKeyIds = dgm.integrateEntities( entitySetId, entities, authorizedPropertyTypes );
-        final IntegrationResults results = new IntegrationResults( entityKeyIds.size(),
-                0,
-                detailedResults ? Optional.of( ImmutableMap.of( entitySetId, entityKeyIds ) ) : Optional.empty(),
-                Optional.empty() );
-        return results;
-    }
-
-    @Timed
-    @PostMapping( "/" + ASSOCIATION + "/" + SET_ID_PATH )
-    @Override
-    public IntegrationResults integrateAssociations(
-            @RequestBody Set<Association> associations,
-            @RequestParam( value = DETAILED_RESULTS, required = false, defaultValue = "false" )
-                    boolean detailedResults ) {
-        if ( associations.isEmpty() ) {
-            return new IntegrationResults( 0, 0, Optional.empty(), Optional.empty() );
-        }
-        Set<UUID> associationEntitySets = performAccessChecksOnEntitiesAndAssociations( associations,
-                ImmutableSet.of() );
-
-        //Ensure that we have read access to entity set metadata.
-        accessCheck( aclKeysForAccessCheck( requiredAssociationPropertyTypes( associations ), WRITE_PERMISSION ) );
-
-        final Map<UUID, Map<UUID, PropertyType>> authorizedPropertyTypesByEntitySet = authzHelper
-                .getAuthorizedPropertiesOnEntitySets(
-                        associationEntitySets,
-                        WRITE_PERMISSION,
-                        Principals.getCurrentPrincipals()
-                );
-
-        // Check allowed src,dst entity types
-        dataGraphServiceHelper.checkAssociationEntityTypes( associations );
-
-        final Map<UUID, Map<String, UUID>> entityKeyIds = dgm
-                .integrateAssociations( associations, authorizedPropertyTypesByEntitySet );
-        final IntegrationResults results = new IntegrationResults( 0,
-                entityKeyIds.values().stream().mapToInt( Map::size ).sum(),
-                Optional.empty(),
-                detailedResults ? Optional.of( entityKeyIds ) : Optional.empty() );
-        return results;
     }
 
     @Timed
@@ -198,27 +139,6 @@ public class DataIntegrationController implements DataIntegrationApi, Authorizin
     @Timed
     public Set<UUID> getEntityKeyIds( @RequestBody LinkedHashSet<EntityKey> entityKeys ) {
         return dgm.getEntityKeyIds( entityKeys );
-    }
-
-    @Override
-    @PutMapping( "/" + EDGES )
-    public int createEdges( @RequestBody Set<DataEdgeKey> associations ) {
-        final Set<UUID> entitySetIds = Sets.newHashSetWithExpectedSize( associations.size() * 3 );
-        ;
-        associations.forEach(
-                association -> {
-                    entitySetIds.add( association.getEdge().getEntitySetId() );
-                    entitySetIds.add( association.getSrc().getEntitySetId() );
-                    entitySetIds.add( association.getDst().getEntitySetId() );
-                }
-        );
-
-        checkPermissionsOnEntitySetIds( entitySetIds, WRITE_PERMISSION );
-
-        //Allowed entity types check
-        dataGraphServiceHelper.checkEdgeEntityTypes( associations );
-
-        return dgm.createAssociations( associations ).getNumUpdates();
     }
 
     private Set<UUID> performAccessChecksOnEntitiesAndAssociations(

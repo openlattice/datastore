@@ -26,6 +26,7 @@ import com.openlattice.analysis.assembler.AssemblyAnalyzationController;
 import com.openlattice.codex.controllers.CodexController;
 import com.openlattice.collection.CollectionsController;
 import com.openlattice.data.controllers.DataController;
+import com.openlattice.datastore.data.controllers.DataIntegrationController;
 import com.openlattice.datastore.organization.controllers.OrganizationsController;
 import com.openlattice.data.DataApi;
 import com.openlattice.datastore.analysis.controllers.AnalysisController;
@@ -66,7 +67,7 @@ import java.util.List;
 
 @Configuration
 @ComponentScan(
-        basePackageClasses = { DataController.class, SearchController.class,
+        basePackageClasses = { DataIntegrationController.class, DataController.class, SearchController.class,
                 PermissionsController.class, AuthorizationsController.class,
                 PrincipalDirectoryController.class,
                 EdmController.class, OrganizationsController.class,

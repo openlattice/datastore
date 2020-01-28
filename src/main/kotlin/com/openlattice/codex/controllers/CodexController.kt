@@ -43,8 +43,8 @@ constructor(
         private val dataApi: DataApi,
         private val appService: AppService,
         private val appConfigMS: AppConfigMapstore,
-        private val hazelcastInstance: HazelcastInstance,
-        private val configuration: TwilioConfiguration
+        hazelcastInstance: HazelcastInstance,
+        configuration: TwilioConfiguration
 ) : CodexApi, AuthorizingComponent {
 
     private val textingExecutor = Executors.newSingleThreadExecutor()
@@ -124,12 +124,12 @@ constructor(
         val ack = AppConfigKey(app.id, organizationId, appTypeId)
         val esid = appConfigMS.load(ack).entitySetId
 
-        val createEntities = dataApi.createEntities(esid, entities)
+        dataApi.createEntities(mapOf(esid to entities))
     }
 
     fun createAssociationsFromMessage() {
         val deks = setOf<DataEdgeKey>()
-        val createAssociations = dataApi.createEdges(deks)
+        dataApi.createEdges(deks)
     }
 
     override fun getAuthorizationManager(): AuthorizationManager {

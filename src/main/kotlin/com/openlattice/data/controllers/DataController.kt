@@ -305,9 +305,9 @@ constructor(
 
     @Timed
     @RequestMapping(value = [ENTITY], method = [RequestMethod.POST], consumes = [MediaType.APPLICATION_JSON_VALUE])
-    override fun createEntities(@RequestBody entities: Map<UUID, List<Map<UUID, Set<Any>>>>): List<UUID> {
-        return entities.flatMap { (entitySetId, entityData) ->
-            createEntities(entitySetId, entityData)
+    override fun createEntities(@RequestBody entities: Map<UUID, List<Map<UUID, Set<Any>>>>): Map<UUID, List<UUID>> {
+        return entities.mapValues { (entitySetId, entityData) ->
+             createEntities(entitySetId, entityData)
         }
     }
 

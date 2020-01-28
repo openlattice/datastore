@@ -45,6 +45,7 @@ import java.util.stream.Collectors;
 
 import static com.openlattice.authorization.EdmAuthorizationHelper.*;
 
+@Deprecated
 @RestController
 @RequestMapping( DataIntegrationApi.CONTROLLER )
 public class DataIntegrationController implements DataIntegrationApi, AuthorizingComponent {
@@ -74,7 +75,7 @@ public class DataIntegrationController implements DataIntegrationApi, Authorizin
     }
 
     @Timed
-    @PostMapping( "/" + ENTITY_SET + "/" + SET_ID_PATH )
+    @PostMapping( "/" + ENTITY_SET + "/" + ENTITY_SET_ID_PATH )
     @Override
     public IntegrationResults integrateEntities(
             @PathVariable( ENTITY_SET_ID ) UUID entitySetId,
@@ -96,7 +97,7 @@ public class DataIntegrationController implements DataIntegrationApi, Authorizin
     }
 
     @Timed
-    @PostMapping( "/" + ASSOCIATION + "/" + SET_ID_PATH )
+    @PostMapping( "/" + ASSOCIATION + "/" + ENTITY_SET_ID_PATH )
     @Override
     public IntegrationResults integrateAssociations(
             @RequestBody Set<Association> associations,

@@ -85,7 +85,7 @@ constructor(
     /* GET */
 
     @Timed
-    @RequestMapping(path = [SET_ID_PATH + COUNT], method = [RequestMethod.GET])
+    @RequestMapping(path = [ENTITY_SET_ID_PATH + COUNT], method = [RequestMethod.GET])
     override fun getEntitySetSize(@PathVariable(ENTITY_SET_ID) entitySetId: UUID): Long {
         ensureReadAccess(AclKey(entitySetId))
 
@@ -96,7 +96,7 @@ constructor(
 
     @Suppress("UNUSED")
     @RequestMapping(
-            path = [ENTITY_SET + SET_ID_PATH],
+            path = [ENTITY_SET + ENTITY_SET_ID_PATH],
             method = [RequestMethod.GET],
             produces = [MediaType.APPLICATION_JSON_VALUE, CustomMediaType.TEXT_CSV_VALUE])
     @Timed
@@ -125,7 +125,7 @@ constructor(
 
     @Suppress("UNUSED")
     @RequestMapping(
-            path = [ENTITY_SET + SET_ID_PATH],
+            path = [ENTITY_SET + ENTITY_SET_ID_PATH],
             method = [RequestMethod.POST],
             consumes = [MediaType.APPLICATION_JSON_VALUE],
             produces = [MediaType.APPLICATION_JSON_VALUE, CustomMediaType.TEXT_CSV_VALUE])
@@ -196,7 +196,7 @@ constructor(
 
     @Timed
     @PostMapping(
-            path = [ENTITY_SET + SET_ID_PATH + DETAILED],
+            path = [ENTITY_SET + ENTITY_SET_ID_PATH + DETAILED],
             consumes = [MediaType.APPLICATION_JSON_VALUE],
             produces = [MediaType.APPLICATION_JSON_VALUE])
     override fun loadLinkedEntitySetBreakdown(
@@ -218,7 +218,7 @@ constructor(
     }
 
     @Timed
-    @RequestMapping(path = [SET_ID_PATH + ENTITY_KEY_ID_PATH], method = [RequestMethod.GET])
+    @RequestMapping(path = [ENTITY_SET_ID_PATH + ENTITY_KEY_ID_PATH], method = [RequestMethod.GET])
     override fun getEntity(
             @PathVariable(ENTITY_SET_ID) entitySetId: UUID,
             @PathVariable(ENTITY_KEY_ID) entityKeyId: UUID
@@ -241,7 +241,7 @@ constructor(
 
     @Timed
     @GetMapping(
-            path = [SET_ID_PATH + ENTITY_KEY_ID_PATH + PROPERTY_TYPE_ID_PATH],
+            path = [ENTITY_SET_ID_PATH + ENTITY_KEY_ID_PATH + PROPERTY_TYPE_ID_PATH],
             produces = [MediaType.APPLICATION_JSON_VALUE])
     override fun getEntityPropertyValues(
             @PathVariable(ENTITY_SET_ID) entitySetId: UUID,
@@ -514,7 +514,7 @@ constructor(
     /* UPDATE */
 
 
-    @PutMapping(value = [ENTITY_SET + SET_ID_PATH], consumes = [MediaType.APPLICATION_JSON_VALUE])
+    @PutMapping(value = [ENTITY_SET + ENTITY_SET_ID_PATH], consumes = [MediaType.APPLICATION_JSON_VALUE])
     @Timed
     override fun updateEntitiesInEntitySet(
             @PathVariable(ENTITY_SET_ID) entitySetId: UUID,
@@ -568,7 +568,7 @@ constructor(
     }
 
     @Timed
-    @PutMapping(value = [ENTITY_SET + SET_ID_PATH + ENTITY_KEY_ID_PATH], consumes = [MediaType.APPLICATION_JSON_VALUE])
+    @PutMapping(value = [ENTITY_SET + ENTITY_SET_ID_PATH + ENTITY_KEY_ID_PATH], consumes = [MediaType.APPLICATION_JSON_VALUE])
     override fun mergeIntoEntityInEntitySet(
             @PathVariable(ENTITY_SET_ID) entitySetId: UUID,
             @PathVariable(ENTITY_KEY_ID) entityKeyId: UUID,
@@ -578,7 +578,7 @@ constructor(
     }
 
     @Timed
-    @RequestMapping(path = [ENTITY_SET + SET_ID_PATH + ENTITY_KEY_ID_PATH], method = [RequestMethod.PUT])
+    @RequestMapping(path = [ENTITY_SET + ENTITY_SET_ID_PATH + ENTITY_KEY_ID_PATH], method = [RequestMethod.PUT])
     override fun replaceEntityInEntitySet(
             @PathVariable(ENTITY_SET_ID) entitySetId: UUID,
             @PathVariable(ENTITY_KEY_ID) entityKeyId: UUID,
@@ -588,7 +588,7 @@ constructor(
     }
 
 
-    @PatchMapping(value = [ENTITY_SET + SET_ID_PATH], consumes = [MediaType.APPLICATION_JSON_VALUE])
+    @PatchMapping(value = [ENTITY_SET + ENTITY_SET_ID_PATH], consumes = [MediaType.APPLICATION_JSON_VALUE])
     @Timed
     override fun replaceEntityProperties(
             @PathVariable(ENTITY_SET_ID) entitySetId: UUID,
@@ -657,7 +657,7 @@ constructor(
     }
 
     @Timed
-    @RequestMapping(path = [ENTITY_SET + SET_ID_PATH + ENTITY_KEY_ID_PATH], method = [RequestMethod.POST])
+    @RequestMapping(path = [ENTITY_SET + ENTITY_SET_ID_PATH + ENTITY_KEY_ID_PATH], method = [RequestMethod.POST])
     override fun replaceEntityInEntitySetUsingFqns(
             @PathVariable(ENTITY_SET_ID) entitySetId: UUID,
             @PathVariable(ENTITY_KEY_ID) entityKeyId: UUID,
@@ -672,7 +672,7 @@ constructor(
     /* DELETE */
 
     @Timed
-    @RequestMapping(path = [ENTITY_SET + SET_ID_PATH + ALL], method = [RequestMethod.DELETE])
+    @RequestMapping(path = [ENTITY_SET + ENTITY_SET_ID_PATH + ALL], method = [RequestMethod.DELETE])
     override fun deleteAllEntitiesFromEntitySet(
             @PathVariable(ENTITY_SET_ID) entitySetId: UUID,
             @RequestParam(value = TYPE) deleteType: DeleteType
@@ -697,7 +697,7 @@ constructor(
     }
 
     @Timed
-    @DeleteMapping(path = [ENTITY_SET + SET_ID_PATH + ENTITY_KEY_ID_PATH])
+    @DeleteMapping(path = [ENTITY_SET + ENTITY_SET_ID_PATH + ENTITY_KEY_ID_PATH])
     override fun deleteEntity(
             @PathVariable(ENTITY_SET_ID) entitySetId: UUID,
             @PathVariable(ENTITY_KEY_ID) entityKeyId: UUID,
@@ -707,7 +707,7 @@ constructor(
     }
 
     @Timed
-    @DeleteMapping(path = [ENTITY_SET + SET_ID_PATH])
+    @DeleteMapping(path = [ENTITY_SET + ENTITY_SET_ID_PATH])
     override fun deleteEntities(
             @PathVariable(ENTITY_SET_ID) entitySetId: UUID,
             @RequestBody entityKeyIds: Set<UUID>,
@@ -733,7 +733,7 @@ constructor(
     }
 
     @Timed
-    @DeleteMapping(path = [ENTITY_SET + SET_ID_PATH + ENTITY_KEY_ID_PATH + PROPERTIES])
+    @DeleteMapping(path = [ENTITY_SET + ENTITY_SET_ID_PATH + ENTITY_KEY_ID_PATH + PROPERTIES])
     override fun deleteEntityProperties(
             @PathVariable(ENTITY_SET_ID) entitySetId: UUID,
             @PathVariable(ENTITY_KEY_ID) entityKeyId: UUID,

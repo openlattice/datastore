@@ -273,7 +273,7 @@ constructor(
     /* CREATE */
 
     @Timed
-    @RequestMapping(value = [ENTITY_SET], method = [RequestMethod.POST], consumes = [MediaType.APPLICATION_JSON_VALUE])
+    @RequestMapping(value = ["$ENTITY_SET/"], method = [RequestMethod.POST], consumes = [MediaType.APPLICATION_JSON_VALUE])
     override fun createEntities(
             @RequestParam(ENTITY_SET_ID) entitySetId: UUID,
             @RequestBody entities: List<Map<UUID, Set<Any>>>
@@ -301,6 +301,14 @@ constructor(
         ))
 
         return entityKeyIds
+    }
+
+    @Timed
+    @RequestMapping(value = [ENTITY], method = [RequestMethod.POST], consumes = [MediaType.APPLICATION_JSON_VALUE])
+    override fun createEntities(@RequestBody entities: Map<UUID, List<Map<UUID, Set<Any>>>>): List<UUID> {
+        return entities.flatMap { (entitySetId, entityData) ->
+            createEntities(entitySetId, entityData)
+        }
     }
 
     @Timed

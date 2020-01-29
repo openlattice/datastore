@@ -354,7 +354,7 @@ public class SearchController implements SearchApi, AuthorizingComponent, Auditi
         Set<Principal> principals = Principals.getCurrentPrincipals();
         if ( getEntitySetsForRead( Set.of( entitySetId ), principals ) != null ) {
             neighbors = searchGraphService.executeEntityNeighborSearch(
-                    new EntityNeighborsFilter( Map.of( entitySetId, ImmutableSet.of( entityKeyId ) ) ),
+                    new EntityNeighborsFilterBulk( Map.of( entitySetId, ImmutableSet.of( entityKeyId ) ) ),
                     principals
             ).getOrDefault( entityKeyId, ImmutableList.of() );
         }
@@ -415,7 +415,7 @@ public class SearchController implements SearchApi, AuthorizingComponent, Auditi
     public Map<UUID, List<NeighborEntityDetails>> executeEntityNeighborSearchBulk(
             @PathVariable( ENTITY_SET_ID ) UUID entitySetId,
             @RequestBody Set<UUID> entityKeyIds ) {
-        return executeFilteredEntityNeighborSearch( new EntityNeighborsFilter( Map.of( entitySetId, entityKeyIds ) ) );
+        return executeFilteredEntityNeighborSearch( new EntityNeighborsFilterBulk( Map.of( entitySetId, entityKeyIds ) ) );
     }
 
     @RequestMapping(
@@ -425,7 +425,7 @@ public class SearchController implements SearchApi, AuthorizingComponent, Auditi
     @Override
     @Timed
     public Map<UUID, List<NeighborEntityDetails>> executeFilteredEntityNeighborSearch(
-            @RequestBody EntityNeighborsFilter filter
+            @RequestBody EntityNeighborsFilterBulk filter
     ) {
         Set<Principal> principals = Principals.getCurrentPrincipals();
         var entitySetIds = filter.getEntityKeyIds().keySet();
@@ -484,7 +484,7 @@ public class SearchController implements SearchApi, AuthorizingComponent, Auditi
                                         ".executeFilteredEntityNeighborSearch",
                                 Optional.of( segmentOfIds ),
                                 ImmutableMap.of( "filters",
-                                        new EntityNeighborsFilter( Map.of( entitySetId, segmentOfIds ),
+                                        new EntityNeighborsFilterBulk( Map.of( entitySetId, segmentOfIds ),
                                                 filter.getSrcEntitySetIds(),
                                                 filter.getDstEntitySetIds(),
                                                 filter.getAssociationEntitySetIds() ) ),
@@ -529,13 +529,27 @@ public class SearchController implements SearchApi, AuthorizingComponent, Auditi
     }
 
     @RequestMapping(
+            path = { ENTITY_SET_ID_PATH + NEIGHBORS + ADVANCED },
+            method = RequestMethod.POST,
+            produces = { MediaType.APPLICATION_JSON_VALUE } )
+    @Override
+    @Timed
+    public Map<UUID, List<NeighborEntityDetails>> executeFilteredEntityNeighborSearch(
+            @PathVariable UUID entitySetId,
+            @RequestBody EntityNeighborsFilter filter
+    ) {
+        return executeFilteredEntityNeighborSearch( new EntityNeighborsFilterBulk( entitySetId, filter ) );
+    }
+
+
+    @RequestMapping(
             path = { NEIGHBORS + ADVANCED + IDS },
             method = RequestMethod.POST,
             produces = { MediaType.APPLICATION_JSON_VALUE } )
     @Override
     @Timed
     public Map<UUID, Map<UUID, Map<UUID, Set<NeighborEntityIds>>>> executeFilteredEntityNeighborIdsSearch(
-            @RequestBody EntityNeighborsFilter filter ) {
+            @RequestBody EntityNeighborsFilterBulk filter ) {
         Set<Principal> principals = Principals.getCurrentPrincipals();
 
         Map<UUID, Map<UUID, Map<UUID, Set<NeighborEntityIds>>>> result = Maps.newHashMap();
@@ -547,7 +561,7 @@ public class SearchController implements SearchApi, AuthorizingComponent, Auditi
                 var regularEntitySetIds = groupedEntitySets.get( false ).stream()
                         .map( Map.Entry::getKey ).collect( Collectors.toSet() );
                 result = searchGraphService.executeEntityNeighborIdsSearch(
-                        new EntityNeighborsFilter(
+                        new EntityNeighborsFilterBulk(
                                 filter.getEntityKeyIds().entrySet().stream()
                                         .filter( entry -> regularEntitySetIds.contains( entry.getKey() ) )
                                         .collect( Collectors.toMap( Map.Entry::getKey, Map.Entry::getValue ) ),
@@ -563,7 +577,7 @@ public class SearchController implements SearchApi, AuthorizingComponent, Auditi
                         searchGraphService.executeLinkingEntityNeighborIdsSearch(
                                 groupedEntitySets.get( true ).stream()
                                         .collect( Collectors.toMap( Map.Entry::getKey, Map.Entry::getValue ) ),
-                                new EntityNeighborsFilter(
+                                new EntityNeighborsFilterBulk(
                                         filter.getEntityKeyIds().entrySet().stream()
                                                 .filter( entry -> linkedEntitySetIds.contains( entry.getKey() ) )
                                                 .collect( Collectors.toMap( Map.Entry::getKey, Map.Entry::getValue ) ),
@@ -608,7 +622,7 @@ public class SearchController implements SearchApi, AuthorizingComponent, Auditi
                         "Load neighbors of entities with filter through SearchApi." +
                                 "executeFilteredEntityNeighborSearch",
                         Optional.of( entityKeyIds ),
-                        ImmutableMap.of( "filters", new EntityNeighborsFilter(
+                        ImmutableMap.of( "filters", new EntityNeighborsFilterBulk(
                                 Map.of( entitySetId, entityKeyIds ),
                                 filter.getSrcEntitySetIds(),
                                 filter.getDstEntitySetIds(),
@@ -635,6 +649,18 @@ public class SearchController implements SearchApi, AuthorizingComponent, Auditi
         recordEvents( events );
 
         return result;
+    }
+
+    @RequestMapping(
+            path = { ENTITY_SET_ID_PATH + NEIGHBORS + ADVANCED + IDS },
+            method = RequestMethod.POST,
+            produces = { MediaType.APPLICATION_JSON_VALUE } )
+    @Override
+    @Timed
+    public Map<UUID, Map<UUID, Map<UUID, Set<NeighborEntityIds>>>> executeFilteredEntityNeighborIdsSearch(
+            @PathVariable UUID entitySetId,
+            @RequestBody EntityNeighborsFilter filter ) {
+        return executeFilteredEntityNeighborIdsSearch( new EntityNeighborsFilterBulk( entitySetId, filter ) );
     }
 
     @RequestMapping(

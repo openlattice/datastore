@@ -45,6 +45,7 @@ import com.openlattice.edm.set.EntitySetFlag
 import com.openlattice.edm.type.PropertyType
 import com.openlattice.organizations.roles.SecurePrincipalsManager
 import com.openlattice.search.requests.EntityNeighborsFilter
+import com.openlattice.search.requests.EntityNeighborsFilterBulk
 import com.openlattice.web.mediatypes.CustomMediaType
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings
 import org.apache.commons.lang3.StringUtils
@@ -307,7 +308,7 @@ constructor(
     @RequestMapping(value = [ENTITY], method = [RequestMethod.POST], consumes = [MediaType.APPLICATION_JSON_VALUE])
     override fun createEntities(@RequestBody entities: Map<UUID, List<Map<UUID, Set<Any>>>>): Map<UUID, List<UUID>> {
         return entities.mapValues { (entitySetId, entityData) ->
-             createEntities(entitySetId, entityData)
+            createEntities(entitySetId, entityData)
         }
     }
 
@@ -425,10 +426,7 @@ constructor(
         checkPermissionsOnEntitySetIds(entitySetIds, EdmAuthorizationHelper.READ_PERMISSION)
 
         //First create the entities so we have entity key ids to work with
-        val entityKeyIds = mutableMapOf<UUID, List<UUID>>()
-        data.entities.forEach { (entitySetId, entities) ->
-            entityKeyIds[entitySetId] = createEntities(entitySetId, entities)
-        }
+        val entityKeyIds = createEntities(data.entities)
 
         val toBeCreated = mutableMapOf<UUID, List<DataEdge>>()
         data.associations.forEach { (entitySetId, associations) ->
@@ -771,7 +769,7 @@ constructor(
     @Timed
     @RequestMapping(path = [ENTITY_SET + NEIGHBORS], method = [RequestMethod.POST])
     override fun deleteEntitiesAndNeighbors(
-            @RequestBody filter: EntityNeighborsFilter,
+            @RequestBody filter: EntityNeighborsFilterBulk,
             @RequestParam(value = TYPE) deleteType: DeleteType
     ): Long {
         // Note: this function is only useful for deleting src/dst entities and their neighboring entities
@@ -802,6 +800,16 @@ constructor(
 
             writeEvent.numUpdates.toLong()
         }.sum()
+    }
+
+    @Timed
+    @RequestMapping(path = [ENTITY_SET + ENTITY_SET_ID_PATH + NEIGHBORS], method = [RequestMethod.POST])
+    override fun deleteEntitiesAndNeighbors(
+            @PathVariable entitySetId: UUID,
+            @RequestBody filter: EntityNeighborsFilter,
+            @RequestParam(value = TYPE) deleteType: DeleteType
+    ): Long {
+        return deleteEntitiesAndNeighbors(EntityNeighborsFilterBulk(entitySetId, filter), deleteType)
     }
 
 

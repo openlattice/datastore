@@ -75,7 +75,7 @@ public class DataIntegrationController implements DataIntegrationApi, Authorizin
     }
 
     @Timed
-    @PostMapping( "/" + ENTITY_SET + "/" + ENTITY_SET_ID_PATH )
+    @PostMapping( ENTITY_SET + ENTITY_SET_ID_PATH )
     @Override
     public IntegrationResults integrateEntities(
             @PathVariable( ENTITY_SET_ID ) UUID entitySetId,
@@ -97,7 +97,7 @@ public class DataIntegrationController implements DataIntegrationApi, Authorizin
     }
 
     @Timed
-    @PostMapping( "/" + ASSOCIATION + "/" + ENTITY_SET_ID_PATH )
+    @PostMapping( ASSOCIATION + ENTITY_SET_ID_PATH )
     @Override
     public IntegrationResults integrateAssociations(
             @RequestBody Set<Association> associations,
@@ -165,7 +165,7 @@ public class DataIntegrationController implements DataIntegrationApi, Authorizin
     }
 
     @Timed
-    @PostMapping( "/" + S3 )
+    @PostMapping( S3 )
     public List<String> generatePresignedUrls( @RequestBody List<S3EntityData> data ) {
         final Set<UUID> entitySetIds = data.stream().map( S3EntityData::getEntitySetId ).collect(
                 Collectors.toSet() );
@@ -196,14 +196,14 @@ public class DataIntegrationController implements DataIntegrationApi, Authorizin
         throw new UnsupportedOperationException( "Nobody should be calling this." );
     }
 
-    @PostMapping( "/" + ENTITY_KEY_IDS )
+    @PostMapping( ENTITY_KEY_IDS )
     @Timed
     public Set<UUID> getEntityKeyIds( @RequestBody LinkedHashSet<EntityKey> entityKeys ) {
         return dgm.getEntityKeyIds( entityKeys );
     }
 
     @Override
-    @PutMapping( "/" + EDGES )
+    @PutMapping( EDGES )
     public int createEdges( @RequestBody Set<DataEdgeKey> associations ) {
         final Set<UUID> entitySetIds = Sets.newHashSetWithExpectedSize( associations.size() * 3 );
         ;

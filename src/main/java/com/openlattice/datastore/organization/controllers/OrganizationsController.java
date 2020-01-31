@@ -297,10 +297,10 @@ public class OrganizationsController implements AuthorizingComponent, Organizati
 
     @Timed
     @Override
-    @PostMapping( ID_PATH + SET_ID_PATH + SYNCHRONIZE )
+    @PostMapping( ID_PATH + ENTITY_SET_ID_PATH + SYNCHRONIZE )
     public Void synchronizeEdmChanges(
             @PathVariable( ID ) UUID organizationId,
-            @PathVariable( SET_ID ) UUID entitySetId ) {
+            @PathVariable( ENTITY_SET_ID ) UUID entitySetId ) {
         // we basically re-materialize in this case
         final var authorizedPropertyTypesByEntitySet =
                 getAuthorizedPropertiesForMaterialization( organizationId, Set.of( entitySetId ) );
@@ -314,10 +314,10 @@ public class OrganizationsController implements AuthorizingComponent, Organizati
 
     @Timed
     @Override
-    @PostMapping( ID_PATH + SET_ID_PATH + REFRESH )
+    @PostMapping( ID_PATH + ENTITY_SET_ID_PATH + REFRESH )
     public Void refreshDataChanges(
             @PathVariable( ID ) UUID organizationId,
-            @PathVariable( SET_ID ) UUID entitySetId ) {
+            @PathVariable( ENTITY_SET_ID ) UUID entitySetId ) {
         // the person requesting refresh should be the owner of the organization
         ensureOwner( organizationId );
 
@@ -326,10 +326,10 @@ public class OrganizationsController implements AuthorizingComponent, Organizati
     }
 
     @Override
-    @PutMapping( ID_PATH + SET_ID_PATH + REFRESH_RATE )
+    @PutMapping( ID_PATH + ENTITY_SET_ID_PATH + REFRESH_RATE )
     public Void updateRefreshRate(
             @PathVariable( ID ) UUID organizationId,
-            @PathVariable( SET_ID ) UUID entitySetId,
+            @PathVariable( ENTITY_SET_ID ) UUID entitySetId,
             @RequestBody Integer refreshRate ) {
         ensureOwner( organizationId );
 
@@ -340,8 +340,11 @@ public class OrganizationsController implements AuthorizingComponent, Organizati
     }
 
     @Override
-    @DeleteMapping( ID_PATH + SET_ID_PATH + REFRESH_RATE )
-    public Void deleteRefreshRate( @PathVariable( ID ) UUID organizationId, @PathVariable( SET_ID ) UUID entitySetId ) {
+    @DeleteMapping( ID_PATH + ENTITY_SET_ID_PATH + REFRESH_RATE )
+    public Void deleteRefreshRate(
+            @PathVariable( ID ) UUID organizationId,
+            @PathVariable( ENTITY_SET_ID ) UUID entitySetId
+    ) {
         ensureOwner( organizationId );
 
         assembler.updateRefreshRate( organizationId, entitySetId, null );

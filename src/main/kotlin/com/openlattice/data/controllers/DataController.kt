@@ -292,7 +292,7 @@ constructor(
         val entityKeyIds = entityKeyIdsToWriteEvent.key
 
         recordEvent(AuditableEvent(
-                getCurrentUserId(),
+                spm.getCurrentUserId(),
                 AclKey(entitySetId),
                 AuditEventType.CREATE_ENTITIES,
                 "Entities created through DataApi.createEntities",
@@ -335,7 +335,7 @@ constructor(
 
         val associationIds = mutableMapOf<UUID, List<UUID>>()
 
-        val currentUserId = getCurrentUserId()
+        val currentUserId = spm.getCurrentUserId()
 
         val entitiesCreated = mutableListOf<AuditableEvent>()
         associationsCreated.forEach { (associationEntitySetId, createAssociationEvent) ->
@@ -474,7 +474,7 @@ constructor(
                 .flatMap { dataEdgeKey ->
                     listOf(
                             AuditableEvent(
-                                    getCurrentUserId(),
+                                    spm.getCurrentUserId(),
                                     AclKey(dataEdgeKey.src.entitySetId),
                                     AuditEventType.ASSOCIATE_ENTITIES,
                                     "Create associations between entities using DataApi.createAssociations",
@@ -487,7 +487,7 @@ constructor(
                                     writeEvent.version
                             ),
                             AuditableEvent(
-                                    getCurrentUserId(),
+                                    spm.getCurrentUserId(),
                                     AclKey(dataEdgeKey.dst.entitySetId),
                                     AuditEventType.ASSOCIATE_ENTITIES,
                                     "Create associations between entities using DataApi.createAssociations",
@@ -500,7 +500,7 @@ constructor(
                                     writeEvent.version
                             ),
                             AuditableEvent(
-                                    getCurrentUserId(),
+                                    spm.getCurrentUserId(),
                                     AclKey(dataEdgeKey.edge.entitySetId),
                                     AuditEventType.ASSOCIATE_ENTITIES,
                                     "Create associations between entities using DataApi.createAssociations",
@@ -561,7 +561,7 @@ constructor(
         }
 
         recordEvent(AuditableEvent(
-                getCurrentUserId(),
+                spm.getCurrentUserId(),
                 AclKey(entitySetId),
                 auditEventType,
                 "Entities updated using update type $updateType through DataApi.updateEntitiesInEntitySet",
@@ -617,7 +617,7 @@ constructor(
         )
 
         recordEvent(AuditableEvent(
-                getCurrentUserId(),
+                spm.getCurrentUserId(),
                 AclKey(entitySetId),
                 AuditEventType.REPLACE_PROPERTIES_OF_ENTITIES,
                 "Entity properties replaced through DataApi.replaceEntityProperties",
@@ -689,7 +689,7 @@ constructor(
                 .clearOrDeleteEntitySetIfAuthorized(entitySetId, deleteType, Principals.getCurrentPrincipals())
 
         recordEvent(AuditableEvent(
-                getCurrentUserId(),
+                spm.getCurrentUserId(),
                 AclKey(entitySetId),
                 AuditEventType.DELETE_ENTITIES,
                 "All entities deleted from entity set using delete type $deleteType through " +
@@ -726,7 +726,7 @@ constructor(
         )
 
         recordEvent(AuditableEvent(
-                getCurrentUserId(),
+                spm.getCurrentUserId(),
                 AclKey(entitySetId),
                 AuditEventType.DELETE_ENTITIES,
                 "Entities deleted using delete type $deleteType through DataApi.deleteEntities",
@@ -753,7 +753,7 @@ constructor(
         )
 
         recordEvent(AuditableEvent(
-                getCurrentUserId(),
+                spm.getCurrentUserId(),
                 AclKey(entitySetId),
                 AuditEventType.DELETE_PROPERTIES_OF_ENTITIES,
                 "Entity properties deleted using delete type $deleteType through " +
@@ -788,7 +788,7 @@ constructor(
             )
 
             recordEvent(AuditableEvent(
-                    getCurrentUserId(),
+                    spm.getCurrentUserId(),
                     AclKey(entitySetId),
                     AuditEventType.DELETE_ENTITY_AND_NEIGHBORHOOD,
                     ("Entities and all neighbors deleted using delete type $deleteType through " +
@@ -910,10 +910,6 @@ constructor(
             items: Collection<T>, transformation: (T) -> Iterable<UUID>
     ): Set<UUID> {
         return items.flatMap(transformation).toSet()
-    }
-
-    private fun getCurrentUserId(): UUID {
-        return spm.getPrincipal(Principals.getCurrentUser().id).id
     }
 
     override fun getAuthorizationManager(): AuthorizationManager {

@@ -172,7 +172,7 @@ public class SearchController implements SearchApi, AuthorizingComponent, Auditi
         List<AuditableEvent> searchEvents = Lists.newArrayList();
         for ( int i = 0; i < searchConstraints.getEntitySetIds().length; i++ ) {
             searchEvents.add( new AuditableEvent(
-                    getCurrentUserId(),
+                    spm.getCurrentUserId(),
                     new AclKey( searchConstraints.getEntitySetIds()[ i ] ),
                     AuditEventType.SEARCH_ENTITY_SET_DATA,
                     "Entity set data searched through SearchApi.searchEntitySetData",
@@ -359,7 +359,7 @@ public class SearchController implements SearchApi, AuthorizingComponent, Auditi
             ).getOrDefault( entityKeyId, ImmutableList.of() );
         }
 
-        UUID userId = getCurrentUserId();
+        UUID userId = spm.getCurrentUserId();
 
         Map<UUID, Set<UUID>> neighborsByEntitySet = Maps.newHashMap();
         neighbors.forEach( neighborEntityDetails -> {
@@ -457,7 +457,7 @@ public class SearchController implements SearchApi, AuthorizingComponent, Auditi
 
         List<AuditableEvent> events = new ArrayList<>(
                 neighborsByEntitySet.keySet().size() + filter.getEntityKeyIds().size() );
-        UUID userId = getCurrentUserId();
+        UUID userId = spm.getCurrentUserId();
 
         filter.getEntityKeyIds().forEach( ( entitySetId, entityKeyIds ) -> {
                     int segments = filter.getEntityKeyIds().size() / AuditingComponent.MAX_ENTITY_KEY_IDS_PER_EVENT;
@@ -730,13 +730,7 @@ public class SearchController implements SearchApi, AuthorizingComponent, Auditi
         return null;
     }
 
-    private UUID getCurrentUserId() {
-        return spm.getPrincipal( Principals.getCurrentUser().getId() ).getId();
-    }
-
-    @NotNull
-    @Override
-    public AuditingManager getAuditingManager() {
+    @NotNull @Override public AuditingManager getAuditingManager() {
         return auditingManager;
     }
 

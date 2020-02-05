@@ -23,7 +23,13 @@ package com.openlattice.datastore.permissions.controllers;
 import com.codahale.metrics.annotation.Timed;
 import com.dataloom.streams.StreamUtil;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
+
+import com.openlattice.auditing.AuditEventType;
+import com.openlattice.auditing.AuditableEvent;
+import com.openlattice.auditing.AuditingComponent;
+import com.openlattice.auditing.AuditingManager;
 import com.openlattice.authorization.*;
 import com.openlattice.authorization.AccessCheck;
 import com.openlattice.authorization.Ace;
@@ -46,8 +52,12 @@ import com.openlattice.controllers.exceptions.ForbiddenException;
 import com.openlattice.organizations.ExternalDatabaseManagementService;
 import com.openlattice.organizations.roles.SecurePrincipalsManager;
 
+import java.time.OffsetDateTime;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.MediaType;
@@ -68,11 +78,14 @@ import java.util.Set;
 
 @RestController
 @RequestMapping( PermissionsApi.CONTROLLER )
-public class PermissionsController implements PermissionsApi, AuthorizingComponent {
+public class PermissionsController implements PermissionsApi, AuthorizingComponent, AuditingComponent {
     private static final Logger logger = LoggerFactory.getLogger( PermissionsController.class );
 
     @Inject
     private AuthorizationManager authorizations;
+
+    @Inject
+    private AuditingManager auditingManager;
 
     @Inject
     private SecurePrincipalsManager securePrincipalsManager;
@@ -128,16 +141,19 @@ public class PermissionsController implements PermissionsApi, AuthorizingCompone
                 case ADD:
                     authorizations.addPermissions( acls );
                     edms.executePrivilegesUpdate( action, getOrganizationExternalDatabaseAcls( acls ) );
+                    recordEvents( createAuditableEvents( acls, AuditEventType.ADD_PERMISSION ) );
                     break;
 
                 case REMOVE:
                     authorizations.removePermissions( acls );
                     edms.executePrivilegesUpdate( action, getOrganizationExternalDatabaseAcls( acls ) );
+                    recordEvents( createAuditableEvents( acls, AuditEventType.REMOVE_PERMISSION ) );
                     break;
 
                 case SET:
                     authorizations.setPermissions( acls );
                     edms.executePrivilegesUpdate( action, getOrganizationExternalDatabaseAcls( acls ) );
+                    recordEvents( createAuditableEvents( acls, AuditEventType.SET_PERMISSION ) );
                     break;
 
                 default:
@@ -223,11 +239,9 @@ public class PermissionsController implements PermissionsApi, AuthorizingCompone
         }
 
         //collect map entries as aclExplanations
-        Collection<AclExplanation> aclExplanations = principalToPrincipalPaths.entrySet().stream().map( entry -> {
-            AclExplanation aclExp = new AclExplanation( entry.getKey(), entry.getValue() );
-            return aclExp;
-        } ).collect( Collectors.toSet() );
-        return aclExplanations;
+        return principalToPrincipalPaths.entrySet().stream()
+                .map( entry -> new AclExplanation( entry.getKey(), entry.getValue() ) )
+                .collect( Collectors.toSet() );
     }
 
     @Override
@@ -235,11 +249,33 @@ public class PermissionsController implements PermissionsApi, AuthorizingCompone
         return authorizations;
     }
 
+    @NotNull
+    @Override
+    public AuditingManager getAuditingManager() {
+        return auditingManager;
+    }
+
     private List<Acl> getOrganizationExternalDatabaseAcls( List<Acl> acls ) {
-        Set<AclKey> aclKeys = acls.stream().map(acl -> new AclKey( acl.getAclKey() )).collect( Collectors.toSet() );
+        Set<AclKey> aclKeys = acls.stream().map( acl -> new AclKey( acl.getAclKey() ) ).collect( Collectors.toSet() );
         Set<AclKey> allOrgExternalDBAclKeys = securableObjectResolveTypeService
                 .getOrganizationExternalDatabaseAclKeys( aclKeys );
         return acls.stream().filter( acl -> allOrgExternalDBAclKeys.contains( acl.getAclKey() ) )
                 .collect( Collectors.toList() );
     }
+
+    private List<AuditableEvent> createAuditableEvents( List<Acl> acls, AuditEventType eventType ) {
+        return acls.stream().map( acl ->
+                new AuditableEvent(
+                        securePrincipalsManager.getCurrentUserId(),
+                        new AclKey( acl.getAclKey() ),
+                        eventType,
+                        "Permissions updated through PermissionApi.updateAcl",
+                        Optional.empty(),
+                        ImmutableMap.of( "aces", acl.getAces() ),
+                        OffsetDateTime.now(),
+                        Optional.empty()
+                )
+        ).collect( Collectors.toList() );
+    }
+
 }

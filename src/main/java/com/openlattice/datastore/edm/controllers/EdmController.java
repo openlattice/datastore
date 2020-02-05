@@ -438,7 +438,7 @@ public class EdmController implements EdmApi, AuthorizingComponent, AuditingComp
         modelService.createEntityType( entityType );
 
         recordEvent( new AuditableEvent(
-                getCurrentUserId(),
+                spm.getCurrentUserId(),
                 new AclKey( entityType.getId() ), // TODO should this be written as an AclKey?
                 AuditEventType.CREATE_ENTITY_TYPE,
                 "Entity type created through EdmApi.createEntityType",
@@ -508,7 +508,7 @@ public class EdmController implements EdmApi, AuthorizingComponent, AuditingComp
         modelService.addPropertyTypesToEntityType( entityTypeId, ImmutableSet.of( propertyTypeId ) );
 
         recordEvent( new AuditableEvent(
-                getCurrentUserId(),
+                spm.getCurrentUserId(),
                 new AclKey( entityTypeId ), // TODO should this be written as an AclKey?
                 AuditEventType.ADD_PROPERTY_TYPE_TO_ENTITY_TYPE,
                 "Property type added to entity type through EdmApi.addPropertyTypeToEntityType",
@@ -534,7 +534,7 @@ public class EdmController implements EdmApi, AuthorizingComponent, AuditingComp
         modelService.removePropertyTypesFromEntityType( entityTypeId, ImmutableSet.of( propertyTypeId ) );
 
         recordEvent( new AuditableEvent(
-                getCurrentUserId(),
+                spm.getCurrentUserId(),
                 new AclKey( entityTypeId ), // TODO should this be written as an AclKey?
                 AuditEventType.REMOVE_PROPERTY_TYPE_FROM_ENTITY_TYPE,
                 "Property type removed from entity type through EdmApi.removePropertyTypesFromEntityType",
@@ -561,7 +561,7 @@ public class EdmController implements EdmApi, AuthorizingComponent, AuditingComp
         modelService.addPrimaryKeysToEntityType( entityTypeId, ImmutableSet.of( propertyTypeId ) );
 
         recordEvent( new AuditableEvent(
-                getCurrentUserId(),
+                spm.getCurrentUserId(),
                 new AclKey( entityTypeId ), // TODO should this be written as an AclKey?
                 AuditEventType.UPDATE_ENTITY_TYPE,
                 "Primary key added to entity type through EdmApi.addPrimaryKeyToEntityType",
@@ -588,7 +588,7 @@ public class EdmController implements EdmApi, AuthorizingComponent, AuditingComp
         modelService.removePrimaryKeysFromEntityType( entityTypeId, ImmutableSet.of( propertyTypeId ) );
 
         recordEvent( new AuditableEvent(
-                getCurrentUserId(),
+                spm.getCurrentUserId(),
                 new AclKey( entityTypeId ), // TODO should this be written as an AclKey?
                 AuditEventType.UPDATE_ENTITY_TYPE,
                 "Primary key removed from entity type through EdmApi.removePrimaryKeyFromEntityType",
@@ -614,7 +614,7 @@ public class EdmController implements EdmApi, AuthorizingComponent, AuditingComp
         modelService.forceRemovePropertyTypesFromEntityType( entityTypeId, ImmutableSet.of( propertyTypeId ) );
 
         recordEvent( new AuditableEvent(
-                getCurrentUserId(),
+                spm.getCurrentUserId(),
                 new AclKey( entityTypeId ), // TODO should this be written as an AclKey?
                 AuditEventType.REMOVE_PROPERTY_TYPE_FROM_ENTITY_TYPE,
                 "Property type forcibly removed from entity type through EdmApi.forceRemovePropertyTypeFromEntityType",
@@ -653,7 +653,7 @@ public class EdmController implements EdmApi, AuthorizingComponent, AuditingComp
         modelService.deleteEntityType( entityTypeId );
 
         recordEvent( new AuditableEvent(
-                getCurrentUserId(),
+                spm.getCurrentUserId(),
                 new AclKey( entityTypeId ), // TODO should this be written as an AclKey?
                 AuditEventType.DELETE_ENTITY_TYPE,
                 "Entity type deleted through EdmApi.deleteEntityType",
@@ -689,7 +689,7 @@ public class EdmController implements EdmApi, AuthorizingComponent, AuditingComp
         modelService.createPropertyTypeIfNotExists( propertyType );
 
         recordEvent( new AuditableEvent(
-                getCurrentUserId(),
+                spm.getCurrentUserId(),
                 new AclKey( propertyType.getId() ), // TODO should this be written as an AclKey?
                 AuditEventType.CREATE_PROPERTY_TYPE,
                 "Property type created through EdmApi.createPropertyType",
@@ -715,7 +715,7 @@ public class EdmController implements EdmApi, AuthorizingComponent, AuditingComp
         modelService.deletePropertyType( propertyTypeId );
 
         recordEvent( new AuditableEvent(
-                getCurrentUserId(),
+                spm.getCurrentUserId(),
                 new AclKey( propertyTypeId ), // TODO should this be written as an AclKey?
                 AuditEventType.DELETE_PROPERTY_TYPE,
                 "Property type deleted through EdmApi.deletePropertyType",
@@ -741,7 +741,7 @@ public class EdmController implements EdmApi, AuthorizingComponent, AuditingComp
         modelService.forceDeletePropertyType( propertyTypeId );
 
         recordEvent( new AuditableEvent(
-                getCurrentUserId(),
+                spm.getCurrentUserId(),
                 new AclKey( propertyTypeId ), // TODO should this be written as an AclKey?
                 AuditEventType.DELETE_PROPERTY_TYPE,
                 "Property type forcibly deleted through EdmApi.forceDeletePropertyType",
@@ -823,7 +823,7 @@ public class EdmController implements EdmApi, AuthorizingComponent, AuditingComp
         modelService.updatePropertyTypeMetadata( propertyTypeId, update );
 
         recordEvent( new AuditableEvent(
-                getCurrentUserId(),
+                spm.getCurrentUserId(),
                 new AclKey( propertyTypeId ), // TODO should this be written as an AclKey?
                 AuditEventType.UPDATE_PROPERTY_TYPE,
                 "Property type metadata updated through EdmApi.updatePropertyTypeMetadata",
@@ -847,7 +847,7 @@ public class EdmController implements EdmApi, AuthorizingComponent, AuditingComp
         modelService.updateEntityTypeMetadata( entityTypeId, update );
 
         recordEvent( new AuditableEvent(
-                getCurrentUserId(),
+                spm.getCurrentUserId(),
                 new AclKey( entityTypeId ), // TODO should this be written as an AclKey?
                 AuditEventType.UPDATE_ENTITY_TYPE,
                 "Entity type metadata updated through EdmApi.updateEntityTypeMetadata",
@@ -888,7 +888,7 @@ public class EdmController implements EdmApi, AuthorizingComponent, AuditingComp
         modelService.createAssociationType( associationType, entityType.getId() );
 
         recordEvent( new AuditableEvent(
-                getCurrentUserId(),
+                spm.getCurrentUserId(),
                 new AclKey( associationType.getAssociationEntityType().getId() ),
                 AuditEventType.CREATE_ASSOCIATION_TYPE,
                 "Association type created through EdmApi.createAssociationType",
@@ -913,7 +913,7 @@ public class EdmController implements EdmApi, AuthorizingComponent, AuditingComp
         modelService.deleteAssociationType( associationTypeId );
 
         recordEvent( new AuditableEvent(
-                getCurrentUserId(),
+                spm.getCurrentUserId(),
                 new AclKey( associationTypeId ),
                 AuditEventType.DELETE_ASSOCIATION_TYPE,
                 "Association type deleted through EdmApi.deleteAssociationType",
@@ -938,7 +938,7 @@ public class EdmController implements EdmApi, AuthorizingComponent, AuditingComp
         modelService.addSrcEntityTypesToAssociationType( associationTypeId, ImmutableSet.of( entityTypeId ) );
 
         recordEvent( new AuditableEvent(
-                getCurrentUserId(),
+                spm.getCurrentUserId(),
                 new AclKey( associationTypeId ),
                 AuditEventType.ADD_ENTITY_TYPE_TO_ASSOCIATION_TYPE,
                 "Src entity type added to association type through EdmApi.addSrcEntityTypeToAssociationType",
@@ -963,7 +963,7 @@ public class EdmController implements EdmApi, AuthorizingComponent, AuditingComp
         modelService.addDstEntityTypesToAssociationType( associationTypeId, ImmutableSet.of( entityTypeId ) );
 
         recordEvent( new AuditableEvent(
-                getCurrentUserId(),
+                spm.getCurrentUserId(),
                 new AclKey( associationTypeId ),
                 AuditEventType.ADD_ENTITY_TYPE_TO_ASSOCIATION_TYPE,
                 "Dst entity type added to association type through EdmApi.addDstEntityTypeToAssociationType",
@@ -988,7 +988,7 @@ public class EdmController implements EdmApi, AuthorizingComponent, AuditingComp
         modelService.removeSrcEntityTypesFromAssociationType( associationTypeId, ImmutableSet.of( entityTypeId ) );
 
         recordEvent( new AuditableEvent(
-                getCurrentUserId(),
+                spm.getCurrentUserId(),
                 new AclKey( associationTypeId ),
                 AuditEventType.REMOVE_ENTITY_TYPE_FROM_ASSOCIATION_TYPE,
                 "Src entity type removed from association type through EdmApi.removeSrcEntityTypeFromAssociationType",
@@ -1013,7 +1013,7 @@ public class EdmController implements EdmApi, AuthorizingComponent, AuditingComp
         modelService.removeDstEntityTypesFromAssociationType( associationTypeId, ImmutableSet.of( entityTypeId ) );
 
         recordEvent( new AuditableEvent(
-                getCurrentUserId(),
+                spm.getCurrentUserId(),
                 new AclKey( associationTypeId ),
                 AuditEventType.REMOVE_ENTITY_TYPE_FROM_ASSOCIATION_TYPE,
                 "Dst entity type removed from association type through EdmApi.removeDstEntityTypeFromAssociationType",
@@ -1054,10 +1054,6 @@ public class EdmController implements EdmApi, AuthorizingComponent, AuditingComp
             produces = MediaType.APPLICATION_JSON_VALUE )
     public Iterable<EntityType> getAvailableAssociationTypesForEntityType( @PathVariable( ID ) UUID entityTypeId ) {
         return modelService.getAvailableAssociationTypesForEntityType( entityTypeId );
-    }
-
-    private UUID getCurrentUserId() {
-        return spm.getPrincipal( Principals.getCurrentUser().getId() ).getId();
     }
 
     @NotNull @Override public AuditingManager getAuditingManager() {
@@ -1101,7 +1097,7 @@ public class EdmController implements EdmApi, AuthorizingComponent, AuditingComp
         modelService.updateEntityTypePropertyMetadata( entityTypeId, propertyTypeId, update );
 
         recordEvent( new AuditableEvent(
-                getCurrentUserId(),
+                spm.getCurrentUserId(),
                 new AclKey( entityTypeId ),
                 AuditEventType.UPDATE_ENTITY_TYPE,
                 "Entity type property metadata updated through EdmApi.updateEntityTypePropertyMetadata",

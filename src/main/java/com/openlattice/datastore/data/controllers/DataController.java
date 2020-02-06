@@ -463,7 +463,7 @@ public class DataController implements DataApi, AuthorizingComponent, AuditingCo
 
         dataGraphServiceHelper.checkAssociationEntityTypes( associations );
         Map<UUID, CreateAssociationEvent> associationsCreated = dgm
-                .createAssociations( associations, authorizedPropertyTypesByEntitySet );
+                .createAssociations( Multimaps.asMap(associations), authorizedPropertyTypesByEntitySet );
 
         ListMultimap<UUID, UUID> associationIds = ArrayListMultimap.create();
 

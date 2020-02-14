@@ -70,6 +70,7 @@ class CodexService(
 
     val textingExecutorWorker = textingExecutor.execute {
         Stream.generate { twilioQueue.take() }.forEach { (organizationId, messageEntitySetId, messageContents, toPhoneNumber, senderId) ->
+            logger.info("Sending message: $messageContents")
             //Not very efficient.
             val phone = organizations.getOrganization(organizationId)!!.smsEntitySetInfo
                     .flatMap { (phoneNumber, _, entitySetIds, _) -> entitySetIds.map { it to phoneNumber } }

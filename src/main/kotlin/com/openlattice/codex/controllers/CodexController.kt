@@ -81,7 +81,7 @@ constructor(
 
     fun ensureTwilio(request: HttpServletRequest) {
 
-        val url = request.requestURL.toString()
+        val url = "https://api.staging.openlattice.com" + request.requestURI
         val params = request.parameterMap.mapValues { it.toString() }
         val signature = request.getHeader("X-Twilio-Signature")
 

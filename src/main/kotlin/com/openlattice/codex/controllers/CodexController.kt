@@ -53,7 +53,6 @@ constructor(
     override fun sendOutgoingText(@RequestBody contents: MessageRequest) {
         ensureWriteAccess(AclKey(contents.messageEntitySetId))
         contents.senderId = Principals.getCurrentUser().id
-        logger.info("Adding to queue")
         twilioQueue.put(contents)
     }
 

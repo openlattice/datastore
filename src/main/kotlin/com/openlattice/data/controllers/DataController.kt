@@ -170,8 +170,7 @@ constructor(
             val orderedPropertyNames = LinkedHashSet<String>(authorizedPropertyTypes.size)
 
             selectedProperties.filter { authorizedPropertyTypes.containsKey(it) }
-                    .map { authorizedPropertyTypes.getValue(it) }
-                    .map { pt -> pt.type.fullQualifiedNameAsString }
+                    .map { authorizedPropertyTypes.getValue(it).type.fullQualifiedNameAsString }
                     .toCollection(orderedPropertyNames)
 
             return if (entitySet.isLinking) {

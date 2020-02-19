@@ -361,7 +361,8 @@ public class SearchController implements SearchApi, AuthorizingComponent, Auditi
 
         UUID userId = spm.getCurrentUserId();
 
-        Map<UUID, Set<UUID>> neighborsByEntitySet = Maps.newHashMap();
+        Map<UUID, Set<UUID>> neighborsByEntitySet = Maps
+                .newHashMapWithExpectedSize( ( int ) ( 1.5 * neighbors.size() ) );
         neighbors.forEach( neighborEntityDetails -> {
             var associationEsId = neighborEntityDetails.getAssociationEntitySet().getId();
             neighborsByEntitySet.putIfAbsent( associationEsId, Sets.newHashSet() );
@@ -415,7 +416,8 @@ public class SearchController implements SearchApi, AuthorizingComponent, Auditi
     public Map<UUID, List<NeighborEntityDetails>> executeEntityNeighborSearchBulk(
             @PathVariable( ENTITY_SET_ID ) UUID entitySetId,
             @RequestBody Set<UUID> entityKeyIds ) {
-        return executeFilteredEntityNeighborSearch( new EntityNeighborsFilterBulk( Map.of( entitySetId, entityKeyIds ) ) );
+        return executeFilteredEntityNeighborSearch( new EntityNeighborsFilterBulk( Map.of( entitySetId,
+                entityKeyIds ) ) );
     }
 
     @RequestMapping(
@@ -437,7 +439,9 @@ public class SearchController implements SearchApi, AuthorizingComponent, Auditi
 
         /* audit */
 
-        Map<UUID, List<UUID>> neighborsByEntitySet = Maps.newHashMap();
+        int expectedSize = ( result.isEmpty() ) ? 0 :
+                ( int ) ( result.size() * 1.5 * result.values().iterator().next().size() );
+        Map<UUID, List<UUID>> neighborsByEntitySet = Maps.newHashMapWithExpectedSize( expectedSize );
 
         result.values().forEach( neighborList ->
                 neighborList.forEach( neighborEntityDetails -> {
@@ -591,14 +595,30 @@ public class SearchController implements SearchApi, AuthorizingComponent, Auditi
 
 
         /* audit */
+        int expectedSize = 0;
+        if ( !result.isEmpty() ) {
+            expectedSize = result.size();
 
-        Map<UUID, Set<UUID>> neighborsByEntitySet = Maps.newHashMap();
+            var associationMap = result.values().iterator().next();
+            if ( !associationMap.isEmpty() ) {
+                expectedSize *= associationMap.size();
+
+                var associations = associationMap.values().iterator().next();
+                if ( !associations.isEmpty() ) {
+                    expectedSize *= associations.size();
+
+                    if ( !associations.values().iterator().next().isEmpty() ) {
+                        expectedSize *= associations.values().iterator().next().size();
+                    }
+                }
+            }
+        }
+        Map<UUID, Set<UUID>> neighborsByEntitySet = Maps.newHashMapWithExpectedSize( expectedSize );
 
         result.values().forEach( associationMap ->
                 associationMap.forEach( ( associationEsId, association ) -> {
-                    if ( !neighborsByEntitySet.containsKey( associationEsId ) ) {
-                        neighborsByEntitySet.put( associationEsId, Sets.newHashSet() );
-                    }
+                    neighborsByEntitySet.putIfAbsent( associationEsId, Sets.newHashSet() );
+
                     association.forEach( ( neighborEsId, neighbors ) -> {
                         neighborsByEntitySet.putIfAbsent( neighborEsId, Sets.newHashSet() );
                         neighbors.forEach( neighbor -> {
@@ -611,9 +631,8 @@ public class SearchController implements SearchApi, AuthorizingComponent, Auditi
                 } )
         );
 
-        List<AuditableEvent> events = new ArrayList<>(
-                neighborsByEntitySet.keySet().size() + filter.getEntityKeyIds().size() );
-        UUID userId = getCurrentUserId();
+        List<AuditableEvent> events = new ArrayList<>( neighborsByEntitySet.size() + filter.getEntityKeyIds().size() );
+        UUID userId = spm.getCurrentUserId();
         filter.getEntityKeyIds().forEach( ( entitySetId, entityKeyIds ) ->
                 events.add( new AuditableEvent(
                         userId,
@@ -730,7 +749,9 @@ public class SearchController implements SearchApi, AuthorizingComponent, Auditi
         return null;
     }
 
-    @NotNull @Override public AuditingManager getAuditingManager() {
+    @NotNull
+    @Override
+    public AuditingManager getAuditingManager() {
         return auditingManager;
     }
 

@@ -1,8 +1,6 @@
 package com.openlattice.codex
 
 import com.auth0.json.mgmt.users.User
-import com.google.common.collect.ArrayListMultimap
-import com.google.common.collect.ListMultimap
 import com.hazelcast.core.HazelcastInstance
 import com.hazelcast.core.IMap
 import com.openlattice.apps.AppConfigKey
@@ -25,7 +23,6 @@ import com.twilio.Twilio
 import com.twilio.rest.api.v2010.account.Message
 import com.twilio.type.PhoneNumber
 import org.joda.time.DateTime
-import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import java.net.URI
 import java.time.Instant
@@ -47,10 +44,6 @@ class CodexService(
         val principalsManager: SecurePrincipalsManager,
         val organizations: HazelcastOrganizationService
 ) {
-
-    companion object {
-        private val logger = LoggerFactory.getLogger(CodexService::class.java)
-    }
 
     init {
         Twilio.init(twilioConfiguration.sid, twilioConfiguration.token)
@@ -107,20 +100,21 @@ class CodexService(
 
         /* create associations */
 
-        val associations: ListMultimap<UUID, DataEdge> = ArrayListMultimap.create()
-
         val sentToEntitySetId = getEntitySetId(organizationId, CodexConstants.AppType.SENT_TO)
         val sentFromEntitySetId = getEntitySetId(organizationId, CodexConstants.AppType.SENT_FROM)
         val senderEDK = getSenderEntityDataKey(organizationId, sender)
 
         val associationEntity = mapOf(getPropertyTypeId(CodexConstants.PropertyType.DATE_TIME) to setOf(dateTime))
 
-        associations.put(sentToEntitySetId, DataEdge(messageEDK, contactEDK, associationEntity))
-        associations.put(sentFromEntitySetId, DataEdge(messageEDK, senderEDK, associationEntity))
-
-        dataGraphManager.createAssociations(associations, mapOf(
-                sentToEntitySetId to getPropertyTypes(CodexConstants.AppType.SENT_TO),
-                sentFromEntitySetId to getPropertyTypes(CodexConstants.AppType.SENT_FROM))
+        dataGraphManager.createAssociations(
+                mapOf(
+                        sentToEntitySetId to listOf(DataEdge(messageEDK, contactEDK, associationEntity)),
+                        sentFromEntitySetId to listOf(DataEdge(messageEDK, senderEDK, associationEntity))
+                ),
+                mapOf(
+                        sentToEntitySetId to getPropertyTypes(CodexConstants.AppType.SENT_TO),
+                        sentFromEntitySetId to getPropertyTypes(CodexConstants.AppType.SENT_FROM)
+                )
         )
     }
 
@@ -138,13 +132,18 @@ class CodexService(
 
         /* create associations */
 
-        val associations: ListMultimap<UUID, DataEdge> = ArrayListMultimap.create()
-
         val edgeEntitySetId = getEntitySetId(organizationId, CodexConstants.AppType.SENT_FROM)
 
-        associations.put(edgeEntitySetId, DataEdge(messageEDK, contactEDK, mapOf(getPropertyTypeId(CodexConstants.PropertyType.DATE_TIME) to setOf(dateTime))))
-
-        dataGraphManager.createAssociations(associations, mapOf(edgeEntitySetId to getPropertyTypes(CodexConstants.AppType.SENT_FROM)))
+        dataGraphManager.createAssociations(
+                mapOf(edgeEntitySetId to listOf(
+                        DataEdge(
+                                messageEDK,
+                                contactEDK,
+                                mapOf(getPropertyTypeId(CodexConstants.PropertyType.DATE_TIME) to setOf(dateTime))
+                        ))
+                ),
+                mapOf(edgeEntitySetId to getPropertyTypes(CodexConstants.AppType.SENT_FROM))
+        )
     }
 
     fun updateMessageStatus(organizationId: UUID, messageId: String, status: Message.Status) {
@@ -211,7 +210,10 @@ class CodexService(
         val entitySetId = getEntitySetId(organizationId, CodexConstants.AppType.PEOPLE)
         val entityKeyId = entityKeyIdService.getEntityKeyId(entitySetId, user.id)
 
-        dataGraphManager.mergeEntities(entitySetId, mapOf(entityKeyId to entity), getPropertyTypes(CodexConstants.AppType.PEOPLE))
+        dataGraphManager.mergeEntities(
+                entitySetId,
+                mapOf(entityKeyId to entity), getPropertyTypes(CodexConstants.AppType.PEOPLE)
+        )
 
         return EntityDataKey(entitySetId, entityKeyId)
     }

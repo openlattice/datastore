@@ -25,12 +25,15 @@ import com.auth0.spring.security.api.authentication.PreAuthenticatedAuthenticati
 import com.codahale.metrics.annotation.Timed
 import com.google.common.base.Preconditions
 import com.google.common.base.Preconditions.checkState
-import com.google.common.collect.*
+import com.google.common.collect.ImmutableMap
+import com.google.common.collect.Sets
 import com.openlattice.auditing.AuditEventType
 import com.openlattice.auditing.AuditableEvent
 import com.openlattice.auditing.AuditingComponent
 import com.openlattice.auditing.AuditingManager
 import com.openlattice.authorization.*
+import com.openlattice.authorization.EdmAuthorizationHelper.Companion.READ_PERMISSION
+import com.openlattice.authorization.EdmAuthorizationHelper.Companion.WRITE_PERMISSION
 import com.openlattice.controllers.exceptions.BadRequestException
 import com.openlattice.controllers.exceptions.ForbiddenException
 import com.openlattice.data.*
@@ -150,46 +153,42 @@ constructor(
     }
 
     private fun loadEntitySetData(entitySetId: UUID, selection: EntitySetSelection?): EntitySetData<FullQualifiedName> {
-        if (authz.checkIfHasPermissions(
-                        AclKey(entitySetId),
-                        Principals.getCurrentPrincipals(),
-                        EdmAuthorizationHelper.READ_PERMISSION
-                )) {
-            val entitySet = getEntitySet(entitySetId)
-
-            val entityKeyIds = if (selection == null) Optional.empty() else selection.entityKeyIds
-            val selectedProperties = getSelectedProperties(entitySetId, selection)
-
-            val normalEntitySetIds = if (entitySet.isLinking) entitySet.linkedEntitySets else setOf(entitySetId)
-
-            val authorizedPropertyTypesOfEntitySets = getAuthorizedPropertyTypesForEntitySetRead(
-                    entitySet, normalEntitySetIds, selectedProperties
-            )
-
-            val authorizedPropertyTypes = authorizedPropertyTypesOfEntitySets.values.first()
-            val orderedPropertyNames = LinkedHashSet<String>(authorizedPropertyTypes.size)
-
-            selectedProperties.filter { authorizedPropertyTypes.containsKey(it) }
-                    .map { authorizedPropertyTypes.getValue(it).type.fullQualifiedNameAsString }
-                    .toCollection(orderedPropertyNames)
-
-            return if (entitySet.isLinking) {
-                dgm.getLinkedEntitySetData(
-                        entitySet,
-                        entityKeyIds,
-                        orderedPropertyNames,
-                        authorizedPropertyTypesOfEntitySets
-                )
-            } else {
-                dgm.getEntitySetData(
-                        mapOf(entitySetId to entityKeyIds),
-                        orderedPropertyNames,
-                        authorizedPropertyTypesOfEntitySets
-                )
-            }
-        } else {
+        if (authz.checkIfHasPermissions(AclKey(entitySetId), Principals.getCurrentPrincipals(), READ_PERMISSION)) {
             throw ForbiddenException(
                     "Insufficient permissions to read the entity set $entitySetId or it doesn't exists."
+            )
+        }
+
+        val entitySet = getEntitySet(entitySetId)
+
+        val entityKeyIds = if (selection == null) Optional.empty() else selection.entityKeyIds
+        val selectedProperties = getSelectedProperties(entitySetId, selection)
+
+        val normalEntitySetIds = if (entitySet.isLinking) entitySet.linkedEntitySets else setOf(entitySetId)
+
+        val authorizedPropertyTypesOfEntitySets = getAuthorizedPropertyTypesForEntitySetRead(
+                entitySet, normalEntitySetIds, selectedProperties
+        )
+
+        val authorizedPropertyTypes = authorizedPropertyTypesOfEntitySets.values.first()
+        val orderedPropertyNames = LinkedHashSet<String>(authorizedPropertyTypes.size)
+
+        selectedProperties.filter { authorizedPropertyTypes.containsKey(it) }
+                .map { authorizedPropertyTypes.getValue(it).type.fullQualifiedNameAsString }
+                .toCollection(orderedPropertyNames)
+
+        return if (entitySet.isLinking) {
+            dgm.getLinkedEntitySetData(
+                    entitySet,
+                    entityKeyIds,
+                    orderedPropertyNames,
+                    authorizedPropertyTypesOfEntitySets
+            )
+        } else {
+            dgm.getEntitySetData(
+                    mapOf(entitySetId to entityKeyIds),
+                    orderedPropertyNames,
+                    authorizedPropertyTypesOfEntitySets
             )
         }
     }
@@ -284,14 +283,13 @@ constructor(
         val requiredPropertyTypes = entities.flatMap { entity -> entity.keys }.toSet()
 
         //Load authorized property types
-        val authorizedPropertyTypes = authzHelper
-                .getAuthorizedPropertyTypes(entitySetId, EdmAuthorizationHelper.WRITE_PERMISSION)
+        val authorizedPropertyTypes = authzHelper.getAuthorizedPropertyTypes(entitySetId, WRITE_PERMISSION)
         accessCheck(authorizedPropertyTypes, requiredPropertyTypes)
         val entityKeyIdsToWriteEvent = dgm.createEntities(entitySetId, entities, authorizedPropertyTypes)
         val entityKeyIds = entityKeyIdsToWriteEvent.key
 
         recordEvent(AuditableEvent(
-                spm.getCurrentUserId(),
+                spm.currentUserId,
                 AclKey(entitySetId),
                 AuditEventType.CREATE_ENTITIES,
                 "Entities created through DataApi.createEntities",
@@ -318,23 +316,21 @@ constructor(
         val entitySetIds = getEntitySetIdsFromCollection(associations.values.flatten()) { dataEdge ->
             listOf(dataEdge.src.entitySetId, dataEdge.dst.entitySetId)
         }
-        checkPermissionsOnEntitySetIds(entitySetIds, EdmAuthorizationHelper.READ_PERMISSION)
+        checkPermissionsOnEntitySetIds(entitySetIds, READ_PERMISSION)
 
         //Ensure that we can write properties.
         val requiredPropertyTypes = requiredAssociationPropertyTypes(associations) { it }
-        accessCheck(EdmAuthorizationHelper.aclKeysForAccessCheck(
-                requiredPropertyTypes, EdmAuthorizationHelper.WRITE_PERMISSION
-        ))
+        accessCheck(EdmAuthorizationHelper.aclKeysForAccessCheck(requiredPropertyTypes, WRITE_PERMISSION))
 
         val authorizedPropertyTypesByEntitySet = authzHelper
-                .getAuthorizedPropertiesOnEntitySets(associations.keys, EdmAuthorizationHelper.WRITE_PERMISSION)
+                .getAuthorizedPropertiesOnEntitySets(associations.keys, WRITE_PERMISSION)
 
         dataGraphServiceHelper.checkAssociationEntityTypes(associations)
         val associationsCreated = dgm.createAssociations(associations, authorizedPropertyTypesByEntitySet)
 
         val associationIds = mutableMapOf<UUID, List<UUID>>()
 
-        val currentUserId = spm.getCurrentUserId()
+        val currentUserId = spm.currentUserId
 
         val entitiesCreated = mutableListOf<AuditableEvent>()
         associationsCreated.forEach { (associationEntitySetId, createAssociationEvent) ->
@@ -422,7 +418,7 @@ constructor(
     override fun createEntityAndAssociationData(@RequestBody data: DataGraph): DataGraphIds {
         val entitySetIds = getEntitySetIdsFromCollection<DataAssociation>(data.associations.values.flatten())
         { association -> listOf(association.srcEntitySetId, association.dstEntitySetId) }
-        checkPermissionsOnEntitySetIds(entitySetIds, EdmAuthorizationHelper.READ_PERMISSION)
+        checkPermissionsOnEntitySetIds(entitySetIds, READ_PERMISSION)
 
         //First create the entities so we have entity key ids to work with
         val entityKeyIds = createEntities(data.entities)
@@ -473,7 +469,7 @@ constructor(
                 .flatMap { dataEdgeKey ->
                     listOf(
                             AuditableEvent(
-                                    spm.getCurrentUserId(),
+                                    spm.currentUserId,
                                     AclKey(dataEdgeKey.src.entitySetId),
                                     AuditEventType.ASSOCIATE_ENTITIES,
                                     "Create associations between entities using DataApi.createAssociations",
@@ -486,7 +482,7 @@ constructor(
                                     writeEvent.version
                             ),
                             AuditableEvent(
-                                    spm.getCurrentUserId(),
+                                    spm.currentUserId,
                                     AclKey(dataEdgeKey.dst.entitySetId),
                                     AuditEventType.ASSOCIATE_ENTITIES,
                                     "Create associations between entities using DataApi.createAssociations",
@@ -499,7 +495,7 @@ constructor(
                                     writeEvent.version
                             ),
                             AuditableEvent(
-                                    spm.getCurrentUserId(),
+                                    spm.currentUserId,
                                     AclKey(dataEdgeKey.edge.entitySetId),
                                     AuditEventType.ASSOCIATE_ENTITIES,
                                     "Create associations between entities using DataApi.createAssociations",
@@ -560,7 +556,7 @@ constructor(
         }
 
         recordEvent(AuditableEvent(
-                spm.getCurrentUserId(),
+                spm.currentUserId,
                 AclKey(entitySetId),
                 auditEventType,
                 "Entities updated using update type $updateType through DataApi.updateEntitiesInEntitySet",
@@ -605,7 +601,7 @@ constructor(
         val requiredPropertyTypes = entities.values.flatMap { m -> m.keys }.toSet()
         accessCheck(
                 EdmAuthorizationHelper.aclKeysForAccessCheck(
-                        mapOf(entitySetId to requiredPropertyTypes), EdmAuthorizationHelper.WRITE_PERMISSION
+                        mapOf(entitySetId to requiredPropertyTypes), WRITE_PERMISSION
                 )
         )
 
@@ -616,7 +612,7 @@ constructor(
         )
 
         recordEvent(AuditableEvent(
-                spm.getCurrentUserId(),
+                spm.currentUserId,
                 AclKey(entitySetId),
                 AuditEventType.REPLACE_PROPERTIES_OF_ENTITIES,
                 "Entity properties replaced through DataApi.replaceEntityProperties",
@@ -639,9 +635,7 @@ constructor(
         //Ensure that we can write properties.
         val requiredPropertyTypes = requiredAssociationPropertyTypes(associations) { it.values }
         ensureEntitySetsCanBeWritten(associations.keys)
-        accessCheck(EdmAuthorizationHelper.aclKeysForAccessCheck(
-                requiredPropertyTypes, EdmAuthorizationHelper.WRITE_PERMISSION
-        ))
+        accessCheck(EdmAuthorizationHelper.aclKeysForAccessCheck(requiredPropertyTypes, WRITE_PERMISSION))
 
         val authorizedPropertyTypeIds = mutableSetOf<UUID>()
         requiredPropertyTypes.forEach { authorizedPropertyTypeIds.addAll(it.value) }
@@ -688,7 +682,7 @@ constructor(
                 .clearOrDeleteEntitySetIfAuthorized(entitySetId, deleteType, Principals.getCurrentPrincipals())
 
         recordEvent(AuditableEvent(
-                spm.getCurrentUserId(),
+                spm.currentUserId,
                 AclKey(entitySetId),
                 AuditEventType.DELETE_ENTITIES,
                 "All entities deleted from entity set using delete type $deleteType through " +
@@ -725,7 +719,7 @@ constructor(
         )
 
         recordEvent(AuditableEvent(
-                spm.getCurrentUserId(),
+                spm.currentUserId,
                 AclKey(entitySetId),
                 AuditEventType.DELETE_ENTITIES,
                 "Entities deleted using delete type $deleteType through DataApi.deleteEntities",
@@ -752,7 +746,7 @@ constructor(
         )
 
         recordEvent(AuditableEvent(
-                spm.getCurrentUserId(),
+                spm.currentUserId,
                 AclKey(entitySetId),
                 AuditEventType.DELETE_PROPERTIES_OF_ENTITIES,
                 "Entity properties deleted using delete type $deleteType through " +
@@ -787,7 +781,7 @@ constructor(
             )
 
             recordEvent(AuditableEvent(
-                    spm.getCurrentUserId(),
+                    spm.currentUserId,
                     AclKey(entitySetId),
                     AuditEventType.DELETE_ENTITY_AND_NEIGHBORHOOD,
                     ("Entities and all neighbors deleted using delete type $deleteType through " +
@@ -859,13 +853,9 @@ constructor(
             )
             normalEntitySetIds.forEach { esId -> ensureReadAccess(AclKey(esId)) }
 
-            authzHelper.getAuthorizedPropertyTypesByNormalEntitySet(
-                    entitySet, selectedProperties, EdmAuthorizationHelper.READ_PERMISSION
-            )
+            authzHelper.getAuthorizedPropertyTypesByNormalEntitySet(entitySet, selectedProperties, READ_PERMISSION)
         } else {
-            authzHelper.getAuthorizedPropertyTypes(
-                    normalEntitySetIds, selectedProperties, EdmAuthorizationHelper.READ_PERMISSION
-            )
+            authzHelper.getAuthorizedPropertyTypes(normalEntitySetIds, selectedProperties, READ_PERMISSION)
         }
     }
 

@@ -26,6 +26,8 @@ import com.codahale.metrics.annotation.Timed
 import com.google.common.base.Preconditions
 import com.google.common.base.Preconditions.checkState
 import com.google.common.collect.ImmutableMap
+import com.google.common.collect.Lists
+import com.google.common.collect.Maps
 import com.google.common.collect.Sets
 import com.openlattice.auditing.AuditEventType
 import com.openlattice.auditing.AuditableEvent
@@ -328,11 +330,13 @@ constructor(
         dataGraphServiceHelper.checkAssociationEntityTypes(associations)
         val associationsCreated = dgm.createAssociations(associations, authorizedPropertyTypesByEntitySet)
 
-        val associationIds = mutableMapOf<UUID, List<UUID>>()
-
         val currentUserId = spm.currentUserId
 
-        val entitiesCreated = mutableListOf<AuditableEvent>()
+        val expectedAuditSize = associationsCreated.size +
+                if (associationsCreated.isEmpty()) 0 else associationsCreated.values.first().ids.size * 3
+        val entitiesCreated = Lists.newArrayListWithExpectedSize<AuditableEvent>(expectedAuditSize)
+        val associationIds = Maps.newHashMapWithExpectedSize<UUID, List<UUID>>(associationsCreated.size)
+
         associationsCreated.forEach { (associationEntitySetId, createAssociationEvent) ->
             associationIds[associationEntitySetId] = createAssociationEvent.ids
 

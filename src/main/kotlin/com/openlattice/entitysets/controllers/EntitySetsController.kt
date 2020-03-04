@@ -111,7 +111,7 @@ constructor(
     private fun addEntitySets(linkingEntitySetId: UUID, entitySetIds: Set<UUID>): Int {
         ensureOwnerAccess(AclKey(linkingEntitySetId))
         Preconditions.checkState(
-                entitySetManager.getEntitySet(linkingEntitySetId)!!.isLinking,
+                entitySetManager.getEntitySet(linkingEntitySetId).isLinking,
                 "Can't add linked entity sets to a not linking entity set"
         )
         checkLinkedEntitySets(entitySetIds)
@@ -268,7 +268,7 @@ constructor(
                         Optional.empty()
                 )
         )
-        return entitySetManager.getEntitySet(entitySetId)!!
+        return entitySetManager.getEntitySet(entitySetId)
     }
 
 
@@ -276,7 +276,7 @@ constructor(
     @RequestMapping(path = [ALL + ID_PATH], method = [RequestMethod.DELETE])
     override fun deleteEntitySet(@PathVariable(ID) entitySetId: UUID): Int {
         ensureOwnerAccess(AclKey(entitySetId))
-        val entitySet = entitySetManager.getEntitySet(entitySetId)!!
+        val entitySet = entitySetManager.getEntitySet(entitySetId)
 
         ensureEntitySetCanBeDeleted(entitySet)
 
@@ -520,7 +520,7 @@ constructor(
     private fun removeEntitySets(linkingEntitySetId: UUID, entitySetIds: Set<UUID>): Int {
         ensureOwnerAccess(AclKey(linkingEntitySetId))
         Preconditions.checkState(
-                entitySetManager.getEntitySet(linkingEntitySetId)!!.isLinking,
+                entitySetManager.getEntitySet(linkingEntitySetId).isLinking,
                 "Can't remove linked entity sets from a not linking entity set"
         )
         checkLinkedEntitySets(entitySetIds)
@@ -536,14 +536,14 @@ constructor(
         val entityTypeId = edmManager.getEntityType(PersonProperties.PERSON_TYPE_FQN).id
         Preconditions.checkState(
                 entitySetIds.stream()
-                        .map { entitySetManager.getEntitySet(it)!!.entityTypeId }
+                        .map { entitySetManager.getEntitySet(it).entityTypeId }
                         .allMatch { entityTypeId == it },
                 "Linked entity sets are of differing entity types than %s :{}",
                 PersonProperties.PERSON_TYPE_FQN.fullQualifiedNameAsString, entitySetIds
         )
 
         Preconditions.checkState(
-                entitySetIds.all { !entitySetManager.getEntitySet(it)!!.isLinking },
+                entitySetIds.all { !entitySetManager.getEntitySet(it).isLinking },
                 "Cannot add linking entity set as linked entity set."
         )
     }
@@ -561,7 +561,7 @@ constructor(
                         "Entity type of linked entity sets must be the same as of the linking entity set"
                 )
                 Preconditions.checkArgument(
-                        !entitySetManager.getEntitySet(linkedEntitySetId)!!.isLinking,
+                        !entitySetManager.getEntitySet(linkedEntitySetId).isLinking,
                         "Cannot add linking entity set as linked entity set."
                 )
             }
@@ -570,8 +570,6 @@ constructor(
 
     private fun deleteAuditEntitySetsForId(entitySetId: UUID) {
         val aclKey = AclKey(entitySetId)
-
-        val propertyTypes = aresManager.auditingTypes.propertyTypes
 
         aresManager.getAuditEdgeEntitySets(aclKey).forEach {
             deletionManager.clearOrDeleteEntitySet(it, DeleteType.Hard)

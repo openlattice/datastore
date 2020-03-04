@@ -107,13 +107,13 @@ class AnalysisController : AnalysisApi, AuthorizingComponent {
             filteredRankings: RankingAggregation,
             fileType: FileType?
     ): Iterable<Map<String, Any>> {
-        val entitySet = entitySetManager.getEntitySet(entitySetId)!!
+        val entitySet = entitySetManager.getEntitySet(entitySetId)
         val columnTitles = getEntitySetColumns(entitySetManager.getEntityTypeByEntitySetId(entitySetId).id)
 
         //TODO: Make this more concise
         if (entitySet.isLinking) {
             checkArgument(
-                    !entitySet.linkedEntitySets.isEmpty(),
+                    entitySet.linkedEntitySets.isNotEmpty(),
                     "Linked entity sets does not consist of any entity sets."
             )
             return getFilteredRankings(
@@ -217,7 +217,7 @@ class AnalysisController : AnalysisApi, AuthorizingComponent {
     override fun getNeighborTypes(@PathVariable(AnalysisApi.ENTITY_SET_ID) entitySetId: UUID): Iterable<NeighborType> {
         ensureReadAccess(AclKey(entitySetId))
 
-        val entitySet = entitySetManager.getEntitySet(entitySetId)!!
+        val entitySet = entitySetManager.getEntitySet(entitySetId)
 
         val allEntitySetIds = if (entitySet.isLinking) {
             val linkedEntitySetIds = HashSet(entitySet.linkedEntitySets)

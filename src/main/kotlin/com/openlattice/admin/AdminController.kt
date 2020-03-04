@@ -61,7 +61,7 @@ class AdminController : AdminApi, AuthorizingComponent {
             @RequestParam(OMIT_ENTITY_SET_ID, defaultValue = "false") omitEntitySetId: Boolean
     ): String {
         ensureAdminAccess()
-        val entitySet = entitySetManager.getEntitySet(entitySetId)!!
+        val entitySet = entitySetManager.getEntitySet(entitySetId)
         return if (entitySet.isLinking) {
             buildEntitySetSql(
                     entitySet.linkedEntitySets.associateWith { Optional.empty<Set<UUID>>() }, true, omitEntitySetId

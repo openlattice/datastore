@@ -74,9 +74,9 @@ class AssemblyAnalyzationController : AssemblyAnalyzationApi, AuthorizingCompone
         val account = MaterializedViewAccount(principal, dbCredService.getDbCredential(principal))
 
         val dbName = PostgresDatabases.buildOrganizationDatabaseName(assemblyAggregationFilter.organizationId)
-        val srcEntitySetName = entitySetManager.getEntitySet(assemblyAggregationFilter.srcEntitySetId)!!.name
-        val edgeEntitySetName = entitySetManager.getEntitySet(assemblyAggregationFilter.edgeEntitySetId)!!.name
-        val dstEntitySetName = entitySetManager.getEntitySet(assemblyAggregationFilter.dstEntitySetId)!!.name
+        val srcEntitySetName = entitySetManager.getEntitySet(assemblyAggregationFilter.srcEntitySetId).name
+        val edgeEntitySetName = entitySetManager.getEntitySet(assemblyAggregationFilter.edgeEntitySetId).name
+        val dstEntitySetName = entitySetManager.getEntitySet(assemblyAggregationFilter.dstEntitySetId).name
 
 
         val groupedGroupings = assemblyAggregationFilter.groupProperties.groupBy { it.orientation }

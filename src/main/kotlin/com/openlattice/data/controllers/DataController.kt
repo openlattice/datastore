@@ -828,7 +828,6 @@ constructor(
 
     private fun getEntitySet(entitySetId: UUID): EntitySet {
         return entitySetService.getEntitySet(entitySetId)
-                ?: throw IllegalStateException("Could not find entity set with id: $entitySetId")
     }
 
     private fun getSelectedProperties(entitySetId: UUID, selection: EntitySetSelection?): Set<UUID> {

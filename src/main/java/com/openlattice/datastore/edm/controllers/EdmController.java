@@ -233,22 +233,17 @@ public class EdmController implements EdmApi, AuthorizingComponent, AuditingComp
             entitySetIds.add( selector.getId() );
         }
         if ( selector.getIncludedFields().contains( SecurableObjectType.EntityType ) ) {
-            // TODO should non-existing es id be allowed?
             es = entitySetManager.getEntitySet( selector.getId() );
             setRetrieved = true;
-            if ( es != null ) {
-                entityTypeIds.add( es.getEntityTypeId() );
-            }
+            entityTypeIds.add( es.getEntityTypeId() );
         }
         if ( selector.getIncludedFields().contains( SecurableObjectType.PropertyTypeInEntitySet ) ) {
             if ( !setRetrieved ) {
                 es = entitySetManager.getEntitySet( selector.getId() );
             }
-            if ( es != null ) {
-                EntityType et = modelService.getEntityType( es.getEntityTypeId() );
-                if ( et != null ) {
-                    propertyTypeIds.addAll( et.getProperties() );
-                }
+            EntityType et = modelService.getEntityType( es.getEntityTypeId() );
+            if ( et != null ) {
+                propertyTypeIds.addAll( et.getProperties() );
             }
         }
     }

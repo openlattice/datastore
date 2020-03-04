@@ -282,7 +282,7 @@ constructor(
 
         val entityType = edmManager.getEntityType(entitySet.entityTypeId)
         val authorizedPropertyTypes = authzHelper
-                .getAuthorizedPropertyTypes(entitySetId, EnumSet.of(Permission.OWNER))
+                .getAuthorizedPropertyTypes(entitySetId, EdmAuthorizationHelper.OWNER_PERMISSION)
         if (!authorizedPropertyTypes.keys.containsAll(entityType.properties)) {
             throw ForbiddenException("You shall not pass!")
         }

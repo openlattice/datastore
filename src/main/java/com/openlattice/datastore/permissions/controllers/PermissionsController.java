@@ -124,7 +124,7 @@ public class PermissionsController implements PermissionsApi, AuthorizingCompone
                 .accessChecksForPrincipals( requestsByActionType.entrySet().stream()
                         .filter( entry -> !entry.getKey().equals( Action.REQUEST ) )
                         .flatMap( entry -> entry.getValue().stream() )
-                        .map( acl -> new AccessCheck( new AclKey( acl.getAclKey() ), EnumSet.of( Permission.OWNER ) ) )
+                        .map( acl -> new AccessCheck( new AclKey( acl.getAclKey() ), EdmAuthorizationHelper.OWNER_PERMISSION ) )
                         .collect( Collectors.toSet() ), Principals.getCurrentPrincipals() )
                 .filter( authorization -> !authorization.getPermissions().get( Permission.OWNER ) )
                 .map( Authorization::getAclKey )

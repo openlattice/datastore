@@ -679,7 +679,7 @@ public class OrganizationsController implements AuthorizingComponent, Organizati
         ensureOwner( organizationId );
 
         AclKey aclKey = new AclKey( organizationId, roleId );
-        accessCheck( aclKey, EnumSet.of( Permission.OWNER ) );
+        accessCheck( aclKey, EdmAuthorizationHelper.OWNER_PERMISSION );
     }
 
     @Override
@@ -689,7 +689,7 @@ public class OrganizationsController implements AuthorizingComponent, Organizati
 
     private AclKey ensureOwner( UUID organizationId ) {
         AclKey aclKey = new AclKey( organizationId );
-        accessCheck( aclKey, EnumSet.of( Permission.OWNER ) );
+        accessCheck( aclKey, EdmAuthorizationHelper.OWNER_PERMISSION );
         return aclKey;
     }
 

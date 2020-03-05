@@ -155,7 +155,7 @@ constructor(
     }
 
     private fun loadEntitySetData(entitySetId: UUID, selection: EntitySetSelection?): EntitySetData<FullQualifiedName> {
-        if (authz.checkIfHasPermissions(AclKey(entitySetId), Principals.getCurrentPrincipals(), READ_PERMISSION)) {
+        if (!authz.checkIfHasPermissions(AclKey(entitySetId), Principals.getCurrentPrincipals(), READ_PERMISSION)) {
             throw ForbiddenException(
                     "Insufficient permissions to read the entity set $entitySetId or it doesn't exists."
             )

@@ -595,25 +595,7 @@ public class SearchController implements SearchApi, AuthorizingComponent, Auditi
 
 
         /* audit */
-        int expectedSize = 0;
-        if ( !result.isEmpty() ) {
-            expectedSize = result.size();
-
-            var associationMap = result.values().iterator().next();
-            if ( !associationMap.isEmpty() ) {
-                expectedSize *= associationMap.size();
-
-                var associations = associationMap.values().iterator().next();
-                if ( !associations.isEmpty() ) {
-                    expectedSize *= associations.size();
-
-                    if ( !associations.values().iterator().next().isEmpty() ) {
-                        expectedSize *= associations.values().iterator().next().size();
-                    }
-                }
-            }
-        }
-        Map<UUID, Set<UUID>> neighborsByEntitySet = Maps.newHashMapWithExpectedSize( expectedSize );
+        Map<UUID, Set<UUID>> neighborsByEntitySet = Maps.newHashMap();
 
         result.values().forEach( associationMap ->
                 associationMap.forEach( ( associationEsId, association ) -> {

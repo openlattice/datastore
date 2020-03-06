@@ -9,6 +9,7 @@ import com.openlattice.organization.OrganizationExternalDatabaseColumn
 import com.openlattice.organization.OrganizationExternalDatabaseTable
 import com.openlattice.organization.OrganizationExternalDatabaseTableColumnsPair
 import com.openlattice.postgres.PostgresConnectionType
+import com.openlattice.postgres.RowSecurityPolicy
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings
 import org.apache.olingo.commons.api.edm.FullQualifiedName
 import org.slf4j.LoggerFactory
@@ -181,6 +182,38 @@ class DatasetController : DatasetApi, AuthorizingComponent {
             ensureOwnerAccess(aclKey)
         }
         edms.deleteOrganizationExternalDatabaseColumns(organizationId, mapOf(tableId to columnIds))
+    }
+
+    @Timed
+    @GetMapping(path = [ID_PATH + TABLE_NAME_PATH + EXTERNAL_DATABASE_ROW + POLICY_NAME_PATH])
+    override fun getExternalDatabaseRowSecurityPolicy(organizationId: UUID, tableName: String, policyName: String) {
+        val tableId = getExternalDatabaseObjectId(organizationId, tableName)
+        val aclKey = AclKey(tableId)
+        ensureOwnerAccess(aclKey)
+        edms.getRowSecurityPolicy(organizationId, tableName, policyName)
+    }
+
+    @Timed
+    @PostMapping(path = [ID_PATH + TABLE_NAME_PATH + EXTERNAL_DATABASE_ROW])
+    override fun createExternalDatabaseRowSecurityPolicy(
+            organizationId: UUID,
+            tableName: String,
+            policyName: String,
+            rowPolicy: RowSecurityPolicy
+    ) {
+        val tableId = getExternalDatabaseObjectId(organizationId, tableName)
+        val aclKey = AclKey(tableId)
+        ensureOwnerAccess(aclKey)
+        edms.addRowSecurityPolicy(organizationId, tableName, policyName, rowPolicy)
+    }
+
+    @Timed
+    @DeleteMapping(path = [ID_PATH + TABLE_NAME_PATH + EXTERNAL_DATABASE_ROW])
+    override fun deleteExternalDatabaseRowSecurityPolicy(organizationId: UUID, tableName: String, policyName: String) {
+        val tableId = getExternalDatabaseObjectId(organizationId, tableName)
+        val aclKey = AclKey(tableId)
+        ensureOwnerAccess(aclKey)
+        edms.deleteRowSecurityPolicy(organizationId, tableName, policyName)
     }
 
     private fun getExternalDatabaseObjectId(containingObjectId: UUID, name: String): UUID {

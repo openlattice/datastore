@@ -186,11 +186,28 @@ class DatasetController : DatasetApi, AuthorizingComponent {
 
     @Timed
     @GetMapping(path = [ID_PATH + TABLE_NAME_PATH + EXTERNAL_DATABASE_ROW + POLICY_NAME_PATH])
-    override fun getExternalDatabaseRowSecurityPolicy(organizationId: UUID, tableName: String, policyName: String) {
+    override fun getExternalDatabaseRowSecurityPolicyByName(
+            organizationId: UUID,
+            tableName: String,
+            policyName: String
+    ): Map<String, RowSecurityPolicy> {
         val tableId = getExternalDatabaseObjectId(organizationId, tableName)
         val aclKey = AclKey(tableId)
         ensureOwnerAccess(aclKey)
-        edms.getRowSecurityPolicy(organizationId, tableName, policyName)
+        return edms.getRowSecurityPolicyByName(organizationId, tableName, policyName)
+    }
+
+    @Timed
+    @GetMapping(path = [ID_PATH + TABLE_NAME_PATH + EXTERNAL_DATABASE_ROW + USER_ID_PATH])
+    override fun getExternalDatabaseRowSecurityPolicyByUser(
+            organizationId: UUID,
+            tableName: String,
+            userId: String
+    ): Map<String, RowSecurityPolicy> {
+        val tableId = getExternalDatabaseObjectId(organizationId, tableName)
+        val aclKey = AclKey(tableId)
+        ensureOwnerAccess(aclKey)
+        return edms.getRowSecurityPolicyByUser(organizationId, tableName, userId)
     }
 
     @Timed

@@ -213,34 +213,6 @@ class DatasetController : DatasetApi, AuthorizingComponent {
     }
 
     @Timed
-    @GetMapping(path = [ID_PATH + TABLE_NAME_PATH + EXTERNAL_DATABASE_ROW + POLICY_NAME_PATH])
-    override fun getExternalDatabaseRowSecurityPolicyByName(
-            @PathVariable(ID) organizationId: UUID,
-            @PathVariable(TABLE_NAME) tableName: String,
-            @PathVariable(POLICY_NAME) policyName: String
-    ): Map<String, RowSecurityPolicy> {
-        val tableId = getExternalDatabaseObjectId(organizationId, tableName)
-        val aclKey = AclKey(tableId)
-        //ensureOwnerAccess(aclKey)
-        return edms.getRowSecurityPolicyByName(organizationId, tableName, policyName)
-    }
-
-    @Timed
-    @GetMapping(path = [ID_PATH + TABLE_NAME_PATH + EXTERNAL_DATABASE_ROW + USER_ID_PATH])
-    override fun getExternalDatabaseRowSecurityPolicyByUser(
-            @PathVariable(ID) organizationId: UUID,
-            @PathVariable(TABLE_NAME) tableName: String,
-            @PathVariable(USER_ID) userId: String
-    ): Map<String, RowSecurityPolicy> {
-        val tableId = getExternalDatabaseObjectId(organizationId, tableName)
-        val aclKey = AclKey(tableId)
-        //ensureOwnerAccess(aclKey)
-        return edms.getRowSecurityPolicyByUser(organizationId, tableName, userId)
-    }
-
-
-
-    @Timed
     @DeleteMapping(path = [ID_PATH + TABLE_NAME_PATH + EXTERNAL_DATABASE_ROW])
     override fun deleteExternalDatabaseRowSecurityPolicy(
             @PathVariable(ID) organizationId: UUID,

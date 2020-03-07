@@ -10,6 +10,7 @@ import com.openlattice.organization.OrganizationExternalDatabaseTable
 import com.openlattice.organization.OrganizationExternalDatabaseTableColumnsPair
 import com.openlattice.postgres.PostgresConnectionType
 import com.openlattice.postgres.RowSecurityPolicy
+import com.openlattice.postgres.RowSecurityPolicyRequest
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings
 import org.apache.olingo.commons.api.edm.FullQualifiedName
 import org.slf4j.LoggerFactory
@@ -185,51 +186,70 @@ class DatasetController : DatasetApi, AuthorizingComponent {
     }
 
     @Timed
+    @PostMapping(path = [ID_PATH + TABLE_NAME_PATH + EXTERNAL_DATABASE_ROW + POLICY_NAME_PATH])
+    override fun createExternalDatabaseRowSecurityPolicy(
+            @PathVariable(ID) organizationId: UUID,
+            @PathVariable(TABLE_NAME) tableName: String,
+            @PathVariable(POLICY_NAME) policyName: String,
+            @RequestBody rowPolicy: RowSecurityPolicy
+    ) {
+        val tableId = getExternalDatabaseObjectId(organizationId, tableName)
+        val aclKey = AclKey(tableId)
+        //ensureOwnerAccess(aclKey)
+        edms.addRowSecurityPolicy(organizationId, tableName, policyName, rowPolicy)
+    }
+
+    @Timed
+    @PostMapping(path = [ID_PATH + TABLE_NAME_PATH + EXTERNAL_DATABASE_ROW + SEARCH])
+    override fun getExternalDatabaseRows(
+            @PathVariable(ID) organizationId: UUID,
+            @PathVariable(TABLE_NAME) tableName: String,
+            @RequestBody rowPolicyRequest: RowSecurityPolicyRequest
+    ): Set<RowSecurityPolicy> {
+        val tableId = getExternalDatabaseObjectId(organizationId, tableName)
+        val aclKey = AclKey(tableId)
+        //ensureOwnerAccess(aclKey)
+        return edms.getRowSecurityPolicies(organizationId, tableName, rowPolicyRequest)
+    }
+
+    @Timed
     @GetMapping(path = [ID_PATH + TABLE_NAME_PATH + EXTERNAL_DATABASE_ROW + POLICY_NAME_PATH])
     override fun getExternalDatabaseRowSecurityPolicyByName(
-            organizationId: UUID,
-            tableName: String,
-            policyName: String
+            @PathVariable(ID) organizationId: UUID,
+            @PathVariable(TABLE_NAME) tableName: String,
+            @PathVariable(POLICY_NAME) policyName: String
     ): Map<String, RowSecurityPolicy> {
         val tableId = getExternalDatabaseObjectId(organizationId, tableName)
         val aclKey = AclKey(tableId)
-        ensureOwnerAccess(aclKey)
+        //ensureOwnerAccess(aclKey)
         return edms.getRowSecurityPolicyByName(organizationId, tableName, policyName)
     }
 
     @Timed
     @GetMapping(path = [ID_PATH + TABLE_NAME_PATH + EXTERNAL_DATABASE_ROW + USER_ID_PATH])
     override fun getExternalDatabaseRowSecurityPolicyByUser(
-            organizationId: UUID,
-            tableName: String,
-            userId: String
+            @PathVariable(ID) organizationId: UUID,
+            @PathVariable(TABLE_NAME) tableName: String,
+            @PathVariable(USER_ID) userId: String
     ): Map<String, RowSecurityPolicy> {
         val tableId = getExternalDatabaseObjectId(organizationId, tableName)
         val aclKey = AclKey(tableId)
-        ensureOwnerAccess(aclKey)
+        //ensureOwnerAccess(aclKey)
         return edms.getRowSecurityPolicyByUser(organizationId, tableName, userId)
     }
 
-    @Timed
-    @PostMapping(path = [ID_PATH + TABLE_NAME_PATH + EXTERNAL_DATABASE_ROW])
-    override fun createExternalDatabaseRowSecurityPolicy(
-            organizationId: UUID,
-            tableName: String,
-            policyName: String,
-            rowPolicy: RowSecurityPolicy
-    ) {
-        val tableId = getExternalDatabaseObjectId(organizationId, tableName)
-        val aclKey = AclKey(tableId)
-        ensureOwnerAccess(aclKey)
-        edms.addRowSecurityPolicy(organizationId, tableName, policyName, rowPolicy)
-    }
+
 
     @Timed
     @DeleteMapping(path = [ID_PATH + TABLE_NAME_PATH + EXTERNAL_DATABASE_ROW])
-    override fun deleteExternalDatabaseRowSecurityPolicy(organizationId: UUID, tableName: String, policyName: String) {
+    override fun deleteExternalDatabaseRowSecurityPolicy(
+            @PathVariable(ID) organizationId: UUID,
+            @PathVariable(TABLE_NAME) tableName: String,
+            @PathVariable(POLICY_NAME) policyName: String
+    ) {
         val tableId = getExternalDatabaseObjectId(organizationId, tableName)
         val aclKey = AclKey(tableId)
-        ensureOwnerAccess(aclKey)
+        //ensureOwnerAccess(aclKey)
         edms.deleteRowSecurityPolicy(organizationId, tableName, policyName)
     }
 

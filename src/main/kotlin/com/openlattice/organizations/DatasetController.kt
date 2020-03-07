@@ -213,7 +213,7 @@ class DatasetController : DatasetApi, AuthorizingComponent {
     }
 
     @Timed
-    @DeleteMapping(path = [ID_PATH + TABLE_NAME_PATH + EXTERNAL_DATABASE_ROW])
+    @DeleteMapping(path = [ID_PATH + TABLE_NAME_PATH + EXTERNAL_DATABASE_ROW + POLICY_NAME_PATH])
     override fun deleteExternalDatabaseRowSecurityPolicy(
             @PathVariable(ID) organizationId: UUID,
             @PathVariable(TABLE_NAME) tableName: String,

@@ -256,7 +256,11 @@ class DatasetController : DatasetApi, AuthorizingComponent {
     private fun getAuthorizedTableIds(tableIds: Set<UUID>, permission: Permission): Set<UUID> {
         return authorizations.accessChecksForPrincipals(
                 tableIds.map { AccessCheck(AclKey(it), EnumSet.of<Permission>(permission)) }.toSet(),
-                Principals.getCurrentPrincipals()
+                // filtering by organization:
+                // organizations by default have access to the metadata.
+                // This endpoint is querying the user- or role-assigned permissions
+                // that correspond to read access on the actual database
+                Principals.getCurrentPrincipals().filter { it.type != PrincipalType.ORGANIZATION }.toSet()
         )
                 .filter { it.permissions[permission]!! }
                 .map { it.aclKey[0] }.collect(Collectors.toSet())

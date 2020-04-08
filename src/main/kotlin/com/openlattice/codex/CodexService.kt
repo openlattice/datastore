@@ -170,8 +170,8 @@ class CodexService(
         val entitySetId = getEntitySetId(organizationId, CodexConstants.AppType.CONTACT_INFO)
         val entityKeyId = entityKeyIdService.getEntityKeyId(entitySetId, phoneNumber)
 
-        val entity = mapOf(
-                getPropertyTypeId(CodexConstants.PropertyType.PHONE_NUMBER) to setOf(phoneNumber)
+        val entity = mutableMapOf(
+                getPropertyTypeId(CodexConstants.PropertyType.PHONE_NUMBER) to mutableSetOf<Any>(phoneNumber)
         )
 
         dataGraphManager.mergeEntities(
@@ -185,11 +185,11 @@ class CodexService(
 
     private fun getMessageEntityDataKey(organizationId: UUID, dateTime: OffsetDateTime, messageId: String, text: String, isOutgoing: Boolean): EntityDataKey {
 
-        val entity = mapOf(
-                getPropertyTypeId(CodexConstants.PropertyType.ID) to setOf(messageId),
-                getPropertyTypeId(CodexConstants.PropertyType.DATE_TIME) to setOf(dateTime),
-                getPropertyTypeId(CodexConstants.PropertyType.TEXT) to setOf(text),
-                getPropertyTypeId(CodexConstants.PropertyType.IS_OUTGOING) to setOf(isOutgoing)
+        val entity = mutableMapOf(
+                getPropertyTypeId(CodexConstants.PropertyType.ID) to mutableSetOf<Any>(messageId),
+                getPropertyTypeId(CodexConstants.PropertyType.DATE_TIME) to mutableSetOf<Any>(dateTime),
+                getPropertyTypeId(CodexConstants.PropertyType.TEXT) to mutableSetOf<Any>(text),
+                getPropertyTypeId(CodexConstants.PropertyType.IS_OUTGOING) to mutableSetOf<Any>(isOutgoing)
         )
         val entitySetId = getEntitySetId(organizationId, CodexConstants.AppType.MESSAGES)
         val entityKeyId = entityKeyIdService.getEntityKeyId(entitySetId, messageId)
@@ -205,9 +205,9 @@ class CodexService(
 
     private fun getSenderEntityDataKey(organizationId: UUID, user: User): EntityDataKey {
 
-        val entity = mapOf(
-                getPropertyTypeId(CodexConstants.PropertyType.PERSON_ID) to setOf(user.id),
-                getPropertyTypeId(CodexConstants.PropertyType.NICKNAME) to setOf(user.email)
+        val entity = mutableMapOf(
+                getPropertyTypeId(CodexConstants.PropertyType.PERSON_ID) to mutableSetOf<Any>(user.id),
+                getPropertyTypeId(CodexConstants.PropertyType.NICKNAME) to mutableSetOf<Any>(user.email)
         )
         val entitySetId = getEntitySetId(organizationId, CodexConstants.AppType.PEOPLE)
         val entityKeyId = entityKeyIdService.getEntityKeyId(entitySetId, user.id)

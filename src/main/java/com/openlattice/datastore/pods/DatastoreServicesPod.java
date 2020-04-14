@@ -20,8 +20,6 @@
 
 package com.openlattice.datastore.pods;
 
-import static com.openlattice.datastore.util.Util.returnAndLog;
-
 import com.auth0.client.mgmt.ManagementAPI;
 import com.codahale.metrics.MetricRegistry;
 import com.dataloom.mappers.ObjectMappers;
@@ -29,6 +27,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.geekbeast.hazelcast.HazelcastClientProvider;
 import com.google.common.eventbus.EventBus;
 import com.google.common.util.concurrent.ListeningExecutorService;
+import com.google.maps.GeoApiContext;
 import com.hazelcast.core.HazelcastInstance;
 import com.kryptnostic.rhizome.configuration.ConfigurationConstants;
 import com.openlattice.analysis.AnalysisService;
@@ -82,7 +81,8 @@ import com.openlattice.data.storage.PostgresEntitySetSizesTaskDependency;
 import com.openlattice.data.storage.aws.AwsDataSinkService;
 import com.openlattice.data.storage.partitions.PartitionManager;
 import com.openlattice.datastore.apps.services.AppService;
-import com.openlattice.datastore.services.DatastoreConductorElasticsearchApi;
+import com.openlattice.datastore.configuration.DatastoreConfiguration;
+import com.openlattice.datastore.services.DatastoreElasticsearchImpl;
 import com.openlattice.datastore.services.EdmManager;
 import com.openlattice.datastore.services.EdmService;
 import com.openlattice.datastore.services.EntitySetManager;
@@ -125,11 +125,16 @@ import com.openlattice.twilio.TwilioConfiguration;
 import com.openlattice.twilio.pods.TwilioConfigurationPod;
 import com.openlattice.users.Auth0SyncService;
 import com.zaxxer.hikari.HikariDataSource;
+import org.jdbi.v3.core.Jdbi;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Import;
+import org.springframework.context.annotation.Profile;
+
 import javax.annotation.PostConstruct;
 import javax.inject.Inject;
-import org.jdbi.v3.core.Jdbi;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.*;
+
+import static com.openlattice.datastore.util.Util.returnAndLog;
 
 @Configuration
 @Import( {
@@ -142,21 +147,24 @@ import org.springframework.context.annotation.*;
 public class DatastoreServicesPod {
 
     @Inject
-    private Jdbi                      jdbi;
+    private Jdbi                     jdbi;
     @Inject
-    private PostgresTableManager      tableManager;
+    private PostgresTableManager     tableManager;
     @Inject
-    private HazelcastInstance         hazelcastInstance;
+    private HazelcastInstance        hazelcastInstance;
     @Inject
-    private HikariDataSource          hikariDataSource;
+    private HikariDataSource         hikariDataSource;
     @Inject
-    private Auth0Configuration        auth0Configuration;
+    private Auth0Configuration       auth0Configuration;
     @Inject
-    private AuditingConfiguration     auditingConfiguration;
+    private AuditingConfiguration    auditingConfiguration;
     @Inject
-    private ListeningExecutorService  executor;
+    private ListeningExecutorService executor;
     @Inject
-    private EventBus                  eventBus;
+    private EventBus            eventBus;
+
+    @Inject
+    private DatastoreConfiguration datastoreConfiguration;
 
     @Inject
     private ByteBlobDataManager byteBlobDataManager;
@@ -448,7 +456,7 @@ public class DatastoreServicesPod {
 
     @Bean
     public ConductorElasticsearchApi conductorElasticsearchApi() {
-        return new DatastoreConductorElasticsearchApi( hazelcastInstance );
+        return new DatastoreElasticsearchImpl( datastoreConfiguration.getSearchConfiguration() );
     }
 
     @Bean
@@ -597,6 +605,11 @@ public class DatastoreServicesPod {
                 principalService(),
                 organizationsManager()
         );
+    }
+
+    @Bean
+    public GeoApiContext geoApiContext() {
+        return new GeoApiContext.Builder().apiKey( datastoreConfiguration.getGoogleMapsApiKey() ).build();
     }
 
     @PostConstruct

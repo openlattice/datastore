@@ -24,11 +24,13 @@ import static com.openlattice.datastore.util.Util.returnAndLog;
 
 import com.auth0.client.mgmt.ManagementAPI;
 import com.codahale.metrics.MetricRegistry;
+import com.codahale.metrics.health.HealthCheckRegistry;
 import com.dataloom.mappers.ObjectMappers;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.geekbeast.hazelcast.HazelcastClientProvider;
 import com.google.common.eventbus.EventBus;
 import com.google.common.util.concurrent.ListeningExecutorService;
+import com.google.maps.GeoApiContext;
 import com.hazelcast.core.HazelcastInstance;
 import com.kryptnostic.rhizome.configuration.ConfigurationConstants;
 import com.openlattice.analysis.AnalysisService;
@@ -82,7 +84,9 @@ import com.openlattice.data.storage.PostgresEntitySetSizesTaskDependency;
 import com.openlattice.data.storage.aws.AwsDataSinkService;
 import com.openlattice.data.storage.partitions.PartitionManager;
 import com.openlattice.datastore.apps.services.AppService;
-import com.openlattice.datastore.services.DatastoreConductorElasticsearchApi;
+import com.openlattice.datastore.configuration.DatastoreConfiguration;
+import com.openlattice.datastore.configuration.ReadonlyDatasourceSupplier;
+import com.openlattice.datastore.services.DatastoreElasticsearchImpl;
 import com.openlattice.datastore.services.EdmManager;
 import com.openlattice.datastore.services.EdmService;
 import com.openlattice.datastore.services.EntitySetManager;
@@ -124,12 +128,17 @@ import com.openlattice.tasks.PostConstructInitializerTaskDependencies.PostConstr
 import com.openlattice.twilio.TwilioConfiguration;
 import com.openlattice.twilio.pods.TwilioConfigurationPod;
 import com.openlattice.users.Auth0SyncService;
+import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import javax.annotation.PostConstruct;
 import javax.inject.Inject;
 import org.jdbi.v3.core.Jdbi;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Import;
+import org.springframework.context.annotation.Profile;
 
 @Configuration
 @Import( {
@@ -140,23 +149,27 @@ import org.springframework.context.annotation.*;
         OrganizationExternalDatabaseConfigurationPod.class
 } )
 public class DatastoreServicesPod {
+    private static final Logger logger = LoggerFactory.getLogger( DatastoreServicesPod.class );
 
     @Inject
-    private Jdbi                      jdbi;
+    private Jdbi                     jdbi;
     @Inject
-    private PostgresTableManager      tableManager;
+    private PostgresTableManager     tableManager;
     @Inject
-    private HazelcastInstance         hazelcastInstance;
+    private HazelcastInstance        hazelcastInstance;
     @Inject
-    private HikariDataSource          hikariDataSource;
+    private HikariDataSource         hikariDataSource;
     @Inject
-    private Auth0Configuration        auth0Configuration;
+    private Auth0Configuration       auth0Configuration;
     @Inject
-    private AuditingConfiguration     auditingConfiguration;
+    private AuditingConfiguration    auditingConfiguration;
     @Inject
-    private ListeningExecutorService  executor;
+    private ListeningExecutorService executor;
     @Inject
-    private EventBus                  eventBus;
+    private EventBus                 eventBus;
+
+    @Inject
+    private DatastoreConfiguration datastoreConfiguration;
 
     @Inject
     private ByteBlobDataManager byteBlobDataManager;
@@ -169,6 +182,9 @@ public class DatastoreServicesPod {
 
     @Inject
     private MetricRegistry metricRegistry;
+
+    @Inject
+    private HealthCheckRegistry healthCheckRegistry;
 
     @Inject
     private HazelcastClientProvider hazelcastClientProvider;
@@ -386,7 +402,7 @@ public class DatastoreServicesPod {
 
     @Bean
     public GraphService graphApi() {
-        return new Graph( hikariDataSource, entitySetManager(), partitionManager() );
+        return new Graph( hikariDataSource, rds().getReadOnlyReplica(), entitySetManager(), partitionManager() );
     }
 
     @Bean
@@ -448,7 +464,7 @@ public class DatastoreServicesPod {
 
     @Bean
     public ConductorElasticsearchApi conductorElasticsearchApi() {
-        return new DatastoreConductorElasticsearchApi( hazelcastInstance );
+        return new DatastoreElasticsearchImpl( datastoreConfiguration.getSearchConfiguration() );
     }
 
     @Bean
@@ -457,9 +473,29 @@ public class DatastoreServicesPod {
     }
 
     @Bean
+    public ReadonlyDatasourceSupplier rds() {
+        final var pgConfig = datastoreConfiguration.getReadOnlyReplica();
+        final HikariDataSource reader;
+
+        if ( pgConfig.isEmpty() ) {
+            reader = hikariDataSource;
+        } else {
+            HikariConfig hc = new HikariConfig( pgConfig );
+            logger.info( "Read only replica JDBC URL = {}", hc.getJdbcUrl() );
+            reader = new HikariDataSource( hc );
+            reader.setHealthCheckRegistry( healthCheckRegistry );
+            reader.setMetricRegistry( metricRegistry );
+        }
+
+        return new ReadonlyDatasourceSupplier( reader );
+    }
+
+    @Bean
     public PostgresEntityDataQueryService dataQueryService() {
+
         return new PostgresEntityDataQueryService(
                 hikariDataSource,
+                rds().getReadOnlyReplica(),
                 byteBlobDataManager,
                 partitionManager()
         );
@@ -490,7 +526,8 @@ public class DatastoreServicesPod {
         return new AwsDataSinkService(
                 partitionManager(),
                 byteBlobDataManager,
-                hikariDataSource
+                hikariDataSource,
+                rds().getReadOnlyReplica()
         );
     }
 
@@ -595,8 +632,14 @@ public class DatastoreServicesPod {
                 dataGraphService(),
                 idService(),
                 principalService(),
-                organizationsManager()
+                organizationsManager(),
+                executor
         );
+    }
+
+    @Bean
+    public GeoApiContext geoApiContext() {
+        return new GeoApiContext.Builder().apiKey( datastoreConfiguration.getGoogleMapsApiKey() ).build();
     }
 
     @PostConstruct

@@ -3,6 +3,10 @@ package com.openlattice.codex
 import com.auth0.json.mgmt.users.User
 import com.google.common.collect.ArrayListMultimap
 import com.google.common.collect.ListMultimap
+import com.google.common.collect.Lists
+import com.google.common.collect.Sets
+import com.google.common.util.concurrent.ListenableFuture
+import com.google.common.util.concurrent.ListeningExecutorService
 import com.hazelcast.core.HazelcastInstance
 import com.hazelcast.core.IMap
 import com.openlattice.apps.AppConfigKey
@@ -28,10 +32,12 @@ import org.joda.time.DateTime
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import java.net.URI
+import java.net.URL
 import java.time.Instant
 import java.time.OffsetDateTime
 import java.time.ZoneOffset.UTC
 import java.util.*
+import java.util.concurrent.Callable
 import java.util.concurrent.Executors
 import java.util.stream.Stream
 import javax.servlet.http.HttpServletRequest
@@ -45,11 +51,13 @@ class CodexService(
         val dataGraphManager: DataGraphManager,
         val entityKeyIdService: EntityKeyIdService,
         val principalsManager: SecurePrincipalsManager,
-        val organizations: HazelcastOrganizationService
+        val organizations: HazelcastOrganizationService,
+        val executor: ListeningExecutorService
 ) {
 
     companion object {
         private val logger = LoggerFactory.getLogger(CodexService::class.java)
+        private val encoder: Base64.Encoder = Base64.getEncoder()
     }
 
     init {
@@ -59,7 +67,11 @@ class CodexService(
     val appId = appService.getApp(CodexConstants.APP_NAME).id
     val typesByFqn = CodexConstants.AppType.values().associate { it to appService.getAppType(it.fqn) }
     val appConfigs: IMap<AppConfigKey, AppTypeSetting> = HazelcastMap.APP_CONFIGS.getMap(hazelcast)
-    val propertyTypesByAppType = typesByFqn.values.associate { it.id to edmManager.getPropertyTypesOfEntityType(it.entityTypeId) }
+    val propertyTypesByAppType = typesByFqn.values.associate {
+        it.id to edmManager.getPropertyTypesOfEntityType(
+                it.entityTypeId
+        )
+    }
     val propertyTypesByFqn = propertyTypesByAppType.values.flatMap { it.values }.associate { it.type to it.id }
 
     val textingExecutor = Executors.newSingleThreadExecutor()
@@ -70,25 +82,41 @@ class CodexService(
 
     val textingExecutorWorker = textingExecutor.execute {
         Stream.generate { twilioQueue.take() }.forEach { (organizationId, messageEntitySetId, messageContents, toPhoneNumber, senderId) ->
-            //Not very efficient.
-            val phone = organizations.getOrganization(organizationId)!!.smsEntitySetInfo
-                    .flatMap { (phoneNumber, _, entitySetIds, _) -> entitySetIds.map { it to phoneNumber } }
-                    .toMap()
-                    .getValue(messageEntitySetId)
 
-            if (phone == "") {
-                throw BadRequestException("No source phone number set for organization!")
+            try {
+                //Not very efficient.
+                val phone = organizations.getOrganization(organizationId)!!.smsEntitySetInfo
+                        .flatMap { (phoneNumber, _, entitySetIds, _) -> entitySetIds.map { it to phoneNumber } }
+                        .toMap()
+                        .getValue(messageEntitySetId)
+
+                if (phone == "") {
+                    throw BadRequestException("No source phone number set for organization!")
+                }
+                val message = Message.creator(PhoneNumber(toPhoneNumber), PhoneNumber(phone), messageContents)
+                        .setStatusCallback(
+                                URI.create(
+                                        "http://872b905d.ngrok.io${CodexApi.BASE}${CodexApi.INCOMING}/$organizationId${CodexApi.STATUS}"
+                                )
+                        ).create()
+                processOutgoingMessage(message, organizationId, senderId)
+            } catch (e: Exception) {
+                logger.error(
+                        "Unable to send outgoing message to phone number $toPhoneNumber in entity set $messageEntitySetId for organization $organizationId",
+                        e
+                )
             }
-            val message = Message.creator(PhoneNumber(toPhoneNumber), PhoneNumber(phone), messageContents)
-                    .setStatusCallback(URI.create("https://api.openlattice.com${CodexApi.BASE}${CodexApi.INCOMING}/$organizationId${CodexApi.STATUS}")).create()
-            processOutgoingMessage(message, organizationId, senderId!!)
         }
     }
 
     val fromPhone = PhoneNumber(twilioConfiguration.shortCode)
     val feedsExecutorWorker = feedsExecutor.execute {
         Stream.generate { feedsQueue.take() }.forEach { (messageContents, toPhoneNumber) ->
-            Message.creator(PhoneNumber(toPhoneNumber), fromPhone, messageContents).create()
+            try {
+                Message.creator(PhoneNumber(toPhoneNumber), fromPhone, messageContents).create()
+            } catch (e: Exception) {
+                logger.error("Unable to send outgoing feed update message to phone number $toPhoneNumber", e)
+            }
         }
     }
 
@@ -103,7 +131,9 @@ class CodexService(
         /* create entities */
 
         val contactEDK = getContactEntityDataKey(organizationId, phoneNumber)
-        val messageEDK = getMessageEntityDataKey(organizationId, dateTime, messageId, text, isOutgoing = true)
+        val messageEDK = getMessageEntityDataKey(
+                organizationId, dateTime, messageId, text, isOutgoing = true, media = emptySet()
+        )
 
         /* create associations */
 
@@ -118,9 +148,11 @@ class CodexService(
         associations.put(sentToEntitySetId, DataEdge(messageEDK, contactEDK, associationEntity))
         associations.put(sentFromEntitySetId, DataEdge(messageEDK, senderEDK, associationEntity))
 
-        dataGraphManager.createAssociations(associations, mapOf(
+        dataGraphManager.createAssociations(
+                associations, mapOf(
                 sentToEntitySetId to getPropertyTypes(CodexConstants.AppType.SENT_TO),
-                sentFromEntitySetId to getPropertyTypes(CodexConstants.AppType.SENT_FROM))
+                sentFromEntitySetId to getPropertyTypes(CodexConstants.AppType.SENT_FROM)
+        )
         )
     }
 
@@ -130,11 +162,28 @@ class CodexService(
         val phoneNumber = request.getParameter(CodexConstants.Request.FROM.parameter)
         val text = request.getParameter(CodexConstants.Request.BODY.parameter)
         val dateTime = OffsetDateTime.now()
+        val numMedia = request.getParameter(CodexConstants.Request.NUM_MEDIA.parameter).toInt()
+
+        val finalMedia = Sets.newLinkedHashSetWithExpectedSize<Map<String, String>>(numMedia)
+
+        if (numMedia > 0) {
+            val maybeImages = Lists.newArrayListWithExpectedSize<Pair<String, ListenableFuture<String>>>(numMedia)
+            for (i in 0 until numMedia) {
+                val mediaUrl = request.getParameter("${CodexConstants.Request.MEDIA_URL_PREFIX.parameter}$i")
+                val mediaType = request.getParameter("${CodexConstants.Request.MEDIA_TYPE_PREFIX.parameter}$i")
+                maybeImages.add(mediaType to retrieveMediaAsBaseSixtyFour(mediaUrl))
+            }
+            maybeImages.forEach {
+                finalMedia.add(mapOf("content-type" to it.first, "data" to it.second.get()))
+            }
+        }
 
         /* create entities */
 
         val contactEDK = getContactEntityDataKey(organizationId, phoneNumber)
-        val messageEDK = getMessageEntityDataKey(organizationId, dateTime, messageId, text, isOutgoing = false)
+        val messageEDK = getMessageEntityDataKey(
+                organizationId, dateTime, messageId, text, isOutgoing = false, media = finalMedia
+        )
 
         /* create associations */
 
@@ -142,9 +191,22 @@ class CodexService(
 
         val edgeEntitySetId = getEntitySetId(organizationId, CodexConstants.AppType.SENT_FROM)
 
-        associations.put(edgeEntitySetId, DataEdge(messageEDK, contactEDK, mapOf(getPropertyTypeId(CodexConstants.PropertyType.DATE_TIME) to setOf(dateTime))))
+        associations.put(
+                edgeEntitySetId, DataEdge(
+                messageEDK, contactEDK,
+                mapOf(getPropertyTypeId(CodexConstants.PropertyType.DATE_TIME) to setOf(dateTime))
+        )
+        )
 
-        dataGraphManager.createAssociations(associations, mapOf(edgeEntitySetId to getPropertyTypes(CodexConstants.AppType.SENT_FROM)))
+        dataGraphManager.createAssociations(
+                associations, mapOf(edgeEntitySetId to getPropertyTypes(CodexConstants.AppType.SENT_FROM))
+        )
+    }
+
+    fun retrieveMediaAsBaseSixtyFour(mediaUrl: String): ListenableFuture<String> {
+        return executor.submit(Callable {
+            encoder.encodeToString(URL(mediaUrl).readBytes())
+        })
     }
 
     fun updateMessageStatus(organizationId: UUID, messageId: String, status: Message.Status) {
@@ -161,7 +223,13 @@ class CodexService(
 
         dataGraphManager.partialReplaceEntities(
                 messageEntitySetId,
-                mapOf(messageEntityKeyId to mapOf(getPropertyTypeId(CodexConstants.PropertyType.WAS_DELIVERED) to setOf(wasDelivered))),
+                mapOf(
+                        messageEntityKeyId to mutableMapOf(
+                                getPropertyTypeId(CodexConstants.PropertyType.WAS_DELIVERED) to mutableSetOf(
+                                        wasDelivered
+                                )
+                        )
+                ),
                 getPropertyTypes(CodexConstants.AppType.MESSAGES)
         )
     }
@@ -183,13 +251,21 @@ class CodexService(
         return EntityDataKey(entitySetId, entityKeyId)
     }
 
-    private fun getMessageEntityDataKey(organizationId: UUID, dateTime: OffsetDateTime, messageId: String, text: String, isOutgoing: Boolean): EntityDataKey {
+    private fun getMessageEntityDataKey(
+            organizationId: UUID,
+            dateTime: OffsetDateTime,
+            messageId: String,
+            text: String,
+            isOutgoing: Boolean,
+            media: Set<Map<String, String>>
+    ): EntityDataKey {
 
         val entity = mutableMapOf(
                 getPropertyTypeId(CodexConstants.PropertyType.ID) to mutableSetOf<Any>(messageId),
                 getPropertyTypeId(CodexConstants.PropertyType.DATE_TIME) to mutableSetOf<Any>(dateTime),
                 getPropertyTypeId(CodexConstants.PropertyType.TEXT) to mutableSetOf<Any>(text),
-                getPropertyTypeId(CodexConstants.PropertyType.IS_OUTGOING) to mutableSetOf<Any>(isOutgoing)
+                getPropertyTypeId(CodexConstants.PropertyType.IS_OUTGOING) to mutableSetOf<Any>(isOutgoing),
+                getPropertyTypeId(CodexConstants.PropertyType.IMAGE_DATA) to media.toMutableSet<Any>()
         )
         val entitySetId = getEntitySetId(organizationId, CodexConstants.AppType.MESSAGES)
         val entityKeyId = entityKeyIdService.getEntityKeyId(entitySetId, messageId)
@@ -212,7 +288,9 @@ class CodexService(
         val entitySetId = getEntitySetId(organizationId, CodexConstants.AppType.PEOPLE)
         val entityKeyId = entityKeyIdService.getEntityKeyId(entitySetId, user.id)
 
-        dataGraphManager.mergeEntities(entitySetId, mapOf(entityKeyId to entity), getPropertyTypes(CodexConstants.AppType.PEOPLE))
+        dataGraphManager.mergeEntities(
+                entitySetId, mapOf(entityKeyId to entity), getPropertyTypes(CodexConstants.AppType.PEOPLE)
+        )
 
         return EntityDataKey(entitySetId, entityKeyId)
     }
@@ -235,6 +313,5 @@ class CodexService(
     private fun getPropertyTypeId(property: CodexConstants.PropertyType): UUID {
         return propertyTypesByFqn.getValue(property.fqn)
     }
-
 
 }

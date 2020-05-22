@@ -19,19 +19,15 @@
  *
  */
 
-package com.openlattice.analysis
+package com.openlattice.datastore.services
 
 import com.google.common.collect.Sets
 import com.openlattice.analysis.requests.NeighborType
 import com.openlattice.authorization.*
 import com.openlattice.data.DataGraphManager
-import com.openlattice.datastore.services.EdmManager
-import com.openlattice.datastore.services.EntitySetManager
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings
-import org.slf4j.LoggerFactory
 import java.util.*
 import java.util.stream.Collectors
-import javax.inject.Inject
 
 /**
  *
@@ -41,21 +37,12 @@ import javax.inject.Inject
         value = ["RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE", "BC_BAD_CAST_TO_ABSTRACT_COLLECTION"],
         justification = "Allowing redundant kotlin null check on lateinit variables, " +
                 "Allowing kotlin collection mapping cast to List")
-class AnalysisService : AuthorizingComponent {
-    private val logger = LoggerFactory.getLogger(AnalysisService::class.java)
-
-    @Inject
-    private lateinit var dgm: DataGraphManager
-
-    @Inject
-    private lateinit var authorizations: AuthorizationManager
-
-    @Inject
-    private lateinit var edmManager: EdmManager
-
-    @Inject
-    private lateinit var entitySetManager: EntitySetManager
-
+class AnalysisService(
+        val dgm: DataGraphManager,
+        val authorizations: AuthorizationManager,
+        val edmManager: EdmManager,
+        val entitySetManager: EntitySetManager
+) : AuthorizingComponent {
 
     fun getNeighborTypes(entitySetIds: Set<UUID>): Iterable<NeighborType> {
         val neighborEntitySets = dgm.getNeighborEntitySets(entitySetIds)

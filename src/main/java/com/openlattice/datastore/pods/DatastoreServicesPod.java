@@ -20,8 +20,6 @@
 
 package com.openlattice.datastore.pods;
 
-import static com.openlattice.datastore.util.Util.returnAndLog;
-
 import com.auth0.client.mgmt.ManagementAPI;
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.health.HealthCheckRegistry;
@@ -33,7 +31,6 @@ import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.maps.GeoApiContext;
 import com.hazelcast.core.HazelcastInstance;
 import com.kryptnostic.rhizome.configuration.ConfigurationConstants;
-import com.openlattice.analysis.AnalysisService;
 import com.openlattice.assembler.Assembler;
 import com.openlattice.assembler.AssemblerConfiguration;
 import com.openlattice.assembler.AssemblerConnectionManager;
@@ -86,6 +83,7 @@ import com.openlattice.data.storage.partitions.PartitionManager;
 import com.openlattice.datastore.apps.services.AppService;
 import com.openlattice.datastore.configuration.DatastoreConfiguration;
 import com.openlattice.datastore.configuration.ReadonlyDatasourceSupplier;
+import com.openlattice.datastore.services.AnalysisService;
 import com.openlattice.datastore.services.DatastoreElasticsearchImpl;
 import com.openlattice.datastore.services.EdmManager;
 import com.openlattice.datastore.services.EdmService;
@@ -130,8 +128,6 @@ import com.openlattice.twilio.pods.TwilioConfigurationPod;
 import com.openlattice.users.Auth0SyncService;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
-import javax.annotation.PostConstruct;
-import javax.inject.Inject;
 import org.jdbi.v3.core.Jdbi;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -139,6 +135,11 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Profile;
+
+import javax.annotation.PostConstruct;
+import javax.inject.Inject;
+
+import static com.openlattice.datastore.util.Util.returnAndLog;
 
 @Configuration
 @Import( {
@@ -315,7 +316,15 @@ public class DatastoreServicesPod {
 
     @Bean
     public EntityDatastore entityDatastore() {
-        return new PostgresEntityDatastore( dataQueryService(), pgEdmManager(), entitySetManager(), metricRegistry );
+        return new PostgresEntityDatastore(
+                dataQueryService(),
+                pgEdmManager(),
+                entitySetManager(),
+                metricRegistry,
+                eventBus,
+                postgresLinkingFeedbackQueryService(),
+                lqs()
+        );
     }
 
     @Bean
@@ -396,13 +405,13 @@ public class DatastoreServicesPod {
     }
 
     @Bean
-    public AnalysisService analysisService() {
-        return new AnalysisService();
-    }
-
-    @Bean
     public GraphService graphApi() {
-        return new Graph( hikariDataSource, rds().getReadOnlyReplica(), entitySetManager(), partitionManager() );
+        return new Graph( hikariDataSource,
+                rds().getReadOnlyReplica(),
+                entitySetManager(),
+                partitionManager(),
+                dataQueryService(),
+                metricRegistry );
     }
 
     @Bean
@@ -492,7 +501,6 @@ public class DatastoreServicesPod {
 
     @Bean
     public PostgresEntityDataQueryService dataQueryService() {
-
         return new PostgresEntityDataQueryService(
                 hikariDataSource,
                 rds().getReadOnlyReplica(),
@@ -633,13 +641,22 @@ public class DatastoreServicesPod {
                 idService(),
                 principalService(),
                 organizationsManager(),
-                executor
+                executor,
+                hikariDataSource
         );
     }
 
     @Bean
     public GeoApiContext geoApiContext() {
         return new GeoApiContext.Builder().apiKey( datastoreConfiguration.getGoogleMapsApiKey() ).build();
+    }
+
+    @Bean
+    public AnalysisService analysisService() {
+        return new AnalysisService( dataGraphService(),
+                authorizationManager(),
+                dataModelService(),
+                entitySetManager() );
     }
 
     @PostConstruct

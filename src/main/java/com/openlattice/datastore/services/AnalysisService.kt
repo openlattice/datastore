@@ -54,9 +54,11 @@ class AnalysisService(
     fun getAuthorizedNeighbors(entitySetIds: Set<UUID>): Map<UUID, Map<UUID, PropertyType>> {
         val neighborEntitySets = dgm.getNeighborEntitySets(entitySetIds)
 
-        val allEntitySetIds = neighborEntitySets.asSequence()
+        var allEntitySetIds = neighborEntitySets.asSequence()
                 .flatMap { sequenceOf(it.srcEntitySetId, it.edgeEntitySetId, it.dstEntitySetId) }
                 .toSet()
+
+        allEntitySetIds = entitySetManager.getEntitySetsAsMap(allEntitySetIds).keys // this is a hack to remove deleted entity sets that are present in non-tombstoned edges
         return authzHelper.getAuthorizedPropertiesOnEntitySets(
                 allEntitySetIds,
                 EnumSet.of(Permission.READ),

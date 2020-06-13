@@ -20,9 +20,9 @@
 
 package com.openlattice.datastore.apps.services;
 
+import com.codahale.metrics.annotation.Timed;
 import com.dataloom.streams.StreamUtil;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -41,8 +41,17 @@ import com.openlattice.apps.processors.UpdateAppConfigEntitySetProcessor;
 import com.openlattice.apps.processors.UpdateAppConfigPermissionsProcessor;
 import com.openlattice.apps.processors.UpdateAppMetadataProcessor;
 import com.openlattice.apps.processors.UpdateAppTypeMetadataProcessor;
-import com.openlattice.authorization.*;
-import com.openlattice.authorization.util.AuthorizationUtils;
+import com.openlattice.authorization.AccessCheck;
+import com.openlattice.authorization.AclKey;
+import com.openlattice.authorization.AuthorizationManager;
+import com.openlattice.authorization.AuthorizationQueryService;
+import com.openlattice.authorization.HazelcastAclKeyReservationService;
+import com.openlattice.authorization.Permission;
+import com.openlattice.authorization.Principal;
+import com.openlattice.authorization.PrincipalType;
+import com.openlattice.authorization.Principals;
+import com.openlattice.authorization.SecurablePrincipal;
+import com.openlattice.authorization.util.AuthorizationUtilsKt;
 import com.openlattice.controllers.exceptions.BadRequestException;
 import com.openlattice.datastore.services.EdmManager;
 import com.openlattice.datastore.services.EntitySetManager;
@@ -60,12 +69,8 @@ import com.openlattice.organizations.HazelcastOrganizationService;
 import com.openlattice.organizations.Organization;
 import com.openlattice.organizations.roles.SecurePrincipalsManager;
 import com.openlattice.postgres.mapstores.AppConfigMapstore;
-import java.util.HashSet;
-import org.apache.olingo.commons.api.edm.FullQualifiedName;
-
-import javax.inject.Inject;
 import java.util.EnumSet;
-import java.util.LinkedHashSet;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -74,6 +79,8 @@ import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import javax.inject.Inject;
+import org.apache.olingo.commons.api.edm.FullQualifiedName;
 
 public class AppService {
     private final IMap<UUID, App>                    apps;
@@ -282,6 +289,7 @@ public class AppService {
         return appTypes.getAll( appTypeIds );
     }
 
+    @Timed
     public List<AppConfig> getAvailableConfigs(
             UUID appId,
             Set<Principal> principals,
@@ -290,36 +298,48 @@ public class AppService {
         List<AppConfig> availableConfigs = Lists.newArrayList();
         App app = apps.get( appId );
 
+        Map<UUID, String> appTypeFQNSById = Maps.newHashMapWithExpectedSize( app.getAppTypeIds().size() );
+        appTypes.getAll( app.getAppTypeIds() ).values().forEach( appType ->
+                appTypeFQNSById.put( appType.getId(), appType.getType().getFullQualifiedNameAsString() )
+        );
+
         Map<UUID, Organization> orgsById = StreamUtil.stream( organizations )
                 .collect( Collectors.toMap( Organization::getId, Function.identity() ) );
+        int numKeys = orgsById.size() * app.getAppTypeIds().size();
 
-        Map<UUID, Map<AppConfigKey, AppTypeSetting>> orgsToSettings = orgsById
-                .keySet()
-                .stream()
-                .filter( orgId -> organizationService.getOrganizationApps( orgId ).contains( appId ) )
-                .collect( Collectors
-                        .toMap( Function.identity(), orgId -> appConfigs.getAll(
-                                app.getAppTypeIds()
-                                        .stream()
-                                        .map( id -> new AppConfigKey( appId, orgId, id ) )
-                                        .collect( Collectors.toSet() )
-                        ) ) );
+        Set<AppConfigKey> keysToLoad = Sets.newHashSetWithExpectedSize( numKeys );
+        orgsById.keySet().forEach( organizationId ->
+                app.getAppTypeIds().forEach( appTypeId ->
+                        keysToLoad.add( new AppConfigKey( appId, organizationId, appTypeId ) )
+                )
+        );
 
-        Set<AccessCheck> accessChecks = orgsToSettings.values().stream().flatMap( map -> map.values().stream() )
-                .map( setting -> new AccessCheck( new AclKey( setting.getEntitySetId() ),
-                        setting.getPermissions() ) ).collect( Collectors.toSet() );
+        Map<UUID, Map<AppConfigKey, AppTypeSetting>> orgsToSettings = Maps.newHashMapWithExpectedSize( numKeys );
+        Set<AccessCheck> accessChecks = Sets.newHashSetWithExpectedSize( numKeys );
+        Set<Principal> allAppPrincipals = Sets.newHashSetWithExpectedSize( orgsById.size() );
 
-        Set<Principal> allAppPrincipals = orgsToSettings.keySet().stream()
-                .map( orgId -> new Principal( PrincipalType.APP,
-                        AppConfig.getAppPrincipalId( app.getId(), orgId ) ) ).collect( Collectors.toSet() );
+        appConfigs.getAll( keysToLoad ).forEach( ( key, value ) -> {
+            UUID orgId = key.getOrganizationId();
+
+            if ( !orgsToSettings.containsKey( orgId ) ) {
+                orgsToSettings.put( orgId, Maps.newHashMapWithExpectedSize( app.getAppTypeIds().size() ) );
+                allAppPrincipals
+                        .add( new Principal( PrincipalType.APP, AppConfig.getAppPrincipalId( app.getId(), orgId ) ) );
+            }
+
+            orgsToSettings.get( orgId ).put( key, value );
+            accessChecks.add( new AccessCheck( new AclKey( value.getEntitySetId() ), value.getPermissions() ) );
+        } );
 
         Map<UUID, Boolean> entitySetIsAuthorized = Maps.newHashMap();
 
         // User permissions and app permissions must be evaluated separately, since both must have permissions
-        Stream.concat( authorizationService.accessChecksForPrincipals( accessChecks, principals ),
-                authorizationService.accessChecksForPrincipals( accessChecks, allAppPrincipals ) )
+        Stream.concat(
+                authorizationService.accessChecksForPrincipals( accessChecks, principals ),
+                authorizationService.accessChecksForPrincipals( accessChecks, allAppPrincipals )
+        )
                 .forEach( authorization -> {
-                    UUID entitySetId = AuthorizationUtils.getLastAclKeySafely( authorization.getAclKey() );
+                    UUID entitySetId = AuthorizationUtilsKt.getLastAclKeySafely( authorization.getAclKey() );
                     boolean isAuthorized = !authorization.getPermissions().containsValue( false );
 
                     if ( !isAuthorized ) {
@@ -339,8 +359,8 @@ public class AppService {
         } ).forEach( entry -> {
             Map<String, AppTypeSetting> config = entry.getValue().entrySet().stream()
                     .collect( Collectors
-                            .toMap( settingEntry -> appTypes.get( settingEntry.getKey().getAppTypeId() ).getType()
-                                    .getFullQualifiedNameAsString(), Map.Entry::getValue ) );
+                            .toMap( settingEntry -> appTypeFQNSById.get( settingEntry.getKey().getAppTypeId() ),
+                                    Map.Entry::getValue ) );
             AppConfig appConfig = new AppConfig( Optional.of( app.getId() ),
                     new Principal( PrincipalType.APP,
                             AppConfig.getAppPrincipalId( app.getId(), entry.getKey() ) ),

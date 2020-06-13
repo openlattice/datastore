@@ -73,7 +73,10 @@ class CodexService(
     }
 
     init {
-        Twilio.init(twilioConfiguration.sid, twilioConfiguration.token)
+
+        if (twilioConfiguration.isCodexEnabled) {
+            Twilio.init(twilioConfiguration.sid, twilioConfiguration.token)
+        }
     }
 
     val appId = appService.getApp(CodexConstants.APP_NAME).id
@@ -97,6 +100,11 @@ class CodexService(
     val feedsQueue = HazelcastQueue.TWILIO_FEED.getQueue(hazelcast)
 
     val textingExecutorWorker = textingExecutor.execute {
+
+        if (!twilioConfiguration.isCodexEnabled) {
+            return@execute
+        }
+
         Stream.generate { twilioQueue.take() }.forEach { (organizationId, messageEntitySetId, messageContents, toPhoneNumbers, senderId, attachment) ->
 
             try {
@@ -136,6 +144,11 @@ class CodexService(
 
     val fromPhone = PhoneNumber(twilioConfiguration.shortCode)
     val feedsExecutorWorker = feedsExecutor.execute {
+
+        if (!twilioConfiguration.isCodexEnabled) {
+            return@execute
+        }
+
         Stream.generate { feedsQueue.take() }.forEach { (messageContents, toPhoneNumber) ->
             try {
                 Message.creator(PhoneNumber(toPhoneNumber), fromPhone, messageContents).create()

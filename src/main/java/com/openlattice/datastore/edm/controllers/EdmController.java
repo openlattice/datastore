@@ -112,7 +112,7 @@ public class EdmController implements EdmApi, AuthorizingComponent, AuditingComp
 
     @Inject
     private EdmAuthorizationHelper authzHelper;
-    
+
     @Inject
     private SecurePrincipalsManager spm;
 

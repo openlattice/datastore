@@ -453,8 +453,8 @@ public class DatastoreServicesPod {
                 conductorElasticsearchApi(),
                 dataModelService(),
                 entitySetManager(),
+                dataGraphService(),
                 graphApi(),
-                entityDatastore(),
                 indexingMetadataManager()
         );
     }

@@ -308,7 +308,7 @@ class CodexService(
                 mapOf(
                         messageEntityKeyId to mutableMapOf(
                                 getPropertyTypeId(CodexConstants.PropertyType.WAS_DELIVERED) to mutableSetOf(
-                                        wasDelivered
+                                        wasDelivered as Any //kotlinc weirdness
                                 )
                         )
                 ),

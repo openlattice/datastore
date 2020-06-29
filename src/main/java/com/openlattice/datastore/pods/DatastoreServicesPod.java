@@ -426,7 +426,7 @@ public class DatastoreServicesPod {
 
     @Bean
     public DbCredentialService dcs() {
-        return new DbCredentialService( hazelcastInstance, pgUserApi() );
+        return new DbCredentialService( hazelcastInstance );
     }
 
     @Bean

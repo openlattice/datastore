@@ -22,24 +22,33 @@ package com.openlattice.datastore.edm.controllers;
 
 import com.auth0.spring.security.api.authentication.PreAuthenticatedAuthenticationJsonWebToken;
 import com.codahale.metrics.annotation.Timed;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
-import com.openlattice.auditing.*;
-import com.openlattice.authorization.*;
+import com.openlattice.auditing.AuditEventType;
+import com.openlattice.auditing.AuditableEvent;
+import com.openlattice.auditing.AuditingComponent;
+import com.openlattice.auditing.AuditingManager;
+import com.openlattice.authorization.AclKey;
+import com.openlattice.authorization.AuthorizationManager;
+import com.openlattice.authorization.AuthorizingComponent;
+import com.openlattice.authorization.EdmAuthorizationHelper;
+import com.openlattice.authorization.Permission;
 import com.openlattice.authorization.securable.SecurableObjectType;
 import com.openlattice.controllers.exceptions.BadRequestException;
-import com.openlattice.controllers.exceptions.ForbiddenException;
-import com.openlattice.data.DataGraphManager;
 import com.openlattice.data.PropertyUsageSummary;
 import com.openlattice.data.requests.FileType;
-import com.openlattice.data.storage.EntityDatastore;
 import com.openlattice.datastore.services.EdmManager;
 import com.openlattice.datastore.services.EntitySetManager;
-import com.openlattice.edm.*;
+import com.openlattice.edm.EdmApi;
+import com.openlattice.edm.EdmDetails;
+import com.openlattice.edm.EntityDataModel;
+import com.openlattice.edm.EntityDataModelDiff;
+import com.openlattice.edm.EntitySet;
+import com.openlattice.edm.PostgresEdmManager;
+import com.openlattice.edm.Schema;
 import com.openlattice.edm.requests.EdmDetailsSelector;
 import com.openlattice.edm.requests.EdmRequest;
 import com.openlattice.edm.requests.MetadataUpdate;
@@ -51,24 +60,33 @@ import com.openlattice.edm.type.EntityTypePropertyMetadata;
 import com.openlattice.edm.type.PropertyType;
 import com.openlattice.organizations.roles.SecurePrincipalsManager;
 import com.openlattice.web.mediatypes.CustomMediaType;
+import java.time.OffsetDateTime;
+import java.util.EnumSet;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
+import java.util.stream.Collectors;
+import javax.inject.Inject;
+import javax.servlet.http.HttpServletResponse;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.olingo.commons.api.edm.FullQualifiedName;
 import org.jetbrains.annotations.NotNull;
-import org.springframework.core.env.Environment;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.web.bind.annotation.*;
-
-import javax.inject.Inject;
-import javax.servlet.http.HttpServletResponse;
-import java.time.OffsetDateTime;
-import java.util.*;
-import java.util.stream.Collectors;
-
-import static com.kryptnostic.rhizome.configuration.ConfigurationConstants.Environments.TEST_PROFILE;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping( EdmApi.CONTROLLER )
@@ -87,47 +105,19 @@ public class EdmController implements EdmApi, AuthorizingComponent, AuditingComp
     private AuthorizationManager authorizations;
 
     @Inject
-    private PostgresEdmManager edmManager;
-
-    @Inject
-    private SecurableObjectResolveTypeService securableObjectTypes;
+    private PostgresEdmManager postgresEdmManager;
 
     @Inject
     private AuthenticationManager authenticationManager;
 
     @Inject
     private EdmAuthorizationHelper authzHelper;
-
-    @Inject
-    private DataGraphManager dgm;
-
-    @Inject
-    private Environment env;
-
+    
     @Inject
     private SecurePrincipalsManager spm;
 
     @Inject
-    private ObjectMapper mapper;
-
-    @Inject
-    private AuditRecordEntitySetsManager auditRecordEntitySetsManager;
-
-    @Inject
     private AuditingManager auditingManager;
-
-    @RequestMapping(
-            path = CLEAR_PATH,
-            method = RequestMethod.DELETE )
-    @ResponseStatus( HttpStatus.OK )
-    public void clearAllData() {
-        if ( !env.acceptsProfiles( TEST_PROFILE ) ) {
-            throw new ForbiddenException(
-                    "Clearing all entity set tables is only allowed in " + TEST_PROFILE + " environment" );
-        }
-        ensureAdminAccess();
-        modelService.clearTables();
-    }
 
     @Timed
     @RequestMapping(
@@ -308,12 +298,8 @@ public class EdmController implements EdmApi, AuthorizingComponent, AuditingComp
     public Schema getSchemaContentsFormatted(
             @PathVariable( NAMESPACE ) String namespace,
             @PathVariable( NAME ) String name,
-            @RequestParam(
-                    value = FILE_TYPE,
-                    required = true ) FileType fileType,
-            @RequestParam(
-                    value = TOKEN,
-                    required = false ) String token,
+            @RequestParam( value = FILE_TYPE ) FileType fileType,
+            @RequestParam( value = TOKEN, required = false ) String token,
             HttpServletResponse response ) {
         setContentDisposition( response, namespace + "." + name, fileType );
         setDownloadContentType( response, fileType );
@@ -380,7 +366,7 @@ public class EdmController implements EdmApi, AuthorizingComponent, AuditingComp
         Map<UUID, Iterable<PropertyUsageSummary>> allPropertySummaries = Maps
                 .newHashMapWithExpectedSize( propertyTypeIds.size() );
         for ( UUID propertyTypeId : propertyTypeIds ) {
-            allPropertySummaries.put( propertyTypeId, modelService.getPropertyUsageSummary( propertyTypeId ) );
+            allPropertySummaries.put( propertyTypeId, postgresEdmManager.getPropertyUsageSummary( propertyTypeId ) );
         }
         return allPropertySummaries;
     }
@@ -392,7 +378,7 @@ public class EdmController implements EdmApi, AuthorizingComponent, AuditingComp
             method = RequestMethod.GET )
     public Iterable<PropertyUsageSummary> getPropertyUsageSummary( @PathVariable( ID ) UUID propertyTypeId ) {
         ensureAdminAccess();
-        return modelService.getPropertyUsageSummary( propertyTypeId );
+        return postgresEdmManager.getPropertyUsageSummary( propertyTypeId );
     }
 
     @Timed
@@ -479,11 +465,7 @@ public class EdmController implements EdmApi, AuthorizingComponent, AuditingComp
             method = RequestMethod.GET,
             produces = MediaType.APPLICATION_JSON_VALUE )
     public Iterable<EntityType> getEntityTypes() {
-        return modelService.getEntityTypes()::iterator;
-    }
-
-    public Iterable<EntityType> getEntityTypesStrict() {
-        return modelService.getEntityTypesStrict()::iterator;
+        return modelService.getEntityTypes();
     }
 
     @Timed
@@ -493,7 +475,7 @@ public class EdmController implements EdmApi, AuthorizingComponent, AuditingComp
             method = RequestMethod.GET,
             produces = MediaType.APPLICATION_JSON_VALUE )
     public Iterable<EntityType> getAssociationEntityTypes() {
-        return modelService.getAssociationEntityTypes()::iterator;
+        return modelService.getAssociationEntityTypes();
     }
 
     @Timed
@@ -503,7 +485,7 @@ public class EdmController implements EdmApi, AuthorizingComponent, AuditingComp
             method = RequestMethod.GET,
             produces = MediaType.APPLICATION_JSON_VALUE )
     public Iterable<AssociationType> getAssociationTypes() {
-        return modelService.getAssociationTypes()::iterator;
+        return modelService.getAssociationTypes();
     }
 
     @Override
@@ -695,7 +677,7 @@ public class EdmController implements EdmApi, AuthorizingComponent, AuditingComp
             produces = MediaType.APPLICATION_JSON_VALUE )
     @ResponseStatus( HttpStatus.OK )
     public Iterable<PropertyType> getPropertyTypes() {
-        return modelService.getPropertyTypes()::iterator;
+        return modelService.getPropertyTypes();
     }
 
     @Timed

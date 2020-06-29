@@ -20,6 +20,8 @@
 
 package com.openlattice.datastore.pods;
 
+import static com.openlattice.datastore.util.Util.returnAndLog;
+
 import com.auth0.client.mgmt.ManagementAPI;
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.health.HealthCheckRegistry;
@@ -47,7 +49,15 @@ import com.openlattice.auditing.S3AuditingService;
 import com.openlattice.auth0.Auth0Pod;
 import com.openlattice.auth0.AwsAuth0TokenProvider;
 import com.openlattice.authentication.Auth0Configuration;
-import com.openlattice.authorization.*;
+import com.openlattice.authorization.AuthorizationManager;
+import com.openlattice.authorization.DbCredentialService;
+import com.openlattice.authorization.EdmAuthorizationHelper;
+import com.openlattice.authorization.HazelcastAclKeyReservationService;
+import com.openlattice.authorization.HazelcastAuthorizationService;
+import com.openlattice.authorization.HazelcastSecurableObjectResolveTypeService;
+import com.openlattice.authorization.PostgresUserApi;
+import com.openlattice.authorization.Principals;
+import com.openlattice.authorization.SecurableObjectResolveTypeService;
 import com.openlattice.authorization.mapstores.ResolvedPrincipalTreesMapLoader;
 import com.openlattice.authorization.mapstores.SecurablePrincipalsMapLoader;
 import com.openlattice.codex.CodexService;
@@ -60,7 +70,13 @@ import com.openlattice.data.EntityKeyIdService;
 import com.openlattice.data.graph.DataGraphServiceHelper;
 import com.openlattice.data.ids.PostgresEntityKeyIdService;
 import com.openlattice.data.serializers.FullQualifiedNameJacksonSerializer;
-import com.openlattice.data.storage.*;
+import com.openlattice.data.storage.ByteBlobDataManager;
+import com.openlattice.data.storage.DataDeletionService;
+import com.openlattice.data.storage.EntityDatastore;
+import com.openlattice.data.storage.IndexingMetadataManager;
+import com.openlattice.data.storage.PostgresEntityDataQueryService;
+import com.openlattice.data.storage.PostgresEntityDatastore;
+import com.openlattice.data.storage.PostgresEntitySetSizesTaskDependency;
 import com.openlattice.data.storage.aws.AwsDataSinkService;
 import com.openlattice.data.storage.partitions.PartitionManager;
 import com.openlattice.datastore.apps.services.AppService;
@@ -110,6 +126,8 @@ import com.openlattice.twilio.pods.TwilioConfigurationPod;
 import com.openlattice.users.Auth0SyncService;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
+import javax.annotation.PostConstruct;
+import javax.inject.Inject;
 import org.jdbi.v3.core.Jdbi;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -117,11 +135,6 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Profile;
-
-import javax.annotation.PostConstruct;
-import javax.inject.Inject;
-
-import static com.openlattice.datastore.util.Util.returnAndLog;
 
 @Configuration
 @Import( {
@@ -135,21 +148,28 @@ public class DatastoreServicesPod {
     private static final Logger logger = LoggerFactory.getLogger( DatastoreServicesPod.class );
 
     @Inject
-    private Jdbi                     jdbi;
+    private Jdbi jdbi;
+
     @Inject
-    private PostgresTableManager     tableManager;
+    private PostgresTableManager tableManager;
+
     @Inject
-    private HazelcastInstance        hazelcastInstance;
+    private HazelcastInstance hazelcastInstance;
+
     @Inject
-    private HikariDataSource         hikariDataSource;
+    private HikariDataSource hikariDataSource;
+
     @Inject
-    private Auth0Configuration       auth0Configuration;
+    private Auth0Configuration auth0Configuration;
+
     @Inject
-    private AuditingConfiguration    auditingConfiguration;
+    private AuditingConfiguration auditingConfiguration;
+
     @Inject
     private ListeningExecutorService executor;
+
     @Inject
-    private EventBus                 eventBus;
+    private EventBus eventBus;
 
     @Inject
     private DatastoreConfiguration datastoreConfiguration;
@@ -181,17 +201,12 @@ public class DatastoreServicesPod {
     @Inject
     private ResolvedPrincipalTreesMapLoader rptml;
 
+    @Inject
+    private ObjectMapper mapper;
+
     @Bean
     public PostgresUserApi pgUserApi() {
         return jdbi.onDemand( PostgresUserApi.class );
-    }
-
-    @Bean
-    public ObjectMapper defaultObjectMapper() {
-        ObjectMapper mapper = ObjectMappers.getJsonMapper();
-        FullQualifiedNameJacksonSerializer.registerWithMapper( mapper );
-
-        return mapper;
     }
 
     @Bean
@@ -213,7 +228,7 @@ public class DatastoreServicesPod {
     public SubscriptionService subscriptionService() {
         return new PostgresSubscriptionService(
                 hikariDataSource,
-                defaultObjectMapper()
+                mapper
         );
     }
 
@@ -551,13 +566,13 @@ public class DatastoreServicesPod {
     @Profile( { ConfigurationConstants.Profiles.AWS_CONFIGURATION_PROFILE,
             ConfigurationConstants.Profiles.AWS_TESTING_PROFILE, AuditingProfiles.LOCAL_AWS_AUDITING_PROFILE } )
     public AuditingManager s3AuditingService() {
-        return new S3AuditingService( auditingConfiguration, longIdService(), defaultObjectMapper() );
+        return new S3AuditingService( auditingConfiguration, longIdService(), mapper );
     }
 
     @Bean
     @Profile( AuditingProfiles.LOCAL_AUDITING_PROFILE )
     public AuditingManager localAuditingService() {
-        return new LocalAuditingService( dataGraphService(), auditRecordEntitySetsManager(), defaultObjectMapper() );
+        return new LocalAuditingService( dataGraphService(), auditRecordEntitySetsManager(), mapper );
     }
 
     @Bean

@@ -6,6 +6,7 @@ import com.google.common.collect.Sets
 import com.google.common.util.concurrent.ListenableFuture
 import com.google.common.util.concurrent.ListeningExecutorService
 import com.hazelcast.core.HazelcastInstance
+import com.hazelcast.map.IMap
 import com.openlattice.apps.AppConfigKey
 import com.openlattice.apps.AppTypeSetting
 import com.openlattice.client.serialization.SerializationConstants
@@ -84,13 +85,10 @@ class CodexService(
     val typesByFqn = CodexConstants.AppType.values().associate { it to appService.getAppType(it.fqn) }
     val scheduledTasks: IMap<UUID, ScheduledTask> = HazelcastMap.SCHEDULED_TASKS.getMap(hazelcast)
     val appConfigs: IMap<AppConfigKey, AppTypeSetting> = HazelcastMap.APP_CONFIGS.getMap(hazelcast)
-
     val codexMedia: IMap<UUID, Base64Media> = HazelcastMap.CODEX_MEDIA.getMap(hazelcast)
     val smsInformationMapstore = HazelcastMap.SMS_INFORMATION.getMap(hazelcast)
     val codexLocks = HazelcastMap.CODEX_LOCKS.getMap(hazelcast)
-    val propertyTypesByAppType = typesByFqn.values.associate {
-        it.id to edmManager.getPropertyTypesOfEntityType(it.entityTypeId)
-    }
+    val propertyTypesByAppType = typesByFqn.values.associate { it.id to edmManager.getPropertyTypesOfEntityType(it.entityTypeId) }
     val propertyTypesByFqn = propertyTypesByAppType.values.flatMap { it.values }.associate { it.type to it.id }
 
 
@@ -119,7 +117,6 @@ class CodexService(
                     throw BadRequestException("No source phone number set for organization!")
                 }
 
-
                 val callbackPath = "${twilioConfiguration.callbackBaseUrl}${CodexApi.BASE}${CodexApi.INCOMING}/$organizationId${CodexApi.STATUS}"
 
                 toPhoneNumbers.forEach { toPhoneNumber ->
@@ -134,6 +131,7 @@ class CodexService(
                     val message = messageCreator.create()
                     processOutgoingMessage(message, organizationId, senderId, attachment)
                 }
+
             } catch (e: Exception) {
                 logger.error(
                         "Unable to send outgoing message to phone numbers $toPhoneNumbers in entity set $messageEntitySetId for organization $organizationId",
@@ -236,17 +234,6 @@ class CodexService(
             Range.greaterThan(formattedDateTime)
         }
 
-        <<<<<<< HEAD
-        val sender = principalsManager.getUser(senderId)
-        val attachments = attatchment?.let {
-            setOf(
-                    mapOf(
-                            "content-type" to it.contentType,
-                            "data" to it.data
-                    )
-            )
-        } ?: emptySet()
-        ====== =
         var latestMessage = OffsetDateTime.MIN
 
         listOf(true, false).forEach { isOutgoing ->
@@ -268,23 +255,9 @@ class CodexService(
                 if (latestDateForPage.isAfter(latestMessage)) {
                     latestMessage = latestDateForPage
                 }
-                >>>>>>> develop
 
                 logger.info("Integrated page of ${page.records.size} messages.")
 
-                <<<<<<< HEAD
-                val contactEDK = getContactEntityDataKey(organizationId, phoneNumber)
-
-                val messageEDK = getMessageEntityDataKey(
-                        organizationId,
-                        dateTime,
-                        messageId,
-                        phoneNumber,
-                        text, isOutgoing = true,
-                        media = attachments
-                )
-
-                ====== =
                 if (page.hasNextPage()) {
                     page = messageReader.nextPage(page)
                 } else {
@@ -292,7 +265,6 @@ class CodexService(
                 }
             }
         }
-        >>>>>>> develop
 
         return latestMessage
     }
@@ -309,33 +281,35 @@ class CodexService(
         val messageEntityKey = EntityKey(messageEntitySetId, message.sid)
         val sentFromEntityKey = EntityKey(sentFromEntitySetId, message.sid)
 
-        val idsByEntityKey = entityKeyIdService.getEntityKeyIds(setOf(senderEntityKey, messageEntityKey, sentFromEntityKey))
-
-        <<<<<<< HEAD
-        dataGraphManager.createAssociations(
-                associations, mapOf(
-                sentToEntitySetId to getPropertyTypes(CodexConstants.AppType.SENT_TO),
-                sentFromEntitySetId to getPropertyTypes(CodexConstants.AppType.SENT_FROM)
-        )
-                === === =
-                dataGraphManager.createEntities(
-                        senderEntitySetId,
-                        listOf(getSenderEntity(sender)),
-                        getPropertyTypes(CodexConstants.AppType.PEOPLE)
-                                > > > > > > > develop
+        val idsByEntityKey = entityKeyIdService.getEntityKeyIds(
+                setOf(
+                        senderEntityKey,
+                        messageEntityKey,
+                        sentFromEntityKey
                 )
+        )
 
-                        dataGraphManager . createEntities (
-                        sentFromEntitySetId,
+        dataGraphManager.createEntities(
+                senderEntitySetId,
+                listOf(getSenderEntity(sender)),
+                getPropertyTypes(CodexConstants.AppType.PEOPLE)
+        )
+
+        dataGraphManager.createEntities(
+                sentFromEntitySetId,
                 listOf(getAssociationEntity(formatDateTime(message.dateCreated))),
                 getPropertyTypes(CodexConstants.AppType.SENT_FROM)
         )
 
-        dataGraphManager.createAssociations(setOf(DataEdgeKey(
-                EntityDataKey(messageEntitySetId, idsByEntityKey.getValue(messageEntityKey)),
-                EntityDataKey(senderEntitySetId, idsByEntityKey.getValue(senderEntityKey)),
-                EntityDataKey(sentFromEntitySetId, idsByEntityKey.getValue(sentFromEntityKey))
-        )))
+        dataGraphManager.createAssociations(
+                setOf(
+                        DataEdgeKey(
+                                EntityDataKey(messageEntitySetId, idsByEntityKey.getValue(messageEntityKey)),
+                                EntityDataKey(senderEntitySetId, idsByEntityKey.getValue(senderEntityKey)),
+                                EntityDataKey(sentFromEntitySetId, idsByEntityKey.getValue(sentFromEntityKey))
+                        )
+                )
+        )
 
         integrateMessages(organizationId, listOf(message), isOutgoing = true)
     }
@@ -348,7 +322,7 @@ class CodexService(
         val contactEntitySetId = getEntitySetId(organizationId, CodexConstants.AppType.CONTACT_INFO)
         val assocEntitySetId = getEntitySetId(organizationId, associationAppType)
 
-        val entitiesByEntityKey = mutableMapOf<EntityKey, Map<UUID, Set<Any>>>()
+        val entitiesByEntityKey = mutableMapOf<EntityKey, MutableMap<UUID, MutableSet<Any>>>()
         val edgesByEntityKey = mutableListOf<Triple<EntityKey, EntityKey, EntityKey>>()
 
         messages.forEach {
@@ -363,29 +337,18 @@ class CodexService(
             val associationEntityKey = EntityKey(assocEntitySetId, messageId)
             val contactEntityKey = EntityKey(contactEntitySetId, phoneNumber)
 
-            <<<<<<< HEAD
-            val contactEDK = getContactEntityDataKey(organizationId, phoneNumber)
-            val messageEDK = getMessageEntityDataKey(
-                    organizationId,
-                    dateTime,
-                    messageId,
-                    phoneNumber,
-                    text, isOutgoing = false,
-                    media = finalMedia
-            )
-
-            ====== =
             entitiesByEntityKey[messageEntityKey] = getMessageEntity(it, phoneNumber, dateTime, isOutgoing)
             entitiesByEntityKey[associationEntityKey] = getAssociationEntity(dateTime)
             entitiesByEntityKey[contactEntityKey] = getContactEntity(phoneNumber)
-            >>>>>>> develop
 
             edgesByEntityKey.add(Triple(messageEntityKey, associationEntityKey, contactEntityKey))
         }
 
         val idsByEntityKey = entityKeyIdService.getEntityKeyIds(entitiesByEntityKey.keys)
 
-        val allPropertyTypes = getPropertyTypes(CodexConstants.AppType.MESSAGES) + getPropertyTypes(associationAppType) + getPropertyTypes(CodexConstants.AppType.CONTACT_INFO)
+        val allPropertyTypes = getPropertyTypes(CodexConstants.AppType.MESSAGES) + getPropertyTypes(associationAppType) + getPropertyTypes(
+                CodexConstants.AppType.CONTACT_INFO
+        )
 
         entitiesByEntityKey.entries.groupBy { it.key.entitySetId }.mapValues {
             it.value.associate { entry -> idsByEntityKey.getValue(entry.key) to entry.value }
@@ -393,18 +356,6 @@ class CodexService(
             dataGraphManager.partialReplaceEntities(entitySetId, entities, allPropertyTypes)
         }
 
-        <<<<<<< HEAD
-        associations.put(
-                edgeEntitySetId, DataEdge(
-                messageEDK, contactEDK,
-                mapOf(getPropertyTypeId(CodexConstants.PropertyType.DATE_TIME) to setOf(dateTime))
-        )
-        )
-
-        dataGraphManager.createAssociations(
-                associations, mapOf(edgeEntitySetId to getPropertyTypes(CodexConstants.AppType.SENT_FROM))
-        )
-        ====== =
         dataGraphManager.createAssociations(
                 edgesByEntityKey.map { triple ->
                     DataEdgeKey(
@@ -416,7 +367,6 @@ class CodexService(
         )
 
         return latestDateTime
-        >>>>>>> develop
     }
 
     fun processIncomingMessage(organizationId: UUID, request: HttpServletRequest) {
@@ -443,8 +393,8 @@ class CodexService(
                 messageEntitySetId,
                 mapOf(
                         messageEntityKeyId to mutableMapOf(
-                                getPropertyTypeId(CodexConstants.PropertyType.WAS_DELIVERED) to mutableSetOf(
-                                        wasDelivered as Any //kotlinc weirdness
+                                getPropertyTypeId(CodexConstants.PropertyType.WAS_DELIVERED) to mutableSetOf<Any>(
+                                        wasDelivered
                                 )
                         )
                 ),
@@ -452,182 +402,134 @@ class CodexService(
         )
     }
 
-    <<<<<<< HEAD
-    private fun getContactEntityDataKey(organizationId: UUID, phoneNumber: String): EntityDataKey {
-        val entitySetId = getEntitySetId(organizationId, CodexConstants.AppType.CONTACT_INFO)
-        val entityKeyId = entityKeyIdService.getEntityKeyId(entitySetId, phoneNumber)
+    fun retrieveMediaAsBaseSixtyFour(mediaUri: String): ListenableFuture<String> {
+        val path = if (mediaUri.endsWith(JSON_EXT)) mediaUri.substring(
+                0,
+                mediaUri.length - JSON_EXT.length
+        ) else mediaUri
+        return executor.submit(Callable {
+            encoder.encodeToString(URL("https://api.twilio.com$path").readBytes())
+        })
+    }
 
-        val entity = mutableMapOf(
+    /**
+     * Scheduled message workers
+     */
+
+    fun getScheduledMessagesForOrganization(organizationId: UUID): Map<UUID, MessageRequest> {
+        return BasePostgresIterable(PreparedStatementHolderSupplier(hds, GET_SCHEDULED_MESSAGES_FOR_ORG_SQL) {
+            it.setString(1, organizationId.toString())
+        }) {
+            val task = ResultSetAdapters.scheduledTask(it).task as SendCodexMessageTask
+            ResultSetAdapters.id(it) to task.message
+        }.toMap()
+    }
+
+    fun getScheduledMessagesForOrganizationAndPhoneNumber(
+            organizationId: UUID, phoneNumber: String
+    ): Map<UUID, MessageRequest> {
+        return BasePostgresIterable(PreparedStatementHolderSupplier(hds, GET_SCHEDULED_MESSAGES_FOR_ORG_AND_PHONE_SQL) {
+            it.setString(1, organizationId.toString())
+            it.setString(2, DataTables.quote(phoneNumber))
+        }) {
+            val task = ResultSetAdapters.scheduledTask(it).task as SendCodexMessageTask
+            ResultSetAdapters.id(it) to task.message
+        }.toMap()
+    }
+
+    fun getMessageRequest(scheduledTaskId: UUID): MessageRequest {
+        return (scheduledTasks.getValue(scheduledTaskId).task as SendCodexMessageTask).message
+    }
+
+    fun deleteScheduledTask(scheduledTaskId: UUID) {
+        scheduledTasks.delete(scheduledTaskId)
+    }
+
+    /**
+     * Formatters
+     */
+
+    private fun formatDateTime(dateTime: DateTime): OffsetDateTime {
+        return OffsetDateTime.ofInstant(Instant.ofEpochMilli(dateTime.toInstant().millis), UTC)
+    }
+
+    /**
+     * Entity mapping helpers
+     */
+
+    private fun getMessageEntity(
+            message: Message,
+            phoneNumber: String,
+            dateTime: OffsetDateTime,
+            isOutgoing: Boolean
+    ): MutableMap<UUID, MutableSet<Any>> {
+        val numMedia = message.numMedia.toInt()
+        val media = Sets.newLinkedHashSetWithExpectedSize<Map<String, String>>(numMedia)
+
+        if (numMedia > 0) {
+            Media.reader(message.sid).read().forEach {
+                media.add(
+                        mapOf(
+                                "content-type" to it.contentType,
+                                "data" to retrieveMediaAsBaseSixtyFour(it.uri.toString()).get()
+                        )
+                )
+            }
+        }
+
+        return mutableMapOf(
+                getPropertyTypeId(CodexConstants.PropertyType.ID) to mutableSetOf<Any>(message.sid),
+                getPropertyTypeId(CodexConstants.PropertyType.DATE_TIME) to mutableSetOf<Any>(dateTime),
+                getPropertyTypeId(CodexConstants.PropertyType.PHONE_NUMBER) to mutableSetOf<Any>(phoneNumber),
+                getPropertyTypeId(CodexConstants.PropertyType.TEXT) to mutableSetOf<Any>(message.body),
+                getPropertyTypeId(CodexConstants.PropertyType.IS_OUTGOING) to mutableSetOf<Any>(isOutgoing),
+                getPropertyTypeId(CodexConstants.PropertyType.IMAGE_DATA) to media as MutableSet<Any>
+        )
+    }
+
+    private fun getAssociationEntity(dateTime: OffsetDateTime): MutableMap<UUID, MutableSet<Any>> {
+        return mutableMapOf(getPropertyTypeId(CodexConstants.PropertyType.DATE_TIME) to mutableSetOf<Any>(dateTime))
+    }
+
+    private fun getContactEntity(phoneNumber: String): MutableMap<UUID, MutableSet<Any>> {
+        return mutableMapOf(
                 getPropertyTypeId(CodexConstants.PropertyType.PHONE_NUMBER) to mutableSetOf<Any>(phoneNumber)
         )
+    }
 
-        dataGraphManager.mergeEntities(
-                entitySetId,
-                mapOf(entityKeyId to entity),
-                getPropertyTypes(CodexConstants.AppType.CONTACT_INFO)
+    private fun getSenderEntity(user: User): MutableMap<UUID, MutableSet<Any>> {
+        return mutableMapOf(
+                getPropertyTypeId(CodexConstants.PropertyType.PERSON_ID) to mutableSetOf<Any>(user.id),
+                getPropertyTypeId(CodexConstants.PropertyType.NICKNAME) to mutableSetOf<Any>(user.email)
         )
+    }
 
-        return EntityDataKey(entitySetId, entityKeyId)
-        ====== =
-        fun retrieveMediaAsBaseSixtyFour(mediaUri: String): ListenableFuture<String> {
-            val path = if (mediaUri.endsWith(JSON_EXT)) mediaUri.substring(0, mediaUri.length - JSON_EXT.length) else mediaUri
-            return executor.submit(Callable {
-                encoder.encodeToString(URL("https://api.twilio.com$path").readBytes())
-            })
-            >>>>>>> develop
-        }
+    /**
+     * EDM + entity set helpers
+     */
 
-        /**
-         * Scheduled message workers
-         */
+    private fun getEntitySetId(organizationId: UUID, type: CodexConstants.AppType): UUID {
+        val appTypeId = typesByFqn.getValue(type).id
+        val ack = AppConfigKey(appId, organizationId, appTypeId)
+        return appConfigs[ack]!!.entitySetId
+    }
 
-        fun getScheduledMessagesForOrganization(organizationId: UUID): Map<UUID, MessageRequest> {
-            return BasePostgresIterable(PreparedStatementHolderSupplier(hds, GET_SCHEDULED_MESSAGES_FOR_ORG_SQL) {
-                it.setString(1, organizationId.toString())
-            }) {
-                val task = ResultSetAdapters.scheduledTask(it).task as SendCodexMessageTask
-                ResultSetAdapters.id(it) to task.message
-            }.toMap()
-        }
+    private fun getPropertyTypes(type: CodexConstants.AppType): Map<UUID, PropertyType> {
+        val appTypeId = typesByFqn.getValue(type).id
+        return propertyTypesByAppType.getValue(appTypeId)
+    }
 
-        fun getScheduledMessagesForOrganizationAndPhoneNumber(
-                organizationId: UUID, phoneNumber: String
-        ): Map<UUID, MessageRequest> {
-            return BasePostgresIterable(PreparedStatementHolderSupplier(hds, GET_SCHEDULED_MESSAGES_FOR_ORG_AND_PHONE_SQL) {
-                it.setString(1, organizationId.toString())
-                it.setString(2, DataTables.quote(phoneNumber))
-            }) {
-                val task = ResultSetAdapters.scheduledTask(it).task as SendCodexMessageTask
-                ResultSetAdapters.id(it) to task.message
-            }.toMap()
-        }
+    private fun getPropertyTypeId(property: CodexConstants.PropertyType): UUID {
+        return propertyTypesByFqn.getValue(property.fqn)
+    }
 
-        fun getMessageRequest(scheduledTaskId: UUID): MessageRequest {
-            return (scheduledTasks.getValue(scheduledTaskId).task as SendCodexMessageTask).message
-        }
+    private val GET_SCHEDULED_MESSAGES_FOR_ORG_SQL = "" +
+            "SELECT * " +
+            "FROM ${SCHEDULED_TASKS.name} " +
+            "  WHERE ${CLASS_NAME.name} = '${SendCodexMessageTask::class.java.name}' " +
+            "  AND ${CLASS_PROPERTIES.name}->'${SerializationConstants.MESSAGE}'->>'${SerializationConstants.ORGANIZATION_ID}' = ? "
 
-        fun deleteScheduledTask(scheduledTaskId: UUID) {
-            scheduledTasks.delete(scheduledTaskId)
-        }
+    private val GET_SCHEDULED_MESSAGES_FOR_ORG_AND_PHONE_SQL = "$GET_SCHEDULED_MESSAGES_FOR_ORG_SQL " +
+            " AND ${CLASS_PROPERTIES.name}->'${SerializationConstants.MESSAGE}'->'${SerializationConstants.PHONE_NUMBERS}' @> ?::jsonb"
 
-        <<<<<<< HEAD
-        private fun getMessageEntityDataKey(
-                organizationId: UUID,
-                dateTime: OffsetDateTime,
-                messageId: String,
-                phoneNumber: String,
-                text: String,
-                isOutgoing: Boolean,
-                media: Set<Map<String, String>>
-        ): EntityDataKey {
-
-            val entity = mutableMapOf(
-                    getPropertyTypeId(CodexConstants.PropertyType.ID) to setOf(messageId).toMutableSet() as MutableSet<Any>,
-                    getPropertyTypeId(CodexConstants.PropertyType.DATE_TIME) to setOf(dateTime).toMutableSet() as MutableSet<Any>,
-                    getPropertyTypeId(CodexConstants.PropertyType.PHONE_NUMBER) to setOf(phoneNumber).toMutableSet() as MutableSet<Any>,
-                    getPropertyTypeId(CodexConstants.PropertyType.TEXT) to setOf(text).toMutableSet() as MutableSet<Any>,
-                    getPropertyTypeId(CodexConstants.PropertyType.IS_OUTGOING) to setOf(isOutgoing).toMutableSet() as MutableSet<Any>,
-                    getPropertyTypeId(CodexConstants.PropertyType.IMAGE_DATA) to media.toMutableSet() as MutableSet<Any>
-                            === === =
-                            /**
-                             * Formatters
-                             */
-
-                            private fun formatDateTime(dateTime: DateTime): OffsetDateTime {
-                return OffsetDateTime.ofInstant(Instant.ofEpochMilli(dateTime.toInstant().millis), UTC)
-            }
-
-                    /**
-                     * Entity mapping helpers
-                     */
-
-                    private fun getMessageEntity(
-                    message: Message,
-                    phoneNumber: String,
-                    dateTime: OffsetDateTime,
-                    isOutgoing: Boolean
-            ): Map<UUID, Set<Any>> {
-
-                val numMedia = message.numMedia.toInt()
-                val media = Sets.newLinkedHashSetWithExpectedSize<Map<String, String>>(numMedia)
-
-                if (numMedia > 0) {
-                    Media.reader(message.sid).read().forEach {
-                        media.add(mapOf(
-                                "content-type" to it.contentType,
-                                "data" to retrieveMediaAsBaseSixtyFour(it.uri.toString()).get()))
-                    }
-                }
-
-                return mapOf(
-                        getPropertyTypeId(CodexConstants.PropertyType.ID) to setOf(message.sid),
-                        getPropertyTypeId(CodexConstants.PropertyType.DATE_TIME) to setOf(dateTime),
-                        getPropertyTypeId(CodexConstants.PropertyType.PHONE_NUMBER) to setOf(phoneNumber),
-                        getPropertyTypeId(CodexConstants.PropertyType.TEXT) to setOf(message.body),
-                        getPropertyTypeId(CodexConstants.PropertyType.IS_OUTGOING) to setOf(isOutgoing),
-                        getPropertyTypeId(CodexConstants.PropertyType.IMAGE_DATA) to media
-                                > > > > > > > develop
-                )
-            }
-
-                    private fun getAssociationEntity(dateTime: OffsetDateTime): Map<UUID, Set<Any>> {
-                return mapOf(getPropertyTypeId(CodexConstants.PropertyType.DATE_TIME) to setOf(dateTime))
-            }
-
-                    private fun getContactEntity(phoneNumber: String): Map<UUID, Set<Any>> {
-                return mapOf(
-                        getPropertyTypeId(CodexConstants.PropertyType.PHONE_NUMBER) to setOf(phoneNumber)
-                )
-            }
-
-                    < < < < < < < HEAD
-                    val entity = mutableMapOf (
-                    getPropertyTypeId(CodexConstants.PropertyType.PERSON_ID) to mutableSetOf<Any>(user.id),
-            getPropertyTypeId(CodexConstants.PropertyType.NICKNAME) to mutableSetOf<Any>(user.email)
-            )
-            val entitySetId = getEntitySetId(organizationId, CodexConstants.AppType.PEOPLE)
-            val entityKeyId = entityKeyIdService.getEntityKeyId(entitySetId, user.id)
-
-            dataGraphManager.mergeEntities(
-                    entitySetId, mapOf(entityKeyId to entity), getPropertyTypes(CodexConstants.AppType.PEOPLE)
-            )
-
-            return EntityDataKey(entitySetId, entityKeyId)
-            ====== =
-            private fun getSenderEntity(user: User): Map<UUID, Set<Any>> {
-                return mapOf(
-                        getPropertyTypeId(CodexConstants.PropertyType.PERSON_ID) to setOf(user.id),
-                        getPropertyTypeId(CodexConstants.PropertyType.NICKNAME) to setOf(user.email)
-                )
-                >>>>>>> develop
-            }
-
-            /**
-             * EDM + entity set helpers
-             */
-
-            private fun getEntitySetId(organizationId: UUID, type: CodexConstants.AppType): UUID {
-                val appTypeId = typesByFqn.getValue(type).id
-                val ack = AppConfigKey(appId, organizationId, appTypeId)
-                return appConfigs[ack]!!.entitySetId
-            }
-
-            private fun getPropertyTypes(type: CodexConstants.AppType): Map<UUID, PropertyType> {
-                val appTypeId = typesByFqn.getValue(type).id
-                return propertyTypesByAppType.getValue(appTypeId)
-            }
-
-            private fun getPropertyTypeId(property: CodexConstants.PropertyType): UUID {
-                return propertyTypesByFqn.getValue(property.fqn)
-            }
-
-            private val GET_SCHEDULED_MESSAGES_FOR_ORG_SQL = "" +
-                    "SELECT * " +
-                    "FROM ${SCHEDULED_TASKS.name} " +
-                    "  WHERE ${CLASS_NAME.name} = '${SendCodexMessageTask::class.java.name}' " +
-                    "  AND ${CLASS_PROPERTIES.name}->'${SerializationConstants.MESSAGE}'->>'${SerializationConstants.ORGANIZATION_ID}' = ? "
-
-            private val GET_SCHEDULED_MESSAGES_FOR_ORG_AND_PHONE_SQL = "$GET_SCHEDULED_MESSAGES_FOR_ORG_SQL " +
-                    " AND ${CLASS_PROPERTIES.name}->'${SerializationConstants.MESSAGE}'->'${SerializationConstants.PHONE_NUMBERS}' @> ?::jsonb"
-
-        }
+}

@@ -25,7 +25,6 @@ import static com.openlattice.datastore.util.Util.returnAndLog;
 import com.auth0.client.mgmt.ManagementAPI;
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.health.HealthCheckRegistry;
-import com.dataloom.mappers.ObjectMappers;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.geekbeast.hazelcast.HazelcastClientProvider;
 import com.geekbeast.rhizome.jobs.HazelcastJobService;
@@ -70,7 +69,6 @@ import com.openlattice.data.DataGraphService;
 import com.openlattice.data.EntityKeyIdService;
 import com.openlattice.data.graph.DataGraphServiceHelper;
 import com.openlattice.data.ids.PostgresEntityKeyIdService;
-import com.openlattice.data.serializers.FullQualifiedNameJacksonSerializer;
 import com.openlattice.data.storage.ByteBlobDataManager;
 import com.openlattice.data.storage.DataDeletionService;
 import com.openlattice.data.storage.EntityDatastore;
@@ -78,6 +76,9 @@ import com.openlattice.data.storage.IndexingMetadataManager;
 import com.openlattice.data.storage.PostgresEntityDataQueryService;
 import com.openlattice.data.storage.PostgresEntityDatastore;
 import com.openlattice.data.storage.PostgresEntitySetSizesTaskDependency;
+import com.openlattice.data.storage.StorageManagementService;
+import com.openlattice.data.storage.StorageMigrationService;
+import com.openlattice.data.storage.StorageProviderFactory;
 import com.openlattice.data.storage.aws.AwsDataSinkService;
 import com.openlattice.data.storage.partitions.PartitionManager;
 import com.openlattice.datastore.apps.services.AppService;
@@ -106,6 +107,8 @@ import com.openlattice.ids.HazelcastLongIdService;
 import com.openlattice.linking.LinkingQueryService;
 import com.openlattice.linking.PostgresLinkingFeedbackService;
 import com.openlattice.linking.graph.PostgresLinkingQueryService;
+import com.openlattice.metadata.MetadataManager;
+import com.openlattice.metadata.MetadataService;
 import com.openlattice.notifications.sms.PhoneNumberService;
 import com.openlattice.organizations.ExternalDatabaseManagementService;
 import com.openlattice.organizations.HazelcastOrganizationService;
@@ -420,8 +423,36 @@ public class DatastoreServicesPod {
     }
 
     @Bean
+    public StorageProviderFactory storageProviderFactory() {
+        return new StorageProviderFactory( byteBlobDataManager, metricRegistry );
+    }
+
+    @Bean
+    public StorageManagementService storageManagementService() {
+        return new StorageManagementService( hazelcastInstance, storageProviderFactory(), hikariDataSource );
+    }
+
+    @Bean
+    public StorageMigrationService storageMigrationService() {
+        return new StorageMigrationService( hazelcastInstance,
+                storageManagementService(),
+                entitySetManager(),
+                hikariDataSource );
+    }
+
+    @Bean
+    public MetadataManager metadataManager() {
+        return new MetadataService( dataQueryService() );
+    }
+
+    @Bean
     public DataGraphManager dataGraphService() {
-        return new DataGraphService( graphApi(), idService(), entityDatastore(), jobService() );
+        return new DataGraphService( graphApi(),
+                idService(),
+                storageManagementService(),
+                storageMigrationService(),
+                metadataManager(),
+                jobService() );
     }
 
     @Bean

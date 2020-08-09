@@ -28,7 +28,7 @@ import com.openlattice.auditing.*
 import com.openlattice.authorization.*
 import com.openlattice.authorization.EdmAuthorizationHelper.READ_PERMISSION
 import com.openlattice.authorization.securable.SecurableObjectType
-import com.openlattice.authorization.util.AuthorizationUtils
+import com.openlattice.authorization.util.getLastAclKeySafely
 import com.openlattice.controllers.exceptions.ForbiddenException
 import com.openlattice.controllers.exceptions.wrappers.BatchException
 import com.openlattice.controllers.exceptions.wrappers.ErrorsDTO
@@ -37,6 +37,7 @@ import com.openlattice.data.DataDeletionManager
 import com.openlattice.data.DataGraphManager
 import com.openlattice.data.DeleteType
 import com.openlattice.data.WriteEvent
+import com.openlattice.data.storage.partitions.PartitionManager
 import com.openlattice.datastore.services.EdmManager
 import com.openlattice.datastore.services.EntitySetManager
 import com.openlattice.edm.EntitySet
@@ -56,6 +57,7 @@ import com.openlattice.entitysets.EntitySetsApi.Companion.LINKING
 import com.openlattice.entitysets.EntitySetsApi.Companion.METADATA_PATH
 import com.openlattice.entitysets.EntitySetsApi.Companion.NAME
 import com.openlattice.entitysets.EntitySetsApi.Companion.NAME_PATH
+import com.openlattice.entitysets.EntitySetsApi.Companion.PARTITIONS_PATH
 import com.openlattice.entitysets.EntitySetsApi.Companion.PROPERTIES_PATH
 import com.openlattice.entitysets.EntitySetsApi.Companion.PROPERTY_TYPE_ID
 import com.openlattice.entitysets.EntitySetsApi.Companion.PROPERTY_TYPE_ID_PATH
@@ -86,7 +88,8 @@ constructor(
         private val spm: SecurePrincipalsManager,
         private val authzHelper: EdmAuthorizationHelper,
         private val deletionManager: DataDeletionManager,
-        private val entitySetManager: EntitySetManager
+        private val entitySetManager: EntitySetManager,
+        private val partitionManager: PartitionManager
 ) : EntitySetsApi, AuthorizingComponent, AuditingComponent {
 
     override fun getAuditingManager(): AuditingManager {
@@ -160,7 +163,7 @@ constructor(
                                 spm.currentUserId,
                                 AclKey(entitySet.id),
                                 AuditEventType.CREATE_ENTITY_SET,
-                                "Created entity set through EntitySetApi.createEntitySets",
+                                "Created entity set through EntitySetsApi.createEntitySets",
                                 Optional.empty(),
                                 ImmutableMap.of("entitySet", entitySet),
                                 OffsetDateTime.now(),
@@ -191,7 +194,7 @@ constructor(
                 EnumSet.of(Permission.READ)
         )
                 .asSequence()
-                .map { AuthorizationUtils.getLastAclKeySafely(it) }
+                .mapNotNull { getLastAclKeySafely(it) }
                 .toSet()
 
         return entitySetManager.getEntitySetsAsMap(entitySetIds).values.toSet()
@@ -268,7 +271,7 @@ constructor(
                         spm.currentUserId,
                         AclKey(entitySetId),
                         AuditEventType.READ_ENTITY_SET,
-                        "Entity set read through EntitySetApi.getEntitySet",
+                        "Entity set read through EntitySetsApi.getEntitySet",
                         Optional.empty(),
                         ImmutableMap.of(),
                         OffsetDateTime.now(),
@@ -304,7 +307,7 @@ constructor(
                         spm.currentUserId,
                         AclKey(entitySetId),
                         AuditEventType.DELETE_ENTITY_SET,
-                        "Entity set deleted through EntitySetApi.deleteEntitySet",
+                        "Entity set deleted through EntitySetsApi.deleteEntitySet",
                         Optional.empty(),
                         ImmutableMap.of(),
                         OffsetDateTime.now(),
@@ -376,7 +379,7 @@ constructor(
                         spm.currentUserId,
                         AclKey(entitySetId),
                         AuditEventType.UPDATE_ENTITY_SET,
-                        "Entity set metadata updated through EntitySetApi.updateEntitySetMetadata",
+                        "Entity set metadata updated through EntitySetsApi.updateEntitySetMetadata",
                         Optional.empty(),
                         ImmutableMap.of("update", update),
                         OffsetDateTime.now(),
@@ -470,7 +473,7 @@ constructor(
                         spm.currentUserId,
                         AclKey(entitySetId, propertyTypeId),
                         AuditEventType.UPDATE_ENTITY_SET_PROPERTY_METADATA,
-                        "Entity set property metadata updated through EntitySetApi.updateEntitySetPropertyMetadata",
+                        "Entity set property metadata updated through EntitySetsApi.updateEntitySetPropertyMetadata",
                         Optional.empty(),
                         ImmutableMap.of("update", update),
                         OffsetDateTime.now(),
@@ -499,7 +502,7 @@ constructor(
                         spm.currentUserId,
                         AclKey(entitySetId),
                         AuditEventType.UPDATE_ENTITY_SET,
-                        "Entity set data expiration policy removed through EntitySetApi.removeDataExpirationPolicy",
+                        "Entity set data expiration policy removed through EntitySetsApi.removeDataExpirationPolicy",
                         Optional.empty(),
                         ImmutableMap.of("entitySetId", entitySetId),
                         OffsetDateTime.now(),
@@ -519,16 +522,30 @@ constructor(
             @RequestBody dateTime: String
     ): Set<UUID> {
         ensureReadAccess(AclKey(entitySetId))
-        val es = getEntitySet(entitySetId)
+        val es = entitySetManager.getEntitySet(entitySetId)!!
         check(es.hasExpirationPolicy()) { "Entity set ${es.name} does not have an expiration policy" }
 
-        val expirationPolicy = es.expiration
+        val expirationPolicy = es.expiration!!
         val expirationPT = expirationPolicy.startDateProperty.map { edmManager.getPropertyType(it) }
+
+        recordEvent(
+                AuditableEvent(
+                        spm.currentUserId,
+                        AclKey(entitySetId),
+                        AuditEventType.READ_ENTITY_SET,
+                        "EntitySetsApi.getExpiringEntitiesFromEntitySet() returned entity key ids",
+                        Optional.empty(),
+                        ImmutableMap.of("entitySetId", entitySetId),
+                        OffsetDateTime.now(),
+                        Optional.empty()
+                )
+        )
+
         return dgm.getExpiringEntitiesFromEntitySet(
                 entitySetId,
                 expirationPolicy,
                 OffsetDateTime.parse(dateTime),
-                es.expiration.deleteType,
+                expirationPolicy.deleteType,
                 expirationPT
         ).toSet()
     }
@@ -627,11 +644,22 @@ constructor(
                 .getAuthorizedPropertyTypes(entitySetId, EdmAuthorizationHelper.OWNER_PERMISSION)
         val missingPropertyTypes = entityType.properties.subtract(authorizedPropertyTypes.keys)
         if (missingPropertyTypes.isNotEmpty()) {
-            throw ForbiddenException("Cannot delete entity set. Missing ${Permission.OWNER} permission for property " +
-                    "types $missingPropertyTypes.")
+            throw ForbiddenException(
+                    "Cannot delete entity set. Missing ${Permission.OWNER} permission for property " +
+                            "types $missingPropertyTypes."
+            )
         }
 
         return entitySet
+    }
+
+    @Timed
+    @PutMapping(value = [ID_PATH + PARTITIONS_PATH])
+    override fun repartitionEntitySet(@PathVariable(ID) entitySetId: UUID, @RequestBody partitions: Set<Int>): UUID {
+        ensureAdminAccess()
+        require ( entitySetManager.exists( entitySetId ) ) { "Entity set must exist."}
+        val oldPartitions = partitionManager.getEntitySetPartitions(entitySetId)
+        return dgm.repartitionEntitySet(entitySetId, oldPartitions, partitions)
     }
 
     override fun getAuthorizationManager(): AuthorizationManager {

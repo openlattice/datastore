@@ -266,7 +266,7 @@ class DatasetController : DatasetApi, AuthorizingComponent {
     private fun getAuthorizedColumnIds(tableId: UUID, columnIds: Set<UUID>, permission: Permission): Set<UUID> {
         return authorizations.accessChecksForPrincipals(
                 columnIds.map { columnId -> AccessCheck(AclKey(tableId, columnId), EnumSet.of(permission)) }.toSet(),
-                Principals.getCurrentPrincipals()
+                Principals.getCurrentPrincipals().filter { it.type != PrincipalType.ORGANIZATION }.toSet()
         )
                 .filter { authz -> authz.permissions[permission]!! }
                 .map { authz -> authz.aclKey[1] }.collect(Collectors.toSet())

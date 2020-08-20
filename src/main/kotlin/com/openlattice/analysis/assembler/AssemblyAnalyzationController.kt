@@ -123,7 +123,7 @@ class AssemblyAnalyzationController : AssemblyAnalyzationApi, AuthorizingCompone
                 }.toMap()
 
 
-        val connection = assemblerConnectionManager.connect(dbName, account).connection
+        val connection = assemblerConnectionManager.connect(dbName).connection
         val aggregationValues = assemblerQueryService.simpleAggregation(
                 connection,
                 srcEntitySetName, edgeEntitySetName, dstEntitySetName,

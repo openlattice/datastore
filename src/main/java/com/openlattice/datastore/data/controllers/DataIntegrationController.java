@@ -92,11 +92,10 @@ public class DataIntegrationController implements DataIntegrationApi, Authorizin
 
         accessCheck( aclKeysForAccessCheck( propertyIdsByEntitySet, WRITE_PERMISSION ) );
 
-        final Map<UUID, Map<UUID, PropertyType>> authorizedPropertyTypes =
-                entitySetIds.stream()
-                        .collect( Collectors.toMap( Function.identity(),
-                                entitySetId -> authzHelper.getAuthorizedPropertyTypes(
-                                        entitySetId, WRITE_PERMISSION ) ) );
+        final Map<UUID, Map<UUID, PropertyType>> authorizedPropertyTypes = entitySetIds.stream()
+                .collect( Collectors.toMap( Function.identity(),
+                        entitySetId -> authzHelper.getAuthorizedPropertyTypes(
+                                entitySetId, WRITE_PERMISSION ) ) );
 
         return awsDataSinkService.generatePresignedUrls( data, authorizedPropertyTypes );
     }

@@ -46,6 +46,7 @@ import javax.inject.Inject
                 "Allowing kotlin collection mapping cast to List")
 @RestController
 @RequestMapping(CONTROLLER)
+@Deprecated("Unused, needs cleanup")
 class AssemblyAnalyzationController : AssemblyAnalyzationApi, AuthorizingComponent {
 
     @Inject

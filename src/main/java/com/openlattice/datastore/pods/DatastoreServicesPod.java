@@ -36,7 +36,6 @@ import com.openlattice.assembler.Assembler;
 import com.openlattice.assembler.AssemblerConfiguration;
 import com.openlattice.assembler.AssemblerConnectionManager;
 import com.openlattice.assembler.AssemblerDependencies;
-import com.openlattice.assembler.AssemblerQueryService;
 import com.openlattice.assembler.pods.AssemblerConfigurationPod;
 import com.openlattice.assembler.tasks.UserCredentialSyncTask;
 import com.openlattice.auditing.AuditRecordEntitySetsManager;
@@ -97,7 +96,6 @@ import com.openlattice.organizations.OrganizationExternalDatabaseConfiguration;
 import com.openlattice.organizations.pods.OrganizationExternalDatabaseConfigurationPod;
 import com.openlattice.organizations.roles.HazelcastPrincipalService;
 import com.openlattice.organizations.roles.SecurePrincipalsManager;
-import com.openlattice.postgres.PostgresTableManager;
 import com.openlattice.requests.HazelcastRequestsManager;
 import com.openlattice.requests.RequestQueryService;
 import com.openlattice.search.PersistentSearchService;
@@ -131,24 +129,29 @@ import static com.openlattice.datastore.util.Util.returnAndLog;
         AssemblerConfigurationPod.class,
         TwilioConfigurationPod.class,
         OrganizationExternalDatabaseConfigurationPod.class
+//        PostgresPod.class
 } )
 public class DatastoreServicesPod {
     private static final Logger logger = LoggerFactory.getLogger( DatastoreServicesPod.class );
 
     @Inject
     private Jdbi                     jdbi;
-    @Inject
-    private PostgresTableManager     tableManager;
+
     @Inject
     private HazelcastInstance        hazelcastInstance;
+
     @Inject
     private HikariDataSource         hikariDataSource;
+
     @Inject
     private Auth0Configuration       auth0Configuration;
+
     @Inject
     private AuditingConfiguration    auditingConfiguration;
+
     @Inject
     private ListeningExecutorService executor;
+
     @Inject
     private EventBus                 eventBus;
 
@@ -202,7 +205,7 @@ public class DatastoreServicesPod {
 
     @Bean
     public Auth0SyncService auth0SyncService() {
-        return new Auth0SyncService( hazelcastInstance, hikariDataSource, principalService(), organizationsManager() );
+        return new Auth0SyncService( hazelcastInstance, principalService(), organizationsManager() );
     }
 
     @Bean
@@ -307,9 +310,7 @@ public class DatastoreServicesPod {
     public Assembler assembler() {
         return new Assembler(
                 dcs(),
-                hikariDataSource,
                 authorizationManager(),
-                edmAuthorizationHelper(),
                 principalService(),
                 metricRegistry,
                 hazelcastInstance,
@@ -503,10 +504,10 @@ public class DatastoreServicesPod {
                 metricRegistry );
     }
 
-    @Bean
-    public AssemblerQueryService assemblerQueryService() {
-        return new AssemblerQueryService( dataModelService() );
-    }
+//    @Bean
+//    public AssemblerQueryService assemblerQueryService() {
+//        return new AssemblerQueryService( dataModelService() );
+//    }
 
     @Bean
     public PersistentSearchService persistentSearchService() {

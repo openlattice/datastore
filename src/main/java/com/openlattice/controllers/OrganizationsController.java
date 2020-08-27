@@ -156,6 +156,13 @@ public class OrganizationsController implements AuthorizingComponent, Organizati
 
     @Timed
     @Override
+    @PatchMapping(value = ID_PATH, produces = MediaType=APPLICATION_JSON_VALUE)
+    public OrganizationIntegrationAccount rollOrganizationIntegrationAccount(  @PathVariable( ID ) UUID organizationId ) {
+        return assembler.rollOrganizationIntegrationAccount(organizationId);
+    }
+
+    @Timed
+    @Override
     @GetMapping( value = ID_PATH + ENTITY_SETS, produces = MediaType.APPLICATION_JSON_VALUE )
     public Map<UUID, Set<OrganizationEntitySetFlag>> getOrganizationEntitySets(
             @PathVariable( ID ) UUID organizationId ) {
@@ -411,6 +418,13 @@ public class OrganizationsController implements AuthorizingComponent, Organizati
                         principalService.getUser( sp.getName() ),
                         principalService.getAllPrincipals( sp ) ) )::iterator;
 
+    }
+
+    @Timed
+    @Override
+    @PatchMapping(value = ID_PATH)
+     public OrganizationIntegrationAccount rollOrganizationIntegrationAccount( UUID organizationId ) {
+        return null;
     }
 
     @Timed

@@ -23,7 +23,6 @@ package com.openlattice.analysis.assembler
 import com.openlattice.analysis.requests.Orientation
 import com.openlattice.assembler.AssemblerConnectionManager
 import com.openlattice.assembler.AssemblerQueryService
-import com.openlattice.assembler.PostgresDatabases
 import com.openlattice.assembler.PostgresRoles
 import com.openlattice.authorization.AuthorizationManager
 import com.openlattice.authorization.AuthorizingComponent
@@ -31,7 +30,7 @@ import com.openlattice.authorization.DbCredentialService
 import com.openlattice.authorization.Principals
 import com.openlattice.datastore.services.EdmManager
 import com.openlattice.datastore.services.EntitySetManager
-import com.openlattice.directory.MaterializedViewAccount
+import com.zaxxer.hikari.HikariDataSource
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings
 import org.springframework.http.MediaType
 import org.springframework.web.bind.annotation.PostMapping
@@ -43,7 +42,8 @@ import javax.inject.Inject
 @SuppressFBWarnings(
         value = ["RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE", "BC_BAD_CAST_TO_ABSTRACT_COLLECTION"],
         justification = "Allowing redundant kotlin null check on lateinit variables, " +
-                "Allowing kotlin collection mapping cast to List")
+                "Allowing kotlin collection mapping cast to List"
+)
 @RestController
 @RequestMapping(CONTROLLER)
 class AssemblyAnalyzationController : AssemblyAnalyzationApi, AuthorizingComponent {
@@ -70,10 +70,6 @@ class AssemblyAnalyzationController : AssemblyAnalyzationApi, AuthorizingCompone
     override fun getSimpleAssemblyAggregates(
             @RequestBody assemblyAggregationFilter: AssemblyAggregationFilter
     ): Iterable<Map<String, Any?>> {
-        val principal = PostgresRoles.buildPostgresUsername(Principals.getCurrentSecurablePrincipal())
-        val account = MaterializedViewAccount(principal, dbCredService.getDbCredential(principal))
-
-        val dbName = PostgresDatabases.buildOrganizationDatabaseName(assemblyAggregationFilter.organizationId)
         val srcEntitySetName = entitySetManager.getEntitySet(assemblyAggregationFilter.srcEntitySetId)!!.name
         val edgeEntitySetName = entitySetManager.getEntitySet(assemblyAggregationFilter.edgeEntitySetId)!!.name
         val dstEntitySetName = entitySetManager.getEntitySet(assemblyAggregationFilter.dstEntitySetId)!!.name
@@ -93,15 +89,27 @@ class AssemblyAnalyzationController : AssemblyAnalyzationApi, AuthorizingCompone
         val groupedAggregations = assemblyAggregationFilter.aggregations.groupBy { it.orientedProperty.orientation }
         val srcAggregates = groupedAggregations.getOrDefault(Orientation.SRC, listOf())
                 .groupBy { it.orientedProperty.propertyTypeId }
-                .map { edmService.getPropertyType(it.key).type.fullQualifiedNameAsString to it.value.map { it.aggregationType } }
+                .map {
+                    edmService.getPropertyType(
+                            it.key
+                    ).type.fullQualifiedNameAsString to it.value.map { it.aggregationType }
+                }
                 .toMap()
         val edgeAggregates = groupedAggregations.getOrDefault(Orientation.EDGE, listOf())
                 .groupBy { it.orientedProperty.propertyTypeId }
-                .map { edmService.getPropertyType(it.key).type.fullQualifiedNameAsString to it.value.map { it.aggregationType } }
+                .map {
+                    edmService.getPropertyType(
+                            it.key
+                    ).type.fullQualifiedNameAsString to it.value.map { it.aggregationType }
+                }
                 .toMap()
         val dstAggregates = groupedAggregations.getOrDefault(Orientation.DST, listOf())
                 .groupBy { it.orientedProperty.propertyTypeId }
-                .map { edmService.getPropertyType(it.key).type.fullQualifiedNameAsString to it.value.map { it.aggregationType } }
+                .map {
+                    edmService.getPropertyType(
+                            it.key
+                    ).type.fullQualifiedNameAsString to it.value.map { it.aggregationType }
+                }
                 .toMap()
 
         val groupedFilters = assemblyAggregationFilter.filters.groupBy { it.orientedPropertyTypeId.orientation }
@@ -121,15 +129,14 @@ class AssemblyAnalyzationController : AssemblyAnalyzationApi, AuthorizingCompone
                     edmService.getPropertyTypeFqn(it.key).fullQualifiedNameAsString to it.value.map { it.filter }
                 }.toMap()
 
-
-        val connection = assemblerConnectionManager.connect(dbName, account).connection
         val aggregationValues = assemblerQueryService.simpleAggregation(
-                connection,
+                HikariDataSource(),
                 srcEntitySetName, edgeEntitySetName, dstEntitySetName,
                 srcGroupColumns, edgeGroupColumns, dstGroupColumns,
                 srcAggregates, edgeAggregates, dstAggregates,
                 assemblyAggregationFilter.customCalculations,
-                srcFilters, edgeFilters, dstFilters)
+                srcFilters, edgeFilters, dstFilters
+        )
 
         return aggregationValues
     }

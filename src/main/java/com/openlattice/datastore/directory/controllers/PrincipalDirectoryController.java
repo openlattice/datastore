@@ -24,7 +24,7 @@ import com.auth0.client.mgmt.ManagementAPI;
 import com.auth0.exception.Auth0Exception;
 import com.auth0.json.mgmt.users.User;
 import com.codahale.metrics.annotation.Timed;
-import com.openlattice.assembler.PostgresRoles;
+import com.openlattice.assembler.Assembler;
 import com.openlattice.authorization.*;
 import com.openlattice.authorization.securable.SecurableObjectType;
 import com.openlattice.directory.MaterializedViewAccount;
@@ -33,6 +33,7 @@ import com.openlattice.directory.UserDirectoryService;
 import com.openlattice.directory.pojo.Auth0UserBasic;
 import com.openlattice.directory.pojo.DirectedAclKeys;
 import com.openlattice.organization.roles.Role;
+import com.openlattice.organizations.HazelcastOrganizationService;
 import com.openlattice.organizations.roles.SecurePrincipalsManager;
 import com.openlattice.users.Auth0SyncService;
 import com.openlattice.users.Auth0UtilsKt;
@@ -71,6 +72,12 @@ public class PrincipalDirectoryController implements PrincipalApi, AuthorizingCo
 
     @Inject
     private Auth0SyncService syncService;
+
+    @Inject
+    private HazelcastOrganizationService organizationService;
+
+    @Inject
+    private Assembler assembler;
 
     @Timed
     @Override
@@ -171,8 +178,18 @@ public class PrincipalDirectoryController implements PrincipalApi, AuthorizingCo
             method = RequestMethod.GET,
             produces = MediaType.APPLICATION_JSON_VALUE )
     public MaterializedViewAccount getMaterializedViewAccount() {
-        final var principal = PostgresRoles.buildPostgresUsername( Principals.getCurrentSecurablePrincipal() );
-        return new MaterializedViewAccount( principal, dbCredService.getDbCredential( principal ) );
+        return dbCredService.getDbCredential( Principals.getCurrentSecurablePrincipal() );
+    }
+
+    @Timed
+    @Override
+    @RequestMapping(
+            path = DB + CREDENTIAL,
+            method = RequestMethod.POST,
+            produces = MediaType.APPLICATION_JSON_VALUE )
+    public MaterializedViewAccount regenerateCredential() {
+        var sp = Principals.getCurrentSecurablePrincipal();
+        return assembler.rollIntegrationAccount( sp.getId(), sp.getPrincipalType() );
     }
 
     @Timed
@@ -237,9 +254,15 @@ public class PrincipalDirectoryController implements PrincipalApi, AuthorizingCo
     public Void deleteUserAccount( @PathVariable( USER_ID ) String userId ) {
         ensureAdminAccess();
 
+        //First remove from all organizations
+        organizationService.removeMemberFromAllOrganizations( new Principal( PrincipalType.USER, userId ) );
         SecurablePrincipal securablePrincipal = spm.getPrincipal( userId );
         spm.deletePrincipal( securablePrincipal.getAclKey() );
 
+        //Remove from materialized view account
+        dbCredService.deleteUserCredential(  securablePrincipal );
+
+        //Delete from auth0
         userDirectoryService.deleteUser( userId );
 
         return null;

@@ -24,6 +24,7 @@ import com.auth0.json.mgmt.users.User;
 import com.codahale.metrics.annotation.Timed;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
+import com.openlattice.apps.services.AppService;
 import com.openlattice.assembler.Assembler;
 import com.openlattice.authorization.*;
 import com.openlattice.authorization.securable.SecurableObjectType;
@@ -78,6 +79,9 @@ public class OrganizationsController implements AuthorizingComponent, Organizati
     @Inject
     private ExternalDatabaseManagementService edms;
 
+    @Inject
+    private AppService appService;
+
     @Timed
     @Override
     @GetMapping(
@@ -96,7 +100,7 @@ public class OrganizationsController implements AuthorizingComponent, Organizati
         );
 
         return StreamSupport.stream( orgs.spliterator(), false ).peek( org ->
-            org.getRoles().removeIf( role -> !authorizedRoles.contains( role.getAclKey() ) )
+                org.getRoles().removeIf( role -> !authorizedRoles.contains( role.getAclKey() ) )
         ).collect( Collectors.toList() );
     }
 
@@ -138,11 +142,34 @@ public class OrganizationsController implements AuthorizingComponent, Organizati
         AclKey aclKey = ensureOwner( organizationId );
 
         ensureObjectCanBeDeleted( organizationId );
+        organizations.ensureOrganizationExists( organizationId );
 
         organizations.destroyOrganization( organizationId );
         edms.deleteOrganizationExternalDatabase( organizationId );
         authorizations.deletePermissions( aclKey );
         securableObjectTypes.deleteSecurableObjectType( new AclKey( organizationId ) );
+        return null;
+    }
+
+    @Override
+    @GetMapping( value = ID_PATH + SET_ID_PATH + TRANSPORT, produces = MediaType.APPLICATION_JSON_VALUE )
+    @ResponseStatus( HttpStatus.OK )
+    public Void transportEntitySet( @PathVariable( ID ) UUID organizationId, @PathVariable( SET_ID ) UUID entitySetId ) {
+        organizations.ensureOrganizationExists( organizationId );
+        ensureRead( organizationId );
+        ensureTransportAccess( new AclKey( entitySetId ) );
+        edms.transportEntitySet( organizationId, entitySetId );
+        return null;
+    }
+
+    @Override
+    @GetMapping( value = ID_PATH + SET_ID_PATH + DESTROY, produces = MediaType.APPLICATION_JSON_VALUE )
+    @ResponseStatus( HttpStatus.OK )
+    public Void destroyTransportedEntitySet( @PathVariable( ID ) UUID organizationId, @PathVariable( SET_ID ) UUID entitySetId ) {
+        organizations.ensureOrganizationExists( organizationId );
+        ensureRead( organizationId );
+        ensureTransportAccess( new AclKey( entitySetId ) );
+        edms.destroyTransportedEntitySet( entitySetId );
         return null;
     }
 
@@ -152,6 +179,16 @@ public class OrganizationsController implements AuthorizingComponent, Organizati
     public OrganizationIntegrationAccount getOrganizationIntegrationAccount( @PathVariable( ID ) UUID organizationId ) {
         ensureOwner( organizationId );
         return assembler.getOrganizationIntegrationAccount( organizationId );
+    }
+
+    @Timed
+    @Override
+    @PatchMapping( value = ID_PATH + INTEGRATION, produces = MediaType.APPLICATION_JSON_VALUE )
+    public OrganizationIntegrationAccount rollOrganizationIntegrationAccount(
+            @PathVariable( ID ) UUID organizationId ) {
+        ensureOwner( organizationId );
+        var account = assembler.rollIntegrationAccount( organizationId, PrincipalType.ORGANIZATION );
+        return new OrganizationIntegrationAccount( account.getUsername(), account.getCredential() );
     }
 
     @Timed
@@ -170,18 +207,18 @@ public class OrganizationsController implements AuthorizingComponent, Organizati
             @PathVariable( ID ) UUID organizationId,
             @RequestBody EnumSet<OrganizationEntitySetFlag> flagFilter ) {
         ensureRead( organizationId );
-        final var orgPrincipal = organizations.getOrganizationPrincipal( organizationId );
-        if( orgPrincipal == null ) {
+        var orgPrincipal = organizations.getOrganizationPrincipal( organizationId );
+        if ( orgPrincipal == null ) {
             return null;
         }
-        final var internal = entitySetManager.getEntitySetsForOrganization( organizationId );
-        final var external = authorizations.getAuthorizedObjectsOfType(
+        var internal = entitySetManager.getEntitySetsForOrganization( organizationId );
+        var external = authorizations.getAuthorizedObjectsOfType(
                 orgPrincipal.getPrincipal(),
                 SecurableObjectType.EntitySet,
                 EnumSet.of( Permission.MATERIALIZE ) );
-        final var materialized = assembler.getMaterializedEntitySetsInOrganization( organizationId );
+        var materialized = assembler.getMaterializedEntitySetsInOrganization( organizationId );
 
-        final Map<UUID, Set<OrganizationEntitySetFlag>> entitySets = new HashMap<>( 2 * internal.size() );
+        Map<UUID, Set<OrganizationEntitySetFlag>> entitySets = new HashMap<>( 2 * internal.size() );
 
         if ( flagFilter.contains( OrganizationEntitySetFlag.INTERNAL ) ) {
             internal.forEach( entitySetId -> entitySets
@@ -243,7 +280,7 @@ public class OrganizationsController implements AuthorizingComponent, Organizati
     public Map<UUID, Set<OrganizationEntitySetFlag>> assembleEntitySets(
             @PathVariable( ID ) UUID organizationId,
             @RequestBody Map<UUID, Integer> refreshRatesOfEntitySets ) {
-        throw new NotImplementedException("DBT will fill this in.");
+        throw new NotImplementedException( "DBT will fill this in." );
     }
 
     @Timed
@@ -252,7 +289,7 @@ public class OrganizationsController implements AuthorizingComponent, Organizati
     public Void synchronizeEdmChanges(
             @PathVariable( ID ) UUID organizationId,
             @PathVariable( SET_ID ) UUID entitySetId ) {
-        throw new NotImplementedException("DBT will fill this in.");
+        throw new NotImplementedException( "DBT will fill this in." );
     }
 
     @Timed
@@ -264,7 +301,7 @@ public class OrganizationsController implements AuthorizingComponent, Organizati
         // the person requesting refresh should be the owner of the organization
         ensureOwner( organizationId );
 
-        throw new NotImplementedException("DBT will fill this in.");
+        throw new NotImplementedException( "DBT will fill this in." );
     }
 
     @Override
@@ -275,7 +312,7 @@ public class OrganizationsController implements AuthorizingComponent, Organizati
             @RequestBody Integer refreshRate ) {
         ensureOwner( organizationId );
 
-        final var refreshRateInMilliSecs = getRefreshRateMillisFromMins( refreshRate );
+        var refreshRateInMilliSecs = getRefreshRateMillisFromMins( refreshRate );
 
         assembler.updateRefreshRate( organizationId, entitySetId, refreshRateInMilliSecs );
         return null;
@@ -403,7 +440,7 @@ public class OrganizationsController implements AuthorizingComponent, Organizati
             value = ID_PATH + PRINCIPALS + MEMBERS )
     public Iterable<OrganizationMember> getMembers( @PathVariable( ID ) UUID organizationId ) {
         ensureRead( organizationId );
-        Set<Principal> members = organizations.getMembers( organizationId );
+        Set<Principal>                 members             = organizations.getMembers( organizationId );
         Collection<SecurablePrincipal> securablePrincipals = principalService.getSecurablePrincipals( members );
         return securablePrincipals
                 .stream()
@@ -457,7 +494,7 @@ public class OrganizationsController implements AuthorizingComponent, Organizati
             produces = MediaType.APPLICATION_JSON_VALUE )
     public Set<Role> getRoles( @PathVariable( ID ) UUID organizationId ) {
         ensureRead( organizationId );
-        Set<Role> roles = organizations.getRoles( organizationId );
+        Set<Role>   roles                 = organizations.getRoles( organizationId );
         Set<AclKey> authorizedRoleAclKeys = getAuthorizedRoleAclKeys( roles );
         return Sets.filter( roles, role -> role != null && authorizedRoleAclKeys.contains( role.getAclKey() ) );
     }
@@ -536,6 +573,7 @@ public class OrganizationsController implements AuthorizingComponent, Organizati
     public Void deleteRole( @PathVariable( ID ) UUID organizationId, @PathVariable( ROLE_ID ) UUID roleId ) {
         ensureRoleAdminAccess( organizationId, roleId );
         ensureObjectCanBeDeleted( roleId );
+        ensureRoleNotUsedByApp( organizationId, roleId );
         principalService.deletePrincipal( new AclKey( organizationId, roleId ) );
         return null;
     }
@@ -608,6 +646,32 @@ public class OrganizationsController implements AuthorizingComponent, Organizati
         return null;
     }
 
+    @Timed
+    @PostMapping( value = PROMOTE + ID_PATH, consumes = MediaType.TEXT_PLAIN_VALUE )
+    @Override
+    public Void promoteStagingTable( @PathVariable( ID ) UUID organizationId, @RequestBody String tableName ) {
+        ensureOwner( organizationId );
+        edms.promoteStagingTable( organizationId, tableName );
+        return null;
+    }
+
+    @Override
+    @GetMapping( value = ID_PATH + DATABASE, produces = MediaType.APPLICATION_JSON_VALUE )
+    public String getOrganizationDatabaseName( @PathVariable( ID ) UUID organizationId ) {
+        ensureRead( organizationId );
+        return organizations.getOrganizationDatabaseName( organizationId );
+    }
+
+    @Override
+    @PatchMapping( value = ID_PATH + DATABASE, consumes = { MediaType.TEXT_PLAIN_VALUE, MediaType.APPLICATION_FORM_URLENCODED_VALUE } )
+    public Void renameOrganizationDatabase(
+            @PathVariable( ID ) UUID organizationId,
+            @RequestBody String newDatabaseName ) {
+        ensureOwner( organizationId );
+        organizations.renameOrganizationDatabase( organizationId, newDatabaseName );
+        return null;
+    }
+
     private void ensureRoleAdminAccess( UUID organizationId, UUID roleId ) {
         ensureOwner( organizationId );
 
@@ -628,6 +692,19 @@ public class OrganizationsController implements AuthorizingComponent, Organizati
 
     private void ensureRead( UUID organizationId ) {
         ensureReadAccess( new AclKey( organizationId ) );
+    }
+
+    private void ensureRoleNotUsedByApp( UUID organizationId, UUID roleId ) {
+        AclKey aclKey = new AclKey( organizationId, roleId );
+        appService.getOrganizationAppsByAppId( organizationId ).forEach( ( appId, appTypeSetting ) -> {
+            appTypeSetting.getRoles().forEach( ( appRoleId, roleAclKey ) -> {
+                if ( roleAclKey.equals( aclKey ) ) {
+                    throw new IllegalArgumentException( "Role " + aclKey.toString()
+                            + " cannot be deleted because it is tied to installation of app " + appId.toString() );
+                }
+            } );
+        } );
+
     }
 
 }

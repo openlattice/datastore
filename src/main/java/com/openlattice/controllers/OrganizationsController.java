@@ -22,6 +22,7 @@ package com.openlattice.controllers;
 
 import com.auth0.json.mgmt.users.User;
 import com.codahale.metrics.annotation.Timed;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import com.openlattice.apps.services.AppService;
@@ -619,6 +620,7 @@ public class OrganizationsController implements AuthorizingComponent, Organizati
     public Void deleteRole( @PathVariable( ID ) UUID organizationId, @PathVariable( ROLE_ID ) UUID roleId ) {
         ensureRoleAdminAccess( organizationId, roleId );
         ensureObjectCanBeDeleted( roleId );
+        ensureRoleIsNotAdminRole( organizationId, roleId );
         ensureRoleNotUsedByApp( organizationId, roleId );
         principalService.deletePrincipal( new AclKey( organizationId, roleId ) );
         return null;
@@ -701,7 +703,9 @@ public class OrganizationsController implements AuthorizingComponent, Organizati
     public Void importMetadata( @PathVariable( ID ) UUID organizationId ) {
         ensureAdminAccess();
         ensureOwner( organizationId );
-        organizationMetadataEntitySetsService.initializeOrganizationMetadataEntitySets( organizationId );
+        AclKey adminRoleAclKey = organizations.getAdminRoleAclKey( organizationId );
+        organizationMetadataEntitySetsService.initializeOrganizationMetadataEntitySets( principalService
+                .getRole( adminRoleAclKey.get( 0 ), adminRoleAclKey.get( 1 ) ) );
 
         var tables = externalDatabaseManagementService
                 .getExternalDatabaseTablesWithColumns( organizationId );
@@ -796,6 +800,13 @@ public class OrganizationsController implements AuthorizingComponent, Organizati
             } );
         } );
 
+    }
+
+    private void ensureRoleIsNotAdminRole( UUID organizationId, UUID roleId ) {
+        AclKey adminRoleAclKey = organizations.getAdminRoleAclKey( organizationId );
+        Preconditions.checkArgument( !roleId.equals( adminRoleAclKey.get( 1 ) ),
+                "Role " + adminRoleAclKey.toString()
+                        + " cannot be deleted because it is the organization's admin role." );
     }
 
 }

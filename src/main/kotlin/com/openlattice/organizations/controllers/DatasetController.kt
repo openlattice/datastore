@@ -150,6 +150,16 @@ class DatasetController : DatasetApi, AuthorizingComponent {
         return edms.getOrganizationExternalDatabaseColumn(columnId)
     }
 
+    @Timed
+    @GetMapping(path = [ID_PATH + TABLE_ID_PATH + SCHEMA_PATH])
+    override fun getExternalDatabaseTableSchema(
+            @PathVariable(ID) organizationId: UUID,
+            @PathVariable(TABLE_ID) tableId: UUID
+    ): String? {
+        ensureReadAccess(AclKey(tableId))
+        return edms.getExternalDatabaseTableSchema(organizationId, tableId)
+    }
+
     //TODO Metadata update probably won't work
     @Timed
     @PatchMapping(path = [ID_PATH + TABLE_NAME_PATH + EXTERNAL_DATABASE_TABLE])
